@@ -1,0 +1,294 @@
+{
+  "source": "Firestore JSON export at sitehub-admin/firebase-export/2026-02-15/",
+  "generated_at": "2026-02-15",
+  "file_references": {
+    "supabase_schema_sql": "migrations/firestore-to-supabase/RECONSTRUCTED_SCHEMA.sql",
+    "supabase_insert_sql": "migrations/firestore-to-supabase/RECONSTRUCTED_INSERT.sql",
+    "rls_policies": "migrations/firestore-to-supabase/RECONSTRUCTED_RLS.sql",
+    "rollback_plan": "migrations/firestore-to-supabase/RECONSTRUCTED_ROLLBACK.sql"
+  },
+  "firestore_collections": {
+    "top_level": {
+      "companies": {
+        "doc_count": 2,
+        "fields": {
+          "id": "string (document ID)",
+          "inviteCode": "string",
+          "createdAt": "timestamp (Firestore)",
+          "name": "string",
+          "updatedAt": "timestamp (optional)"
+        },
+        "document_ids": ["4z4X06S76kEDueYPZxKg", "iQlyANp6sZVztRrAeJGr"]
+      },
+      "users": {
+        "doc_count": 4,
+        "fields": {
+          "id": "string (document ID)",
+          "uid": "string (Firebase Auth UID)",
+          "companyId": "string (ref -> companies)",
+          "email": "string",
+          "role": "string (ADMIN, SUPERUSER, WORKER)",
+          "profileId": "string (ref -> profiles)",
+          "disabled": "boolean",
+          "approved": "boolean",
+          "superuser": "boolean",
+          "status": "string",
+          "name": "string",
+          "displayName": "string|null",
+          "phone": "string",
+          "notes": "string",
+          "bio": "string",
+          "avatar": "string|null",
+          "location": "string",
+          "fcmToken": "string",
+          "preInductionStatus": "string",
+          "adminPreInductionOverride": "boolean",
+          "complianceScore": "integer|null",
+          "lastLogin": "timestamp",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp",
+          "dateOfBirth": "string|timestamp",
+          "addressLine1": "string",
+          "town": "string",
+          "postcode": "string",
+          "emergencyContactName": "string",
+          "emergencyContactPhone": "string",
+          "nationalInsurance": "string",
+          "niNumber": "string",
+          "utr": "string",
+          "utrNumber": "string",
+          "jobTitle": "string",
+          "editHistory": "array",
+          "setupComplete": "boolean",
+          "notificationsEnabled": "boolean",
+          "biometricEnabled": "boolean",
+          "darkMode": "boolean",
+          "photoURL": "string|null",
+          "lastSeen": "timestamp",
+          "timestamp": "timestamp",
+          "action": "string",
+          "UID2": "string"
+        },
+        "document_ids": ["Dm6DoolWXHRScr4jyhuQDGzZD4z1", "N5msItCZdPZ2tAVhD2zLEQRY5Pc2", "W1BARv21DgaxKN6vrYdzb5wMRaY2", "jEjtULRIQyXGmtDh5DnHuG6Kouf1"]
+      },
+      "sites": {
+        "doc_count": 4,
+        "fields": {
+          "id": "string",
+          "companyId": "string (ref -> companies)",
+          "name": "string",
+          "location": "object { address, lat, lng }",
+          "geofence": "object { center, radiusMeters, polygon }",
+          "latitude": "number",
+          "longitude": "number",
+          "radiusMeters": "number|null",
+          "showOnMap": "boolean",
+          "active": "boolean",
+          "managerId": "string|null",
+          "createdAt": "timestamp"
+        },
+        "subcollections": ["subcontractors", "assignedOperatives", "deliveries"]
+      },
+      "tasks": {
+        "doc_count": 1,
+        "fields": {
+          "id": "string",
+          "title": "string",
+          "description": "string",
+          "createdAt": "timestamp",
+          "status": "string",
+          "companyId": "string (ref -> companies)",
+          "siteId": "string|null (optional, ref -> sites)"
+        }
+      },
+      "notices": {
+        "doc_count": 1,
+        "fields": {
+          "id": "string",
+          "title": "string",
+          "body": "string",
+          "createdAt": "timestamp",
+          "companyId": "string (ref -> companies)",
+          "siteId": "string|null (optional)"
+        }
+      },
+      "deliveries": {
+        "doc_count": 3,
+        "fields": {
+          "id": "string",
+          "createdBy": "string (ref -> users)",
+          "podUrl": "string|null",
+          "loadUrl": "string|null",
+          "wholesaler": "string",
+          "createdAt": "timestamp",
+          "companyId": "string|null",
+          "status": "string",
+          "reference": "string|null",
+          "site": "string|null",
+          "siteId": "string|null (ref -> sites)",
+          "notes": "string|null",
+          "scheduledAt": "timestamp|null"
+        }
+      },
+      "profiles": {
+        "doc_count": 1,
+        "fields": {
+          "id": "string",
+          "userId": "string (ref -> users)",
+          "addressLine1": "string",
+          "town": "string",
+          "postcode": "string",
+          "emergencyContactName": "string",
+          "emergencyContactPhone": "string",
+          "jobTitle": "string",
+          "nationalInsurance": "string",
+          "niNumber": "string",
+          "utr": "string",
+          "utrNumber": "string",
+          "dateOfBirth": "string",
+          "updatedAt": "timestamp"
+        },
+        "subcollections": ["certifications", "training"]
+      },
+      "settings": {
+        "doc_count": 2,
+        "fields": {
+          "id": "string (userId or custom key)",
+          "display": "object { dateFormat, timeFormat, language, darkMode }",
+          "updatedAt": "timestamp",
+          "companyId": "string"
+        }
+      },
+      "registrations": {
+        "doc_count": 16,
+        "fields": {
+          "id": "string",
+          "email": "string",
+          "name": "string",
+          "companyId": "string (ref -> companies)",
+          "companyName": "string",
+          "createdAt": "timestamp",
+          "role": "string|null",
+          "rejectedAt": "timestamp|null",
+          "approvedAt": "timestamp|null",
+          "status": "string (PENDING|APPROVED|REJECTED)"
+        }
+      },
+      "attendance": { "doc_count": 0, "fields_from_rules": "userId, companyId, siteId, action, timestamp" },
+      "rams": { "doc_count": 0, "fields_from_rules": "companyId, siteId" },
+      "briefings": { "doc_count": 0, "fields_from_rules": "companyId, siteId" },
+      "notices_read": { "doc_count": 0 },
+      "upload_logs": { "doc_count": 0 }
+    },
+    "subcollections": {
+      "users__profile": {
+        "path": "users/{userId}/profile",
+        "doc_count": 3,
+        "structure": "Single doc 'data' per user with profile fields",
+        "fields": {
+          "emergencyContactPhone": "string",
+          "emergencyContactName": "string",
+          "editHistory": "array",
+          "jobTitle": "string",
+          "niNumber": "string",
+          "dateOfBirth": "string",
+          "updatedAt": "timestamp",
+          "utrNumber": "string"
+        }
+      },
+      "users__preInductionProfile": {
+        "path": "users/{userId}/preInductionProfile",
+        "doc_count": 1,
+        "sections": ["personal", "declarations", "rightToWork", "medical", "certifications", "training"],
+        "personal": {
+          "supervisorName": "string",
+          "address": "string",
+          "emergencyContactName": "string",
+          "emergencyContactRelationship": "string",
+          "fullName": "string",
+          "dateOfBirth": "string",
+          "utrNumber": "string",
+          "emergencyContactPhone": "string",
+          "trade": "string",
+          "phone": "string",
+          "nationalInsuranceNumber": "string",
+          "payrollNumber": "string",
+          "jobRole": "string",
+          "employerCompanyId": "string",
+          "email": "string",
+          "updatedAt": "timestamp"
+        },
+        "declarations": {
+          "operativeDeclarationAccepted": "boolean",
+          "notes": "string|null",
+          "operativeSignatureUrl": "string|null",
+          "supervisorDeclarationAcceptedAt": "timestamp",
+          "operativeDeclarationAcceptedAt": "timestamp",
+          "supervisorDeclarationAccepted": "boolean",
+          "updatedAt": "timestamp"
+        }
+      },
+      "profiles__certifications": {
+        "path": "profiles/{profileId}/certifications",
+        "doc_count": 1,
+        "fields_per_doc": {
+          "id": "string",
+          "title": "string",
+          "issueDate": "timestamp|null",
+          "expiryDate": "timestamp|null",
+          "attachmentUrl": "string",
+          "attachmentType": "string",
+          "issuer": "string",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      },
+      "profiles__training": {
+        "path": "profiles/{profileId}/training",
+        "doc_count": 1,
+        "fields_per_doc": {
+          "id": "string",
+          "title": "string",
+          "issueDate": "timestamp|null",
+          "expiryDate": "timestamp|null",
+          "attachmentUrl": "string",
+          "attachmentType": "string",
+          "issuer": "string",
+          "completedAt": "timestamp|null",
+          "createdAt": "timestamp",
+          "updatedAt": "timestamp"
+        }
+      }
+    }
+  },
+  "relationships": {
+    "foreign_keys": [
+      { "table": "users", "column": "company_id", "ref": "companies.id" },
+      { "table": "users", "column": "profile_id", "ref": "profiles.id" },
+      { "table": "sites", "column": "company_id", "ref": "companies.id" },
+      { "table": "sites", "column": "manager_id", "ref": "users.id" },
+      { "table": "tasks", "column": "company_id", "ref": "companies.id" },
+      { "table": "tasks", "column": "site_id", "ref": "sites.id" },
+      { "table": "notices", "column": "company_id", "ref": "companies.id" },
+      { "table": "notices", "column": "site_id", "ref": "sites.id" },
+      { "table": "deliveries", "column": "company_id", "ref": "companies.id" },
+      { "table": "deliveries", "column": "site_id", "ref": "sites.id" },
+      { "table": "deliveries", "column": "created_by", "ref": "users.id" },
+      { "table": "profiles", "column": "user_id", "ref": "users.id" },
+      { "table": "profile_certifications", "column": "profile_id", "ref": "profiles.id" },
+      { "table": "profile_training", "column": "profile_id", "ref": "profiles.id" },
+      { "table": "registrations", "column": "company_id", "ref": "companies.id (no FK - many refs to companies not in export)" }
+    ],
+    "implicit_refs": [
+      "users.companyId -> companies",
+      "sites.companyId -> companies",
+      "tasks.companyId -> companies",
+      "deliveries.createdBy -> users (Firebase UID)",
+      "profiles.userId -> users (Firebase UID)"
+    ]
+  },
+  "supabase_schema_sql": "See migrations/firestore-to-supabase/RECONSTRUCTED_SCHEMA.sql for full DDL. Summary: firestore_companies, firestore_users, firestore_sites, firestore_profiles, firestore_tasks, firestore_notices, firestore_deliveries, firestore_settings, firestore_registrations; subcollections: firestore_user_profile, firestore_pre_induction_personal, firestore_pre_induction_declarations, firestore_profile_certifications, firestore_profile_training; empty: firestore_attendance, firestore_rams, firestore_briefings. All ids TEXT to preserve Firestore document IDs.",
+  "supabase_insert_sql": "See migrations/firestore-to-supabase/RECONSTRUCTED_INSERT.sql for full INSERT statements. Order: companies(2), users(4), sites(4), profiles(1), tasks(1), notices(1), deliveries(3), settings(2), registrations(16), user_profile(3), pre_induction_personal(1), pre_induction_declarations(1), profile_certifications(1), profile_training(1). Uses ON CONFLICT DO NOTHING.",
+  "rls_policies": "See migrations/firestore-to-supabase/RECONSTRUCTED_RLS.sql. Equivalent to Firestore rules: company-scoped (companies, sites, tasks, notices, deliveries, settings); user-scoped (users, profiles, user_profile, pre_induction); registrations authenticated only. Helpers: auth_is_superuser(), auth_company_id() from auth.jwt() claims.",
+  "rollback_plan": "See migrations/firestore-to-supabase/RECONSTRUCTED_ROLLBACK.sql. Drops all RLS policies, auth helpers, and firestore_* tables in reverse dependency order."
+}

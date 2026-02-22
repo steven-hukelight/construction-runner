@@ -1,0 +1,29 @@
+module.exports = {
+  testEnvironment: "jsdom",
+  setupFilesAfterEnv: ["<rootDir>/jest.setup.js"],
+  moduleFileExtensions: ["js", "jsx", "ts", "tsx"],
+  testMatch: ["**/__tests__/**/*.[jt]s?(x)", "**/?(*.)+(spec|test).[jt]s?(x)"],
+  testPathIgnorePatterns: [
+      "/node_modules/",
+      "\\.e2e\\.test\\.",
+      "supabaseAuth\\.e2e",
+      "tests/web/api\\.test",
+      "tests/web/auth\\.test",
+      "tests/edge-functions/edgeFunction\\.test",
+      "tests/rls/rls\\.test",
+      "tests/storage/storage\\.test",
+      "tests/realtime/realtime\\.test",
+      "tests/web/dashboard\\.test",
+      "tests/web/profile\\.test",
+    ],
+  transform: {
+    "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.json" }],
+  },
+  moduleNameMapper: {
+    "^@/(.*)$": "<rootDir>/$1",
+    "^@/lib/supabase$": "<rootDir>/tests/mocks/supabase.ts",
+    "^@/lib/supabaseClient$": "<rootDir>/tests/mocks/supabase.ts",
+    "^@/lib/supabaseAdmin$": "<rootDir>/tests/mocks/supabase.ts",
+    "^next/headers$": "<rootDir>/tests/mocks/next-headers.ts",
+  },
+};

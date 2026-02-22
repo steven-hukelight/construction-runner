@@ -1,0 +1,5 @@
+// This file is obsolete. Firebase Storage rules are no longer used. All storage access is now managed by Supabase RLS and bucket policies.
+      );
+    }
+  }
+}

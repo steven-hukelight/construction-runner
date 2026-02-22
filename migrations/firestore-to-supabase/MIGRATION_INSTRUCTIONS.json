@@ -1,0 +1,70 @@
+{
+  "schema_cleanup_sql": "See PHASE1_SCHEMA_CLEANUP.sql - Execute in order: (1) backfill snake_case from camelCase where NULL, (2) DROP duplicate columns, (3) ADD missing FKs, (4) ADD/recreate indexes.",
+  "firebase_to_supabase_insert_sql": "See PHASE2_FIREBASE_INSERT.sql - Prerequisite: PHASE1 applied, firebase_staging schema populated. Execute after creating firebase_staging and loading Firebase export.",
+  "staging_schema_sql": "See FIREBASE_STAGING_SCHEMA.sql - Create firebase_staging schema and tables before populating from Firebase export.",
+
+  "mapping_tables": {
+    "firebase_export_to_staging": {
+      "companies": "Firebase companies collection → firebase_staging.companies (id, name, created_at)",
+      "users": "Firebase users collection → firebase_staging.users (id, email, company_id, role, profile_id, status, created_at, disabled, approved, superuser)",
+      "sites": "Firebase sites collection → firebase_staging.sites (id, company_id, name, created_at, assigned_users, rams_version, main_contractor_id, location, geofence, latitude, longitude, radius_meters)",
+      "attendance": "Firebase attendance collection → firebase_staging.attendance (id, user_id, site_id, company_id, action, timestamp, latitude, longitude, accuracy, email)",
+      "tasks": "Firebase tasks collection → firebase_staging.tasks",
+      "notices": "Firebase notices collection → firebase_staging.notices",
+      "deliveries": "Firebase deliveries collection → firebase_staging.deliveries",
+      "rams": "Firebase rams collection → firebase_staging.rams",
+      "briefings": "Firebase briefings collection → firebase_staging.briefings",
+      "coshh": "Firebase coshh collection → firebase_staging.coshh",
+      "safetyAlerts": "Firebase safetyAlerts collection → firebase_staging.safety_alerts",
+      "siteRules": "Firebase siteRules/{companyId} docs → firebase_staging.site_rules_docs (company_id, rules jsonb array)",
+      "sites.siteId.assignedOperatives": "sites/{siteId}/assignedOperatives/{operativeId} → firebase_staging.assigned_operatives (site_id, user_id, assigned_at)",
+      "sites.siteId.subcontractors": "sites/{siteId}/subcontractors/{companyId} → firebase_staging.site_subcontractors (site_id, company_id, linked_at)",
+      "users.uid.briefingAcknowledgements": "users/{uid}/briefingAcknowledgements/{briefingId} → firebase_staging.briefing_acks",
+      "profiles.profileId.certifications": "profiles/{profileId}/certifications/{docId} → firebase_staging.certifications",
+      "profiles.profileId.training": "profiles/{profileId}/training/{docId} → firebase_staging.training",
+      "users.uid.profile.data": "users/{uid}/profile/data → firebase_staging.user_profile_data",
+      "users.uid.preInductionProfile.personal": "users/{uid}/preInductionProfile/personal → firebase_staging.pre_induction_personal",
+      "users.uid.preInductionProfile.rightToWork": "users/{uid}/preInductionProfile/rightToWork → firebase_staging.pre_induction_right_to_work",
+      "users.uid.preInductionProfile.certifications": "users/{uid}/preInductionProfile/certifications → firebase_staging.pre_induction_certifications",
+      "users.uid.preInductionProfile.medical": "users/{uid}/preInductionProfile/medical → firebase_staging.pre_induction_medical",
+      "users.uid.preInductionProfile.training": "users/{uid}/preInductionProfile/training → firebase_staging.pre_induction_training",
+      "users.uid.preInductionProfile.declarations": "users/{uid}/preInductionProfile/declarations → firebase_staging.pre_induction_declarations",
+      "users.uid.siteInductions": "users/{uid}/siteInductions/{siteId} → firebase_staging.user_site_inductions",
+      "notices_read": "notices_read or users/{uid}/noticesRead → firebase_staging.notices_read",
+      "settings": "settings/global, settings/{companyId} → firebase_staging.settings",
+      "medical_records": "User medical uploads → firebase_staging.medical_records",
+      "upload_logs": "Upload audit → firebase_staging.upload_logs"
+    },
+    "id_mapping": {
+      "when_firebase_id_differs_from_supabase": "Create firebase_id_mapping table: (firebase_id text, supabase_id uuid) for users/sites if Firebase doc IDs do not match existing Supabase UUIDs. Use firebase_uid column on users for Auth UID.",
+      "preserve_supabase_test_data": "ON CONFLICT (id) DO NOTHING on companies, users, sites. WHERE NOT EXISTS on child tables. No UPDATE that overwrites."
+    }
+  },
+
+  "migration_completed": "2026-02-15 - Phase 1 (schema cleanup), firebase_staging creation, and Phase 2 (INSERT) executed. No Firebase JSON files were present; staging tables were empty. Existing Supabase data preserved. RLS policies updated for canonical columns.",
+
+  "execution_order": [
+    "1. Review and approve PHASE1_SCHEMA_CLEANUP.sql",
+    "2. Execute PHASE1_SCHEMA_CLEANUP.sql (backfill, drop dupes, add FKs, indexes)",
+    "3. Export Firebase data to JSON/CSV using Firebase Admin export or custom script",
+    "4. Run FIREBASE_STAGING_SCHEMA.sql to create firebase_staging",
+    "5. Populate firebase_staging tables from Firebase export (transform timestamps to ISO8601 or epoch)",
+    "6. Execute PHASE2_FIREBASE_INSERT.sql",
+    "7. Validate: row counts, FK integrity, spot-check key records"
+  ],
+
+  "notes": [
+    "No destructive operations included - no DELETE, no TRUNCATE",
+    "All Supabase test data preserved via ON CONFLICT DO NOTHING and WHERE NOT EXISTS",
+    "All Firebase IDs preserved as UUIDs where document ID is used",
+    "All duplicate columns resolved safely - backfill before drop",
+    "Firestore Timestamp: export as epoch seconds (numeric) or ISO8601 string; regex ~ '^\\d+$' detects epoch",
+    "Arrays and nested objects: export as JSON text, cast to jsonb in INSERT",
+    "site_rules: Firebase has one doc per company with rules[] array; transform to one row per rule",
+    "assigned_operatives: Firebase doc ID = operativeId; Supabase needs generated uuid for id column",
+    "site_subcontractors: Composite PK (site_id, company_id); no separate id",
+    "pre_induction_*: ON CONFLICT (user_id) DO NOTHING preserves existing Supabase pre-induction data",
+    "briefing_acknowledgements: Add FK to briefings in Phase 1 before migration",
+    "Optional: Add firebase_id_mapping table if Firebase and Supabase use different ID schemes"
+  ]
+}

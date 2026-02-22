@@ -1,0 +1,16 @@
+{
+  "name": "supabase-project",
+  "private": true,
+  "scripts": {
+    "import-firebase": "node scripts/import-firebase-export.cjs",
+    "drift-audit": "node scripts/drift-audit.mjs",
+    "validate:schema": "node scripts/drift-audit.mjs --schema-file=sitehub-admin/live_schema.json",
+    "test:snapshots": "npm run test:snapshots --prefix sitehub-admin && (cd sitehub_worker_Ready && flutter test test/widget_snapshots_test.dart)",
+    "update-snapshots": "npm run update-snapshots --prefix sitehub-admin && (cd sitehub_worker_Ready && flutter test test/widget_snapshots_test.dart --update-goldens)"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.0.0",
+    "dotenv": "^16.0.0",
+    "pg": "^8.11.0"
+  }
+}

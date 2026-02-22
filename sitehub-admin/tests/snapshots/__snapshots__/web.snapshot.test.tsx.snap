@@ -1,0 +1,471 @@
+// Jest Snapshot v1, https://goo.gl/fbAQLP
+
+exports[`Web snapshot tests AssetTableRows matches snapshot 1`] = `
+<div>
+  <table
+    class="w-full border-collapse"
+  >
+    <thead>
+      <tr
+        class="border-b border-gray-200"
+      >
+        <th
+          class="text-left p-2"
+        >
+          Name
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Type
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Serial
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Status
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          Safety Helmet #42
+        </td>
+        <td
+          class="p-2"
+        >
+          PPE
+        </td>
+        <td
+          class="p-2"
+        >
+          SH-2024-001
+        </td>
+        <td
+          class="p-2"
+        >
+          active
+        </td>
+      </tr>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          High-Vis Vest
+        </td>
+        <td
+          class="p-2"
+        >
+          PPE
+        </td>
+        <td
+          class="p-2"
+        >
+          —
+        </td>
+        <td
+          class="p-2"
+        >
+          active
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+
+exports[`Web snapshot tests DeliveryTableRows matches snapshot 1`] = `
+<div>
+  <table
+    class="w-full border-collapse"
+  >
+    <thead>
+      <tr
+        class="border-b border-gray-200"
+      >
+        <th
+          class="text-left p-2"
+        >
+          Reference
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Site
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Status
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Scheduled
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          REF-12345
+        </td>
+        <td
+          class="p-2"
+        >
+          Main Site
+        </td>
+        <td
+          class="p-2"
+        >
+          PENDING
+        </td>
+        <td
+          class="p-2"
+        >
+          21/02/2025
+        </td>
+      </tr>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          REF-12346
+        </td>
+        <td
+          class="p-2"
+        >
+          Building B
+        </td>
+        <td
+          class="p-2"
+        >
+          DELIVERED
+        </td>
+        <td
+          class="p-2"
+        >
+          20/02/2025
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+
+exports[`Web snapshot tests MessagingMessageList matches snapshot 1`] = `
+<div>
+  <div
+    class="p-4 space-y-3"
+  >
+    <div
+      class="border border-gray-200 rounded p-3"
+    >
+      <div
+        class="text-xs text-slate-500 mb-1"
+      >
+        John Smith
+         • 
+        21/02/2025, 10:05:00
+      </div>
+      <div>
+        Hello, when is the delivery?
+      </div>
+    </div>
+    <div
+      class="border border-gray-200 rounded p-3"
+    >
+      <div
+        class="text-xs text-slate-500 mb-1"
+      >
+        Jane Doe
+         • 
+        21/02/2025, 10:06:00
+      </div>
+      <div>
+        Expected by 3pm today.
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Web snapshot tests MessagingThreadList matches snapshot 1`] = `
+<div>
+  <div
+    class="w-full md:w-80 border border-gray-200"
+  >
+    <div
+      class="p-4 border-b border-gray-200"
+    >
+      <h3
+        class="font-semibold"
+      >
+        Inbox
+      </h3>
+      <p
+        class="text-sm text-slate-500"
+      >
+        2
+         thread(s)
+      </p>
+    </div>
+    <div>
+      <div
+        class="px-4 py-3 border-b border-gray-100 bg-blue-50 border-l-4 border-l-blue-600"
+      >
+        <div
+          class="font-medium truncate"
+        >
+          Hello, when is the delivery?
+        </div>
+        <div
+          class="text-xs text-slate-500"
+        >
+          21/02/2025, 10:05
+        </div>
+      </div>
+      <div
+        class="px-4 py-3 border-b border-gray-100 "
+      >
+        <div
+          class="font-medium truncate"
+        >
+          Safety briefing completed
+        </div>
+        <div
+          class="text-xs text-slate-500"
+        >
+          20/02/2025, 14:30
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Web snapshot tests PreInductionAdminView matches snapshot 1`] = `
+<div>
+  <div
+    class="space-y-4"
+  >
+    <h2
+      class="text-xl font-semibold"
+    >
+      Pre-Induction
+    </h2>
+    <div
+      class="grid gap-2"
+    >
+      <div
+        class="border border-gray-200 rounded p-4 flex justify-between items-center"
+      >
+        <span
+          class="font-medium capitalize"
+        >
+          personal
+        </span>
+        <span
+          class="text-sm text-slate-500"
+        >
+          Complete
+        </span>
+      </div>
+      <div
+        class="border border-gray-200 rounded p-4 flex justify-between items-center"
+      >
+        <span
+          class="font-medium capitalize"
+        >
+          competency Card
+        </span>
+        <span
+          class="text-sm text-slate-500"
+        >
+          Complete
+        </span>
+      </div>
+      <div
+        class="border border-gray-200 rounded p-4 flex justify-between items-center"
+      >
+        <span
+          class="font-medium capitalize"
+        >
+          certifications
+        </span>
+        <span
+          class="text-sm text-slate-500"
+        >
+          Complete
+        </span>
+      </div>
+      <div
+        class="border border-gray-200 rounded p-4 flex justify-between items-center"
+      >
+        <span
+          class="font-medium capitalize"
+        >
+          declarations
+        </span>
+        <span
+          class="text-sm text-slate-500"
+        >
+          Pending
+        </span>
+      </div>
+    </div>
+  </div>
+</div>
+`;
+
+exports[`Web snapshot tests RAMSList matches snapshot 1`] = `
+<div>
+  <table
+    class="w-full border-collapse"
+  >
+    <thead>
+      <tr
+        class="border-b border-gray-200"
+      >
+        <th
+          class="text-left p-2"
+        >
+          Title
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Status
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Version
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          <a
+            class="text-blue-600 hover:underline"
+            href="/dashboard/health-and-safety/rams/r1"
+          >
+            Excavation RAMS
+          </a>
+        </td>
+        <td
+          class="p-2"
+        >
+          APPROVED
+        </td>
+        <td
+          class="p-2"
+        >
+          1.0
+        </td>
+      </tr>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          <a
+            class="text-blue-600 hover:underline"
+            href="/dashboard/health-and-safety/rams/r2"
+          >
+            Working at Height RAMS
+          </a>
+        </td>
+        <td
+          class="p-2"
+        >
+          PENDING
+        </td>
+        <td
+          class="p-2"
+        >
+          2.1
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;
+
+exports[`Web snapshot tests TaskTableRows matches snapshot 1`] = `
+<div>
+  <table
+    class="w-full border-collapse"
+  >
+    <thead>
+      <tr
+        class="border-b border-gray-200"
+      >
+        <th
+          class="text-left p-2"
+        >
+          Title
+        </th>
+        <th
+          class="text-left p-2"
+        >
+          Status
+        </th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          Complete safety briefing
+        </td>
+        <td
+          class="p-2"
+        >
+          OPEN
+        </td>
+      </tr>
+      <tr
+        class="border-b border-gray-100"
+      >
+        <td
+          class="p-2"
+        >
+          Inspect scaffolding
+        </td>
+        <td
+          class="p-2"
+        >
+          DONE
+        </td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+`;

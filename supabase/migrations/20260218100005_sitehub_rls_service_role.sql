@@ -1,0 +1,3 @@
+-- SiteHub: RLS policies for service_role bypass (API uses supabaseAdmin)
+-- Service role bypasses RLS by default; these are for clarity/documentation.
+-- Skip if policies already exist to avoid conflicts.

@@ -1,0 +1,9 @@
+[sites] Migration complete. Updated: 0
+[operatives] Migration complete. Updated: 0
+[attendance] Migration complete. Updated: 0
+[tasks] Migration complete. Updated: 0
+[notices] Migration complete. Updated: 0
+[deliveries] Migration complete. Updated: 0
+[rams] Migration complete. Updated: 0
+[certifications] Migration complete. Updated: 0
+Migration finished.

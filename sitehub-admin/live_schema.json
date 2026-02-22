@@ -1,0 +1,4236 @@
+[
+  {
+    "schema_json": {
+      "tables": {
+        "profile_certifications": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "profile_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "issuer": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "issue_date": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            },
+            "expiry_date": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            },
+            "attachment_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "attachment_type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_profile_certifications",
+              "cmd": "ALL"
+            }
+          ]
+        },
+        "profile_training": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "profile_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "issuer": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "issue_date": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            },
+            "expiry_date": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            },
+            "attachment_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "attachment_type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "completed_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_profile_training",
+              "cmd": "ALL"
+            }
+          ]
+        },
+        "notices_read": {
+          "columns": {
+            "notice_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "read_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_notices_read",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_notices_read",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_notices_read",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_notices_read",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "tasks": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "assigned_to": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "description": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_tasks",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_tasks",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_tasks",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_tasks",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "registrations": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "approved_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "rejected_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_registrations",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_registrations",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_registrations",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_registrations",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "upload_logs": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "action": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "metadata": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_upload_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_upload_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_upload_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_upload_logs",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "messages": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "sender_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "sender_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "content": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "thread_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "supervisor_company_rw_messages",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_messages",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "superuser_all_access_messages",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_messages",
+              "cmd": "ALL"
+            }
+          ]
+        },
+        "rams": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "version": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_rams",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_rams",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_rams",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_rams",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "assets": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "description": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_assets",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_assets",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_assets",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_assets",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "offline_sync_log": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "content": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "synced_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_offline_sync_log",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_offline_sync_log",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_offline_sync_log",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_offline_sync_log",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "user_profile_data": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "userid": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "address": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "town": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "postcode": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "date_of_birth": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "job_title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "jobtitle": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "national_insurance": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "nationalinsurance": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "utr": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "cscs_number": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_user_profile_data",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_user_profile_data",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_user_profile_data",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_user_profile_data",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "briefings": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "file_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "uploaded_by": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_briefings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_briefings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_briefings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_briefings",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "site_subcontractors": {
+          "columns": {
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_site_subcontractors",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_site_subcontractors",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_site_subcontractors",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_site_subcontractors",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "message_threads": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "created_by": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_message_threads",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_message_threads",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_message_threads",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_message_threads",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "messages_thread": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "thread_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "sender_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "attachment_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_messages_thread",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_messages_thread",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_messages_thread",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_messages_thread",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "briefing_acknowledgements": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "briefing_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "acknowledged_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "signature_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_briefing_acknowledgements",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_briefing_acknowledgements",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_briefing_acknowledgements",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_briefing_acknowledgements",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "safety_alerts": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "description": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "severity": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "expires_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_safety_alerts",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_safety_alerts",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_safety_alerts",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_safety_alerts",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "message_recipients": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "thread_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_message_recipients",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_message_recipients",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_message_recipients",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_message_recipients",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "pre_induction_certifications": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "certifications": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "pre_induction_medical": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "allergies": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "medication": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "medical_declaration": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "fit_to_work": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "medical_certificate_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "medical_verified": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "user_devices": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "fcm_token": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "platform": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "topic": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "coshh": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_coshh",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_coshh",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_coshh",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_coshh",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "task_assignments": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "task_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": false
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_task_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_task_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_task_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_task_assignments",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "audit_logs": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "action": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "timestamp": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": false
+            },
+            "actor_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "actor_email": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "metadata": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_audit_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_audit_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_audit_logs",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_audit_logs",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "site_rules": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "category": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_site_rules",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_site_rules",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_site_rules",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_site_rules",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "user_pre_induction_profile": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "operative_update_pre_induction",
+              "cmd": "UPDATE"
+            },
+            {
+              "name": "superuser_all_access_user_pre_induction_profile",
+              "cmd": "ALL"
+            }
+          ]
+        },
+        "invite_codes": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "main_contractor_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "role": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "pre_induction_competency_card": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "card_number": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "expiry": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "file_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "card_type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "Allow read competency card",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "Allow insert competency card",
+              "cmd": "INSERT"
+            },
+            {
+              "name": "Allow update competency card",
+              "cmd": "UPDATE"
+            }
+          ]
+        },
+        "user_site_inductions": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "completed_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "grandfathered": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_user_site_inductions",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_user_site_inductions",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_user_site_inductions",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_user_site_inductions",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "notices": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "body": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "attachments": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_notices",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_notices",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_notices",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_notices",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "deliveries": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_by": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "wholesaler": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "reference": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "pod_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "load_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "scheduled_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "delivered_by": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "proof_photos": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_deliveries",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_deliveries",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_deliveries",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_deliveries",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "pre_induction_personal": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "full_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "email": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "address": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_relationship": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "national_insurance": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "utr": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "date_of_birth": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "pre_induction_right_to_work": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "passport_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "passport_expiry": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "visa_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "visa_expiry": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "share_code": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "proof_of_address_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "right_to_work_verified": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "pre_induction_training": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "rams_required_version": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "rams_required_version_by_site": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "rams_version": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "rams_accepted": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "rams_accepted_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "training_records": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "pre_induction_declarations": {
+          "columns": {
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "data": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "operative_signature_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "operative_declaration_accepted_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "supervisor_declaration_accepted": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "supervisor_declaration_accepted_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "operative_declaration_accepted": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": false,
+          "policies": []
+        },
+        "attendance": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "timestamp": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "latitude": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "longitude": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "accuracy": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "email": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_attendance",
+              "cmd": "ALL"
+            }
+          ]
+        },
+        "assigned_operatives": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "site_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "assigned_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "userid": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "assignedat": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_assigned_operatives",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_assigned_operatives",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_assigned_operatives",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_assigned_operatives",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "settings": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "key": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "value": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "companyid": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "config": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "display": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "companyId": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_settings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_settings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_settings",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_settings",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "user_company_roles": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "role": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "placeholder",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "companies": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "invite_code": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_companies",
+              "cmd": "ALL"
+            },
+            {
+              "name": "placeholder",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "users": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "firebase_uid": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "email": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "display_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "role": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "admin_pre_induction_override": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "pre_induction_status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "status": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "disabled": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "approved": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "superuser": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "bio": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "avatar": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "compliance_score": {
+              "data_type": "integer",
+              "udt_name": "int4",
+              "is_nullable": true
+            },
+            "last_login": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access",
+              "cmd": "ALL"
+            },
+            {
+              "name": "superuser_all_access_users",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_users",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_users",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_users",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "user_read_self",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "user_no_update_role",
+              "cmd": "UPDATE"
+            },
+            {
+              "name": "placeholder",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "sites": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "company_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "address": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "location": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "geofence": {
+              "data_type": "jsonb",
+              "udt_name": "jsonb",
+              "is_nullable": true
+            },
+            "latitude": {
+              "data_type": "numeric",
+              "udt_name": "numeric",
+              "is_nullable": true
+            },
+            "longitude": {
+              "data_type": "numeric",
+              "udt_name": "numeric",
+              "is_nullable": true
+            },
+            "radius_meters": {
+              "data_type": "numeric",
+              "udt_name": "numeric",
+              "is_nullable": true
+            },
+            "show_on_map": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "active": {
+              "data_type": "boolean",
+              "udt_name": "bool",
+              "is_nullable": true
+            },
+            "manager_id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "rams_version": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "ramsversion": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "admin_company_access",
+              "cmd": "ALL"
+            },
+            {
+              "name": "superuser_all_access_sites",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_sites",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_sites",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_sites",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "placeholder",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "asset_assignments": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "asset_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "assigned_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_asset_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_asset_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_asset_assignments",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_asset_assignments",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "profiles": {
+          "columns": {
+            "id": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "utr": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "utr_number": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "national_insurance": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "ni_number": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "date_of_birth": {
+              "data_type": "date",
+              "udt_name": "date",
+              "is_nullable": true
+            },
+            "address_line1": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "town": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "postcode": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "job_title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "emergency_contact_phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "phone": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "operative_read_own_profile",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "superuser_all_access_profiles",
+              "cmd": "ALL"
+            },
+            {
+              "name": "profiles_select_own",
+              "cmd": "SELECT"
+            },
+            {
+              "name": "profiles_update_own",
+              "cmd": "UPDATE"
+            }
+          ]
+        },
+        "certifications": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "profile_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": true
+            },
+            "type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "issuer": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "issued_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "expires_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "attachment_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "attachment_type": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_certifications",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_certifications",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_certifications",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_certifications",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "medical_records": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "title": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "file_name": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "file_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "storage_path": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            },
+            "updated_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_medical_records",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_medical_records",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_medical_records",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_medical_records",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "asset_inspections": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "asset_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "user_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "notes": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "photo_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": true
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_asset_inspections",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_asset_inspections",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_asset_inspections",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_asset_inspections",
+              "cmd": "SELECT"
+            }
+          ]
+        },
+        "asset_documents": {
+          "columns": {
+            "id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "asset_id": {
+              "data_type": "uuid",
+              "udt_name": "uuid",
+              "is_nullable": false
+            },
+            "file_url": {
+              "data_type": "text",
+              "udt_name": "text",
+              "is_nullable": false
+            },
+            "created_at": {
+              "data_type": "timestamp with time zone",
+              "udt_name": "timestamptz",
+              "is_nullable": true
+            }
+          },
+          "rls_enabled": true,
+          "policies": [
+            {
+              "name": "superuser_all_access_asset_documents",
+              "cmd": "ALL"
+            },
+            {
+              "name": "admin_company_rw_asset_documents",
+              "cmd": "ALL"
+            },
+            {
+              "name": "supervisor_company_rw_asset_documents",
+              "cmd": "ALL"
+            },
+            {
+              "name": "operative_company_read_asset_documents",
+              "cmd": "SELECT"
+            }
+          ]
+        }
+      },
+      "indexes": [
+        {
+          "tablename": "profile_certifications",
+          "indexname": "profile_certifications_pkey",
+          "indexdef": "CREATE UNIQUE INDEX profile_certifications_pkey ON public.profile_certifications USING btree (id)"
+        },
+        {
+          "tablename": "profile_certifications",
+          "indexname": "idx_profile_certifications_profile_id",
+          "indexdef": "CREATE INDEX idx_profile_certifications_profile_id ON public.profile_certifications USING btree (profile_id)"
+        },
+        {
+          "tablename": "profile_training",
+          "indexname": "profile_training_pkey",
+          "indexdef": "CREATE UNIQUE INDEX profile_training_pkey ON public.profile_training USING btree (id)"
+        },
+        {
+          "tablename": "profile_training",
+          "indexname": "idx_profile_training_profile_id",
+          "indexdef": "CREATE INDEX idx_profile_training_profile_id ON public.profile_training USING btree (profile_id)"
+        },
+        {
+          "tablename": "notices_read",
+          "indexname": "notices_read_pkey",
+          "indexdef": "CREATE UNIQUE INDEX notices_read_pkey ON public.notices_read USING btree (notice_id, user_id)"
+        },
+        {
+          "tablename": "tasks",
+          "indexname": "tasks_pkey",
+          "indexdef": "CREATE UNIQUE INDEX tasks_pkey ON public.tasks USING btree (id)"
+        },
+        {
+          "tablename": "tasks",
+          "indexname": "idx_tasks_company_id",
+          "indexdef": "CREATE INDEX idx_tasks_company_id ON public.tasks USING btree (company_id)"
+        },
+        {
+          "tablename": "tasks",
+          "indexname": "idx_tasks_assigned_to",
+          "indexdef": "CREATE INDEX idx_tasks_assigned_to ON public.tasks USING btree (assigned_to)"
+        },
+        {
+          "tablename": "messages",
+          "indexname": "idx_messages_sender_id",
+          "indexdef": "CREATE INDEX idx_messages_sender_id ON public.messages USING btree (sender_id)"
+        },
+        {
+          "tablename": "messages",
+          "indexname": "idx_messages_thread_id",
+          "indexdef": "CREATE INDEX idx_messages_thread_id ON public.messages USING btree (thread_id) WHERE (thread_id IS NOT NULL)"
+        },
+        {
+          "tablename": "messages",
+          "indexname": "messages_pkey",
+          "indexdef": "CREATE UNIQUE INDEX messages_pkey ON public.messages USING btree (id)"
+        },
+        {
+          "tablename": "messages",
+          "indexname": "idx_messages_company_id",
+          "indexdef": "CREATE INDEX idx_messages_company_id ON public.messages USING btree (company_id)"
+        },
+        {
+          "tablename": "messages",
+          "indexname": "idx_messages_created_at",
+          "indexdef": "CREATE INDEX idx_messages_created_at ON public.messages USING btree (created_at DESC)"
+        },
+        {
+          "tablename": "registrations",
+          "indexname": "registrations_pkey",
+          "indexdef": "CREATE UNIQUE INDEX registrations_pkey ON public.registrations USING btree (id)"
+        },
+        {
+          "tablename": "registrations",
+          "indexname": "idx_registrations_company_id",
+          "indexdef": "CREATE INDEX idx_registrations_company_id ON public.registrations USING btree (company_id) WHERE (company_id IS NOT NULL)"
+        },
+        {
+          "tablename": "upload_logs",
+          "indexname": "upload_logs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX upload_logs_pkey ON public.upload_logs USING btree (id)"
+        },
+        {
+          "tablename": "user_profile_data",
+          "indexname": "user_profile_data_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_profile_data_pkey ON public.user_profile_data USING btree (id)"
+        },
+        {
+          "tablename": "user_profile_data",
+          "indexname": "idx_user_profile_data_user_id",
+          "indexdef": "CREATE INDEX idx_user_profile_data_user_id ON public.user_profile_data USING btree (user_id)"
+        },
+        {
+          "tablename": "user_profile_data",
+          "indexname": "idx_user_profile_data_userid",
+          "indexdef": "CREATE INDEX idx_user_profile_data_userid ON public.user_profile_data USING btree (userid) WHERE (userid IS NOT NULL)"
+        },
+        {
+          "tablename": "briefings",
+          "indexname": "briefings_pkey",
+          "indexdef": "CREATE UNIQUE INDEX briefings_pkey ON public.briefings USING btree (id)"
+        },
+        {
+          "tablename": "briefings",
+          "indexname": "idx_briefings_company_id",
+          "indexdef": "CREATE INDEX idx_briefings_company_id ON public.briefings USING btree (company_id)"
+        },
+        {
+          "tablename": "briefings",
+          "indexname": "idx_briefings_site_id",
+          "indexdef": "CREATE INDEX idx_briefings_site_id ON public.briefings USING btree (site_id) WHERE (site_id IS NOT NULL)"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "indexname": "offline_sync_log_pkey",
+          "indexdef": "CREATE UNIQUE INDEX offline_sync_log_pkey ON public.offline_sync_log USING btree (id)"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "indexname": "idx_offline_sync_log_company_id",
+          "indexdef": "CREATE INDEX idx_offline_sync_log_company_id ON public.offline_sync_log USING btree (company_id)"
+        },
+        {
+          "tablename": "assets",
+          "indexname": "assets_pkey",
+          "indexdef": "CREATE UNIQUE INDEX assets_pkey ON public.assets USING btree (id)"
+        },
+        {
+          "tablename": "assets",
+          "indexname": "idx_assets_company_id",
+          "indexdef": "CREATE INDEX idx_assets_company_id ON public.assets USING btree (company_id)"
+        },
+        {
+          "tablename": "assets",
+          "indexname": "idx_assets_site_id",
+          "indexdef": "CREATE INDEX idx_assets_site_id ON public.assets USING btree (site_id)"
+        },
+        {
+          "tablename": "rams",
+          "indexname": "rams_pkey",
+          "indexdef": "CREATE UNIQUE INDEX rams_pkey ON public.rams USING btree (id)"
+        },
+        {
+          "tablename": "rams",
+          "indexname": "idx_rams_company_id",
+          "indexdef": "CREATE INDEX idx_rams_company_id ON public.rams USING btree (company_id)"
+        },
+        {
+          "tablename": "rams",
+          "indexname": "idx_rams_site_id",
+          "indexdef": "CREATE INDEX idx_rams_site_id ON public.rams USING btree (site_id)"
+        },
+        {
+          "tablename": "message_threads",
+          "indexname": "message_threads_pkey",
+          "indexdef": "CREATE UNIQUE INDEX message_threads_pkey ON public.message_threads USING btree (id)"
+        },
+        {
+          "tablename": "message_threads",
+          "indexname": "idx_message_threads_company_id",
+          "indexdef": "CREATE INDEX idx_message_threads_company_id ON public.message_threads USING btree (company_id)"
+        },
+        {
+          "tablename": "message_threads",
+          "indexname": "idx_message_threads_created_by",
+          "indexdef": "CREATE INDEX idx_message_threads_created_by ON public.message_threads USING btree (created_by)"
+        },
+        {
+          "tablename": "messages_thread",
+          "indexname": "messages_thread_pkey",
+          "indexdef": "CREATE UNIQUE INDEX messages_thread_pkey ON public.messages_thread USING btree (id)"
+        },
+        {
+          "tablename": "messages_thread",
+          "indexname": "idx_messages_thread_thread_id",
+          "indexdef": "CREATE INDEX idx_messages_thread_thread_id ON public.messages_thread USING btree (thread_id)"
+        },
+        {
+          "tablename": "messages_thread",
+          "indexname": "idx_messages_thread_created_at",
+          "indexdef": "CREATE INDEX idx_messages_thread_created_at ON public.messages_thread USING btree (created_at DESC)"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "indexname": "site_subcontractors_pkey",
+          "indexdef": "CREATE UNIQUE INDEX site_subcontractors_pkey ON public.site_subcontractors USING btree (site_id, company_id)"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "indexname": "idx_site_subcontractors_site_id",
+          "indexdef": "CREATE INDEX idx_site_subcontractors_site_id ON public.site_subcontractors USING btree (site_id)"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "indexname": "idx_site_subcontractors_company_id",
+          "indexdef": "CREATE INDEX idx_site_subcontractors_company_id ON public.site_subcontractors USING btree (company_id)"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "indexname": "briefing_acknowledgements_pkey",
+          "indexdef": "CREATE UNIQUE INDEX briefing_acknowledgements_pkey ON public.briefing_acknowledgements USING btree (id)"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "indexname": "briefing_acknowledgements_user_id_briefing_id_key",
+          "indexdef": "CREATE UNIQUE INDEX briefing_acknowledgements_user_id_briefing_id_key ON public.briefing_acknowledgements USING btree (user_id, briefing_id)"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "indexname": "idx_briefing_acknowledgements_user_id",
+          "indexdef": "CREATE INDEX idx_briefing_acknowledgements_user_id ON public.briefing_acknowledgements USING btree (user_id)"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "indexname": "idx_briefing_acknowledgements_briefing_id",
+          "indexdef": "CREATE INDEX idx_briefing_acknowledgements_briefing_id ON public.briefing_acknowledgements USING btree (briefing_id)"
+        },
+        {
+          "tablename": "safety_alerts",
+          "indexname": "safety_alerts_pkey",
+          "indexdef": "CREATE UNIQUE INDEX safety_alerts_pkey ON public.safety_alerts USING btree (id)"
+        },
+        {
+          "tablename": "safety_alerts",
+          "indexname": "idx_safety_alerts_company_id",
+          "indexdef": "CREATE INDEX idx_safety_alerts_company_id ON public.safety_alerts USING btree (company_id)"
+        },
+        {
+          "tablename": "safety_alerts",
+          "indexname": "idx_safety_alerts_expires_at",
+          "indexdef": "CREATE INDEX idx_safety_alerts_expires_at ON public.safety_alerts USING btree (expires_at) WHERE (expires_at IS NOT NULL)"
+        },
+        {
+          "tablename": "message_recipients",
+          "indexname": "message_recipients_pkey",
+          "indexdef": "CREATE UNIQUE INDEX message_recipients_pkey ON public.message_recipients USING btree (id)"
+        },
+        {
+          "tablename": "message_recipients",
+          "indexname": "idx_message_recipients_thread_user",
+          "indexdef": "CREATE UNIQUE INDEX idx_message_recipients_thread_user ON public.message_recipients USING btree (thread_id, user_id)"
+        },
+        {
+          "tablename": "message_recipients",
+          "indexname": "idx_message_recipients_user_id",
+          "indexdef": "CREATE INDEX idx_message_recipients_user_id ON public.message_recipients USING btree (user_id)"
+        },
+        {
+          "tablename": "pre_induction_certifications",
+          "indexname": "pre_induction_certifications_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_certifications_pkey ON public.pre_induction_certifications USING btree (user_id)"
+        },
+        {
+          "tablename": "user_devices",
+          "indexname": "user_devices_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_devices_pkey ON public.user_devices USING btree (id)"
+        },
+        {
+          "tablename": "user_devices",
+          "indexname": "idx_user_devices_user_id",
+          "indexdef": "CREATE INDEX idx_user_devices_user_id ON public.user_devices USING btree (user_id)"
+        },
+        {
+          "tablename": "user_devices",
+          "indexname": "idx_user_devices_fcm_token",
+          "indexdef": "CREATE INDEX idx_user_devices_fcm_token ON public.user_devices USING btree (fcm_token)"
+        },
+        {
+          "tablename": "task_assignments",
+          "indexname": "task_assignments_pkey",
+          "indexdef": "CREATE UNIQUE INDEX task_assignments_pkey ON public.task_assignments USING btree (id)"
+        },
+        {
+          "tablename": "task_assignments",
+          "indexname": "task_assignments_task_id_user_id_key",
+          "indexdef": "CREATE UNIQUE INDEX task_assignments_task_id_user_id_key ON public.task_assignments USING btree (task_id, user_id)"
+        },
+        {
+          "tablename": "task_assignments",
+          "indexname": "idx_task_assignments_task_id",
+          "indexdef": "CREATE INDEX idx_task_assignments_task_id ON public.task_assignments USING btree (task_id)"
+        },
+        {
+          "tablename": "task_assignments",
+          "indexname": "idx_task_assignments_user_id",
+          "indexdef": "CREATE INDEX idx_task_assignments_user_id ON public.task_assignments USING btree (user_id)"
+        },
+        {
+          "tablename": "coshh",
+          "indexname": "coshh_pkey",
+          "indexdef": "CREATE UNIQUE INDEX coshh_pkey ON public.coshh USING btree (id)"
+        },
+        {
+          "tablename": "coshh",
+          "indexname": "idx_coshh_company_id",
+          "indexdef": "CREATE INDEX idx_coshh_company_id ON public.coshh USING btree (company_id)"
+        },
+        {
+          "tablename": "pre_induction_medical",
+          "indexname": "pre_induction_medical_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_medical_pkey ON public.pre_induction_medical USING btree (user_id)"
+        },
+        {
+          "tablename": "audit_logs",
+          "indexname": "idx_audit_logs_user_id",
+          "indexdef": "CREATE INDEX idx_audit_logs_user_id ON public.audit_logs USING btree (user_id)"
+        },
+        {
+          "tablename": "audit_logs",
+          "indexname": "idx_audit_logs_action",
+          "indexdef": "CREATE INDEX idx_audit_logs_action ON public.audit_logs USING btree (action)"
+        },
+        {
+          "tablename": "audit_logs",
+          "indexname": "audit_logs_pkey",
+          "indexdef": "CREATE UNIQUE INDEX audit_logs_pkey ON public.audit_logs USING btree (id)"
+        },
+        {
+          "tablename": "audit_logs",
+          "indexname": "idx_audit_logs_timestamp",
+          "indexdef": "CREATE INDEX idx_audit_logs_timestamp ON public.audit_logs USING btree (\"timestamp\" DESC)"
+        },
+        {
+          "tablename": "site_rules",
+          "indexname": "site_rules_pkey",
+          "indexdef": "CREATE UNIQUE INDEX site_rules_pkey ON public.site_rules USING btree (id)"
+        },
+        {
+          "tablename": "site_rules",
+          "indexname": "idx_site_rules_company_id",
+          "indexdef": "CREATE INDEX idx_site_rules_company_id ON public.site_rules USING btree (company_id)"
+        },
+        {
+          "tablename": "user_pre_induction_profile",
+          "indexname": "user_pre_induction_profile_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_pre_induction_profile_pkey ON public.user_pre_induction_profile USING btree (id)"
+        },
+        {
+          "tablename": "user_pre_induction_profile",
+          "indexname": "idx_user_pre_induction_profile_user_id",
+          "indexdef": "CREATE INDEX idx_user_pre_induction_profile_user_id ON public.user_pre_induction_profile USING btree (user_id) WHERE (user_id IS NOT NULL)"
+        },
+        {
+          "tablename": "invite_codes",
+          "indexname": "invite_codes_pkey",
+          "indexdef": "CREATE UNIQUE INDEX invite_codes_pkey ON public.invite_codes USING btree (id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "idx_assigned_operatives_site_id",
+          "indexdef": "CREATE INDEX idx_assigned_operatives_site_id ON public.assigned_operatives USING btree (site_id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "idx_assigned_operatives_user_id",
+          "indexdef": "CREATE INDEX idx_assigned_operatives_user_id ON public.assigned_operatives USING btree (user_id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "assigned_operatives_pkey",
+          "indexdef": "CREATE UNIQUE INDEX assigned_operatives_pkey ON public.assigned_operatives USING btree (id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "assigned_operatives_site_id_user_id_key",
+          "indexdef": "CREATE UNIQUE INDEX assigned_operatives_site_id_user_id_key ON public.assigned_operatives USING btree (site_id, user_id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "idx_assigned_operatives_site",
+          "indexdef": "CREATE INDEX idx_assigned_operatives_site ON public.assigned_operatives USING btree (site_id)"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "indexname": "idx_assigned_operatives_user",
+          "indexdef": "CREATE INDEX idx_assigned_operatives_user ON public.assigned_operatives USING btree (user_id)"
+        },
+        {
+          "tablename": "settings",
+          "indexname": "settings_pkey",
+          "indexdef": "CREATE UNIQUE INDEX settings_pkey ON public.settings USING btree (id)"
+        },
+        {
+          "tablename": "settings",
+          "indexname": "idx_settings_company_id",
+          "indexdef": "CREATE INDEX idx_settings_company_id ON public.settings USING btree (company_id) WHERE (company_id IS NOT NULL)"
+        },
+        {
+          "tablename": "pre_induction_competency_card",
+          "indexname": "pre_induction_competency_card_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_competency_card_pkey ON public.pre_induction_competency_card USING btree (user_id)"
+        },
+        {
+          "tablename": "notices",
+          "indexname": "notices_pkey",
+          "indexdef": "CREATE UNIQUE INDEX notices_pkey ON public.notices USING btree (id)"
+        },
+        {
+          "tablename": "notices",
+          "indexname": "idx_notices_company_id",
+          "indexdef": "CREATE INDEX idx_notices_company_id ON public.notices USING btree (company_id)"
+        },
+        {
+          "tablename": "deliveries",
+          "indexname": "deliveries_pkey",
+          "indexdef": "CREATE UNIQUE INDEX deliveries_pkey ON public.deliveries USING btree (id)"
+        },
+        {
+          "tablename": "deliveries",
+          "indexname": "idx_deliveries_company_id",
+          "indexdef": "CREATE INDEX idx_deliveries_company_id ON public.deliveries USING btree (company_id)"
+        },
+        {
+          "tablename": "deliveries",
+          "indexname": "idx_deliveries_site_id",
+          "indexdef": "CREATE INDEX idx_deliveries_site_id ON public.deliveries USING btree (site_id)"
+        },
+        {
+          "tablename": "pre_induction_personal",
+          "indexname": "pre_induction_personal_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_personal_pkey ON public.pre_induction_personal USING btree (user_id)"
+        },
+        {
+          "tablename": "pre_induction_right_to_work",
+          "indexname": "pre_induction_right_to_work_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_right_to_work_pkey ON public.pre_induction_right_to_work USING btree (user_id)"
+        },
+        {
+          "tablename": "pre_induction_training",
+          "indexname": "pre_induction_training_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_training_pkey ON public.pre_induction_training USING btree (user_id)"
+        },
+        {
+          "tablename": "pre_induction_declarations",
+          "indexname": "pre_induction_declarations_pkey",
+          "indexdef": "CREATE UNIQUE INDEX pre_induction_declarations_pkey ON public.pre_induction_declarations USING btree (user_id)"
+        },
+        {
+          "tablename": "attendance",
+          "indexname": "attendance_pkey",
+          "indexdef": "CREATE UNIQUE INDEX attendance_pkey ON public.attendance USING btree (id)"
+        },
+        {
+          "tablename": "attendance",
+          "indexname": "idx_attendance_user_id",
+          "indexdef": "CREATE INDEX idx_attendance_user_id ON public.attendance USING btree (user_id)"
+        },
+        {
+          "tablename": "attendance",
+          "indexname": "idx_attendance_timestamp",
+          "indexdef": "CREATE INDEX idx_attendance_timestamp ON public.attendance USING btree (\"timestamp\" DESC)"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "indexname": "idx_user_site_inductions_user_id",
+          "indexdef": "CREATE INDEX idx_user_site_inductions_user_id ON public.user_site_inductions USING btree (user_id)"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "indexname": "idx_user_site_inductions_site_id",
+          "indexdef": "CREATE INDEX idx_user_site_inductions_site_id ON public.user_site_inductions USING btree (site_id)"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "indexname": "user_site_inductions_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_site_inductions_pkey ON public.user_site_inductions USING btree (user_id, site_id)"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "indexname": "idx_user_site_inductions_user",
+          "indexdef": "CREATE INDEX idx_user_site_inductions_user ON public.user_site_inductions USING btree (user_id)"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "indexname": "idx_user_site_inductions_site",
+          "indexdef": "CREATE INDEX idx_user_site_inductions_site ON public.user_site_inductions USING btree (site_id)"
+        },
+        {
+          "tablename": "companies",
+          "indexname": "companies_pkey",
+          "indexdef": "CREATE UNIQUE INDEX companies_pkey ON public.companies USING btree (id)"
+        },
+        {
+          "tablename": "user_company_roles",
+          "indexname": "user_company_roles_pkey",
+          "indexdef": "CREATE UNIQUE INDEX user_company_roles_pkey ON public.user_company_roles USING btree (id)"
+        },
+        {
+          "tablename": "users",
+          "indexname": "users_pkey",
+          "indexdef": "CREATE UNIQUE INDEX users_pkey ON public.users USING btree (id)"
+        },
+        {
+          "tablename": "users",
+          "indexname": "users_firebase_uid_key",
+          "indexdef": "CREATE UNIQUE INDEX users_firebase_uid_key ON public.users USING btree (firebase_uid)"
+        },
+        {
+          "tablename": "sites",
+          "indexname": "sites_pkey",
+          "indexdef": "CREATE UNIQUE INDEX sites_pkey ON public.sites USING btree (id)"
+        },
+        {
+          "tablename": "asset_assignments",
+          "indexname": "asset_assignments_pkey",
+          "indexdef": "CREATE UNIQUE INDEX asset_assignments_pkey ON public.asset_assignments USING btree (id)"
+        },
+        {
+          "tablename": "asset_assignments",
+          "indexname": "idx_asset_assignments_asset_id",
+          "indexdef": "CREATE INDEX idx_asset_assignments_asset_id ON public.asset_assignments USING btree (asset_id)"
+        },
+        {
+          "tablename": "asset_assignments",
+          "indexname": "idx_asset_assignments_user_id",
+          "indexdef": "CREATE INDEX idx_asset_assignments_user_id ON public.asset_assignments USING btree (user_id)"
+        },
+        {
+          "tablename": "certifications",
+          "indexname": "certifications_pkey",
+          "indexdef": "CREATE UNIQUE INDEX certifications_pkey ON public.certifications USING btree (id)"
+        },
+        {
+          "tablename": "certifications",
+          "indexname": "idx_certifications_user_id",
+          "indexdef": "CREATE INDEX idx_certifications_user_id ON public.certifications USING btree (user_id)"
+        },
+        {
+          "tablename": "asset_inspections",
+          "indexname": "asset_inspections_pkey",
+          "indexdef": "CREATE UNIQUE INDEX asset_inspections_pkey ON public.asset_inspections USING btree (id)"
+        },
+        {
+          "tablename": "asset_inspections",
+          "indexname": "idx_asset_inspections_asset_id",
+          "indexdef": "CREATE INDEX idx_asset_inspections_asset_id ON public.asset_inspections USING btree (asset_id)"
+        },
+        {
+          "tablename": "asset_inspections",
+          "indexname": "idx_asset_inspections_user_id",
+          "indexdef": "CREATE INDEX idx_asset_inspections_user_id ON public.asset_inspections USING btree (user_id)"
+        },
+        {
+          "tablename": "medical_records",
+          "indexname": "medical_records_pkey",
+          "indexdef": "CREATE UNIQUE INDEX medical_records_pkey ON public.medical_records USING btree (id)"
+        },
+        {
+          "tablename": "medical_records",
+          "indexname": "idx_medical_records_user_id",
+          "indexdef": "CREATE INDEX idx_medical_records_user_id ON public.medical_records USING btree (user_id)"
+        },
+        {
+          "tablename": "profiles",
+          "indexname": "profiles_pkey",
+          "indexdef": "CREATE UNIQUE INDEX profiles_pkey ON public.profiles USING btree (id)"
+        },
+        {
+          "tablename": "profiles",
+          "indexname": "idx_profiles_user_id",
+          "indexdef": "CREATE UNIQUE INDEX idx_profiles_user_id ON public.profiles USING btree (user_id) WHERE (user_id IS NOT NULL)"
+        },
+        {
+          "tablename": "asset_documents",
+          "indexname": "asset_documents_pkey",
+          "indexdef": "CREATE UNIQUE INDEX asset_documents_pkey ON public.asset_documents USING btree (id)"
+        },
+        {
+          "tablename": "asset_documents",
+          "indexname": "idx_asset_documents_asset_id",
+          "indexdef": "CREATE INDEX idx_asset_documents_asset_id ON public.asset_documents USING btree (asset_id)"
+        }
+      ],
+      "rls": {
+        "profile_certifications": true,
+        "profile_training": true,
+        "notices_read": true,
+        "tasks": true,
+        "messages": true,
+        "registrations": true,
+        "upload_logs": true,
+        "user_profile_data": true,
+        "briefings": true,
+        "offline_sync_log": true,
+        "assets": true,
+        "rams": true,
+        "message_threads": true,
+        "messages_thread": true,
+        "site_subcontractors": true,
+        "briefing_acknowledgements": true,
+        "safety_alerts": true,
+        "message_recipients": true,
+        "pre_induction_certifications": false,
+        "user_devices": false,
+        "task_assignments": true,
+        "coshh": true,
+        "pre_induction_medical": false,
+        "audit_logs": true,
+        "site_rules": true,
+        "user_pre_induction_profile": true,
+        "invite_codes": false,
+        "assigned_operatives": true,
+        "settings": true,
+        "pre_induction_competency_card": true,
+        "notices": true,
+        "deliveries": true,
+        "pre_induction_personal": false,
+        "pre_induction_right_to_work": false,
+        "pre_induction_training": false,
+        "pre_induction_declarations": false,
+        "attendance": true,
+        "user_site_inductions": true,
+        "companies": true,
+        "user_company_roles": true,
+        "users": true,
+        "sites": true,
+        "asset_assignments": true,
+        "certifications": true,
+        "asset_inspections": true,
+        "medical_records": true,
+        "profiles": true,
+        "asset_documents": true
+      },
+      "policies": [
+        {
+          "tablename": "profile_certifications",
+          "policyname": "superuser_all_access_profile_certifications",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "profile_training",
+          "policyname": "superuser_all_access_profile_training",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "notices_read",
+          "policyname": "admin_company_rw_notices_read",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "notices_read",
+          "policyname": "operative_company_read_notices_read",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "notices_read",
+          "policyname": "superuser_all_access_notices_read",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "notices_read",
+          "policyname": "supervisor_company_rw_notices_read",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "tasks",
+          "policyname": "admin_company_rw_tasks",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "tasks",
+          "policyname": "operative_company_read_tasks",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "tasks",
+          "policyname": "superuser_all_access_tasks",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "tasks",
+          "policyname": "supervisor_company_rw_tasks",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages",
+          "policyname": "admin_company_rw_messages",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages",
+          "policyname": "operative_company_read_messages",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "messages",
+          "policyname": "superuser_all_access_messages",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages",
+          "policyname": "supervisor_company_rw_messages",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "registrations",
+          "policyname": "admin_company_rw_registrations",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "registrations",
+          "policyname": "operative_company_read_registrations",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "registrations",
+          "policyname": "superuser_all_access_registrations",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "registrations",
+          "policyname": "supervisor_company_rw_registrations",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "upload_logs",
+          "policyname": "admin_company_rw_upload_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "upload_logs",
+          "policyname": "operative_company_read_upload_logs",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "upload_logs",
+          "policyname": "superuser_all_access_upload_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "upload_logs",
+          "policyname": "supervisor_company_rw_upload_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_profile_data",
+          "policyname": "admin_company_rw_user_profile_data",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_profile_data",
+          "policyname": "operative_company_read_user_profile_data",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "user_profile_data",
+          "policyname": "superuser_all_access_user_profile_data",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_profile_data",
+          "policyname": "supervisor_company_rw_user_profile_data",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefings",
+          "policyname": "admin_company_rw_briefings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefings",
+          "policyname": "operative_company_read_briefings",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "briefings",
+          "policyname": "superuser_all_access_briefings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefings",
+          "policyname": "supervisor_company_rw_briefings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "policyname": "admin_company_rw_offline_sync_log",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "policyname": "operative_company_read_offline_sync_log",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "policyname": "superuser_all_access_offline_sync_log",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "offline_sync_log",
+          "policyname": "supervisor_company_rw_offline_sync_log",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assets",
+          "policyname": "admin_company_rw_assets",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assets",
+          "policyname": "operative_company_read_assets",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "assets",
+          "policyname": "superuser_all_access_assets",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assets",
+          "policyname": "supervisor_company_rw_assets",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "rams",
+          "policyname": "admin_company_rw_rams",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "rams",
+          "policyname": "operative_company_read_rams",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "rams",
+          "policyname": "superuser_all_access_rams",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "rams",
+          "policyname": "supervisor_company_rw_rams",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_threads",
+          "policyname": "admin_company_rw_message_threads",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_threads",
+          "policyname": "operative_company_read_message_threads",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "message_threads",
+          "policyname": "superuser_all_access_message_threads",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_threads",
+          "policyname": "supervisor_company_rw_message_threads",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages_thread",
+          "policyname": "admin_company_rw_messages_thread",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages_thread",
+          "policyname": "operative_company_read_messages_thread",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "messages_thread",
+          "policyname": "superuser_all_access_messages_thread",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "messages_thread",
+          "policyname": "supervisor_company_rw_messages_thread",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "policyname": "admin_company_rw_site_subcontractors",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "policyname": "operative_company_read_site_subcontractors",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "policyname": "superuser_all_access_site_subcontractors",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_subcontractors",
+          "policyname": "supervisor_company_rw_site_subcontractors",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "policyname": "admin_company_rw_briefing_acknowledgements",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "policyname": "operative_company_read_briefing_acknowledgements",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "policyname": "superuser_all_access_briefing_acknowledgements",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "briefing_acknowledgements",
+          "policyname": "supervisor_company_rw_briefing_acknowledgements",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "safety_alerts",
+          "policyname": "admin_company_rw_safety_alerts",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "safety_alerts",
+          "policyname": "operative_company_read_safety_alerts",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "safety_alerts",
+          "policyname": "superuser_all_access_safety_alerts",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "safety_alerts",
+          "policyname": "supervisor_company_rw_safety_alerts",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_recipients",
+          "policyname": "admin_company_rw_message_recipients",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_recipients",
+          "policyname": "operative_company_read_message_recipients",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "message_recipients",
+          "policyname": "superuser_all_access_message_recipients",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "message_recipients",
+          "policyname": "supervisor_company_rw_message_recipients",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "task_assignments",
+          "policyname": "admin_company_rw_task_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "task_assignments",
+          "policyname": "operative_company_read_task_assignments",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "task_assignments",
+          "policyname": "superuser_all_access_task_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "task_assignments",
+          "policyname": "supervisor_company_rw_task_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "coshh",
+          "policyname": "admin_company_rw_coshh",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "coshh",
+          "policyname": "operative_company_read_coshh",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "coshh",
+          "policyname": "superuser_all_access_coshh",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "coshh",
+          "policyname": "supervisor_company_rw_coshh",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "audit_logs",
+          "policyname": "admin_company_rw_audit_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "audit_logs",
+          "policyname": "operative_company_read_audit_logs",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "audit_logs",
+          "policyname": "superuser_all_access_audit_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "audit_logs",
+          "policyname": "supervisor_company_rw_audit_logs",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_rules",
+          "policyname": "admin_company_rw_site_rules",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_rules",
+          "policyname": "operative_company_read_site_rules",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "site_rules",
+          "policyname": "superuser_all_access_site_rules",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "site_rules",
+          "policyname": "supervisor_company_rw_site_rules",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_pre_induction_profile",
+          "policyname": "operative_update_pre_induction",
+          "cmd": "UPDATE"
+        },
+        {
+          "tablename": "user_pre_induction_profile",
+          "policyname": "superuser_all_access_user_pre_induction_profile",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "policyname": "admin_company_rw_assigned_operatives",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "policyname": "operative_company_read_assigned_operatives",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "policyname": "superuser_all_access_assigned_operatives",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "assigned_operatives",
+          "policyname": "supervisor_company_rw_assigned_operatives",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "settings",
+          "policyname": "admin_company_rw_settings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "settings",
+          "policyname": "operative_company_read_settings",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "settings",
+          "policyname": "superuser_all_access_settings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "settings",
+          "policyname": "supervisor_company_rw_settings",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "pre_induction_competency_card",
+          "policyname": "Allow insert competency card",
+          "cmd": "INSERT"
+        },
+        {
+          "tablename": "pre_induction_competency_card",
+          "policyname": "Allow read competency card",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "pre_induction_competency_card",
+          "policyname": "Allow update competency card",
+          "cmd": "UPDATE"
+        },
+        {
+          "tablename": "notices",
+          "policyname": "admin_company_rw_notices",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "notices",
+          "policyname": "operative_company_read_notices",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "notices",
+          "policyname": "superuser_all_access_notices",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "notices",
+          "policyname": "supervisor_company_rw_notices",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "deliveries",
+          "policyname": "admin_company_rw_deliveries",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "deliveries",
+          "policyname": "operative_company_read_deliveries",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "deliveries",
+          "policyname": "superuser_all_access_deliveries",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "deliveries",
+          "policyname": "supervisor_company_rw_deliveries",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "attendance",
+          "policyname": "superuser_all_access_attendance",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "policyname": "admin_company_rw_user_site_inductions",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "policyname": "operative_company_read_user_site_inductions",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "policyname": "superuser_all_access_user_site_inductions",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_site_inductions",
+          "policyname": "supervisor_company_rw_user_site_inductions",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "companies",
+          "policyname": "placeholder",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "companies",
+          "policyname": "superuser_all_access_companies",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "user_company_roles",
+          "policyname": "placeholder",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "users",
+          "policyname": "admin_company_rw_users",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "users",
+          "policyname": "operative_company_read_users",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "users",
+          "policyname": "placeholder",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "users",
+          "policyname": "superuser_all_access",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "users",
+          "policyname": "superuser_all_access_users",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "users",
+          "policyname": "supervisor_company_rw_users",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "users",
+          "policyname": "user_no_update_role",
+          "cmd": "UPDATE"
+        },
+        {
+          "tablename": "users",
+          "policyname": "user_read_self",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "admin_company_access",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "admin_company_rw_sites",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "operative_company_read_sites",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "placeholder",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "superuser_all_access_sites",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "sites",
+          "policyname": "supervisor_company_rw_sites",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_assignments",
+          "policyname": "admin_company_rw_asset_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_assignments",
+          "policyname": "operative_company_read_asset_assignments",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "asset_assignments",
+          "policyname": "superuser_all_access_asset_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_assignments",
+          "policyname": "supervisor_company_rw_asset_assignments",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "certifications",
+          "policyname": "admin_company_rw_certifications",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "certifications",
+          "policyname": "operative_company_read_certifications",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "certifications",
+          "policyname": "superuser_all_access_certifications",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "certifications",
+          "policyname": "supervisor_company_rw_certifications",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_inspections",
+          "policyname": "admin_company_rw_asset_inspections",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_inspections",
+          "policyname": "operative_company_read_asset_inspections",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "asset_inspections",
+          "policyname": "superuser_all_access_asset_inspections",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_inspections",
+          "policyname": "supervisor_company_rw_asset_inspections",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "medical_records",
+          "policyname": "admin_company_rw_medical_records",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "medical_records",
+          "policyname": "operative_company_read_medical_records",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "medical_records",
+          "policyname": "superuser_all_access_medical_records",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "medical_records",
+          "policyname": "supervisor_company_rw_medical_records",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "profiles",
+          "policyname": "operative_read_own_profile",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "profiles",
+          "policyname": "profiles_select_own",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "profiles",
+          "policyname": "profiles_update_own",
+          "cmd": "UPDATE"
+        },
+        {
+          "tablename": "profiles",
+          "policyname": "superuser_all_access_profiles",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_documents",
+          "policyname": "admin_company_rw_asset_documents",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_documents",
+          "policyname": "operative_company_read_asset_documents",
+          "cmd": "SELECT"
+        },
+        {
+          "tablename": "asset_documents",
+          "policyname": "superuser_all_access_asset_documents",
+          "cmd": "ALL"
+        },
+        {
+          "tablename": "asset_documents",
+          "policyname": "supervisor_company_rw_asset_documents",
+          "cmd": "ALL"
+        }
+      ]
+    }
+  }
+]

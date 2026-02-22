@@ -1,0 +1,14 @@
+-- SiteHub Canonical Schema Reference
+-- This file references the canonical schema defined in migrations.
+-- Run schema validation: npm run validate:schema (from project root)
+-- Generates SCHEMA_DRIFT_REPORT.md and applies missing columns/indexes via migration.
+--
+-- Key migration files (in order):
+--   migrations/20260213234448_initial_schema.sql
+--   migrations/20260218100000_sitehub_pre_induction_tables.sql
+--   migrations/20260218100003_sitehub_core_tables.sql
+--   migrations/20260218100004_sitehub_sites_and_companies.sql
+--   migrations/20260220240000_schema_canonical_baseline.sql
+--   migrations/20260223000000_system_logs_and_near_miss_reports.sql
+--
+-- To validate: Set DATABASE_URL and run `npm run validate:schema`
