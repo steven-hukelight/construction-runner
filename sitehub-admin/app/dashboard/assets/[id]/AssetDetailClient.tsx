@@ -3,6 +3,7 @@
 import Image from "next/image";
 import React, { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import Button from "../../components/ui/Button";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import AssetInspectionModal from "../AssetInspectionModal";
@@ -29,6 +30,16 @@ interface AssetImage {
   id: string;
   file_url: string;
   created_at: string;
+  uploaded_by_name?: string | null;
+}
+
+interface AssetInspection {
+  id: string;
+  notes: string | null;
+  photo_url: string | null;
+  created_at: string;
+  user_id: string;
+  recorded_by?: string;
 }
 
 export default function AssetDetailClient({
@@ -41,6 +52,7 @@ export default function AssetDetailClient({
   const [asset, setAsset] = useState<Asset | null>(null);
   const [assignments, setAssignments] = useState<Assignment[]>([]);
   const [images, setImages] = useState<AssetImage[]>([]);
+  const [inspections, setInspections] = useState<AssetInspection[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
   const [inspectionOpen, setInspectionOpen] = useState(false);
@@ -52,16 +64,19 @@ export default function AssetDetailClient({
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [aRes, assignRes, uRes, imgRes] = await Promise.all([
+      const [aRes, assignRes, uRes, imgRes, inspRes] = await Promise.all([
         fetch(`/api/assets/${assetId}`),
         fetch(`/api/assets/${assetId}/assignments`).catch(() => ({ json: () => [] })),
         fetch(`/api/companies/${companyId}/operatives`).catch(() => ({ json: () => [] })),
         fetch(`/api/assets/${assetId}/images`).catch(() => ({ json: () => [] })),
+        fetch(`/api/assets/${assetId}/inspections`).catch(() => null),
       ]);
       const aData = await aRes.json();
       const assignData = await assignRes.json?.() ?? [];
       const uData = await uRes.json?.() ?? [];
       const imgData = await imgRes.json?.() ?? [];
+      const inspData =
+        inspRes != null && inspRes.ok ? await inspRes.json().catch(() => []) : [];
 
       if (aData?.id) {
         setAsset(aData);
@@ -73,10 +88,12 @@ export default function AssetDetailClient({
       setAssignments(Array.isArray(assignData) ? assignData : []);
       setUsers(Array.isArray(uData) ? uData : []);
       setImages(Array.isArray(imgData) ? imgData : []);
+      setInspections(Array.isArray(inspData) ? inspData : []);
     } catch {
       setAsset(null);
       setAssignments([]);
       setImages([]);
+      setInspections([]);
     } finally {
       setLoading(false);
     }
@@ -131,6 +148,25 @@ export default function AssetDetailClient({
       load();
     } catch (e) {
       console.error(e);
+    }
+  }
+
+  async function handleUnassign(userId: string) {
+    if (!confirm("Remove this assignment? The user will no longer see this asset.")) return;
+    try {
+      const res = await fetch("/api/assets/unassign", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ asset_id: assetId, user_id: userId }),
+      });
+      if (res.ok) load();
+      else {
+        const err = await res.json();
+        alert(err?.error ?? "Failed to remove assignment");
+      }
+    } catch (e) {
+      console.error(e);
+      alert("Failed to remove assignment");
     }
   }
 
@@ -207,30 +243,81 @@ export default function AssetDetailClient({
           <h3 className="font-semibold mb-4">Images</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {images.map((img) => (
-              <button
-                key={img.id}
-                type="button"
-                onClick={() => openDocumentUrl(img.file_url)}
-                className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer text-left"
-              >
-                <Image src={img.file_url} alt="Asset" fill sizes="200px" className="object-cover" unoptimized />
-              </button>
+              <div key={img.id} className="space-y-1">
+                <button
+                  type="button"
+                  onClick={() => openDocumentUrl(img.file_url)}
+                  className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer text-left block w-full"
+                >
+                  <Image src={img.file_url} alt="Asset" fill sizes="200px" className="object-cover" unoptimized />
+                </button>
+                {img.uploaded_by_name && (
+                  <p className="text-xs text-gray-500 truncate" title={img.uploaded_by_name}>
+                    {img.uploaded_by_name}
+                  </p>
+                )}
+              </div>
             ))}
           </div>
         </div>
       )}
 
       <div className="card p-6">
+        <h3 className="font-semibold mb-4">Inspections</h3>
+        {inspections.length === 0 ? (
+          <p className="text-slate-500">No inspections recorded yet.</p>
+        ) : (
+          <ul className="space-y-3">
+            {inspections.map((insp) => (
+              <li
+                key={insp.id}
+                className="py-3 border-b border-gray-100 last:border-0 last:pb-0 first:pt-0"
+              >
+                <div className="flex flex-wrap justify-between gap-2 text-sm">
+                  <span className="font-medium text-gray-900">
+                    {insp.recorded_by || insp.user_id}
+                  </span>
+                  <span className="text-slate-500">{formatDate(insp.created_at)}</span>
+                </div>
+                {insp.notes ? (
+                  <p className="text-gray-700 mt-1 whitespace-pre-wrap">{insp.notes}</p>
+                ) : (
+                  <p className="text-slate-400 text-sm mt-1">No notes</p>
+                )}
+                {insp.photo_url && (
+                  <button
+                    type="button"
+                    onClick={() => openDocumentUrl(insp.photo_url!)}
+                    className="text-sm text-blue-600 hover:underline mt-2"
+                  >
+                    View photo
+                  </button>
+                )}
+              </li>
+            ))}
+          </ul>
+        )}
+      </div>
+
+      <div className="card p-6">
         <h3 className="font-semibold mb-4">Assignments</h3>
         {assignments.length === 0 ? (
-          <p className="text-slate-500">No assignments yet.</p>
+          <p className="text-slate-500">No assignments yet. Unassigned assets are only visible to admin until assigned.</p>
         ) : (
           <ul className="space-y-2">
             {assignments.map((a) => (
-              <li key={a.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0">
+              <li key={a.id} className="flex justify-between items-center py-2 border-b border-gray-100 last:border-0 gap-2">
                 <span>{a.user?.display_name || a.user?.email || a.user_id}</span>
-                <span className="text-sm text-slate-500">
-                  {new Date(a.assigned_at).toLocaleDateString()}
+                <span className="flex items-center gap-2">
+                  <span className="text-sm text-slate-500">{formatDate(a.assigned_at)}</span>
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    onClick={() => handleUnassign(a.user_id)}
+                    className="text-red-600 hover:text-red-700 hover:bg-red-50"
+                  >
+                    Remove
+                  </Button>
                 </span>
               </li>
             ))}
