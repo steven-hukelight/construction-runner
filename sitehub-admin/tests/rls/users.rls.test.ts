@@ -7,7 +7,6 @@ import {
   seedRlsTestData,
   getClientAsUser,
   USER_A,
-  USER_B,
   SUPERUSER,
   COMPANY_A_ID,
   COMPANY_B_ID,

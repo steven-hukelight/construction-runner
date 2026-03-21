@@ -1,4 +1,4 @@
--- SiteHub Supabase SQL Schema (auto-generated)
+-- Construction Runner Supabase SQL Schema (auto-generated)
 
 -- Companies
 create table companies (

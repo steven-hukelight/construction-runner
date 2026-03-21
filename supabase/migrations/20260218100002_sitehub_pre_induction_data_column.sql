@@ -1,4 +1,4 @@
--- SiteHub: add "data" JSONB to pre_induction tables for APIs that expect it
+-- Construction Runner: add "data" JSONB to pre_induction tables for APIs that expect it
 -- (gdpr/download-my-data, supervisor/operative-drawer, subcontractor/request-verification)
 
 ALTER TABLE pre_induction_personal ADD COLUMN IF NOT EXISTS data JSONB DEFAULT '{}';

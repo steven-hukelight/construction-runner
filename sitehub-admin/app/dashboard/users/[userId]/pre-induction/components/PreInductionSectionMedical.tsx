@@ -3,6 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Upload } from "lucide-react";
+import { getPreInductionFileViewUrl } from "@/lib/preInductionFileUrl";
 
 function getStr(d: Record<string, unknown> | null, k: string): string {
   const v = d?.[k];
@@ -23,9 +24,12 @@ export default function PreInductionSectionMedical({
   data,
   onSaved,
 }: PreInductionSectionMedicalProps) {
+  const hasMedicalIssues = data?.hasMedicalIssues ?? data?.has_medical_issues;
+  const fitToWork = getBool(data, "fitToWork");
   const [form, setForm] = useState({
     medicalDeclaration: getStr(data, "medicalDeclaration"),
-    fitToWork: getBool(data, "fitToWork"),
+    hasMedicalIssues: hasMedicalIssues === true ? true : hasMedicalIssues === false ? false : (fitToWork ? false : undefined as boolean | undefined),
+    fitToWork,
     allergies: getStr(data, "allergies"),
     medication: getStr(data, "medication"),
     medicalCertificateUrl: getStr(data, "medicalCertificateUrl"),
@@ -44,27 +48,28 @@ export default function PreInductionSectionMedical({
     }
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch(`/api/pre-induction/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            sectionId: "medical",
-            fieldName: "medicalCertificate",
-            fileName: file.name,
-            fileBase64: base64,
-          }),
-          credentials: "include",
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        setForm((f) => ({ ...f, medicalCertificateUrl: json.fileUrl }));
-        toast.success("File uploaded");
-      };
-      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/pre-induction/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          sectionId: "medical",
+          fieldName: "medicalCertificate",
+          fileName: file.name,
+          fileBase64: base64,
+        }),
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      setForm((f) => ({ ...f, medicalCertificateUrl: json.fileUrl }));
+      toast.success("File uploaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -80,6 +85,8 @@ export default function PreInductionSectionMedical({
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           ...form,
+          hasMedicalIssues: form.hasMedicalIssues,
+          fitToWork: form.hasMedicalIssues === false,
           medicalVerifiedBy: form.medicalVerified ? null : undefined,
           medicalVerifiedAt: form.medicalVerified ? new Date().toISOString() : null,
           updatedAt: new Date().toISOString(),
@@ -110,19 +117,32 @@ export default function PreInductionSectionMedical({
             className="mt-1 block w-full rounded-lg border border-gray-300 px-3 py-2 shadow-sm"
           />
         </div>
-        <div className="flex items-center gap-2">
-          <input
-            type="checkbox"
-            id="fitToWork"
-            checked={form.fitToWork}
-            onChange={(e) => setForm((f) => ({ ...f, fitToWork: e.target.checked }))}
-            className="rounded border-gray-300 text-blue-600"
-          />
-          <label htmlFor="fitToWork" className="text-sm font-medium text-gray-700">
-            Fit to work
-          </label>
+        <div className="sm:col-span-2">
+          <label className="block text-sm font-medium text-gray-700 mb-2">Do you have any medical issues that could affect your fitness to work?</label>
+          <div className="flex gap-6">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="hasMedicalIssues"
+                checked={form.hasMedicalIssues === false}
+                onChange={() => setForm((f) => ({ ...f, hasMedicalIssues: false }))}
+                className="text-blue-600"
+              />
+              <span className="text-sm">No</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="hasMedicalIssues"
+                checked={form.hasMedicalIssues === true}
+                onChange={() => setForm((f) => ({ ...f, hasMedicalIssues: true }))}
+                className="text-blue-600"
+              />
+              <span className="text-sm">Yes</span>
+            </label>
+          </div>
+          <p className="mt-1 text-xs text-gray-500">If No, no medical certificate is required. If Yes, please upload a certificate.</p>
         </div>
-        <div />
         <div>
           <label className="block text-sm font-medium text-gray-700">Allergies (optional)</label>
           <input
@@ -142,7 +162,9 @@ export default function PreInductionSectionMedical({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Medical certificate (optional)</label>
+          <label className="block text-sm font-medium text-gray-700">
+            Medical certificate {form.hasMedicalIssues === true ? "(required)" : "(optional – only if you have medical issues)"}
+          </label>
           <div className="mt-1 flex gap-2">
             <input
               type="file"
@@ -163,7 +185,7 @@ export default function PreInductionSectionMedical({
               {uploading ? "Uploading..." : form.medicalCertificateUrl ? "Replace" : "Upload"}
             </label>
             {form.medicalCertificateUrl && (
-              <a href={form.medicalCertificateUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
+              <a href={getPreInductionFileViewUrl(form.medicalCertificateUrl) ?? form.medicalCertificateUrl} target="_blank" rel="noopener noreferrer" className="text-sm text-blue-600 hover:underline">
                 View
               </a>
             )}

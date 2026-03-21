@@ -1,41 +1,10 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 import PageHeader from "@/app/dashboard/components/PageHeader";
-import { getRawCompanyIdFromCookie } from "@/lib/utils/cookies";
 
 export default function SettingsPage() {
-  // Superuser company switcher
-  const [isSuperuser, setIsSuperuser] = useState(false);
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [hydrated, setHydrated] = useState(false);
-  const [companyList, setCompanyList] = useState<any[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSelectedCompanyId(getRawCompanyIdFromCookie());
-      setHydrated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isSuperuser) return;
-    setCompanyList([
-      { id: "company1", name: "Acme Ltd" },
-      { id: "company2", name: "Globex Corp" },
-    ]);
-  }, [isSuperuser]);
-
-  function handleCompanySwitch(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedCompanyId(e.target.value);
-    try {
-      document.cookie = `companyId=${e.target.value}; path=/; SameSite=Lax; Secure`;
-    } catch {
-      /* document.cookie access denied */
-    }
-    window.location.reload();
-  }
+  const hydrated = typeof window !== "undefined";
   const [activeTab, setActiveTab] = useState("account");
 
   const tabs = [
@@ -108,8 +77,9 @@ function AccountSettings() {
       const { error } = await supabase.auth.updateUser({ email: newEmail });
       if (error) throw error;
       setSuccess(true);
-    } catch (err: any) {
-      setError(err?.message || "Failed to change email.");
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Failed to change email.";
+      setError(msg);
     } finally {
       setLoading(false);
     }

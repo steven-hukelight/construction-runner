@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useState, useSyncExternalStore } from "react";
 import { Users, CheckCircle, AlertTriangle, XCircle, Shield, Calendar, FileWarning } from "lucide-react";
 import SupervisorOperativeCard from "./SupervisorOperativeCard";
 import SupervisorOperativeDrawer from "./SupervisorOperativeDrawer";
@@ -8,6 +8,7 @@ import type {
   SupervisorOperativeRow,
   SupervisorComplianceSummary,
 } from "../utils/buildSupervisorComplianceDataset";
+import useSWR from "swr";
 
 type Site = { id: string; name?: string };
 
@@ -23,15 +24,7 @@ type FilterState = {
 };
 
 export default function SupervisorCompliancePanel({ sites }: Props) {
-  const [siteId, setSiteId] = useState("");
-  const [data, setData] = useState<{
-    site: { id: string; name: string };
-    operatives: SupervisorOperativeRow[];
-    summary: SupervisorComplianceSummary;
-    companyOptions: { id: string; name: string }[];
-    tradeOptions: string[];
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
+  const [siteId, setSiteId] = useState(() => sites[0]?.id ?? "");
   const [filters, setFilters] = useState<FilterState>({
     status: "all",
     companyId: "all",
@@ -40,32 +33,24 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
   });
   const [selectedOperative, setSelectedOperative] = useState<SupervisorOperativeRow | null>(null);
   const [drawerOpen, setDrawerOpen] = useState(false);
-  const [isMobile, setIsMobile] = useState(false);
+  const effectiveSiteId = siteId || sites[0]?.id || "";
 
-  useEffect(() => {
-    if (sites.length > 0 && !siteId) setSiteId(sites[0].id);
-  }, [sites, siteId]);
+  const fetcher = (url: string) =>
+    fetch(url, { credentials: "include" }).then((r) => (r.ok ? r.json() : null));
 
-  useEffect(() => {
-    if (!siteId) {
-      setData(null);
-      return;
-    }
-    setLoading(true);
-    fetch(`/api/supervisor/compliance?siteId=${encodeURIComponent(siteId)}`, { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [siteId]);
+  const { data, isLoading } = useSWR<{
+    site: { id: string; name: string };
+    operatives: SupervisorOperativeRow[];
+    summary: SupervisorComplianceSummary;
+    companyOptions: { id: string; name: string }[];
+    tradeOptions: string[];
+  } | null>(
+    effectiveSiteId ? `/api/supervisor/compliance?siteId=${encodeURIComponent(effectiveSiteId)}` : null,
+    fetcher,
+    { revalidateOnFocus: false, refreshInterval: 30000 }
+  );
 
-  useEffect(() => {
-    const mq = window.matchMedia("(max-width: 768px)");
-    setIsMobile(mq.matches);
-    const h = () => setIsMobile(mq.matches);
-    mq.addEventListener("change", h);
-    return () => mq.removeEventListener("change", h);
-  }, []);
+  const isMobile = useMediaQuery("(max-width: 768px)");
 
   const filteredOperatives = (data?.operatives ?? []).filter((o) => {
     if (filters.status !== "all") {
@@ -164,7 +149,7 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
         )}
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="py-12 text-center text-gray-500">Loading…</div>
       ) : data ? (
         <>
@@ -252,4 +237,17 @@ function MetricCard({
       </p>
     </div>
   );
+}
+
+function useMediaQuery(query: string): boolean {
+  const subscribe = (callback: () => void) => {
+    const mq = window.matchMedia(query);
+    mq.addEventListener("change", callback);
+    return () => mq.removeEventListener("change", callback);
+  };
+
+  const getSnapshot = () => window.matchMedia(query).matches;
+  const getServerSnapshot = () => false;
+
+  return useSyncExternalStore(subscribe, getSnapshot, getServerSnapshot);
 }

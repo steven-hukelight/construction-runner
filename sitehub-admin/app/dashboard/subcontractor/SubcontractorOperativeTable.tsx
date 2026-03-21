@@ -2,10 +2,10 @@
 
 import React from "react";
 import Image from "next/image";
+import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import {
   AlertTriangle,
   Clock,
-  FileQuestion,
   ChevronRight,
   Upload,
   CheckCircle,
@@ -57,6 +57,7 @@ export default function SubcontractorOperativeTable({
   onRequestVerification,
   isMobile = false,
 }: Props) {
+  const density = useTableDensityClasses();
   if (isMobile) {
     return (
       <div className="space-y-3">
@@ -138,31 +139,31 @@ export default function SubcontractorOperativeTable({
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
       <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-        <table className="w-full table-auto text-sm min-w-[800px]">
+        <table className={`w-full table-auto min-w-[800px] ${density.table}`}>
           <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
             <tr>
-              <th className="text-left px-4 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
                 Operative
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
                 Trade
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
                 Pre-Induction
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide w-8">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-8`}>
                 Missing
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide w-8">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-8`}>
                 Expiry
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
                 RAMS
               </th>
-              <th className="text-left px-3 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
                 Induction
               </th>
-              <th className="text-left px-2 py-3 text-xs font-semibold text-gray-700 uppercase tracking-wide w-24">
+              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-24`}>
                 Actions
               </th>
             </tr>
@@ -174,7 +175,7 @@ export default function SubcontractorOperativeTable({
                 className="hover:bg-gray-50 transition-colors cursor-pointer"
                 onClick={() => onRowClick(row)}
               >
-                <td className="px-4 py-2.5">
+                <td className={density.td}>
                   <div className="flex items-center gap-2">
                     {row.avatar ? (
                       <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 bg-gray-100">
@@ -191,11 +192,11 @@ export default function SubcontractorOperativeTable({
                     </div>
                   </div>
                 </td>
-                <td className="px-3 py-2.5 text-gray-700">{row.trade || "—"}</td>
-                <td className="px-3 py-2.5">
+                <td className={`${density.td} text-gray-700`}>{row.trade || "—"}</td>
+                <td className={density.td}>
                   <PreInductionBadge status={row.preInductionStatus} />
                 </td>
-                <td className="px-3 py-2.5">
+                <td className={density.td}>
                   {row.hasMissing ? (
                     <span title={row.missingItems.join(", ")} className="text-amber-600">
                       <AlertTriangle className="h-5 w-5" />
@@ -204,7 +205,7 @@ export default function SubcontractorOperativeTable({
                     <span className="text-gray-300">—</span>
                   )}
                 </td>
-                <td className="px-3 py-2.5">
+                <td className={density.td}>
                   {row.hasExpiring ? (
                     <span title={row.expiringItems.join(", ")} className="text-amber-600">
                       <Clock className="h-5 w-5" />
@@ -213,13 +214,13 @@ export default function SubcontractorOperativeTable({
                     <span className="text-gray-300">—</span>
                   )}
                 </td>
-                <td className="px-3 py-2.5">
+                <td className={density.td}>
                   <RAMSStatusBadge status={row.ramsStatus} />
                 </td>
-                <td className="px-3 py-2.5">
+                <td className={density.td}>
                   <StatusBadge status={row.inductionStatus} />
                 </td>
-                <td className="px-2 py-2.5" onClick={(e) => e.stopPropagation()}>
+                <td className={density.td} onClick={(e) => e.stopPropagation()}>
                   <div className="flex items-center gap-1">
                     <button
                       type="button"

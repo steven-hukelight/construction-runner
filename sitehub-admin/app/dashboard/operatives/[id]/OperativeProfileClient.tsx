@@ -1,8 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Image from "next/image";
+import { useCallback, useEffect, useState, type ChangeEvent } from "react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 
 type User = {
   id: string;
@@ -32,7 +34,7 @@ export default function OperativeProfileClient({ id }: { id: string }) {
   const [file, setFile] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
 
-  async function loadMedical() {
+  const loadMedical = useCallback(async () => {
     try {
       const res = await fetch(`/api/users/${id}/medical`, { credentials: "include" });
       if (res.ok) {
@@ -42,7 +44,7 @@ export default function OperativeProfileClient({ id }: { id: string }) {
     } catch {
       setMedical([]);
     }
-  }
+  }, [id]);
 
   useEffect(() => {
     async function loadUser() {
@@ -79,8 +81,8 @@ export default function OperativeProfileClient({ id }: { id: string }) {
     }
 
     loadUser();
-    loadMedical();
-  }, [id]);
+    void loadMedical();
+  }, [id, loadMedical]);
 
   async function upload() {
     if (!file) return alert("Select a file");
@@ -139,10 +141,13 @@ export default function OperativeProfileClient({ id }: { id: string }) {
         {user && (
           <div className="mt-3 flex items-center gap-4">
             {user.avatar && (
-              <img
+              <Image
                 src={user.avatar}
                 alt={user.name ?? "Avatar"}
-                className="w-16 h-16 rounded-full object-cover border-2 border-gray-200"
+                width={64}
+                height={64}
+                className="rounded-full object-cover border-2 border-gray-200"
+                style={{ width: "64px", height: "64px" }}
               />
             )}
             <div className="space-y-1">
@@ -199,14 +204,16 @@ export default function OperativeProfileClient({ id }: { id: string }) {
               <div className="font-medium text-slate-900">{m.title}</div>
               <div className="text-sm text-slate-600">{m.notes}</div>
               <div className="text-sm">
-                <a
-                  href={(m as MedicalRecord).fileUrl ?? (m as MedicalRecord).file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 underline"
+                <button
+                  type="button"
+                  onClick={() => {
+                    const url = (m as MedicalRecord).fileUrl ?? (m as MedicalRecord).file_url;
+                    if (url) openDocumentUrl(url);
+                  }}
+                  className="text-xs font-medium text-blue-600 hover:text-blue-700 underline text-left"
                 >
                   {(m as MedicalRecord).fileName ?? (m as MedicalRecord).file_name ?? "File"}
-                </a>
+                </button>
               </div>
             </div>
           ))}
@@ -222,13 +229,13 @@ export default function OperativeProfileClient({ id }: { id: string }) {
         <Input
           label="Title"
           value={title}
-          onChange={(e: any) => setTitle(e.target.value)}
+          onChange={(e: ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)}
         />
         <div>
           <label className="text-xs font-medium text-slate-700 block mb-1">Notes</label>
           <textarea
             value={notes}
-            onChange={(e) => setNotes(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLTextAreaElement>) => setNotes(e.target.value)}
             placeholder="Notes"
             className="w-full input min-h-[80px]"
           />
@@ -237,7 +244,7 @@ export default function OperativeProfileClient({ id }: { id: string }) {
           <label className="text-xs font-medium text-slate-700 block mb-1">File</label>
           <input
             type="file"
-            onChange={(e) => setFile(e.target.files?.[0] ?? null)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)}
             className="block w-full text-sm text-slate-700 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-medium file:bg-blue-50 file:text-blue-700 hover:file:bg-blue-100"
           />
         </div>

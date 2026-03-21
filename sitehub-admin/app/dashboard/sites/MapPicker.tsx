@@ -1,6 +1,8 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 import { useEffect, useRef, useState } from "react";
 
 type FencePoint = { lat: number; lng: number };
@@ -36,6 +38,7 @@ export default function MapPicker({
   const [searchError, setSearchError] = useState<string | null>(null);
   const [mode, setMode] = useState<"radius" | "polygon">("radius");
   const [polygonPoints, setPolygonPoints] = useState<FencePoint[]>(polygon || []);
+  void onRadiusChange;
 
   useEffect(() => {
     let isMounted = true;
@@ -284,12 +287,24 @@ export default function MapPicker({
 
     try {
       setSearching(true);
-      const res = await fetch(
-        `https://nominatim.openstreetmap.org/search?q=${encodeURIComponent(
-          query.trim()
-        )}&format=json&limit=1`
-      );
-      const json: any[] = await res.json();
+      const headers = { "Accept-Language": "en-GB" };
+      const searchWithCountry = (countryCodes?: string) => {
+        const params = new URLSearchParams({
+          q: query.trim(),
+          format: "json",
+          limit: "1",
+        });
+        if (countryCodes) params.set("countrycodes", countryCodes);
+        return fetch(
+          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
+          { headers }
+        ).then((r) => r.json());
+      };
+
+      let json: any[] = await searchWithCountry("gb");
+      if (!json.length) {
+        json = await searchWithCountry();
+      }
       if (!json.length) {
         setSearchError("No results for that address.");
         return;

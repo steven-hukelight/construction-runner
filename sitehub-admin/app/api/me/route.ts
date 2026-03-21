@@ -37,6 +37,15 @@ export async function GET() {
     const preInductionStatus = (userData.pre_induction_status ?? "not_started") as string;
     const adminPreInductionOverride = userData.admin_pre_induction_override === true;
 
+    const { data: personal } = await supabaseAdmin
+      .from("pre_induction_personal")
+      .select("full_name, data")
+      .eq("user_id", userId)
+      .maybeSingle();
+    const pr = personal as { full_name?: string | null; data?: Record<string, unknown> } | null;
+    const d = pr?.data ?? {};
+    const resolvedName = (pr?.full_name ?? d?.full_name ?? d?.fullName ?? userData.display_name ?? userData.name ?? userData.displayName ?? email?.split("@")[0] ?? null) as string | null;
+
     let companyName: string | null = null;
     if (companyId) {
       const { data: company } = await supabaseAdmin.from("companies").select("name").eq("id", companyId).single();
@@ -46,7 +55,7 @@ export async function GET() {
     return NextResponse.json({
       id: userId,
       email,
-      name: userData.display_name ?? userData.name ?? userData.displayName ?? email?.split("@")[0] ?? null,
+      name: resolvedName,
       role: userData.role ?? null,
       company_id: companyId,
       companyId, // legacy alias

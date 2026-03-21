@@ -11,7 +11,6 @@ interface Profile {
   avatar?: string;
   email?: string;
   companyId?: string;
-  [key: string]: any;
 }
 
 interface ProfilesTableProps {
@@ -82,7 +81,7 @@ export default function ProfilesTable({ profiles }: ProfilesTableProps) {
           {sortByCompletion ? "Default order" : "Sort by completion"}
         </button>
       </div>
-      <Table columns={columns} data={processedProfiles} density="comfortable" />
+      <Table columns={columns} data={processedProfiles} />
     </div>
   );
 }

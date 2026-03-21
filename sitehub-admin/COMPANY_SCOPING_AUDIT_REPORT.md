@@ -1,4 +1,4 @@
-# SiteHub Admin – Company-Scoping Audit Report
+# Construction Runner Admin – Company-Scoping Audit Report
 
 **Audit Date:** 2025-02-17  
 **Scope:** Full codebase (API routes, server actions, dashboard server components)  

@@ -1,16 +1,30 @@
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolvePreInductionAuth } from "../../_utils/mobileAuth";
 
-export async function checkPreInductionAccess(userId: string): Promise<{
-  ok: boolean;
-  error?: string;
-  status?: number;
-}> {
-  const cookieStore = await cookies();
-  const role = cookieStore.get("role")?.value;
-  const companyId = cookieStore.get("companyId")?.value;
-  const userEmail = cookieStore.get("user_email")?.value;
-  const uid = cookieStore.get("uid")?.value?.trim();
+export async function checkPreInductionAccess(
+  userId: string,
+  req?: Request,
+): Promise<{ ok: boolean; error?: string; status?: number }> {
+  let role: string | null = null;
+  let companyId: string | null = null;
+  let userEmail: string | null = null;
+  let uid: string | null = null;
+
+  if (req) {
+    const auth = await resolvePreInductionAuth({ req });
+    role = auth.role;
+    companyId = auth.companyId;
+    userEmail = auth.userEmail;
+    uid = auth.uid;
+  }
+  if (!role && !userEmail && !uid) {
+    const { cookies } = await import("next/headers");
+    const cookieStore = await cookies();
+    role = cookieStore.get("role")?.value ?? null;
+    companyId = cookieStore.get("companyId")?.value ?? null;
+    userEmail = cookieStore.get("user_email")?.value ?? null;
+    uid = cookieStore.get("uid")?.value?.trim() ?? null;
+  }
 
   if (!role && !userEmail && !uid) {
     return { ok: false, error: "Unauthorized", status: 401 };

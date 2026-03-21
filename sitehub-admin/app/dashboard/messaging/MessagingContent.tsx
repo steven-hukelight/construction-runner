@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "../components/ui/Button";
 
@@ -32,11 +32,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
   const [loading, setLoading] = useState(true);
   const [sending, setSending] = useState(false);
 
-  useEffect(() => {
-    fetchThreads();
-  }, [companyId]);
-
-  async function fetchThreads() {
+  const fetchThreads = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch(`/api/messages/threads?companyId=${encodeURIComponent(companyId)}`);
@@ -47,7 +43,11 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
     } finally {
       setLoading(false);
     }
-  }
+  }, [companyId]);
+
+  useEffect(() => {
+    void fetchThreads();
+  }, [fetchThreads]);
 
   async function openThread(id: string) {
     try {

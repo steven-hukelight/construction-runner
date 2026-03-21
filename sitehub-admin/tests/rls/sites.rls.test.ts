@@ -7,11 +7,9 @@ import {
   seedRlsTestData,
   getClientAsUser,
   USER_A,
-  USER_B,
   SUPERUSER,
   COMPANY_A_ID,
   COMPANY_B_ID,
-  SITE_A_ID,
   SITE_B_ID,
 } from "./helpers";
 

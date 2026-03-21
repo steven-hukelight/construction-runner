@@ -1,39 +1,26 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
+import useSWR from "swr";
 
 const cache: Record<string, string | null> = {};
 
 export function useCompanyName(companyId: string | null | undefined): string | null {
-  const [name, setName] = useState<string | null>(() =>
-    companyId ? (cache[companyId] ?? null) : null
+  const fetcher = (url: string) =>
+    fetch(url, { cache: "no-store", credentials: "include" })
+      .then((res) => res.ok ? res.json() : null)
+      .then((data) => data?.name ?? null)
+      .catch(() => null);
+
+  const { data } = useSWR<string | null>(
+    companyId ? `/api/company-name?companyId=${encodeURIComponent(companyId)}` : null,
+    async (url) => {
+      if (cache[companyId ?? ""] !== undefined) return cache[companyId ?? ""];
+      const name = await fetcher(url);
+      if (companyId) cache[companyId] = name;
+      return name;
+    },
+    { revalidateOnFocus: false }
   );
 
-  useEffect(() => {
-    if (!companyId) {
-      setName(null);
-      return;
-    }
-    if (cache[companyId] !== undefined) {
-      setName(cache[companyId]);
-      return;
-    }
-    let cancelled = false;
-    fetch(`/api/company-name?companyId=${encodeURIComponent(companyId)}`)
-      .then((res) => res.json())
-      .then((data) => {
-        if (!cancelled && data?.name !== undefined) {
-          cache[companyId] = data.name;
-          setName(data.name);
-        }
-      })
-      .catch(() => {
-        if (!cancelled) setName(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [companyId]);
-
-  return name;
+  return data ?? (companyId ? cache[companyId] ?? null : null);
 }

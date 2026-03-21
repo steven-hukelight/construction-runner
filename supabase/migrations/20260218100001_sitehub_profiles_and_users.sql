@@ -1,4 +1,4 @@
--- SiteHub: profiles table and users columns
+-- Construction Runner: profiles table and users columns
 -- Idempotent: uses IF NOT EXISTS / ADD COLUMN IF NOT EXISTS
 
 -- Profiles (linked to users for personal info)

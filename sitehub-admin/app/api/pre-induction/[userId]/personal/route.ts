@@ -7,7 +7,7 @@ import { updatePreInductionStatus } from "../_utils/status";
 export async function POST(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   try {
     const { userId } = await params;
-    const access = await checkPreInductionAccess(userId);
+    const access = await checkPreInductionAccess(userId, req);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
     }

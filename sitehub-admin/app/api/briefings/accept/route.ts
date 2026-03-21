@@ -16,7 +16,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const access = await checkPreInductionAccess(userId);
+    const access = await checkPreInductionAccess(userId, req);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
     }

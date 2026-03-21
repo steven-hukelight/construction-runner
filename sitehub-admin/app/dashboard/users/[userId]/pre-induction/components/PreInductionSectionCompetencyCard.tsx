@@ -2,7 +2,8 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
-import { CreditCard, Upload } from "lucide-react";
+import { Upload } from "lucide-react";
+import { getPreInductionFileViewUrl } from "@/lib/preInductionFileUrl";
 
 const CARD_TYPES = ["CSCS", "CPCS", "ECITB", "ECSC", "Gas Safe", "JIB", "CITB", "Other"];
 
@@ -37,32 +38,34 @@ export default function PreInductionSectionCompetencyCard({
     }
     setUploading(true);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch(`/api/pre-induction/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            sectionId: "competencyCard",
-            fieldName: "competency_card",
-            fileName: file.name,
-            fileBase64: base64,
-          }),
-          credentials: "include",
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        setFileUrl(json.fileUrl ?? "");
-        toast.success("File uploaded");
-      };
-      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/pre-induction/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          sectionId: "competencyCard",
+          fieldName: "competency_card",
+          fileName: file.name,
+          fileBase64: base64,
+        }),
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      setFileUrl(json.fileUrl ?? "");
+      toast.success("File uploaded");
     } catch (err) {
       toast.error(err instanceof Error ? err.message : "Upload failed");
     } finally {
       setUploading(false);
     }
+    e.target.value = "";
   };
 
   const handleSave = async () => {
@@ -153,7 +156,7 @@ export default function PreInductionSectionCompetencyCard({
             {uploading ? "Uploading…" : "Choose file"}
           </label>
           {fileUrl && (
-            <a href={fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 text-sm hover:underline">
+            <a href={getPreInductionFileViewUrl(fileUrl) ?? fileUrl} target="_blank" rel="noreferrer" className="text-blue-600 text-sm hover:underline">
               View uploaded
             </a>
           )}

@@ -3,6 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Upload } from "lucide-react";
+import { getPreInductionFileViewUrl } from "@/lib/preInductionFileUrl";
 
 function getStr(d: Record<string, unknown> | null, k: string): string {
   const v = d?.[k];
@@ -48,27 +49,28 @@ export default function PreInductionSectionRightToWork({
     }
     setUploading(field);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch(`/api/pre-induction/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            sectionId: "rightToWork",
-            fieldName: field,
-            fileName: file.name,
-            fileBase64: base64,
-          }),
-          credentials: "include",
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        setForm((f) => ({ ...f, [field]: json.fileUrl }));
-        toast.success("File uploaded");
-      };
-      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/pre-induction/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          sectionId: "rightToWork",
+          fieldName: field,
+          fileName: file.name,
+          fileBase64: base64,
+        }),
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      setForm((f) => ({ ...f, [field]: json.fileUrl }));
+      toast.success("File uploaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -139,7 +141,7 @@ export default function PreInductionSectionRightToWork({
         </label>
         {value && (
           <a
-            href={value}
+            href={getPreInductionFileViewUrl(value) ?? value}
             target="_blank"
             rel="noopener noreferrer"
             className="text-sm text-blue-600 hover:underline truncate max-w-[200px]"

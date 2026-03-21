@@ -3,10 +3,27 @@
 import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { Sparkles, Calendar } from "lucide-react";
-import { getUserEmailFromCookie } from "@/lib/utils/cookies";
+import useSWR from "swr";
 
-export default function WelcomeBanner() {
-  const [userName, setUserName] = useState<string>("Admin");
+type WelcomeBannerProps = {
+  subtitle?: string;
+};
+
+/** Subtle dark overlay for text contrast; can swap for text-shadow/pill/darker text later */
+const OVERLAY_OPACITY = "rgba(0, 0, 0, 0.2)";
+
+export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
+  const { data: userName, isValidating } = useSWR(
+    "/api/profiles/me",
+    async (url) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return "";
+      const arr = (await res.json()) as Array<{ name?: string; displayName?: string }> | { name?: string; displayName?: string };
+      const me = Array.isArray(arr) ? arr[0] : arr;
+      return (me?.name ?? me?.displayName ?? "").trim();
+    },
+    { revalidateOnFocus: true }
+  );
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mounted, setMounted] = useState(false);
 
@@ -33,28 +50,6 @@ export default function WelcomeBanner() {
     month: 'long', 
     day: 'numeric' 
   });
-
-  useEffect(() => {
-    // Fetch user profile name from API using email from cookie
-    const email = getUserEmailFromCookie();
-    if (email) {
-      fetch('/api/users')
-        .then(res => res.json())
-        .then(users => {
-          if (Array.isArray(users)) {
-            const user = users.find((u: any) => u.email === email);
-            setUserName(user?.displayName || user?.name || "");
-          } else {
-            setUserName("");
-          }
-        })
-        .catch(() => {
-          setUserName("");
-        });
-    } else {
-      setUserName("");
-    }
-  }, []);
 
   return (
     <motion.div
@@ -102,6 +97,13 @@ export default function WelcomeBanner() {
         backgroundSize: '50px 50px'
       }} />
 
+      {/* Dark overlay for text readability — above background, below content */}
+      <div 
+        className="absolute inset-0 pointer-events-none" 
+        style={{ backgroundColor: OVERLAY_OPACITY, zIndex: 1 }}
+        aria-hidden
+      />
+
       <div className="relative z-10">
         <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
           {/* Left content */}
@@ -110,10 +112,10 @@ export default function WelcomeBanner() {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-white/95 backdrop-blur-md rounded-full px-4 py-2 mb-4 border border-white shadow-lg"
+              className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 mb-4 border border-white dark:border-slate-600 shadow-lg"
             >
-              <Sparkles className="w-4 h-4 text-amber-500" />
-              <span className="text-sm font-bold text-blue-600">Welcome back</span>
+              <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Welcome back</span>
             </motion.div>
             
             <motion.h1
@@ -128,13 +130,14 @@ export default function WelcomeBanner() {
             >
               <span className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{getGreeting()},</span> <br />
               <span 
-                className="text-blue-600 drop-shadow-[0_2px_8px_rgba(0,0,0,0.5)]"
+                className="text-blue-600"
                 style={{
                   WebkitTextStroke: '1px #3b82f6',
-                  paintOrder: 'stroke fill'
+                  paintOrder: 'stroke fill',
+                  textShadow: '0 0 4px rgba(255,255,255,0.6), 0 1px 2px rgba(255,255,255,0.4)',
                 }}
               >
-                {userName}
+                {isValidating ? "\u00A0" : (userName || "there")}
               </span>
             </motion.h1>
             
@@ -144,7 +147,7 @@ export default function WelcomeBanner() {
               transition={{ delay: 0.4, duration: 0.6 }}
               className="text-lg text-white font-semibold max-w-lg drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
             >
-              Here's an overview of your construction sites and team activity
+              {subtitle ?? "Here's an overview of your construction sites and team activity"}
             </motion.p>
           </div>
 
@@ -155,16 +158,16 @@ export default function WelcomeBanner() {
             transition={{ delay: 0.5, duration: 0.6 }}
             className="lg:flex-shrink-0"
           >
-            <div className="bg-white/95 backdrop-blur-xl rounded-2xl p-6 border-4 border-blue-300 shadow-xl min-w-[240px]">
+            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl p-6 border-4 border-blue-300 dark:border-slate-600 shadow-xl min-w-[240px]">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
                 <div>
-                  <div className="text-xs text-blue-600 font-bold uppercase tracking-wide mb-1">
+                  <div className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide mb-1">
                     Today
                   </div>
-                  <div className="text-base text-slate-700 font-bold leading-tight">
+                  <div className="text-base text-slate-700 dark:text-slate-200 font-bold leading-tight">
                     {mounted ? formattedDate : ' '}
                   </div>
                 </div>

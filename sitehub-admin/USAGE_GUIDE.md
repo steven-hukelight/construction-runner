@@ -1,8 +1,8 @@
-# 🎨 SiteHub Visual Overhaul - Complete Guide
+# 🎨 Construction Runner Visual Overhaul - Complete Guide
 
 ## 🎉 What's Changed
 
-Your SiteHub Admin portal has been completely transformed from a basic interface into a modern, professional web application with:
+Your Construction Runner Admin portal has been completely transformed from a basic interface into a modern, professional web application with:
 
 ### ✨ Key Visual Enhancements
 

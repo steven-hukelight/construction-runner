@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
 import PageHeader from "../components/PageHeader";
 import Table from "../components/ui/Table";
+import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 import Link from "next/link";
 import { Users, UserCog, Building2, Trash2, KeyRound, MoreHorizontal, CheckCircle, Circle, User } from "lucide-react";
@@ -37,6 +38,7 @@ export default function AllUsersPage() {
   const [resetSentId, setResetSentId] = useState<string | null>(null);
   const [actionsOpenId, setActionsOpenId] = useState<string | null>(null);
   const [menuAnchor, setMenuAnchor] = useState<{ top: number; left: number } | null>(null);
+  const [companyFilter, setCompanyFilter] = useState<string>("");
 
   const companyMap = companies.reduce<Record<string, string>>((acc, c) => {
     acc[c.id] = c.name ?? c.id;
@@ -140,15 +142,38 @@ export default function AllUsersPage() {
       return;
     }
     setSaving(true);
+    let provData: { ok?: boolean; userId?: string; error?: string } | undefined;
     try {
-      const res = await fetch("/api/auth/send-password-reset", {
+      let res = await fetch("/api/auth/send-password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email }),
+        body: JSON.stringify({ email, userId: user.id }),
       });
-      const data = await res.json().catch(() => ({}));
+      let data = await res.json().catch(() => ({}));
+      if (!res.ok && (data.error ?? "").includes("not found in authentication")) {
+        const provRes = await fetch("/api/auth/provision-legacy-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ userId: user.id }),
+          credentials: "include",
+        });
+        provData = await provRes.json().catch(() => ({}));
+        if (!provRes.ok || !provData?.ok) {
+          alert(provData?.error || "Provision failed");
+          return;
+        }
+        const newId = provData.userId ?? user.id;
+        loadUsers();
+        res = await fetch("/api/auth/send-password-reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, userId: newId }),
+        });
+        data = await res.json().catch(() => ({}));
+      }
       if (res.ok) {
-        setResetSentId(user.id);
+        const resetId = data.userId ?? provData?.userId ?? user.id;
+        setResetSentId(resetId);
         setTimeout(() => setResetSentId(null), 3000);
       } else {
         alert(data.error || "Failed to send reset email");
@@ -180,11 +205,7 @@ export default function AllUsersPage() {
     {
       header: "Role",
       accessor: "role",
-      render: (row: UserRow) => (
-        <span className="inline-flex px-2.5 py-1 rounded-lg text-xs font-medium bg-blue-50 text-blue-700 border border-blue-200/60">
-          {row.role || "—"}
-        </span>
-      ),
+      render: (row: UserRow) => <RoleBadge role={row.role} className="px-2.5 py-1 rounded-lg" />,
     },
     { header: "Company", accessor: "company_id", render: (row: UserRow) => { const cid = row.company_id ?? row.companyId; return cid ? (companyMap[cid] ?? cid) : "—"; } },
     {
@@ -329,6 +350,22 @@ export default function AllUsersPage() {
         description="View and manage users across all companies."
       />
 
+      <div className="flex flex-wrap items-center gap-3 mb-6">
+        <label className="text-sm font-medium text-gray-700">Filter by company</label>
+        <select
+          value={companyFilter}
+          onChange={(e) => setCompanyFilter(e.target.value)}
+          className="input max-w-[220px]"
+        >
+          <option value="">All companies</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name || c.id}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
@@ -349,7 +386,10 @@ export default function AllUsersPage() {
             <p>No users found.</p>
           </div>
         ) : (
-          <Table columns={columns} data={users} density="comfortable" />
+          <Table
+            columns={columns}
+            data={companyFilter ? users.filter((u) => (u.company_id ?? u.companyId) === companyFilter) : users}
+          />
         )}
       </div>
 

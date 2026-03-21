@@ -1,10 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import QuickInductionSummary from "./components/QuickInductionSummary";
 import QuickInductionTable from "./components/QuickInductionTable";
+import useSWR from "swr";
 
 type Site = { id: string; name?: string };
 type Operative = {
@@ -18,41 +19,34 @@ type Operative = {
 type Summary = { total: number; completed: number; notStarted: number; expired: number };
 
 export default function QuickInductionPage() {
-  const [sites, setSites] = useState<Site[]>([]);
   const [siteId, setSiteId] = useState("");
-  const [data, setData] = useState<{
+
+  const { data: sites = [] } = useSWR<Site[]>(
+    "/api/sites",
+    async (url: string) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return [];
+      const json = await res.json();
+      return Array.isArray(json) ? json : [];
+    },
+    { fallbackData: [] }
+  );
+
+  const selectedSiteId = siteId || sites[0]?.id || "";
+
+  const { data, isLoading } = useSWR<{
     site: { id: string; name: string };
     operatives: Operative[];
     summary: Summary;
-  } | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    fetch("/api/sites", { credentials: "include" })
-      .then((r) => r.json())
-      .then((json) => {
-        const list = Array.isArray(json) ? json : [];
-        setSites(list);
-        if (list.length > 0 && !siteId) setSiteId(list[0].id);
-      })
-      .catch(() => setSites([]));
-  }, []);
-
-  useEffect(() => {
-    if (!siteId) {
-      setData(null);
-      return;
-    }
-    setLoading(true);
-    fetch(`/api/sites/${encodeURIComponent(siteId)}/induction-quick`, { credentials: "include" })
-      .then((r) => {
-        if (!r.ok) throw new Error("Failed to load");
-        return r.json();
-      })
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [siteId]);
+  } | null>(
+    selectedSiteId ? `/api/sites/${encodeURIComponent(selectedSiteId)}/induction-quick` : null,
+    async (url: string) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return null;
+      return res.json();
+    },
+    { revalidateOnFocus: true }
+  );
 
   const operativesWithDate = (data?.operatives ?? []).map((o) => ({
     ...o,
@@ -80,7 +74,7 @@ export default function QuickInductionPage() {
         </label>
         <select
           id="supervisor-site"
-          value={siteId}
+          value={selectedSiteId}
           onChange={(e) => setSiteId(e.target.value)}
           className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         >
@@ -93,7 +87,7 @@ export default function QuickInductionPage() {
         </select>
       </div>
 
-      {loading ? (
+      {isLoading ? (
         <div className="py-12 text-center text-gray-500">Loading…</div>
       ) : data ? (
         <>

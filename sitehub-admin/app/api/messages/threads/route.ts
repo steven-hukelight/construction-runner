@@ -49,12 +49,21 @@ export async function GET(req: Request) {
     if (error) return error;
     if (!companyId) return NextResponse.json([], { status: 200 });
 
-    const { data: threads, error: threadsErr } = await supabaseAdmin
+    const url = new URL(req.url);
+    const mineOnly = url.searchParams.get("mine") === "true";
+
+    let query = supabaseAdmin
       .from("message_threads")
       .select("id, created_by, site_id, created_at, archived")
       .eq("company_id", companyId)
       .not("archived", "eq", true)
       .order("created_at", { ascending: false });
+
+    if (mineOnly) {
+      query = query.eq("created_by", userId);
+    }
+
+    const { data: threads, error: threadsErr } = await query;
 
     if (threadsErr) {
       console.warn("GET /api/messages/threads:", threadsErr.message);

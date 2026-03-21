@@ -1,8 +1,10 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import Image from "next/image";
+import React, { useCallback, useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import AssetInspectionModal from "../AssetInspectionModal";
 import AssetStatusUpdate from "../AssetStatusUpdate";
 
@@ -47,7 +49,7 @@ export default function AssetDetailClient({
   const [selectedUserId, setSelectedUserId] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const [aRes, assignRes, uRes, imgRes] = await Promise.all([
@@ -78,7 +80,7 @@ export default function AssetDetailClient({
     } finally {
       setLoading(false);
     }
-  }
+  }, [assetId, companyId]);
 
   async function handleAddImages(e: React.ChangeEvent<HTMLInputElement>) {
     const files = e.target.files;
@@ -113,8 +115,8 @@ export default function AssetDetailClient({
   }
 
   useEffect(() => {
-    load();
-  }, [assetId, companyId]);
+    void load();
+  }, [load]);
 
   async function handleAssign() {
     if (!selectedUserId) return;
@@ -205,15 +207,14 @@ export default function AssetDetailClient({
           <h3 className="font-semibold mb-4">Images</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
             {images.map((img) => (
-              <a
+              <button
                 key={img.id}
-                href={img.file_url}
-                target="_blank"
-                rel="noreferrer"
-                className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50"
+                type="button"
+                onClick={() => openDocumentUrl(img.file_url)}
+                className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer text-left"
               >
-                <img src={img.file_url} alt="Asset" className="w-full h-full object-cover" />
-              </a>
+                <Image src={img.file_url} alt="Asset" fill sizes="200px" className="object-cover" unoptimized />
+              </button>
             ))}
           </div>
         </div>

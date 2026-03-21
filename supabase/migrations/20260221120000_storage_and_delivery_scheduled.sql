@@ -1,4 +1,4 @@
--- SiteHub: Storage buckets, storage policies, and deliveries.scheduled_at
+-- Construction Runner: Storage buckets, storage policies, and deliveries.scheduled_at
 -- Run after 20260220250000_security_cleanup_and_modules.sql
 -- Idempotent: INSERT ON CONFLICT / DROP IF EXISTS + CREATE
 

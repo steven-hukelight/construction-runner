@@ -94,7 +94,7 @@ export default function EditSiteForm({ site }: { site: any }) {
 
   return (
     <div className="card w-full md:max-w-xl">
-      <h3 className="text-lg font-semibold text-white mb-4">Edit Site</h3>
+      <h3 className="text-lg font-semibold text-slate-900 mb-4">Edit Site</h3>
       <div className="space-y-5">
         <Input
           label="Site Name"
@@ -109,7 +109,7 @@ export default function EditSiteForm({ site }: { site: any }) {
         />
 
         <details className="bg-white/5 rounded-md p-3 text-sm">
-          <summary className="cursor-pointer text-slate-100 font-medium mb-2">
+          <summary className="cursor-pointer text-slate-700 font-medium mb-2">
             Advanced: latitude / longitude
           </summary>
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -133,7 +133,7 @@ export default function EditSiteForm({ site }: { site: any }) {
           onChange={(e: any) => setForm({ ...form, radius: e.target.value })}
         />
 
-        <label className="flex items-center gap-2 text-sm text-slate-100">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={form.showOnMap}
@@ -144,7 +144,7 @@ export default function EditSiteForm({ site }: { site: any }) {
           />
           Show on mobile map
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-100">
+        <label className="flex items-center gap-2 text-sm text-slate-700">
           <input
             type="checkbox"
             checked={form.inductionRequired}

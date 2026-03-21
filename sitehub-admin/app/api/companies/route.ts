@@ -5,10 +5,26 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 /**
  * GET /api/companies
  * List all companies (superuser only). Includes userCount and siteCount.
+ * Auth: role cookie or user_email fallback (mobile may not always send role cookie).
  */
 export async function GET() {
   try {
-    const role = (await cookies()).get("role")?.value;
+    const cookieStore = await cookies();
+    let role = cookieStore.get("role")?.value;
+    // Fallback for mobile: verify superuser via user lookup when role cookie missing
+    if (role !== "superuser") {
+      const userEmail = cookieStore.get("user_email")?.value?.trim();
+      if (userEmail) {
+        const { data: user } = await supabaseAdmin
+          .from("users")
+          .select("role")
+          .eq("email", userEmail)
+          .maybeSingle();
+        if (user?.role && String(user.role).toLowerCase() === "superuser") {
+          role = "superuser";
+        }
+      }
+    }
     if (role !== "superuser") {
       return NextResponse.json([]);
     }

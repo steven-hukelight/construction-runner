@@ -16,15 +16,16 @@ export async function setUserCookies(
   let userRole: string | null = null;
   let isSuperuser = false;
   let userCompanyId: string | null = null;
+  let dbUserId: string | null = null;
   let foundInDb = false;
-  let dbUser: { company_id: string | null; role: string | null } | null = null;
+  let dbUser: { id?: string; company_id: string | null; role: string | null } | null = null;
 
   try {
     // 1. Exact email match
     if (emailTrimmed) {
       const res = await supabaseAdmin
         .from("users")
-        .select("company_id, role")
+        .select("id, company_id, role")
         .eq("email", emailTrimmed)
         .maybeSingle();
       if (res.data) dbUser = res.data;
@@ -38,8 +39,8 @@ export async function setUserCookies(
       if (!rpcError && rpcData) {
         const row = Array.isArray(rpcData) ? rpcData[0] : rpcData;
         if (row && (row as { role?: string }).role != null) {
-          const r = row as { company_id: string | null; role: string };
-          dbUser = { company_id: r.company_id ?? null, role: r.role };
+          const r = row as { id?: string; company_id: string | null; role: string };
+          dbUser = { id: r.id, company_id: r.company_id ?? null, role: r.role };
         }
       }
     }
@@ -52,7 +53,7 @@ export async function setUserCookies(
         .replace(/_/g, "\\_");
       const res = await supabaseAdmin
         .from("users")
-        .select("company_id, role")
+        .select("id, company_id, role")
         .ilike("email", pattern)
         .maybeSingle();
       if (res.data) dbUser = res.data;
@@ -62,7 +63,7 @@ export async function setUserCookies(
     if (!dbUser && authUserId) {
       const res = await supabaseAdmin
         .from("users")
-        .select("company_id, role")
+        .select("id, company_id, role")
         .eq("id", authUserId)
         .maybeSingle();
       if (res.data) dbUser = res.data;
@@ -70,6 +71,7 @@ export async function setUserCookies(
 
     if (dbUser) {
       foundInDb = true;
+      dbUserId = (dbUser as { id?: string }).id ?? authUserId ?? null;
       const r = (dbUser.role && String(dbUser.role).trim()) || null;
       userRole = r ?? "admin"; // fallback when user in DB but role is empty
       isSuperuser = String(dbUser.role || "").toLowerCase() === "superuser";
@@ -84,6 +86,12 @@ export async function setUserCookies(
   // Never set cookies when user not in public.users – prevents wrong role
   if (!foundInDb) return { role: null, companyId: null };
   if (!userRole) userRole = "admin"; // user in DB but role column empty
+
+  // Operative web login is a future feature – block operatives from web access
+  const roleLower = (userRole || "").toLowerCase();
+  if (roleLower === "operative") {
+    return { role: null, companyId: null, restricted: "operative" as const };
+  }
 
   const cookieStore = await cookies();
   const roleCookieValue = isSuperuser ? "superuser" : userRole;
@@ -101,6 +109,15 @@ export async function setUserCookies(
     httpOnly: false,
     sameSite: "lax",
   });
+
+  if (dbUserId) {
+    cookieStore.set("uid", dbUserId, {
+      path: "/",
+      maxAge,
+      httpOnly: false,
+      sameSite: "lax",
+    });
+  }
 
   if (isSuperuser) {
     cookieStore.set("companyId", "", { path: "/", maxAge: 0 });

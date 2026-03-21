@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 /** Jest config for integration tests – uses real Supabase when env vars are set */
 const base = require("./jest.config.js");
 module.exports = {

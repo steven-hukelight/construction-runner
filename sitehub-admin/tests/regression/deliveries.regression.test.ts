@@ -6,12 +6,12 @@
  * - Verify site selector text visibility (site name in response)
  * - Verify list refresh
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 import {
   setMockCookies,
   clearMockCookies,
   jsonRequest,
-  formDataRequest,
 } from "./helpers";
 import { mockSupabaseResponseQueue } from "../mocks/supabase";
 

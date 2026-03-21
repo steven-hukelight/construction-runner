@@ -1,18 +1,18 @@
 "use client";
 
 import { Moon, Sun } from "lucide-react";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 export default function DarkModeToggle() {
-  const [dark, setDark] = useState(false);
-  const [mounted, setMounted] = useState(false);
+  const [dark, setDark] = useState(() => {
+    if (typeof window === "undefined") return false;
+    const stored = localStorage.getItem("darkMode");
+    if (stored === "true") return true;
+    if (stored === "false") return false;
+    return window.matchMedia?.("(prefers-color-scheme: dark)").matches ?? false;
+  });
 
   useEffect(() => {
-    setMounted(true);
-  }, []);
-
-  useEffect(() => {
-    if (!mounted) return;
     if (dark) {
       document.documentElement.classList.add("dark");
       localStorage.setItem("darkMode", "true");
@@ -20,16 +20,7 @@ export default function DarkModeToggle() {
       document.documentElement.classList.remove("dark");
       localStorage.setItem("darkMode", "false");
     }
-    console.log('HTML classList:', document.documentElement.className);
-  }, [dark, mounted]);
-
-  if (!mounted) {
-    return (
-      <button className="p-2 rounded-md hover:bg-gray-100 dark:hover:bg-gray-800 transition">
-        <Moon size={18} />
-      </button>
-    );
-  }
+  }, [dark]);
 
   return (
     <button

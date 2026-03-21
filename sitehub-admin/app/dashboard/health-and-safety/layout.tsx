@@ -22,7 +22,7 @@ export default function HealthAndSafetyLayout({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 border border-gray-200">
+      <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-600">
         {subTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
@@ -32,8 +32,8 @@ export default function HealthAndSafetyLayout({
               href={tab.href}
               className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
                 isActive
-                  ? "bg-white text-blue-600 shadow-sm border border-gray-200"
-                  : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+                  ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-slate-600"
+                  : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-700"
               }`}
             >
               <Icon size={18} strokeWidth={2} />

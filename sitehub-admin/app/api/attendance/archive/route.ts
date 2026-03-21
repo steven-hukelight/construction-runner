@@ -71,7 +71,7 @@ export async function GET(req: Request) {
     const dayStart = new Date(y, m - 1, d, 0, 0, 0, 0).toISOString();
     const dayEnd = new Date(y, m - 1, d + 1, 0, 0, 0, 0).toISOString();
     if (role === "superuser") {
-      companyId = url.searchParams.get("companyId") || companyId ?? undefined;
+      companyId = url.searchParams.get("companyId") ?? companyId ?? undefined;
     }
     let q = supabaseAdmin
       .from("attendance_archive")

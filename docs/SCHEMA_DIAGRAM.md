@@ -1,4 +1,4 @@
-# SiteHub Database Schema (Public)
+# Construction Runner Database Schema (Public)
 
 Generated from current Supabase schema. View in any Markdown viewer that supports Mermaid, or use [Mermaid Live Editor](https://mermaid.live).
 

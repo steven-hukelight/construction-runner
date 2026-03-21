@@ -5,6 +5,7 @@
  * - Certifications NOT required
  * - Pre-induction progress updates correctly
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 import {
   setMockCookies,

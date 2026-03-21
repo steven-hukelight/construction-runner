@@ -14,7 +14,6 @@ async function canEditProfile(userId: string): Promise<boolean> {
   if (!myUsers?.length) return false;
   const myRow = myUsers[0];
   const myId = myRow.id;
-  const myCompanyId = String(myRow.company_id ?? "").trim();
   if (myId === userId) return true;
 
   const { data: target } = await supabaseAdmin.from("users").select("company_id").eq("id", userId).single();
@@ -70,14 +69,18 @@ export async function GET(req: Request) {
       const personalRow = personalRes.data as { full_name?: string; phone?: string; address?: string; emergency_contact_name?: string; emergency_contact_phone?: string; national_insurance?: string; utr?: string; date_of_birth?: string } | null;
       const merged: Record<string, unknown> = { id: userId, ...serializeRow(user as Record<string, unknown>), ...serializeRow(profile as Record<string, unknown>) };
       if (personalRow) {
-        merged.name = merged.name ?? merged.display_name ?? personalRow.full_name;
-        merged.phone = merged.phone ?? personalRow.phone;
-        merged.address_line1 = merged.address_line1 ?? personalRow.address;
-        merged.emergency_contact_name = merged.emergency_contact_name ?? personalRow.emergency_contact_name;
-        merged.emergency_contact_phone = merged.emergency_contact_phone ?? personalRow.emergency_contact_phone;
-        merged.ni_number = merged.ni_number ?? personalRow.national_insurance;
-        merged.utr_number = merged.utr_number ?? personalRow.utr;
-        merged.date_of_birth = merged.date_of_birth ?? personalRow.date_of_birth;
+        merged.name = personalRow.full_name ?? merged.name ?? merged.display_name;
+      }
+      // Profile table is source of truth for profile fields (address, emergency contact, etc.)
+      // merged already has profile data from spread; only fallback to personal when profile is empty
+      if (personalRow) {
+        if (!merged.address_line1 && !merged.address) merged.address_line1 = personalRow.address;
+        if (!merged.phone) merged.phone = personalRow.phone;
+        if (!merged.emergency_contact_name) merged.emergency_contact_name = personalRow.emergency_contact_name;
+        if (!merged.emergency_contact_phone) merged.emergency_contact_phone = personalRow.emergency_contact_phone;
+        if (!merged.ni_number) merged.ni_number = personalRow.national_insurance;
+        if (!merged.utr_number) merged.utr_number = personalRow.utr;
+        if (!merged.date_of_birth) merged.date_of_birth = personalRow.date_of_birth;
       }
       mapProfileToResponse(merged);
       return NextResponse.json([merged]);
@@ -110,14 +113,16 @@ export async function GET(req: Request) {
       const personalRow = personalRes.data as { full_name?: string; phone?: string; address?: string; emergency_contact_name?: string; emergency_contact_phone?: string; national_insurance?: string; utr?: string; date_of_birth?: string } | null;
       const merged: Record<string, unknown> = { id: uid, ...serializeRow(u as Record<string, unknown>), ...serializeRow(profile as Record<string, unknown>) };
       if (personalRow) {
-        merged.name = merged.name ?? merged.display_name ?? personalRow.full_name;
-        merged.phone = merged.phone ?? personalRow.phone;
-        merged.address_line1 = merged.address_line1 ?? personalRow.address;
-        merged.emergency_contact_name = merged.emergency_contact_name ?? personalRow.emergency_contact_name;
-        merged.emergency_contact_phone = merged.emergency_contact_phone ?? personalRow.emergency_contact_phone;
-        merged.ni_number = merged.ni_number ?? personalRow.national_insurance;
-        merged.utr_number = merged.utr_number ?? personalRow.utr;
-        merged.date_of_birth = merged.date_of_birth ?? personalRow.date_of_birth;
+        merged.name = personalRow.full_name ?? merged.name ?? merged.display_name;
+      }
+      if (personalRow) {
+        if (!merged.address_line1 && !merged.address) merged.address_line1 = personalRow.address;
+        if (!merged.phone) merged.phone = personalRow.phone;
+        if (!merged.emergency_contact_name) merged.emergency_contact_name = personalRow.emergency_contact_name;
+        if (!merged.emergency_contact_phone) merged.emergency_contact_phone = personalRow.emergency_contact_phone;
+        if (!merged.ni_number) merged.ni_number = personalRow.national_insurance;
+        if (!merged.utr_number) merged.utr_number = personalRow.utr;
+        if (!merged.date_of_birth) merged.date_of_birth = personalRow.date_of_birth;
       }
       mapProfileToResponse(merged);
       out.push(merged);
@@ -182,50 +187,78 @@ export async function PATCH(req: Request) {
       await supabaseAdmin.from("users").update(userUpdate).eq("id", userId);
     }
 
-    if (Object.keys(profileUpdate).length === 0) return NextResponse.json({ success: true });
-
-    profileUpdate.updated_at = new Date().toISOString();
-    profileUpdate.user_id = userId;
-
-    const { data: existing } = await supabaseAdmin
-      .from("profiles")
-      .select("id")
-      .eq("user_id", userId)
-      .limit(1)
-      .maybeSingle();
-
-    if (existing?.id) {
-      await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", existing.id);
-    } else {
-      await supabaseAdmin.from("profiles").insert({
-        id: crypto.randomUUID(),
-        user_id: userId,
-        ...profileUpdate,
-      });
+    if (Object.keys(profileUpdate).length > 0) {
+      profileUpdate.updated_at = new Date().toISOString();
+      profileUpdate.user_id = userId;
+      const { data: existing } = await supabaseAdmin
+        .from("profiles")
+        .select("id")
+        .eq("user_id", userId)
+        .limit(1)
+        .maybeSingle();
+      if (existing?.id) {
+        await supabaseAdmin.from("profiles").update(profileUpdate).eq("id", existing.id);
+      } else {
+        await supabaseAdmin.from("profiles").insert({
+          id: crypto.randomUUID(),
+          user_id: userId,
+          ...profileUpdate,
+        });
+      }
     }
 
-    // Sync to pre_induction_personal so Personal Info = Pre-Induction personal (linked)
-    try {
-      const addressParts = [
-        body.addressLine1 || profileUpdate.address_line1 || "",
-        body.town || profileUpdate.town || "",
-        body.postcode || profileUpdate.postcode || "",
-      ].filter(Boolean);
-      await supabaseAdmin.from("pre_induction_personal").upsert(
-        {
-          user_id: userId,
-          address: addressParts.join(", ") || null,
-          emergency_contact_name: body.emergencyContactName ?? profileUpdate.emergency_contact_name ?? "",
-          emergency_contact_phone: body.emergencyContactPhone ?? profileUpdate.emergency_contact_phone ?? "",
-          national_insurance: body.nationalInsurance ?? profileUpdate.ni_number ?? "",
-          utr: body.utr ?? profileUpdate.utr_number ?? "",
-          date_of_birth: body.dateOfBirth ?? profileUpdate.date_of_birth ?? null,
-          updated_at: new Date().toISOString(),
-        },
-        { onConflict: "user_id" }
-      );
-    } catch (syncErr) {
-      console.warn("Profiles->pre_induction_personal sync:", syncErr);
+    // Sync to pre_induction_personal when name/phone or profile fields change (linked)
+    const hasProfileFields = Object.keys(profileUpdate).length > 0;
+    const hasNameOrPhone = body.displayName !== undefined || body.name !== undefined || body.phone !== undefined;
+    if (hasProfileFields || hasNameOrPhone) {
+      try {
+        if (hasProfileFields) {
+          const addressParts = [
+            body.addressLine1 ?? profileUpdate.address_line1 ?? "",
+            body.town ?? profileUpdate.town ?? "",
+            body.postcode ?? profileUpdate.postcode ?? "",
+          ].filter(Boolean);
+          const personalPayload: Record<string, unknown> = {
+            user_id: userId,
+            address: addressParts.join(", ") || null,
+            emergency_contact_name: body.emergencyContactName ?? profileUpdate.emergency_contact_name ?? "",
+            emergency_contact_phone: body.emergencyContactPhone ?? profileUpdate.emergency_contact_phone ?? "",
+            national_insurance: body.nationalInsurance ?? profileUpdate.ni_number ?? "",
+            utr: body.utr ?? profileUpdate.utr_number ?? "",
+            date_of_birth: body.dateOfBirth ?? profileUpdate.date_of_birth ?? null,
+            updated_at: new Date().toISOString(),
+          };
+          if (body.displayName !== undefined || body.name !== undefined) {
+            personalPayload.full_name = body.displayName ?? body.name ?? "";
+          }
+          if (body.phone !== undefined) {
+            personalPayload.phone = body.phone;
+          }
+          await supabaseAdmin.from("pre_induction_personal").upsert(personalPayload, { onConflict: "user_id" });
+        } else {
+          // Name/phone only: update without overwriting other personal fields
+          const namePhoneUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };
+          if (body.displayName !== undefined || body.name !== undefined) {
+            namePhoneUpdate.full_name = body.displayName ?? body.name ?? "";
+          }
+          if (body.phone !== undefined) {
+            namePhoneUpdate.phone = body.phone;
+          }
+          const { data: existing } = await supabaseAdmin.from("pre_induction_personal").select("user_id").eq("user_id", userId).maybeSingle();
+          if (existing) {
+            await supabaseAdmin.from("pre_induction_personal").update(namePhoneUpdate).eq("user_id", userId);
+          } else {
+            await supabaseAdmin.from("pre_induction_personal").insert({
+              user_id: userId,
+              full_name: namePhoneUpdate.full_name ?? "",
+              phone: namePhoneUpdate.phone ?? null,
+              updated_at: namePhoneUpdate.updated_at,
+            });
+          }
+        }
+      } catch (syncErr) {
+        console.warn("Profiles->pre_induction_personal sync:", syncErr);
+      }
     }
 
     return NextResponse.json({ success: true });

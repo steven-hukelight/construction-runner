@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Plus, Trash2 } from "lucide-react";
+import { AlertTriangle, Plus } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
@@ -30,7 +30,7 @@ export default function SafetyAlertsManager() {
   useEffect(() => {
     const companyId = getCompanyIdFromClient();
     if (!companyId) return;
-    fetch("/api/safety-alerts", { credentials: "include" })
+    fetch("/api/safety-alerts", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then(setItems);
   }, []);
@@ -145,7 +145,7 @@ export default function SafetyAlertsManager() {
         </div>
       )}
 
-      <Table columns={columns} data={items} density="comfortable" />
+      <Table columns={columns} data={items} />
     </div>
   );
 }

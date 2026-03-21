@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import RoleBadge from "@/app/dashboard/components/RoleBadge";
 
 const BLUE = "#2563EB";
 
@@ -45,6 +46,25 @@ const STATUS_BADGES: Record<PreInductionStatus, { label: string; className: stri
   },
 };
 
+const SECTION_STATUS_STYLES: Record<"complete" | "pending" | "missing", string> = {
+  complete: "bg-emerald-100 text-emerald-800 border-emerald-200",
+  pending: "bg-amber-100 text-amber-800 border-amber-200",
+  missing: "bg-gray-100 text-gray-600 border-gray-200",
+};
+
+function SectionStatusBadge({ status, label }: { status: "complete" | "pending" | "missing"; label: string }) {
+  return (
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md border px-2 py-0.5 text-xs font-medium ${SECTION_STATUS_STYLES[status]}`}
+    >
+      {status === "complete" && <span className="h-1.5 w-1.5 rounded-full bg-emerald-600" />}
+      {status === "pending" && <span className="h-1.5 w-1.5 rounded-full bg-amber-600" />}
+      {status === "missing" && <span className="h-1.5 w-1.5 rounded-full bg-gray-400" />}
+      {label}
+    </span>
+  );
+}
+
 export default function PreInductionSummaryCard({
   user,
   indicators,
@@ -82,7 +102,9 @@ export default function PreInductionSummaryCard({
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">{user?.role ?? "—"}</dd>
+          <dd className="mt-0.5">
+            <RoleBadge role={user?.role} />
+          </dd>
         </div>
         {user?.complianceScore != null && (
           <div>
@@ -96,35 +118,51 @@ export default function PreInductionSummaryCard({
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
             Right to Work
           </dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">
-            {indicators.rightToWork}
+          <dd className="mt-0.5">
+            <SectionStatusBadge
+              status={indicators.rightToWork === "Verified" ? "complete" : indicators.rightToWork === "Pending" ? "pending" : "missing"}
+              label={indicators.rightToWork}
+            />
           </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
             Competency Card
           </dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">
-            {indicators.competencyDisplay}
+          <dd className="mt-0.5">
+            <SectionStatusBadge
+              status={indicators.competencyCardComplete ? "complete" : "missing"}
+              label={indicators.competencyDisplay}
+            />
           </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Medical</dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">{indicators.medical}</dd>
+          <dd className="mt-0.5">
+            <SectionStatusBadge
+              status={indicators.medical === "Verified" ? "complete" : indicators.medical === "Pending" ? "pending" : "missing"}
+              label={indicators.medical}
+            />
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Training</dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">
-            {indicators.trainingRecords} records
-            {indicators.ramsAccepted ? ", RAMS ✓" : ""}
+          <dd className="mt-0.5">
+            <SectionStatusBadge
+              status={indicators.ramsAccepted ? "complete" : indicators.trainingRecords > 0 ? "pending" : "missing"}
+              label={`${indicators.trainingRecords} records${indicators.ramsAccepted ? ", RAMS ✓" : ""}`}
+            />
           </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
             Declarations
           </dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">
-            {indicators.declarations}
+          <dd className="mt-0.5">
+            <SectionStatusBadge
+              status={indicators.declarations === "Accepted" ? "complete" : "missing"}
+              label={indicators.declarations}
+            />
           </dd>
         </div>
       </dl>

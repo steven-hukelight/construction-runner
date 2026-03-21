@@ -11,7 +11,6 @@ async function getCookieHeader(): Promise<string | undefined> {
   }
 }
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
 export async function fetchTasks(companyId?: string, cookieHeader?: string) {
   const base = getBaseUrl();
   let url = `${base}/api/tasks`;

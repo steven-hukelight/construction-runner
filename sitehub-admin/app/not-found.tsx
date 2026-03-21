@@ -55,7 +55,7 @@ export default function NotFound() {
             animate={{ opacity: 1 }}
             transition={{ delay: 0.3 }}
           >
-            Oops! The page you're looking for seems to have wandered off.
+            Oops! The page you&apos;re looking for seems to have wandered off.
           </motion.p>
 
           {/* Action Buttons */}

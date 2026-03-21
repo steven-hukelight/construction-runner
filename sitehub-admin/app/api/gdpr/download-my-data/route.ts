@@ -56,13 +56,14 @@ export async function GET(req: Request) {
     const { data: inductions } = await supabaseAdmin.from("user_site_inductions").select("*").eq("user_id", userId);
     const { data: profile } = await supabaseAdmin.from("profiles").select("*").eq("user_id", userId).maybeSingle();
 
+    const personalRow = p as { full_name?: string | null } | null;
     const exportData = {
       exportedAt: new Date().toISOString(),
       purpose: "GDPR Right to Access - Personal Data Export",
       user: {
         id: user.id,
         email: user.email,
-        name: user.display_name,
+        name: personalRow?.full_name ?? user.display_name,
         role: user.role,
         companyId: user.company_id,
       },

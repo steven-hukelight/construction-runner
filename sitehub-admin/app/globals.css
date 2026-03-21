@@ -1,9 +1,35 @@
-@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&display=swap');
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SF-Pro-Display-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SF-Pro-Display-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+
+@font-face {
+  font-family: 'SF Pro';
+  src: url('/fonts/sf-pro/SF-Pro-Display-Bold.otf') format('opentype');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
+/* Dark mode: scoped to [data-theme="dark"] only - no dark styles apply when theme is light */
+@custom-variant dark (&:where([data-theme="dark"], [data-theme="dark"] *));
+
 :root {
-  --font-sans: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
   
   --color-primary-50: #eff6ff;
   --color-primary-100: #dbeafe;
@@ -64,7 +90,7 @@ html {
 body {
   background: transparent;
   color: var(--text-dark);
-  font-family: 'Plus Jakarta Sans', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
+  font-family: 'SF Pro', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, Arial;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
@@ -182,7 +208,7 @@ html {
 html,body{height:100%}
 body{
   margin:0;
-  font-family:'Sora', ui-sans-serif, system-ui, sans-serif;
+  font-family:'SF Pro', ui-sans-serif, system-ui, sans-serif;
   background: radial-gradient(circle at top,#d7e8ff 0,#f5f7fb 40%,#f5f7fb 100%);
   color:var(--text);
   -webkit-font-smoothing:antialiased;
@@ -193,7 +219,7 @@ body{
 
 /* layout */
 h1, h2, h3, h4, h5, h6 {
-  font-family: 'Sora', sans-serif !important;
+  font-family: 'SF Pro', sans-serif !important;
   text-shadow: 0 1px 3px rgba(0, 0, 0, 0.08) !important;
 }
 
@@ -611,4 +637,291 @@ a {
 
 .animate-glow {
   animation: glow 2s ease-in-out infinite;
+}
+
+/* =============================================
+   DARK MODE - SCOPED TO [data-theme="dark"] ONLY
+   No light mode styles modified. Dark styles apply
+   only when html has data-theme="dark".
+   ============================================= */
+
+[data-theme="dark"] {
+  color-scheme: dark;
+}
+
+[data-theme="dark"] html {
+  background: linear-gradient(135deg, #0f1419 0%, #1a1f2e 50%, #151922 100%);
+}
+
+[data-theme="dark"] body {
+  background: radial-gradient(circle at top, #1e2530 0, #111827 40%, #0f172a 100%);
+  color: #e5e7eb;
+}
+
+/* Ensure main content area and app shell stay dark as tables/content expand */
+[data-theme="dark"] .app-root {
+  background: #0f172a;
+}
+
+[data-theme="dark"] .main-content {
+  background: radial-gradient(circle at top, #1e2530 0, #111827 40%, #0f172a 100%);
+  min-height: 100%;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-track {
+  background: rgba(30, 41, 59, 0.5);
+  border-radius: 10px;
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb {
+  background: linear-gradient(135deg, #334155 0%, #475569 100%);
+  border: 2px solid rgba(30, 41, 59, 0.5);
+}
+
+[data-theme="dark"] ::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(135deg, #475569 0%, #64748b 100%);
+}
+
+/* Cards - force dark background and text */
+[data-theme="dark"] .card {
+  background: #1e293b !important;
+  color: #e5e7eb !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .card:hover {
+  border-color: #475569 !important;
+}
+
+[data-theme="dark"] .card *:not(.role-badge) {
+  color: inherit;
+}
+
+[data-theme="dark"] .card h1, [data-theme="dark"] .card h2, [data-theme="dark"] .card h3,
+[data-theme="dark"] .card h4, [data-theme="dark"] .card h5, [data-theme="dark"] .card h6 {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .card p, [data-theme="dark"] .card span:not(.role-badge), [data-theme="dark"] .card label {
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .kpi {
+  background: #1e293b !important;
+  color: #e5e7eb !important;
+  border: 1px solid #334155 !important;
+}
+
+/* Tables - override Tailwind bg-white, bg-gray-50 on wrappers */
+[data-theme="dark"] .bg-white {
+  background-color: #1e293b !important;
+}
+
+[data-theme="dark"] .bg-gray-50 {
+  background-color: #1e293b !important;
+}
+
+[data-theme="dark"] .bg-slate-50 {
+  background-color: #1e293b !important;
+}
+
+/* Override bg-gray-50 with opacity (e.g. bg-gray-50/50) in dark mode */
+[data-theme="dark"] [class*="bg-gray-50/"] {
+  background-color: rgba(30, 41, 59, 0.6) !important;
+}
+
+[data-theme="dark"] .border-gray-200 {
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] .divide-gray-100 > * + * {
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] table {
+  background: #1e293b !important;
+  color: #e5e7eb !important;
+}
+
+[data-theme="dark"] table th {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] table td {
+  color: #e2e8f0 !important;
+  border-bottom-color: #334155 !important;
+}
+
+[data-theme="dark"] .table th {
+  background: #0f172a !important;
+  color: #94a3b8 !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+[data-theme="dark"] .table td {
+  border-bottom: 1px solid #334155 !important;
+  color: #e2e8f0 !important;
+}
+
+[data-theme="dark"] .table tbody tr:hover,
+[data-theme="dark"] table tbody tr:hover {
+  background: #334155 !important;
+}
+
+/* Table wrappers (Table.tsx, ComplianceTable, etc.) */
+[data-theme="dark"] div.rounded-xl.bg-white,
+[data-theme="dark"] div.rounded-lg.bg-white {
+  background-color: #1e293b !important;
+  border-color: #334155 !important;
+}
+
+[data-theme="dark"] thead.bg-gray-50 {
+  background-color: #0f172a !important;
+}
+
+[data-theme="dark"] thead th {
+  color: #94a3b8 !important;
+}
+
+[data-theme="dark"] tbody td {
+  color: #e2e8f0 !important;
+}
+
+/* Text in tables and cards - override gray text classes */
+[data-theme="dark"] .text-gray-900,
+[data-theme="dark"] .text-gray-800,
+[data-theme="dark"] .text-gray-700,
+[data-theme="dark"] .text-slate-900,
+[data-theme="dark"] .text-slate-800,
+[data-theme="dark"] .text-slate-700 {
+  color: #f1f5f9 !important;
+}
+
+[data-theme="dark"] .text-gray-600,
+[data-theme="dark"] .text-gray-500,
+[data-theme="dark"] .text-slate-600,
+[data-theme="dark"] .text-slate-500 {
+  color: #94a3b8 !important;
+}
+
+/* Sidebar */
+[data-theme="dark"] .sidebar {
+  background: #111;
+  color: #eee;
+  border-right: 1px solid #333;
+}
+
+[data-theme="dark"] .sidebar a,
+[data-theme="dark"] .sidebar button.sidebar-link {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] .sidebar a:hover,
+[data-theme="dark"] .sidebar button.sidebar-link:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .sidebar a.active,
+[data-theme="dark"] .sidebar button.sidebar-link.active {
+  background: linear-gradient(135deg, #2563eb 0%, #1d4ed8 100%);
+  color: white;
+}
+
+[data-theme="dark"] .sidebar .logo {
+  background: linear-gradient(135deg, #60a5fa 0%, #a78bfa 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* Topbar / Nav */
+[data-theme="dark"] .topbar h1 {
+  background: linear-gradient(135deg, #f1f5f9 0%, #cbd5e1 100%) !important;
+  -webkit-background-clip: text !important;
+  -webkit-text-fill-color: transparent !important;
+  background-clip: text !important;
+}
+
+[data-theme="dark"] .topbar .muted {
+  color: #94a3b8 !important;
+}
+
+/* Buttons, inputs, dropdowns */
+[data-theme="dark"] .input {
+  background: #1e293b;
+  border-color: #334155;
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .input::placeholder {
+  color: #64748b;
+}
+
+[data-theme="dark"] .input:focus {
+  border-color: #3b82f6;
+}
+
+[data-theme="dark"] .button.ghost {
+  background: rgba(51, 65, 85, 0.8);
+  border-color: rgba(59, 130, 246, 0.3);
+  color: #60a5fa;
+}
+
+[data-theme="dark"] .button.ghost:hover {
+  background: rgba(71, 85, 105, 0.9);
+}
+
+/* Nav items */
+[data-theme="dark"] .nav-item {
+  color: #9ca3af;
+}
+
+[data-theme="dark"] .nav-item:hover {
+  background: rgba(59, 130, 246, 0.15);
+  color: #60a5fa;
+}
+
+/* Search */
+[data-theme="dark"] .search {
+  background: rgba(30, 41, 59, 0.9);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .search input {
+  color: #f1f5f9;
+}
+
+[data-theme="dark"] .search input::placeholder {
+  color: #64748b;
+}
+
+/* Glass, badge, footer */
+[data-theme="dark"] .glass-effect {
+  background: rgba(30, 41, 59, 0.8);
+  border-color: #334155;
+}
+
+[data-theme="dark"] .badge {
+  background: rgba(59, 130, 246, 0.2);
+  color: #60a5fa;
+  border-color: rgba(59, 130, 246, 0.35);
+}
+
+[data-theme="dark"] .footer-note {
+  color: #94a3b8;
+}
+
+[data-theme="dark"] h1, [data-theme="dark"] h2, [data-theme="dark"] h3,
+[data-theme="dark"] h4, [data-theme="dark"] h5, [data-theme="dark"] h6 {
+  color: inherit;
+}
+
+/* Modals */
+[data-theme="dark"] .modal-panel {
+  background: rgba(30, 41, 59, 0.95);
+  border-color: rgba(71, 85, 105, 0.5);
+  color: #e5e7eb;
 }

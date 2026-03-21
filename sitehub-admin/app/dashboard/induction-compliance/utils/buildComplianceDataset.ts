@@ -54,6 +54,15 @@ function cid(u: { company_id?: string | null; companyid?: string | null }): stri
   return (u.company_id ?? u.companyid ?? "") as string;
 }
 
+function isTruthyYes(value: unknown): boolean {
+  if (value === true) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "yes" || v === "y" || v === "1";
+  }
+  return false;
+}
+
 export async function buildComplianceDataset(
   auth: { role: string | undefined; companyId: string | undefined },
   filters: ExportFilters
@@ -146,14 +155,26 @@ export async function buildComplianceDataset(
     userDocs.map(async (userDoc) => {
       const userId = userDoc.id;
       const userData = userDoc as Record<string, unknown>;
+      async function fetchSection(table: string, useUseridFallback = false) {
+        const primary = await supabaseAdmin.from(table).select("*").eq("user_id", userId).maybeSingle();
+        if (primary.data) return primary;
+        if (!useUseridFallback) return primary;
+        try {
+          const fallback = await supabaseAdmin.from(table).select("*").eq("userid", userId).maybeSingle();
+          return fallback;
+        } catch {
+          return primary;
+        }
+      }
+
       const [profileRes, personalRes, rightToWorkRes, certsRes, medicalRes, trainingRes, declarationsRes] = await Promise.all([
-        supabaseAdmin.from("user_profile_data").select("*").or(`user_id.eq.${userId},userid.eq.${userId}`).maybeSingle(),
-        supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", userId).maybeSingle(),
-        supabaseAdmin.from("pre_induction_right_to_work").select("*").eq("user_id", userId).maybeSingle(),
-        supabaseAdmin.from("pre_induction_certifications").select("*").eq("user_id", userId).maybeSingle(),
-        supabaseAdmin.from("pre_induction_medical").select("*").eq("user_id", userId).maybeSingle(),
-        supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", userId).maybeSingle(),
-        supabaseAdmin.from("pre_induction_declarations").select("*").eq("user_id", userId).maybeSingle(),
+        fetchSection("user_profile_data", true),
+        fetchSection("pre_induction_personal"),
+        fetchSection("pre_induction_right_to_work"),
+        fetchSection("pre_induction_certifications"),
+        fetchSection("pre_induction_medical"),
+        fetchSection("pre_induction_training"),
+        fetchSection("pre_induction_declarations"),
       ]);
 
       const personal = personalRes.data ? (personalRes.data as Record<string, unknown>) : null;
@@ -173,12 +194,33 @@ export async function buildComplianceDataset(
       const missingItems: string[] = [];
       if (!(personal && ((personal as Record<string, unknown>).full_name || (personal as Record<string, unknown>).email)))
         missingItems.push("Personal details");
-      if (!(rightToWork && ((rightToWork as Record<string, unknown>).right_to_work_verified ?? (rightToWork as Record<string, unknown>).rightToWorkVerified)))
-        missingItems.push("Right to Work");
+
+      const rtwHasId = !!(
+        rightToWork &&
+        ((rightToWork as Record<string, unknown>).passport_url ??
+          (rightToWork as Record<string, unknown>).passportUrl ??
+          (rightToWork as Record<string, unknown>).visa_url ??
+          (rightToWork as Record<string, unknown>).visaUrl)
+      );
+      const rtwHasProof = !!(
+        rightToWork &&
+        ((rightToWork as Record<string, unknown>).proof_of_address_url ?? (rightToWork as Record<string, unknown>).proofOfAddressUrl)
+      );
+      const rtwVerified =
+        !!rightToWork &&
+        Object.keys(rightToWork).length > 0 &&
+        ((rightToWork as Record<string, unknown>).right_to_work_verified ?? (rightToWork as Record<string, unknown>).rightToWorkVerified) === true;
+      const rightToWorkComplete = rtwVerified || (rtwHasId && rtwHasProof);
+      if (!rightToWorkComplete) missingItems.push("Right to Work");
       const hasCSCS = certArr.some((c) => String(c.type || "").toUpperCase() === "CSCS");
       if (!hasCSCS || certArr.length === 0) missingItems.push("CSCS");
-      if (!(medical && ((medical as Record<string, unknown>).medical_verified ?? (medical as Record<string, unknown>).medicalVerified)))
-        missingItems.push("Medical");
+      const medHasIssues = (medical as Record<string, unknown> | null)?.has_medical_issues ?? (medical as Record<string, unknown> | null)?.hasMedicalIssues;
+      const medFitToWork = (medical as Record<string, unknown> | null)?.fit_to_work ?? (medical as Record<string, unknown> | null)?.fitToWork;
+      const medNoIssues = medHasIssues === false || isTruthyYes(medFitToWork);
+      const medHasCert = !!((medical as Record<string, unknown> | null)?.medical_certificate_url ?? (medical as Record<string, unknown> | null)?.medicalCertificateUrl);
+      const medVerified = (medical as Record<string, unknown> | null)?.medical_verified ?? (medical as Record<string, unknown> | null)?.medicalVerified;
+      const medicalComplete = (medVerified as boolean | undefined) === true || medNoIssues || medHasCert;
+      if (!medicalComplete) missingItems.push("Medical");
       if (!(declarations && ((declarations as Record<string, unknown>).operative_declaration_accepted ?? (declarations as Record<string, unknown>).operativeDeclarationAccepted)))
         missingItems.push("Declarations");
 
@@ -207,9 +249,13 @@ export async function buildComplianceDataset(
         trade = (p?.job_title ?? p?.jobTitle ?? "") as string;
       }
 
+      const derivedPreInductionStatus = missingItems.length === 0
+        ? "complete"
+        : ((userData.pre_induction_status ?? userData.preInductionStatus ?? "not_started") as string);
+
       userDataCache[userId] = {
         trade,
-        preInductionStatus: (userData.pre_induction_status ?? userData.preInductionStatus ?? "not_started") as string,
+        preInductionStatus: derivedPreInductionStatus,
         adminOverride: (userData.admin_pre_induction_override ?? userData.adminPreInductionOverride) === true,
         complianceScore: (userData.compliance_score ?? userData.complianceScore ?? null) as number | null,
         sections: {
@@ -264,6 +310,7 @@ export async function buildComplianceDataset(
       if (filters.trade && filters.trade !== "all" && cache.trade !== filters.trade) continue;
 
       const indRow = inductionRows[i]?.data;
+      const derivedPreInductionComplete = cache.missingItems.length === 0;
       let inductionStatus = "Induction Required";
       let grandfathered = false;
       let completedAt: Date | null = null;
@@ -278,9 +325,9 @@ export async function buildComplianceDataset(
           completedAt && now.getTime() - completedAt.getTime() > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
         if (isExpired) inductionStatus = "Expired";
         else if (statusVal === "completed") inductionStatus = grandfathered ? "Grandfathered" : "Inducted";
-        else inductionStatus = cache.adminOverride ? "Pre-Induction Override" : cache.preInductionStatus === "complete" ? "Induction Required" : "Pre-Induction Required";
+        else inductionStatus = cache.adminOverride ? "Pre-Induction Override" : derivedPreInductionComplete ? "Induction Required" : "Pre-Induction Required";
       } else {
-        inductionStatus = cache.adminOverride ? "Pre-Induction Override" : cache.preInductionStatus === "complete" ? "Induction Required" : "Pre-Induction Required";
+        inductionStatus = cache.adminOverride ? "Pre-Induction Override" : derivedPreInductionComplete ? "Induction Required" : "Pre-Induction Required";
       }
 
       const filterStatus = filters.status;

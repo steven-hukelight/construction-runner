@@ -1,14 +1,15 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useRouter } from "next/navigation";
+import { Suspense, useState, useEffect } from "react";
+import type { ComponentType } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
 import { setUserCookies } from "./actions";
 import { motion } from "framer-motion";
-import { Building2, Shield, Users, TrendingUp, CheckCircle, Zap } from "lucide-react";
+import { Building2, Shield, Users, TrendingUp, Zap } from "lucide-react";
 
-export default function LoginPage() {
+function LoginPageContent() {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
@@ -16,6 +17,14 @@ export default function LoginPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const router = useRouter();
+  const searchParams = useSearchParams();
+
+  // Show operative-blocked message when redirected with ?blocked=operative
+  useEffect(() => {
+    if (searchParams.get("blocked") === "operative") {
+      setError("Operative web login is a future feature. Please use the mobile app.");
+    }
+  }, [searchParams]);
 
   // Clear any stale auth cookies when on login page with no valid session
   useEffect(() => {
@@ -58,7 +67,7 @@ export default function LoginPage() {
     setError("");
     setLoading(true);
     try {
-      const { data, error } = await supabase.auth.signInWithPassword({
+      const { error } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
@@ -75,7 +84,11 @@ export default function LoginPage() {
       const result = await setUserCookies(session.user.email, rememberMe, session.user.id);
       if (!result.role) {
         await supabase.auth.signOut({ scope: "local" });
-        setError("Your account is not yet set up. Please contact your administrator.");
+        setError(
+          result.restricted === "operative"
+            ? "Operative web login is a future feature. Please use the mobile app."
+            : "Your account is not yet set up. Please contact your administrator."
+        );
         setLoading(false);
         return;
       }
@@ -135,7 +148,7 @@ export default function LoginPage() {
               <h1 className="text-5xl xl:text-6xl font-bold text-gray-900 mb-6">
                 Welcome to
                 <span className="block bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
-                  SiteHub Admin
+                  Construction Runner Admin
                 </span>
               </h1>
               <p className="text-xl text-gray-600 mb-8 leading-relaxed">
@@ -349,7 +362,7 @@ export default function LoginPage() {
               {/* Register Link */}
               <div className="mt-6 text-center">
                 <p className="text-sm text-gray-600">
-                  Don't have an account?{" "}
+                  Don&apos;t have an account?{" "}
                   <Link 
                     href="/register" 
                     className="text-blue-600 hover:text-blue-700 font-semibold"
@@ -363,7 +376,7 @@ export default function LoginPage() {
             {/* Footer */}
             <div className="mt-8 text-center">
               <p className="text-xs text-gray-500">
-                © {new Date().getFullYear()} SiteHub. All rights reserved.
+                © {new Date().getFullYear()} Construction Runner. All rights reserved.
               </p>
             </div>
           </motion.div>
@@ -373,10 +386,24 @@ export default function LoginPage() {
   );
 }
 
-function FeatureCard({ icon: Icon, title, description, delay }: { 
-  icon: any; 
-  title: string; 
-  description: string; 
+export default function LoginPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+          <div className="animate-spin h-10 w-10 rounded-full border-2 border-blue-600 border-t-transparent" />
+        </div>
+      }
+    >
+      <LoginPageContent />
+    </Suspense>
+  );
+}
+
+function FeatureCard({ icon: Icon, title, description, delay }: {
+  icon: ComponentType<{ className?: string }>;
+  title: string;
+  description: string;
   delay: number;
 }) {
   return (

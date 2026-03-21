@@ -8,7 +8,7 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
  * Return synced items (synced_at IS NOT NULL) for company.
  * Admin/supervisor only.
  */
-export async function GET(_req: Request) {
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value;

@@ -1,16 +1,12 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo } from "react";
 import { MessageSquare } from "lucide-react";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Table from "../../components/ui/Table";
 import TableActions from "../../components/ui/TableActions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
-import { useCompanyName } from "@/lib/hooks/useCompanyName";
-
-function CompanyNameCell({ companyId }: { companyId: string }) {
-  const name = useCompanyName(companyId);
-  return <>{name ?? "—"}</>;
-}
+import useSWR from "swr";
 
 export default function BriefingsTable({
   data,
@@ -24,38 +20,45 @@ export default function BriefingsTable({
     createdAt?: unknown;
   }>;
 }) {
-  const [rows, setRows] = useState(data || []);
+  const companyId = useMemo(() => getCompanyIdFromClient(), []);
 
-  useEffect(() => {
-    setRows(data || []);
-  }, [data]);
+  const { data: companies = [] } = useSWR(
+    "/api/companies",
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    },
+    { revalidateOnFocus: false }
+  );
+  const companyMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    companies.forEach((c: { id?: string; name?: string }) => {
+      if (c?.id && c?.name) m[String(c.id)] = String(c.name);
+    });
+    return m;
+  }, [companies]);
 
-  useEffect(() => {
-    const companyId = getCompanyIdFromClient();
-    if (!companyId) return;
-    let cancelled = false;
-    fetch("/api/briefings", { credentials: "include" })
-      .then((r) => r.json())
-      .then((list) => {
-        if (!cancelled && Array.isArray(list)) setRows(list);
-      });
-    const interval = setInterval(() => {
-      fetch("/api/briefings", { credentials: "include" })
-        .then((r) => r.json())
-        .then((list) => {
-          if (!cancelled && Array.isArray(list)) setRows(list);
-        });
-    }, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+  const { data: rows = [], mutate } = useSWR(
+    companyId ? `/api/briefings?companyId=${encodeURIComponent(companyId)}` : null,
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      if (!res.ok) return [] as typeof data;
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    },
+    {
+      fallbackData: data || [],
+      refreshInterval: 30000,
+      revalidateOnFocus: false,
+      revalidateOnReconnect: false,
+    }
+  );
 
   async function handleDelete(id: string) {
     if (!window.confirm("Delete this briefing?")) return;
     const res = await fetch(`/api/briefings/${id}`, { method: "DELETE", credentials: "include" });
-    if (res.ok) setRows((prev) => prev.filter((r) => r.id !== id));
+    if (res.ok) await mutate((prev) => prev?.filter((r) => r.id !== id) ?? [], false);
   }
 
   const columns = [
@@ -69,7 +72,7 @@ export default function BriefingsTable({
       header: "Company",
       accessor: "companyId",
       render: (row: { companyId?: string }) =>
-        row.companyId ? <CompanyNameCell companyId={row.companyId} /> : "—",
+        row.companyId ? (companyMap[row.companyId] ?? "—") : "—",
     },
     {
       header: "Actions",
@@ -78,7 +81,7 @@ export default function BriefingsTable({
         <TableActions
           items={[
             ...(row.fileUrl
-              ? [{ label: "View PDF", onClick: () => window.open(row.fileUrl, "_blank") }]
+              ? [{ label: "View PDF", onClick: () => openDocumentUrl(row.fileUrl!) }]
               : []),
             { label: "Delete", onClick: () => handleDelete(row.id), variant: "danger" as const },
           ]}
@@ -90,8 +93,8 @@ export default function BriefingsTable({
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-blue-100">
-          <MessageSquare className="w-5 h-5 text-blue-600" />
+        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+          <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Toolbox Talks & Briefings</h3>
@@ -100,7 +103,7 @@ export default function BriefingsTable({
           </p>
         </div>
       </div>
-      <Table columns={columns} data={rows} density="comfortable" />
+      <Table columns={columns} data={rows} />
     </div>
   );
 }

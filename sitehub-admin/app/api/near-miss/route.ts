@@ -54,7 +54,7 @@ export async function GET(req: Request) {
     const { data } = await query;
     const reports = data ?? [];
     const siteIds = [...new Set(reports.map((r: { site_id?: string }) => r.site_id).filter(Boolean))];
-    let siteMap = new Map<string, string>();
+    const siteMap = new Map<string, string>();
     if (siteIds.length > 0) {
       const { data: sites } = await supabaseAdmin.from("sites").select("id, name").in("id", siteIds);
       for (const s of sites ?? []) {

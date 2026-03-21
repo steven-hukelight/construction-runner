@@ -1,0 +1,19 @@
+{
+  "version": "2.0.0",
+  "tasks": [
+    {
+      "label": "Flutter: Run iOS Simulator (with dart-defines)",
+      "type": "shell",
+      "command": "./run_ios_dev.sh",
+      "options": {
+        "cwd": "${workspaceFolder}/sitehub_worker_Ready",
+        "env": {}
+      },
+      "group": "build",
+      "presentation": {
+        "reveal": "always",
+        "panel": "new"
+      }
+    }
+  ]
+}

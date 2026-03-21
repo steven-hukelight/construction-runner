@@ -1,84 +1,42 @@
-// Run with: node scripts/debug:
-
-```js
-// Run with: node scripts/debug-auth.js
-// This script scans your-auth.js
-// This script scans your project for anything that sets cookies or calls setUser project for anything that sets cookies or calls setUserCookies.
-
-const fsCookies.
-
+/* eslint-disable @typescript-eslint/no-require-imports */
+/**
+ * Scan the project for cookie setters and setUserCookies calls.
+ * Run with: node scripts/paste-auth.js
+ */
 const fs = require("fs");
- = require("fs");
-const path = requireconst path = require("path");
+const path = require("path");
 
-const("path");
-
-const projectRoot = path projectRoot = path.resolve(__dirname.resolve(__dirname, "..");
-
-const targets = [
-  "setUserCookies, "..");
-
+const projectRoot = path.resolve(__dirname, "..");
 const targets = [
   "setUserCookies(",
-  "cookies().(",
+  "cookies().",
   "cookies().set(",
   "cookieStore.set(",
-  "set(",
-  "cookieStore.set(",
-  "res.cookies.set("res.cookies.set(",
-  "response.cookies,
-  "response.cookies.set(",
-  "user_email.set(",
+  "res.cookies.set(",
+  "response.cookies",
   "user_email",
   "role=",
 ];
 
-",
-  "role=",
-];
-
-function scanDirfunction scanDir(dir) {
-  const entries(dir) {
+function scanDir(dir) {
   const entries = fs.readdirSync(dir, { withFileTypes: true });
-
- = fs.readdirSync(dir, { withFileTypes: true });
-
-  for (const entry  for (const entry of entries) {
-    of entries) {
-    const fullPath = const fullPath = path.join(dir, entry path.join(dir, entry.name);
-
-    if (.name);
-
-    if (entry.isDirectoryentry.isDirectory()) {
-      scan()) {
+  for (const entry of entries) {
+    const fullPath = path.join(dir, entry.name);
+    if (entry.isDirectory()) {
+      if (entry.name === "node_modules" || entry.name.startsWith(".")) continue;
       scanDir(fullPath);
-   Dir(fullPath);
-    } else if (entry } else if (entry.isFile()) {
-     .isFile()) {
-      const content = fs.readFileSync const content = fs.readFileSync(fullPath, "utf8(fullPath, "utf8");
-
-      for (const t of targets) {
-        if (content.includes");
-
-      for (const t of targets) {
-        if (content.includes(t)) {
-          console.log(`\n(t)) {
-          console.log(`\n🔍 FOUND "${t}" in🔍 FOUND "${t}" in: ${fullPath}`);
-        }
-      }
-: ${fullPath}`);
+    } else if (entry.isFile()) {
+      const content = fs.readFileSync(fullPath, "utf8");
+      for (const token of targets) {
+        if (content.includes(token)) {
+          console.log(`Found "${token}" in: ${fullPath}`);
+          break;
         }
       }
     }
   }
 }
 
-console    }
-  }
-}
-
-console.log("🔎 Scanning.log("🔎 Scanning project for cookie project for cookie setters and setUserCookies calls setters and setUserCookies calls...\n");
-scanDir...\n");
+console.log("Scanning project for cookie setters and setUserCookies calls...\n");
 scanDir(projectRoot);
-console(projectRoot);
-console.log("\n✅ Scan complete.log("\n✅ Scan complete.\n");
+console.log("\nScan complete.\n");

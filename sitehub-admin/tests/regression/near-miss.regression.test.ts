@@ -4,6 +4,7 @@
  * - Verify site_name returned
  * - Verify site_name displayed (in API response)
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 import {
   setMockCookies,

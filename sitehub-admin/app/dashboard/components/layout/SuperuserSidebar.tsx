@@ -55,9 +55,9 @@ export default function SuperuserSidebar() {
         <div className="shrink-0">
           <div className="logo flex items-center gap-3 mb-8 pb-6 border-b border-gray-200/50">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
-              <Image src="/Logo.png" alt="SiteHub logo" width={24} height={24} />
+              <Image src="/icon.png" alt="Construction Runner logo" width={24} height={24} />
             </div>
-            <span>SiteHub Superuser</span>
+            <span>Construction Runner Superuser</span>
           </div>
           <div className="px-3 mb-3">
             <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Superuser</p>
@@ -83,15 +83,15 @@ export default function SuperuserSidebar() {
         </nav>
 
         <div className="shrink-0 pt-4 space-y-2">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 border border-blue-100">
-            <p className="text-xs font-semibold text-gray-700">Superuser panel</p>
-            <p className="text-xs text-gray-600">Tenant & system management</p>
+          <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 dark:from-slate-800 dark:to-slate-700 border border-blue-100 dark:border-slate-600">
+            <p className="text-xs font-semibold text-gray-700 dark:text-slate-200">Superuser panel</p>
+            <p className="text-xs text-gray-600 dark:text-slate-400">Tenant & system management</p>
           </div>
           <a
             href="/legal/privacy-and-security"
             target="_blank"
             rel="noopener noreferrer"
-            className="block text-xs text-gray-600 hover:text-blue-600 hover:underline px-1"
+            className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1"
           >
             Privacy & Security Policy
           </a>

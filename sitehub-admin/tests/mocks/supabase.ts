@@ -38,7 +38,10 @@ const createChain = () => ({
 
 function createMockClient() {
   const client = {
-    from: (_table: string) => createChain(),
+    from: (table: string) => {
+      void table;
+      return createChain();
+    },
 
     auth: {
       getUser: () =>
@@ -85,7 +88,8 @@ function createMockClient() {
   return client;
 }
 
-export function createClient(_url: string, _key?: string) {
+export function createClient(..._args: unknown[]) {
+  void _args;
   return createMockClient();
 }
 

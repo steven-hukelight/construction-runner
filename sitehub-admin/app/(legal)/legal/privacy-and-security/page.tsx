@@ -4,7 +4,7 @@ import Link from "next/link";
 import { Shield, ArrowLeft, Lock } from "lucide-react";
 
 /**
- * SiteHub — Privacy & Security Master Policy
+ * Construction Runner — Privacy & Security Master Policy
  * Combined policy covering data protection (GDPR) and security practices.
  */
 export default function PrivacyAndSecurityPage() {
@@ -35,7 +35,7 @@ export default function PrivacyAndSecurityPage() {
           {/* Intro */}
           <section>
             <p className="text-sm leading-relaxed">
-              This Privacy & Security Policy describes how SiteHub collects, uses, protects, and retains your data.
+              This Privacy & Security Policy describes how Construction Runner collects, uses, protects, and retains your data.
               Your data is collected solely for the purposes of site access, safety compliance, induction,
               RAMS acceptance, and legal health & safety obligations. It is not used for marketing or profiling.
             </p>
@@ -145,7 +145,7 @@ export default function PrivacyAndSecurityPage() {
               8. Contact — Data Protection
             </h2>
             <p className="text-sm leading-relaxed">
-              For privacy or security queries, contact your company&apos;s data protection officer or the SiteHub
+              For privacy or security queries, contact your company&apos;s data protection officer or the Construction Runner
               administrator. Include your email and a description of your request.
             </p>
           </section>

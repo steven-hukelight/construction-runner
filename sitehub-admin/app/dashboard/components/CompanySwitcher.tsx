@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { usePathname, useRouter } from "next/navigation";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import { X } from "lucide-react";
 
@@ -17,10 +16,8 @@ function clearCompanyCookies() {
 }
 
 export default function CompanySwitcher() {
-  const pathname = usePathname();
-  const router = useRouter();
   const [companies, setCompanies] = useState<{ id: string; name?: string }[]>([]);
-  const [selected, setSelected] = useState<string | null>(null);
+  const [selected, setSelected] = useState<string | null>(() => getCompanyIdFromClient());
 
   useEffect(() => {
     if (getRoleFromClient()?.toLowerCase() !== "superuser") return;
@@ -29,18 +26,16 @@ export default function CompanySwitcher() {
       .then((data) => setCompanies(Array.isArray(data) ? data : []));
   }, []);
 
-  useEffect(() => {
-    setSelected(getCompanyIdFromClient());
-  }, [pathname]);
-
   const isSuperuser = getRoleFromClient()?.toLowerCase() === "superuser";
   const impersonating = Boolean(isSuperuser && selected);
 
   if (!isSuperuser) return null;
 
   function navigate() {
-    // Stay on current page (e.g. /dashboard/modules) instead of redirecting to /dashboard
-    router.refresh();
+    // Full reload with cache-bust ensures new company data is fetched (not cached from previous company)
+    const url = new URL(window.location.href);
+    url.searchParams.set("_t", String(Date.now()));
+    window.location.href = url.toString();
   }
 
   async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
@@ -89,7 +84,12 @@ export default function CompanySwitcher() {
     }
   }
 
-  function handleClear() {
+  async function handleClear() {
+    try {
+      await fetch("/api/stop-impersonate", { method: "POST", credentials: "include" });
+    } catch {
+      /* fallback: clear locally */
+    }
     clearCompanyCookies();
     setSelected(null);
     navigate();

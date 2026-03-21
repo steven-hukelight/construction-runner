@@ -240,7 +240,6 @@ export async function POST(req: Request) {
       if (siteHasRams) {
         const { data: user } = await supabaseAdmin.from("users").select("admin_pre_induction_override").eq("id", operativeId).maybeSingle();
         const adminOverride = (user as { admin_pre_induction_override?: boolean })?.admin_pre_induction_override === true;
-        const { data: assign } = await supabaseAdmin.from("assigned_operatives").select("id").eq("site_id", siteId).eq("user_id", operativeId).maybeSingle();
         const { data: ind } = await supabaseAdmin.from("user_site_inductions").select("*").eq("user_id", operativeId).eq("site_id", siteId).maybeSingle();
         const grandfathered = ind?.grandfathered === true;
         const { data: trainingRow } = await supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", operativeId).maybeSingle();
@@ -266,6 +265,7 @@ export async function POST(req: Request) {
       site_id: siteId && String(siteId).trim() ? String(siteId).trim() : null,
       timestamp: new Date().toISOString(),
       action: storedAction,
+      notes: notes ? String(notes) : null,
     };
     if (assignedCompanyId) insertPayload.company_id = String(assignedCompanyId);
 

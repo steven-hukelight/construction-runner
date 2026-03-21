@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 
 export default function SuperuserSettingsClient() {
-  const [brandName, setBrandName] = useState("SiteHub");
+  const [brandName, setBrandName] = useState("Construction Runner");
   const [primaryColor, setPrimaryColor] = useState("#2563eb");
   const [featureA, setFeatureA] = useState(true);
   const [featureB, setFeatureB] = useState(false);
@@ -43,8 +43,9 @@ export default function SuperuserSettingsClient() {
         const err = await res.json().catch(() => ({}));
         alert(err?.error || "Failed to save. API may not be implemented yet.");
       }
-    } catch (e: any) {
-      alert("Failed to save: " + (e?.message || "Network error"));
+    } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Network error";
+      alert("Failed to save: " + message);
     } finally {
       setSaving(false);
     }

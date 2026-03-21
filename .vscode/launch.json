@@ -1,0 +1,19 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Flutter (iOS Simulator with dart-defines)",
+      "request": "launch",
+      "type": "dart",
+      "program": "sitehub_worker_Ready/lib/main.dart",
+      "cwd": "${workspaceFolder}/sitehub_worker_Ready",
+      "args": [
+        "--dart-define=SUPABASE_URL=${env:SUPABASE_URL}",
+        "--dart-define=SUPABASE_ANON_KEY=${env:SUPABASE_ANON_KEY}",
+        "--dart-define=SITEHUB_API_URL=${env:SITEHUB_API_URL}",
+        "-d",
+        "ios"
+      ]
+    }
+  ]
+}

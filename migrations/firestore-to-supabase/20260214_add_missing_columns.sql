@@ -1,4 +1,4 @@
--- Migration: Add missing columns in snake_case for SiteHub tables
+-- Migration: Add missing columns in snake_case for Construction Runner tables
 
 -- Companies
 alter table companies add column if not exists created_at timestamptz not null default now();

@@ -8,7 +8,7 @@ const ALLOWED_TYPES = ["image/jpeg", "image/png", "image/webp", "image/jpg"];
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { fileBase64, contentType, fileName } = body;
+    const { fileBase64, contentType } = body;
 
     if (!fileBase64) {
       return NextResponse.json({ error: "Missing fileBase64" }, { status: 400 });

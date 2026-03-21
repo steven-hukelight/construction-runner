@@ -1,4 +1,4 @@
--- SiteHub Schema Canonical Baseline
+-- Construction Runner Schema Canonical Baseline
 -- Consolidates all schema alignment: missing tables, columns, indexes, type fixes, RLS policies
 -- Idempotent: safe to run multiple times. DO NOT modify existing migrations.
 

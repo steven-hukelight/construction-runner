@@ -1,4 +1,4 @@
--- SiteHub: Missing tables for API compatibility (sitehub-admin)
+-- Construction Runner: Missing tables for API compatibility (sitehub-admin)
 -- Idempotent: CREATE IF NOT EXISTS
 -- Mirrors root supabase/migrations/20260218100007
 

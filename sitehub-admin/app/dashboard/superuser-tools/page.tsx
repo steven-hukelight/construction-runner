@@ -1,10 +1,10 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
 import {
-  Wrench,
   RefreshCw,
   Database,
   FileCheck,
@@ -23,6 +23,7 @@ import {
 type Company = { id: string; name: string | null };
 
 export default function SuperuserToolsPage() {
+  const density = useTableDensityClasses();
   const [running, setRunning] = useState<string | null>(null);
   const [message, setMessage] = useState<{ type: "ok" | "error"; text: string } | null>(null);
   const [companies, setCompanies] = useState<Company[]>([]);
@@ -155,19 +156,64 @@ export default function SuperuserToolsPage() {
     }
     setRunning("password-reset");
     setMessage(null);
+    const email = passwordResetEmail.trim();
     try {
-      const res = await fetch("/api/auth/send-password-reset", {
+      let res = await fetch("/api/auth/send-password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: passwordResetEmail.trim() }),
+        body: JSON.stringify({ email }),
         credentials: "include",
       });
-      const data = await res.json().catch(() => ({}));
+      let data = await res.json().catch(() => ({}));
+      if (!res.ok && (data.error ?? "").includes("not found in authentication")) {
+        setMessage({ type: "ok", text: "Provisioning legacy user…" });
+        const provRes = await fetch("/api/auth/provision-legacy-user", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email }),
+          credentials: "include",
+        });
+        const provData = await provRes.json().catch(() => ({}));
+        if (!provRes.ok || !provData?.ok) {
+          setMessage({ type: "error", text: provData?.error ?? "Provision failed." });
+          return;
+        }
+        res = await fetch("/api/auth/send-password-reset", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, userId: provData.userId }),
+          credentials: "include",
+        });
+        data = await res.json().catch(() => ({}));
+      }
       if (res.ok) {
         setMessage({ type: "ok", text: data.message ?? "Password reset email sent." });
         setPasswordResetEmail("");
       } else {
         setMessage({ type: "error", text: data.error ?? "Failed." });
+      }
+    } catch (e) {
+      setMessage({ type: "error", text: e instanceof Error ? e.message : "Failed." });
+    } finally {
+      setRunning(null);
+    }
+  }
+
+  async function handleProvisionAllLegacyUsers() {
+    if (!window.confirm("Provision auth accounts for all users without one? They will need a password reset to log in.")) return;
+    setRunning("provision-all-legacy");
+    setMessage(null);
+    try {
+      const res = await fetch("/api/maintenance/provision-all-legacy-users", {
+        method: "POST",
+        credentials: "include",
+      });
+      const data = await res.json().catch(() => ({}));
+      if (res.ok) {
+        const errs = data.errors?.length ? ` Errors: ${data.errors.slice(0, 3).join("; ")}${data.errors.length > 3 ? "…" : ""}` : "";
+        setMessage({ type: "ok", text: `${data.message ?? "Done."}${errs}` });
+      } else {
+        setMessage({ type: "error", text: data.error ?? data.message ?? "Failed." });
       }
     } catch (e) {
       setMessage({ type: "error", text: e instanceof Error ? e.message : "Failed." });
@@ -546,6 +592,28 @@ export default function SuperuserToolsPage() {
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
+              <Users className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Provision all legacy users</h3>
+              <p className="text-sm text-gray-600">Create auth accounts for users migrated from Firebase/legacy</p>
+            </div>
+          </div>
+          <Button
+            size="sm"
+            variant="secondary"
+            onClick={handleProvisionAllLegacyUsers}
+            disabled={!!running}
+            className="inline-flex items-center gap-2"
+          >
+            {running === "provision-all-legacy" ? <RefreshCw className="w-4 h-4 animate-spin" /> : <Users className="w-4 h-4" />}
+            Provision all
+          </Button>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-4">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
               <History className="w-5 h-5 text-blue-600" />
             </div>
             <div>
@@ -757,30 +825,30 @@ export default function SuperuserToolsPage() {
             </div>
           )}
           <div className="overflow-x-auto">
-            <table className="w-full text-sm">
+            <table className={`w-full ${density.table}`}>
               <thead>
                 <tr className="border-b border-gray-200">
-                  <th className="text-left py-2 font-medium text-gray-700">Company</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Sites</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Users</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Tasks</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Notices</th>
-                  <th className="text-left py-2 font-medium text-gray-700">RAMS</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Deliveries</th>
-                  <th className="text-left py-2 font-medium text-gray-700">Attendance</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Company</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Sites</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Users</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Tasks</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Notices</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>RAMS</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Deliveries</th>
+                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Attendance</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(validateResult.perCompany).map(([companyId, counts]) => (
                   <tr key={companyId} className="border-b border-gray-100">
-                    <td className="py-2 font-medium">{companies.find((c) => c.id === companyId)?.name ?? companyId}</td>
-                    <td className="py-2">{counts.sites ?? 0}</td>
-                    <td className="py-2">{counts.users ?? 0}</td>
-                    <td className="py-2">{counts.tasks ?? 0}</td>
-                    <td className="py-2">{counts.notices ?? 0}</td>
-                    <td className="py-2">{counts.rams ?? 0}</td>
-                    <td className="py-2">{counts.deliveries ?? 0}</td>
-                    <td className="py-2">{counts.attendance ?? 0}</td>
+                    <td className={`${density.td} font-medium`}>{companies.find((c) => c.id === companyId)?.name ?? companyId}</td>
+                    <td className={density.td}>{counts.sites ?? 0}</td>
+                    <td className={density.td}>{counts.users ?? 0}</td>
+                    <td className={density.td}>{counts.tasks ?? 0}</td>
+                    <td className={density.td}>{counts.notices ?? 0}</td>
+                    <td className={density.td}>{counts.rams ?? 0}</td>
+                    <td className={density.td}>{counts.deliveries ?? 0}</td>
+                    <td className={density.td}>{counts.attendance ?? 0}</td>
                   </tr>
                 ))}
               </tbody>

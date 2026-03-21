@@ -1,4 +1,3 @@
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import nodemailer from "nodemailer";
@@ -13,8 +12,29 @@ export async function POST(req: Request) {
     const email = user.email;
     if (!email) return NextResponse.json({ error: "no email" }, { status: 400 });
 
-    const subject = "Welcome to SiteHub";
+    const subject = "Welcome to Construction Runner";
     const text = `Hello ${user.display_name || ""},\n\nYour account has been approved. You can sign in with: \n\nEmail: ${email}\nTemporary password: ${tempPassword}\n\nPlease change your password after first login.`;
+
+    if (process.env.RESEND_API_KEY) {
+      try {
+        const res = await fetch("https://api.resend.com/emails", {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            from: process.env.EMAIL_FROM || process.env.RESEND_FROM || process.env.SMTP_USER || "no-reply@construction-runner.com",
+            to: [email],
+            subject,
+            text,
+          }),
+        });
+        if (res.ok) return NextResponse.json({ ok: true });
+      } catch (e) {
+        console.warn("Resend send failed", e);
+      }
+    }
 
     if (process.env.SENDGRID_API_KEY) {
       try {

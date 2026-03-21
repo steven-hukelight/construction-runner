@@ -11,7 +11,7 @@ export async function POST(req: Request) {
     const siteId = body.siteId?.trim();
     if (!userId || !siteId) return NextResponse.json({ error: "userId and siteId required" }, { status: 400 });
 
-    const access = await checkPreInductionAccess(userId);
+    const access = await checkPreInductionAccess(userId, req);
     if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
 
     const { data: site } = await supabaseAdmin.from("sites").select("rams_version, ramsversion").eq("id", siteId).maybeSingle();

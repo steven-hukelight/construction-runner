@@ -17,6 +17,7 @@ export async function POST(req: Request) {
     res.cookies.set("companyId", companyId, { path: "/", maxAge, httpOnly: false, sameSite: "lax" });
     return res;
   } catch (e) {
+    console.error("POST /api/impersonate failed", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

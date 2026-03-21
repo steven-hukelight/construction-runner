@@ -5,8 +5,6 @@ import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
 import Button from "@/app/dashboard/components/ui/Button";
 
-const BLUE = "#2563EB";
-
 export type InductionRow = {
   siteId: string;
   siteName: string;
@@ -103,7 +101,7 @@ export default function InductionTable({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <Table columns={columns} data={rows} density="comfortable" />
+      <Table columns={columns} data={rows} />
     </div>
   );
 }

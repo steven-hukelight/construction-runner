@@ -1,42 +1,40 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo } from "react";
 import { Megaphone } from "lucide-react";
 import Table from "../components/ui/Table";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
-import jsPDF from "jspdf";
 import { deleteNotice } from "./actions";
-import { useMemo } from "react";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import { fetchTable } from "@/lib/supabase/fetchTable";
+import useSWR from "swr";
 
 export default function NoticesTable({ data }: any) {
-  const [rows, setRows] = useState<any[]>(data || []);
-  const [sites, setSites] = useState<any[]>([]);
+  const role = getRoleFromClient();
+  const companyId = getCompanyIdFromClient();
 
-  useEffect(() => {
-    setRows(data || []);
-  }, [data]);
+  const fetcher = async () => {
+    if (role !== "superuser" && !companyId) return { notices: Array.isArray(data) ? data : [], sites: [] };
+    const [noticesRes, sitesRes] = await Promise.all([
+      fetchTable("notices", role ?? undefined, companyId),
+      fetchTable("sites", role ?? undefined, companyId),
+    ]);
+    return {
+      notices: !noticesRes.error && Array.isArray(noticesRes.data) ? noticesRes.data : Array.isArray(data) ? data : [],
+      sites: !sitesRes.error && Array.isArray(sitesRes.data) ? sitesRes.data : [],
+    };
+  };
 
-  useEffect(() => {
-    let mounted = true;
-    async function load() {
-      const role = getRoleFromClient();
-      const companyId = getCompanyIdFromClient(); // UUID or null (cookie only)
-      if (role !== "superuser" && !companyId) return;
-      const [noticesRes, sitesRes] = await Promise.all([
-        fetchTable("notices", role ?? undefined, companyId),
-        fetchTable("sites", role ?? undefined, companyId),
-      ]);
-      if (!mounted) return;
-      if (!noticesRes.error && noticesRes.data) setRows(noticesRes.data);
-      if (!sitesRes.error && sitesRes.data) setSites(sitesRes.data);
-    }
-    load();
-    return () => { mounted = false; };
-  }, []);
+  const { data: payload, mutate } = useSWR<{ notices: any[]; sites: any[] }>(
+    role !== null || companyId ? "notices-and-sites" : null,
+    fetcher,
+    { fallbackData: { notices: Array.isArray(data) ? data : [], sites: [] }, refreshInterval: 30000 }
+  );
+
+  const rows = payload?.notices ?? [];
+  const sites = React.useMemo(() => payload?.sites ?? [], [payload?.sites]);
 
   const siteMap = useMemo(() => {
     const m = new Map<string, any>();
@@ -47,10 +45,15 @@ export default function NoticesTable({ data }: any) {
   async function handleDelete(id: string) {
     if (!window.confirm("Are you sure you want to delete this notice?")) return;
     await deleteNotice(id);
-    setRows((prev) => prev.filter((row) => row.id !== id));
+    mutate((prev) =>
+      prev
+        ? { ...prev, notices: prev.notices.filter((row) => row.id !== id) }
+        : prev,
+      false
+    );
   }
 
-  function handleExportCSV() {
+  const handleExportCSV = useCallback(() => {
     if (!rows.length) return;
 
     const header = "Title,Site,Created\n";
@@ -77,11 +80,12 @@ export default function NoticesTable({ data }: any) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }
+  }, [rows]);
 
-  function handleExportPDF() {
+  const handleExportPDF = useCallback(async () => {
     if (!rows.length) return;
 
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text("Notices", 14, 16);
@@ -103,7 +107,7 @@ export default function NoticesTable({ data }: any) {
     });
 
     doc.save(`notices-${new Date().toISOString().slice(0, 10)}.pdf`);
-  }
+  }, [rows]);
 
   const columns = [
     { header: "Title", accessor: "title" },
@@ -148,8 +152,8 @@ export default function NoticesTable({ data }: any) {
     <div className="card">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <Megaphone className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <Megaphone className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">All Notices</h3>
@@ -172,7 +176,7 @@ export default function NoticesTable({ data }: any) {
           </div>
         )}
       </div>
-      <Table columns={columns} data={rows} density="comfortable" />
+      <Table columns={columns} data={rows} />
     </div>
   );
 }

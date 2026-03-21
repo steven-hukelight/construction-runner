@@ -3,10 +3,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 
-function cid(x: Record<string, unknown>): string | undefined {
-  return (x.company_id ?? x.companyId) as string | undefined;
-}
-
 export async function GET(req: Request) {
   try {
     const cookieStore = await cookies();

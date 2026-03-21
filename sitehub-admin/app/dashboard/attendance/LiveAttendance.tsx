@@ -1,7 +1,13 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useMemo, useState } from "react";
+import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
 function getRelativeTime(date: Date) {
   const now = new Date();
   const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
@@ -11,87 +17,197 @@ function getRelativeTime(date: Date) {
   if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
   return date.toLocaleString();
 }
-import { useCompanyName } from "@/lib/hooks/useCompanyName";
 
+type TimestampLike = { toDate?: () => Date } | string | number | Date;
 type AttendanceLog = {
   id: string;
-  timestamp?: { toDate?: () => Date } | string | Date;
+  timestamp?: TimestampLike;
   name?: string;
   displayName?: string;
   userName?: string;
   operativeName?: string;
   operativeId?: string;
   userId?: string;
+  user_id?: string;
   uid?: string;
   companyId?: string;
+  company_id?: string;
   siteName?: string;
   siteId?: string;
-  site?: { id?: string; name?: string } | any;
+  site_id?: string;
+  site?: { id?: string; name?: string } | null;
   action?: string;
   notes?: string;
 };
 
-function CompanyNameCell({ companyId }: { companyId: string }) {
-  const name = useCompanyName(companyId);
-  return <>{name ?? "—"}</>;
-}
+type User = { id: string; name?: string; display_name?: string; email?: string; displayName?: string };
+type Profile = { id?: string; userId?: string; displayName?: string };
+type Site = { id: string; name?: string };
+
+const asString = (value: unknown): string | undefined => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return undefined;
+};
+
+const normalizeUser = (value: unknown): User | null => {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+  const id = asString(obj.id);
+  if (!id) return null;
+  return {
+    id,
+    name: asString(obj.name),
+    display_name: asString(obj.display_name),
+    displayName: asString(obj.displayName),
+    email: asString(obj.email),
+  };
+};
+
+const normalizeProfile = (value: unknown): Profile | null => {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+  const pid = asString(obj.id ?? obj.userId);
+  if (!pid) return null;
+  return {
+    id: pid,
+    userId: asString(obj.userId),
+    displayName: asString(obj.displayName ?? obj.display_name),
+  };
+};
+
+const normalizeSite = (value: unknown): Site | null => {
+  if (!value || typeof value !== "object") return null;
+  const obj = value as Record<string, unknown>;
+  const id = asString(obj.id);
+  if (!id) return null;
+  return {
+    id,
+    name: asString(obj.name),
+  };
+};
+
+const parseTimestamp = (value: TimestampLike | undefined): Date | null => {
+  if (!value) return null;
+  if (typeof value === "string" || typeof value === "number") {
+    const parsed = new Date(value);
+    return isNaN(parsed.getTime()) ? null : parsed;
+  }
+  if (value instanceof Date) return value;
+  if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
+    try {
+      return value.toDate();
+    } catch {
+      return null;
+    }
+  }
+  return null;
+};
+
 
 export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
+  const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
+
+  const isToday = selectedDate === todayStr();
+
+  const displayedLogs = useMemo(() => {
+    if (isToday) return logs;
+    return logs.filter((l) => {
+      if (selectedSiteId !== "all") {
+        const sid = String(l.siteId ?? l.site_id ?? "").trim();
+        if (sid !== selectedSiteId) return false;
+      }
+      if (selectedUserId !== "all") {
+        const uid = String(l.userId ?? l.user_id ?? l.operativeId ?? "").trim();
+        if (uid !== selectedUserId) return false;
+      }
+      return true;
+    });
+  }, [logs, isToday, selectedSiteId, selectedUserId]);
 
   useEffect(() => {
-    const params = new URLSearchParams({ limit: "500" });
-    if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
-    if (selectedUserId !== "all") params.set("userId", selectedUserId);
-
     const fetchFromApi = async () => {
       try {
-        const res = await fetch(`/api/attendance?${params}`, {
-          cache: "no-store",
-          credentials: "include",
-        });
-        const json = await res.json();
-        setLogs(Array.isArray(json) ? json : []);
+        let json: AttendanceLog[] = [];
+        if (isToday) {
+          const params = new URLSearchParams({ limit: "500", date: selectedDate });
+          if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
+          if (selectedUserId !== "all") params.set("userId", selectedUserId);
+          const res = await fetch(`/api/attendance?${params}`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+          const data = await res.json();
+          json = Array.isArray(data) ? (data as AttendanceLog[]) : [];
+        } else {
+          const params = new URLSearchParams({ date: selectedDate, limit: "500" });
+          const res = await fetch(`/api/attendance/archive?${params}`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+          const data = await res.json();
+          if (Array.isArray(data)) {
+            json = data as AttendanceLog[];
+          } else if (data?.error) {
+            json = [];
+          } else {
+            json = [];
+          }
+        }
+        setLogs(json);
       } catch {
         setLogs([]);
       }
     };
 
     fetchFromApi();
-    const interval = setInterval(fetchFromApi, 15000); // Poll every 15s for live updates
-    return () => clearInterval(interval);
-  }, [refreshTrigger, selectedSiteId, selectedUserId]);
+    const interval = isToday ? setInterval(fetchFromApi, 15000) : undefined;
+    return () => { if (interval) clearInterval(interval); };
+  }, [refreshTrigger, selectedDate, selectedSiteId, selectedUserId, isToday]);
 
-  // Load users/sites/profiles via API (access control via company_id cookie)
+  const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+
+  // Load users/sites/profiles/companies via API (companyMap avoids per-row fetches)
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [usersRes, sitesRes, profilesRes] = await Promise.all([
+        const [usersRes, sitesRes, profilesRes, companiesRes] = await Promise.all([
           fetch("/api/users", { cache: "no-store", credentials: "include" }),
           fetch("/api/sites", { cache: "no-store", credentials: "include" }),
           fetch("/api/profiles", { cache: "no-store", credentials: "include" }),
+          fetch("/api/companies", { cache: "no-store", credentials: "include" }),
         ]);
         if (!cancelled) {
-          const [usersJson, sitesJson, profilesJson] = await Promise.all([
+          const [usersJson, sitesJson, profilesJson, companiesJson] = await Promise.all([
             usersRes.json(),
             sitesRes.json(),
             profilesRes.json(),
+            companiesRes.json(),
           ]);
-          setUsers(Array.isArray(usersJson) ? usersJson : []);
-          setSites(Array.isArray(sitesJson) ? sitesJson : []);
-          setProfiles(Array.isArray(profilesJson) ? profilesJson : []);
+          setUsers(Array.isArray(usersJson) ? usersJson.map(normalizeUser).filter(Boolean) as User[] : []);
+          setSites(Array.isArray(sitesJson) ? sitesJson.map(normalizeSite).filter(Boolean) as Site[] : []);
+          setProfiles(Array.isArray(profilesJson) ? profilesJson.map(normalizeProfile).filter(Boolean) as Profile[] : []);
+          const cm: Record<string, string> = {};
+          if (Array.isArray(companiesJson)) {
+            companiesJson.forEach((c: { id?: string; name?: string }) => {
+              if (c?.id && c?.name) cm[String(c.id)] = String(c.name);
+            });
+          }
+          setCompanyMap(cm);
         }
       } catch {
         if (!cancelled) {
           setUsers([]);
           setSites([]);
           setProfiles([]);
+          setCompanyMap({});
         }
       }
     };
@@ -102,38 +218,65 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
   }, []);
 
   const userMap = useMemo(() => {
-    const m = new Map<string, any>();
-    users.forEach((u: any) => m.set(u.id, u));
+    const m = new Map<string, User>();
+    users.forEach((u) => {
+      if (u.id) m.set(u.id, u);
+    });
     return m;
   }, [users]);
 
   const siteMap = useMemo(() => {
-    const m = new Map<string, any>();
-    sites.forEach((s: any) => m.set(s.id, s));
+    const m = new Map<string, Site>();
+    sites.forEach((s) => {
+      if (s.id) m.set(s.id, s);
+    });
     return m;
   }, [sites]);
 
   const profileByUserId = useMemo(() => {
-    const m = new Map<string, any>();
-    profiles.forEach((p: any) => {
+    const m = new Map<string, Profile>();
+    profiles.forEach((p) => {
       const uid = p.id ?? p.userId;
       if (uid) m.set(String(uid), p);
     });
     return m;
   }, [profiles]);
 
-  // Force re-render every minute for live relative time
+  // Re-render every minute to update relative time ("5 min ago" -> "6 min ago") without mutating logs
+  const [, setTimeTick] = useState(0);
   useEffect(() => {
-    const interval = setInterval(() => {
-      // This will trigger a re-render
-      setLogs((logs) => [...logs]);
-    }, 60000);
-    return () => clearInterval(interval);
+    const id = setInterval(() => setTimeTick((t) => t + 1), 60000);
+    return () => clearInterval(id);
   }, []);
+
+  const formatTime = (d: Date | null) => {
+    if (!d) return "";
+    return isToday ? getRelativeTime(d) : d.toLocaleString("en-GB");
+  };
+
+  const density = useTableDensityClasses();
 
   return (
     <div className="space-y-4">
       <div className="flex flex-wrap items-center gap-3 mb-4">
+        <div className="flex items-center gap-2">
+          <label className="text-xs font-medium text-slate-600">Date</label>
+          <input
+            type="date"
+            className="input text-sm py-1.5"
+            value={selectedDate}
+            onChange={(e) => setSelectedDate(e.target.value || todayStr())}
+          />
+        </div>
+        {!isToday && (
+          <button
+            type="button"
+            onClick={() => setSelectedDate(todayStr())}
+            className="text-sm font-medium text-blue-600 hover:text-blue-700"
+          >
+            Today
+          </button>
+        )}
         <div className="flex items-center gap-2">
           <label className="text-xs font-medium text-slate-600">Site</label>
           <select
@@ -157,51 +300,38 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
             <option value="all">All users</option>
             {users.map((u) => (
               <option key={u.id} value={u.id}>
-                {u.display_name || u.name || (u.email ? String(u.email).split("@")[0] : u.id)}
+                {u.display_name || u.displayName || u.name || (u.email ? String(u.email).split("@")[0] : u.id)}
               </option>
             ))}
           </select>
         </div>
       </div>
       <div className="overflow-auto">
-        <table className="table w-full text-sm">
+        <table className={`table w-full ${density.table}`}>
           <thead>
             <tr className="text-left text-xs font-semibold uppercase tracking-wide">
-              <th>Time</th>
-              <th>Operative</th>
-              <th>Company</th>
-              <th>Site</th>
-              <th>Action</th>
-              <th>Notes</th>
+              <th className={density.th}>Time</th>
+              <th className={density.th}>Operative</th>
+              <th className={density.th}>Company</th>
+              <th className={density.th}>Site</th>
+              <th className={density.th}>Action</th>
+              <th className={density.th}>Notes</th>
             </tr>
           </thead>
           <tbody>
-            {logs.map((l) => (
+            {displayedLogs.map((l) => (
               <tr key={l.id} className="hover:bg-slate-50 transition">
-                <td className="text-sm">
-                  {(() => {
-                    const t: any = l.timestamp;
-                    let d: Date | null = null;
-                    if (t?.toDate) d = t.toDate();
-                    else if (t instanceof Date) d = t;
-                    else if (typeof t === "string" || typeof t === "number") {
-                      const parsed = new Date(t);
-                      if (!isNaN(parsed.getTime())) d = parsed;
-                    }
-                    if (d) return getRelativeTime(d);
-                    return t?.toString() ?? "";
-                  })()}
+                <td className={density.td}>
+                  {(formatTime(parseTimestamp(l.timestamp)) || l.timestamp?.toString()) ?? ""}
                 </td>
-                <td>
+                <td className={density.td}>
                   {(() => {
-                    // Prefer real names first, then IDs, then email local-part
                     const directPreferred = [l.name, l.displayName, l.operativeName];
                     const direct = directPreferred.find((n) => n && String(n).trim());
                     if (direct) return String(direct);
-                    const idHints = [l.operativeId, l.userId, l.uid, (l as { user_id?: string }).user_id];
+                    const idHints = [l.operativeId, l.userId, l.uid, l.user_id];
                     const id = idHints.find((x) => x && String(x).trim());
                     if (id) {
-                      // Prefer profile displayName via userId mapping
                       const p = profileByUserId.get(String(id));
                       if (p?.displayName) return String(p.displayName);
                       const u = userMap.get(String(id));
@@ -213,17 +343,15 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
                     return "—";
                   })()}
                 </td>
-                <td className="text-sm text-gray-600">
-                  {l.companyId || (l as { company_id?: string }).company_id ? (
-                    <CompanyNameCell companyId={String(l.companyId || (l as { company_id?: string }).company_id)} />
-                  ) : (
-                    "—"
-                  )}
+                <td className={`${density.td} text-gray-600`}>
+                  {l.companyId || l.company_id
+                    ? (companyMap[String(l.companyId || l.company_id)] ?? "—")
+                    : "—"}
                 </td>
-                <td>
+                <td className={density.td}>
                   {(() => {
                     const siteNameHints = [l.siteName, l.site?.name];
-                    const siteIdHints = [l.siteId, (l as { site_id?: string }).site_id, l.site?.id];
+                    const siteIdHints = [l.siteId, l.site_id, l.site?.id];
                     const sname = siteNameHints.find((n) => n && String(n).trim());
                     if (sname) return String(sname);
                     const sid = siteIdHints.find((x) => x && String(x).trim());
@@ -235,16 +363,18 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
                     return "—";
                   })()}
                 </td>
-                <td>{l.action}</td>
-                <td className="text-sm text-slate-500">{l.notes || ""}</td>
+                <td className={density.td}>{l.action}</td>
+                <td className={`${density.td} text-slate-500`}>{l.notes || ""}</td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
 
-      {logs.length === 0 && (
-        <div className="text-sm text-slate-400">No attendance events yet.</div>
+      {displayedLogs.length === 0 && (
+        <div className="text-sm text-slate-400">
+          {isToday ? "No attendance events yet." : `No attendance events for ${selectedDate}.`}
+        </div>
       )}
     </div>
   );

@@ -1,6 +1,5 @@
 import { cookies } from "next/headers";
 import { redirect, notFound } from "next/navigation";
-import PageHeader from "@/app/dashboard/components/PageHeader";
 import NearMissDetailClient from "./NearMissDetailClient";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";

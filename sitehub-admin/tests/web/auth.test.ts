@@ -1,4 +1,4 @@
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -8,7 +8,7 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD || 'TestPassword123!';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 describe('Auth: login/logout/session', () => {
-  let session: any;
+  let session: Session | null = null;
 
   it('should sign up a new user (if not exists)', async () => {
     const { data, error } = await supabase.auth.signUp({
@@ -32,8 +32,8 @@ describe('Auth: login/logout/session', () => {
 
     // Simulate storing and restoring session
     const { data: restored, error: restoreError } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
+      access_token: session?.access_token ?? '',
+      refresh_token: session?.refresh_token ?? '',
     });
     expect(restoreError).toBeNull();
     expect(restored.session).toBeDefined();

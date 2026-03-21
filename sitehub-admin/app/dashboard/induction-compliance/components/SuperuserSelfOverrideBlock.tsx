@@ -32,7 +32,7 @@ export default function SuperuserSelfOverrideBlock() {
       } else {
         alert(data.error || "Failed to update override");
       }
-    } catch (e) {
+    } catch {
       alert("Failed to update override");
     } finally {
       setLoading(false);
@@ -40,14 +40,14 @@ export default function SuperuserSelfOverrideBlock() {
   }
 
   return (
-    <div className="rounded-xl border border-purple-200 bg-purple-50/50 p-4 flex flex-wrap items-center justify-between gap-4">
+    <div className="rounded-xl border border-purple-200 dark:border-purple-800 bg-purple-50/50 dark:bg-purple-900/30 p-4 flex flex-wrap items-center justify-between gap-4">
       <div className="flex items-center gap-3">
-        <div className="h-10 w-10 rounded-full bg-purple-100 flex items-center justify-center">
-          <Shield className="h-5 w-5 text-purple-600" />
+        <div className="h-10 w-10 rounded-full bg-purple-100 dark:bg-purple-900/50 flex items-center justify-center">
+          <Shield className="h-5 w-5 text-purple-600 dark:text-purple-400" />
         </div>
         <div>
-          <p className="font-medium text-gray-900">Pre-Induction Self-Override</p>
-          <p className="text-sm text-gray-600">
+          <p className="font-medium text-gray-900 dark:text-slate-100">Pre-Induction Self-Override</p>
+          <p className="text-sm text-gray-600 dark:text-slate-400">
             {overrideOn
               ? "Override is on — you can access site login and assess induction flows."
               : "Enable override to access site login without completing pre-induction."}

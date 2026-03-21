@@ -1,7 +1,7 @@
 "use client";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useState, useEffect, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -44,28 +44,38 @@ export default function RAMSUploadModal() {
         {open ? "Close" : "Upload RAMS"}
       </Button>
       {open && (
-        <div className="card w-full md:max-w-xl">
-          <h3 className="text-lg font-semibold text-white mb-6">Upload RAMS</h3>
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div className="relative z-10 w-full max-w-xl lg:max-w-2xl card shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-lg font-semibold text-slate-900 mb-6">Upload RAMS</h3>
           {companyLogoUrl && (
-            <div className="mb-5 p-3 rounded-lg bg-gray-800/50 border border-gray-700">
-              <p className="text-xs text-gray-400 mb-2">Company logo (will appear on documents)</p>
-              <img src={companyLogoUrl} alt="Company logo" className="h-12 object-contain" />
+            <div className="mb-5 p-3 rounded-lg bg-gray-50 border border-gray-200">
+              <p className="text-xs text-gray-600 mb-2">Company logo (will appear on documents)</p>
+              <div className="relative h-12 w-full max-w-[200px]">
+                <Image src={companyLogoUrl} alt="Company logo" fill className="object-contain" sizes="200px" />
+              </div>
             </div>
           )}
           <div className="space-y-5">
             <Input
               label="Site ID"
               value={siteId}
-              onChange={(e: any) => setSiteId(e.target.value)}
+              onChange={(e: ChangeEvent<HTMLInputElement>) => setSiteId(e.target.value)}
             />
 
-            <div>
-              <label className="text-xs font-medium text-slate-300 block mb-1">File</label>
-              <input
-                type="file"
-                onChange={(e: any) => setFile(e.target.files?.[0] ?? null)}
-                className="block w-full text-sm text-slate-200"
-              />
+            <div className="space-y-1">
+              <label className="block text-sm font-semibold text-gray-700">File</label>
+              <div className="rounded-lg border border-gray-200 bg-white px-4 py-2.5">
+                <input
+                  type="file"
+                  onChange={(e: ChangeEvent<HTMLInputElement>) => setFile(e.target.files?.[0] ?? null)}
+                  className="block w-full text-sm text-gray-900 file:mr-4 file:rounded-lg file:border-0 file:bg-blue-600 file:px-4 file:py-2 file:text-sm file:font-medium file:text-white hover:file:bg-blue-500"
+                />
+              </div>
             </div>
 
             <div className="pt-2">
@@ -73,6 +83,7 @@ export default function RAMSUploadModal() {
                 Upload
               </Button>
             </div>
+          </div>
           </div>
         </div>
       )}

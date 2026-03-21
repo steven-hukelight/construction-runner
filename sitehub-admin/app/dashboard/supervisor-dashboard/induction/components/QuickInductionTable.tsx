@@ -100,7 +100,7 @@ export default function QuickInductionTable({
 
   return (
     <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <Table columns={columns} data={rows} density="comfortable" />
+      <Table columns={columns} data={rows} />
     </div>
   );
 }

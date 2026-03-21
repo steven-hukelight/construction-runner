@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, ExternalLink, AlertTriangle, Clock, FileText } from "lucide-react";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import RAMSStatusBadge from "../components/RAMSStatusBadge";
 import SubcontractorUploadMissingDocuments from "./SubcontractorUploadMissingDocuments";
 import SubcontractorRequestVerification from "./SubcontractorRequestVerification";
@@ -326,10 +327,14 @@ export default function SubcontractorOperativeDrawer({
                       {r.acceptedVersion && <p><span className="font-medium">Accepted version:</span> {r.acceptedVersion}</p>}
                       {r.acceptedAt && <p><span className="font-medium">Accepted at:</span> {new Date(r.acceptedAt).toLocaleString()}</p>}
                       {r.fileUrl && (
-                        <a href={r.fileUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-blue-600 hover:underline mt-1">
+                        <button
+                          type="button"
+                          onClick={() => openDocumentUrl(r.fileUrl!)}
+                          className="inline-flex items-center gap-1 text-blue-600 hover:underline mt-1"
+                        >
                           <FileText className="h-4 w-4" />
                           View RAMS
-                        </a>
+                        </button>
                       )}
                       {(r.status === "pending" || r.status === "outdated") && (
                         <p className="text-amber-700 text-xs mt-2">Request the operative to accept RAMS (mobile app).</p>

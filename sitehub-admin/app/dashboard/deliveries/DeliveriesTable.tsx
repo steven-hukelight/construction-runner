@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Package } from "lucide-react";
 import Table from "../components/ui/Table";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
-import jsPDF from "jspdf";
 import { updateDeliveryStatus, deleteDelivery } from "./actions";
+import useSWR from "swr";
 
 interface Delivery {
   id: string;
@@ -29,50 +29,35 @@ interface DeliveriesTableProps {
 }
 
 export default function DeliveriesTable({ data }: DeliveriesTableProps) {
-  const [rows, setRows] = useState<Delivery[]>(data || []);
+  const fetcher = useMemo(
+    () =>
+      async (url: string) => {
+        const res = await fetch(url, { cache: "no-store", credentials: "include" });
+        if (!res.ok) return [] as Delivery[];
+        const list = await res.json();
+        return Array.isArray(list) ? list : [];
+      },
+    []
+  );
+
+  const { data: rows = [], mutate } = useSWR<Delivery[]>("/api/deliveries", fetcher, {
+    fallbackData: data || [],
+    refreshInterval: 15000,
+    revalidateOnFocus: false,
+    revalidateOnReconnect: false,
+  });
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
 
-  useEffect(() => {
-    setRows(data || []);
-  }, [data]);
-
-  const fetchDeliveries = React.useCallback(() => {
-    fetch("/api/deliveries", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list) => {
-        if (Array.isArray(list)) setRows(list);
-      })
-      .catch(() => {});
-  }, []);
-
-  // Fetch from API (uses company_id cookie for access control)
-  useEffect(() => {
-    let cancelled = false;
-    fetchDeliveries();
-    const interval = setInterval(() => {
-      if (!cancelled) fetchDeliveries();
-    }, 15000);
-    const onFocus = () => {
-      if (!cancelled) fetchDeliveries();
-    };
-    window.addEventListener("focus", onFocus);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-      window.removeEventListener("focus", onFocus);
-    };
-  }, [fetchDeliveries]);
-
   async function handleStatus(id: string, status: string) {
     await updateDeliveryStatus(id, status);
-    setRows((prev) => prev.map((row) => (row.id === id ? { ...row, status } : row)));
+    await mutate((prev) => prev?.map((row) => (row.id === id ? { ...row, status } : row)) ?? [], false);
   }
 
   async function handleDelete(id: string) {
     if (!window.confirm("Are you sure you want to delete this delivery?")) return;
     await deleteDelivery(id);
-    setRows((prev) => prev.filter((row) => row.id !== id));
+    await mutate((prev) => prev?.filter((row) => row.id !== id) ?? [], false);
   }
 
   function formatDate(d: Delivery): string {
@@ -91,7 +76,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     return "";
   }
 
-  function handleExportCSV() {
+  const handleExportCSV = useCallback(() => {
     if (!rows.length) return;
 
     const header = "Reference,Site,Date,Status,Notes\n";
@@ -120,11 +105,12 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     link.click();
     document.body.removeChild(link);
     URL.revokeObjectURL(url);
-  }
+  }, [rows]);
 
-  function handleExportPDF() {
+  const handleExportPDF = useCallback(async () => {
     if (!rows.length) return;
 
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text("Deliveries", 14, 16);
@@ -144,9 +130,9 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     });
 
     doc.save(`deliveries-${new Date().toISOString().slice(0, 10)}.pdf`);
-  }
+  }, [rows]);
 
-  const filteredRows = React.useMemo(() => {
+  const filteredRows = useMemo(() => {
     if (!dateFrom && !dateTo) return rows;
     return rows.filter((r) => {
       const raw = r.scheduledAt ?? r.createdAt;
@@ -221,8 +207,8 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     <div className="card">
       <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <Package className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">All Deliveries</h3>
@@ -248,7 +234,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
             variant="secondary"
             size="sm"
             type="button"
-            onClick={() => fetchDeliveries()}
+            onClick={() => mutate()}
           >
             Refresh
           </Button>
@@ -269,7 +255,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
           )}
         </div>
       </div>
-      <Table columns={columns} data={filteredRows} density="comfortable" />
+      <Table columns={columns} data={filteredRows} />
     </div>
   );
 }

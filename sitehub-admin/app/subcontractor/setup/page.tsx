@@ -60,7 +60,7 @@ export default function SubcontractorSetupPage() {
     fetch(`/api/companies/${companyId}/operatives`, { credentials: "include" })
       .then((r) => r.json())
       .then((data) => setOperatives(Array.isArray(data) ? data : []));
-  }, [companyId]);
+  }, [companyId, assignSiteId, ramsSiteId]);
 
   useEffect(() => {
     if (!companyId || linkedSites.length === 0) return;
@@ -361,7 +361,7 @@ export default function SubcontractorSetupPage() {
         </section>
 
         <p className="text-center text-xs text-gray-500 mt-8">
-          By continuing, you agree to SiteHub&apos;s{" "}
+          By continuing, you agree to Construction Runner&apos;s{" "}
           <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
             Privacy & Security Policy
           </a>

@@ -66,7 +66,6 @@ export async function GET(req: Request) {
     }
 
     const now = new Date();
-    const sectionIds = ["personal", "rightToWork", "certifications", "medical", "training", "declarations"];
     const [p, r, c, m, t, d] = await Promise.all([
       supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin.from("pre_induction_right_to_work").select("*").eq("user_id", userId).maybeSingle(),
@@ -144,10 +143,11 @@ export async function GET(req: Request) {
     const approvedRams = (ramsRows ?? []).map((r) => ({ ...r, fileUrl: (r as { file_url?: string }).file_url ?? r.url }));
     const latestRams = approvedRams[0];
 
+    const personalRow = p as { full_name?: string | null } | null;
     return NextResponse.json({
       user: {
         id: userId,
-        name: (user.display_name ?? user.email ?? null) as string | null,
+        name: (personalRow?.full_name ?? user.display_name ?? user.email ?? null) as string | null,
         email: (user.email ?? null) as string | null,
         companyName,
         preInductionStatus: (user.pre_induction_status ?? "not_started") as string,

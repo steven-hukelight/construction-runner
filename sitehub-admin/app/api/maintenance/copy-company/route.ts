@@ -29,7 +29,11 @@ export async function POST(req: Request) {
     const { data: sites } = await supabaseAdmin.from("sites").select("*").eq("company_id", templateId);
     let sitesCopied = 0;
     for (const site of sites ?? []) {
-      const { company_id: _c, id: _id, created_at: _t1, updated_at: _t2, ...rest } = site as Record<string, unknown>;
+      const rest = { ...(site as Record<string, unknown>) };
+      delete rest.company_id;
+      delete rest.id;
+      delete rest.created_at;
+      delete rest.updated_at;
       await supabaseAdmin.from("sites").insert({
         ...rest,
         company_id: newCompanyId,

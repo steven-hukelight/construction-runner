@@ -6,18 +6,29 @@ import { getBaseUrl } from "@/lib/url";
 export const dynamic = "force-dynamic";
 
 function getFromEmail(): string {
-  return process.env.EMAIL_FROM || process.env.SENDGRID_FROM || process.env.SMTP_USER || "noreply@sitehub.com";
+  return process.env.EMAIL_FROM || process.env.RESEND_FROM || process.env.SENDGRID_FROM || process.env.SMTP_USER || "no-reply@construction-runner.com";
 }
 
 async function sendEmail(to: string, subject: string, text: string): Promise<boolean> {
   const fromEmail = getFromEmail();
+  if (process.env.RESEND_API_KEY) {
+    const res = await fetch("https://api.resend.com/emails", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${process.env.RESEND_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ from: fromEmail, to: [to], subject, text }),
+    });
+    return res.ok;
+  }
   if (process.env.SENDGRID_API_KEY) {
     const res = await fetch("https://api.sendgrid.com/v3/mail/send", {
       method: "POST",
       headers: { Authorization: `Bearer ${process.env.SENDGRID_API_KEY}`, "Content-Type": "application/json" },
       body: JSON.stringify({
         personalizations: [{ to: [{ email: to }], subject }],
-        from: { email: fromEmail, name: "SiteHub" },
+        from: { email: fromEmail, name: "Construction Runner" },
         content: [{ type: "text/plain", value: text }],
       }),
     });
@@ -66,8 +77,8 @@ export async function POST(req: Request) {
       if (!email) continue;
 
       const inviteLink = `${baseUrl}/register?companyCode=${encodeURIComponent(inviteCode)}&email=${encodeURIComponent(email)}&name=${encodeURIComponent(name)}`;
-      const subject = `You're invited to join ${companyName} on SiteHub`;
-      const text = `Hi${name ? ` ${name}` : ""},\n\nYou've been invited to join ${companyName} on SiteHub.\n\nClick the link below to create your account:\n${inviteLink}\n\nIf you didn't expect this, you can ignore this email.`;
+      const subject = `You're invited to join ${companyName} on Construction Runner`;
+      const text = `Hi${name ? ` ${name}` : ""},\n\nYou've been invited to join ${companyName} on Construction Runner.\n\nClick the link below to create your account:\n${inviteLink}\n\nIf you didn't expect this, you can ignore this email.`;
 
       try {
         const ok = await sendEmail(email, subject, text);

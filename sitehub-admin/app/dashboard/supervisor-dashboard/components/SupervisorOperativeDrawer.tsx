@@ -1,12 +1,14 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React from "react";
 import { X, FileText } from "lucide-react";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import SupervisorInductionStatusBadge from "./SupervisorInductionStatusBadge";
 import SupervisorActions from "./SupervisorActions";
 import RAMSStatusBadge from "../../components/RAMSStatusBadge";
 import type { SupervisorOperativeRow } from "../utils/buildSupervisorComplianceDataset";
 import type { RamsStatus } from "@/lib/ramsCompliance";
+import useSWR from "swr";
 
 type DrawerData = {
   user: {
@@ -45,24 +47,13 @@ export default function SupervisorOperativeDrawer({
   onClose,
   isMobile = false,
 }: Props) {
-  const [data, setData] = useState<DrawerData | null>(null);
-  const [loading, setLoading] = useState(false);
-
-  useEffect(() => {
-    if (!isOpen || !operative) {
-      setData(null);
-      return;
-    }
-    setLoading(true);
-    fetch(
-      `/api/supervisor/operative-drawer?userId=${encodeURIComponent(operative.operativeId)}&siteId=${encodeURIComponent(siteId)}`,
-      { credentials: "include" }
-    )
-      .then((r) => (r.ok ? r.json() : null))
-      .then(setData)
-      .catch(() => setData(null))
-      .finally(() => setLoading(false));
-  }, [isOpen, operative, siteId]);
+  const { data, isLoading } = useSWR<DrawerData | null>(
+    isOpen && operative
+      ? `/api/supervisor/operative-drawer?userId=${encodeURIComponent(operative.operativeId)}&siteId=${encodeURIComponent(siteId)}`
+      : null,
+    (url) => fetch(url, { credentials: "include" }).then((r) => (r.ok ? r.json() : null)),
+    { revalidateOnFocus: false }
+  );
 
   if (!isOpen) return null;
 
@@ -80,13 +71,13 @@ export default function SupervisorOperativeDrawer({
       </div>
 
       <div className="p-6 space-y-6">
-        {loading && (
+        {isLoading && (
           <div className="flex justify-center py-12">
             <div className="h-8 w-8 animate-spin rounded-full border-2 border-blue-500 border-t-transparent" />
           </div>
         )}
 
-        {!loading && data && (
+        {!isLoading && data && (
           <>
             <Section title="Summary">
               <div className="space-y-2 text-sm">
@@ -173,16 +164,18 @@ export default function SupervisorOperativeDrawer({
                   {data.rams.acceptedAt && (
                     <p><span className="font-medium">Accepted at:</span> {new Date(data.rams.acceptedAt).toLocaleString()}</p>
                   )}
-                  {data.rams.fileUrl && (
-                    <a
-                      href={data.rams.fileUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
+                  {data.rams?.fileUrl && (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const url = data.rams?.fileUrl;
+                        if (url) openDocumentUrl(url);
+                      }}
                       className="inline-flex items-center gap-1 text-blue-600 hover:underline"
                     >
                       <FileText className="h-4 w-4" />
                       View RAMS
-                    </a>
+                    </button>
                   )}
                   {(data.rams.status === "pending" || data.rams.status === "outdated") && (
                     <p className="text-amber-700 text-xs">Request the operative to accept RAMS (mobile app).</p>
@@ -238,7 +231,7 @@ export default function SupervisorOperativeDrawer({
           </>
         )}
 
-        {!loading && !data && operative && (
+        {!isLoading && !data && operative && (
           <p className="text-sm text-gray-500">Unable to load details.</p>
         )}
       </div>

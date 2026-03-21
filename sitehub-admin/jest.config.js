@@ -15,6 +15,8 @@ module.exports = {
       "tests/realtime/realtime\\.test",
       "tests/web/dashboard\\.test",
       "tests/web/profile\\.test",
+      "tests/performance/",
+      "tests/e2e/",
     ],
   transform: {
     "^.+\\.(ts|tsx)$": ["ts-jest", { tsconfig: "tsconfig.json" }],

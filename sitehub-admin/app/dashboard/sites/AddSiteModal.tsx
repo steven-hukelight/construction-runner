@@ -82,12 +82,12 @@ export default function AddSiteModal() {
     <div className="card">
       <div className="flex items-start justify-between mb-4">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <MapPin className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <MapPin className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Add New Site</h3>
-            <p className="text-sm text-slate-600">Create a new site location with geofence</p>
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Add New Site</h3>
+            <p className="text-sm text-slate-600 dark:text-slate-400">Create a new site location with geofence</p>
           </div>
         </div>
         <Button onClick={() => setOpen((v) => !v)} size="sm">

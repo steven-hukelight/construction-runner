@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import Image from "next/image";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 import { updateDeliveryStatus } from "../actions";
@@ -25,7 +26,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
   const [delivery, setDelivery] = useState<Delivery | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/deliveries", { credentials: "include" });
@@ -38,11 +39,11 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
     } finally {
       setLoading(false);
     }
-  }
+  }, [deliveryId]);
 
   useEffect(() => {
-    load();
-  }, [deliveryId]);
+    void load();
+  }, [load]);
 
   async function handleStatus(status: string) {
     await updateDeliveryStatus(deliveryId, status);
@@ -117,7 +118,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <div>
               <p className="text-sm text-slate-500 mb-2">POD</p>
               <a href={podUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <img src={podUrl} alt="POD" className="rounded-lg max-h-48 object-cover border" />
+                <Image src={podUrl} alt="POD" width={600} height={400} className="rounded-lg max-h-48 object-cover border" />
               </a>
             </div>
           )}
@@ -125,7 +126,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <div>
               <p className="text-sm text-slate-500 mb-2">Load Photo</p>
               <a href={loadUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <img src={loadUrl} alt="Load" className="rounded-lg max-h-48 object-cover border" />
+                <Image src={loadUrl} alt="Load" width={600} height={400} className="rounded-lg max-h-48 object-cover border" />
               </a>
             </div>
           )}

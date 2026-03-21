@@ -18,17 +18,26 @@ function AuthCallbackContent() {
       try {
         const code = searchParams.get("code");
         const errorParam = searchParams.get("error");
+        // Supabase can put errors in the hash (e.g. otp_expired)
+        const hash = typeof window !== "undefined" ? window.location.hash || "" : "";
+        const hashHasError = hash.includes("error=") || hash.includes("error_code=");
 
-        // If Supabase sent an error
-        if (errorParam) {
+        // If Supabase sent an error (query or hash)
+        if (errorParam || hashHasError) {
           if (!cancelled) {
             setStatus("error");
-            router.replace(`/login?error=${encodeURIComponent(errorParam)}`);
+            // For recovery errors, send to reset-password so it can show the proper message
+            const next = searchParams.get("next");
+            if (next === "/reset-password") {
+              router.replace("/reset-password" + (hash || ""));
+            } else {
+              router.replace(`/login?error=${encodeURIComponent(errorParam || "Authentication failed")}`);
+            }
           }
           return;
         }
 
-        // If OAuth returned a code, exchange it for a session
+        // If OAuth or recovery returned a code, exchange it for a session
         if (code) {
           const { data, error } = await supabase.auth.exchangeCodeForSession(code);
           if (cancelled) return;
@@ -36,6 +45,12 @@ function AuthCallbackContent() {
           if (error) {
             setStatus("error");
             router.replace(`/login?error=${encodeURIComponent(error.message)}`);
+            return;
+          }
+
+          const next = searchParams.get("next");
+          if (next === "/reset-password") {
+            router.replace("/reset-password");
             return;
           }
 
@@ -49,14 +64,26 @@ function AuthCallbackContent() {
           const result = await setUserCookies(email, true, data?.session?.user?.id);
           if (!result?.role) {
             setStatus("error");
-            router.replace("/login?error=Account+not+found.+Contact+administrator.");
+            await supabase.auth.signOut({ scope: "local" });
+            router.replace(
+              result?.restricted === "operative"
+                ? "/login?blocked=operative"
+                : "/login?error=Account+not+found.+Contact+administrator."
+            );
             return;
           }
-          router.replace("/dashboard");
+          router.replace(next && next.startsWith("/") ? next : "/dashboard");
           return;
         }
 
-        // No code? Try to read existing session
+        // No code? Could be implicit flow (hash) - redirect to next with hash if recovery
+        const next = searchParams.get("next");
+        if (next === "/reset-password" && typeof window !== "undefined" && window.location.hash) {
+          router.replace("/reset-password" + window.location.hash);
+          return;
+        }
+
+        // Try to read existing session (e.g. after hash processed by detectSessionInUrl)
         const { data: { session }, error: sessionError } = await supabase.auth.getSession();
         if (cancelled) return;
 
@@ -69,10 +96,15 @@ function AuthCallbackContent() {
         const result = await setUserCookies(session.user.email, true, session.user.id);
         if (!result?.role) {
           setStatus("error");
-          router.replace("/login?error=Account+not+found.+Contact+administrator.");
+          await supabase.auth.signOut({ scope: "local" });
+          router.replace(
+            result?.restricted === "operative"
+              ? "/login?blocked=operative"
+              : "/login?error=Account+not+found.+Contact+administrator."
+          );
           return;
         }
-        router.replace("/dashboard");
+        router.replace(next && next.startsWith("/") ? next : "/dashboard");
       } catch (err) {
         if (!cancelled) {
           setStatus("error");

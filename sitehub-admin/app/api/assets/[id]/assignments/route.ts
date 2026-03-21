@@ -33,7 +33,7 @@ export async function GET(
     }
 
     const userIds = [...new Set((assigns ?? []).map((a) => a.user_id))];
-    let users: Record<string, { email?: string; display_name?: string }> = {};
+    const users: Record<string, { email?: string; display_name?: string }> = {};
     if (userIds.length > 0) {
       const { data: uData } = await supabaseAdmin
         .from("users")

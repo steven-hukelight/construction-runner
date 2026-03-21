@@ -2,8 +2,8 @@
 
 import React, { useEffect, useState, useMemo } from "react";
 import Link from "next/link";
+import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
-import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
 interface Asset {
   id: string;
@@ -23,6 +23,7 @@ interface User {
 }
 
 export default function AssetsContent({ companyId }: { companyId: string }) {
+  const density = useTableDensityClasses();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -106,6 +107,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
         alert(err?.error ?? "Upload failed");
       }
     } catch (e) {
+      console.error(e);
       alert("Upload failed");
     } finally {
       setUploading(false);
@@ -221,28 +223,28 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="w-full text-sm">
+          <table className={`w-full ${density.table}`}>
             <thead className="bg-gray-50">
               <tr>
-                <th className="px-4 py-3 text-left font-medium">Name</th>
-                <th className="px-4 py-3 text-left font-medium">Type</th>
-                <th className="px-4 py-3 text-left font-medium">Serial</th>
-                <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Actions</th>
+                <th className={`${density.th} text-left font-medium`}>Name</th>
+                <th className={`${density.th} text-left font-medium`}>Type</th>
+                <th className={`${density.th} text-left font-medium`}>Serial</th>
+                <th className={`${density.th} text-left font-medium`}>Status</th>
+                <th className={`${density.th} text-left font-medium`}>Actions</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100">
               {filteredAssets.map((a) => (
                 <tr key={a.id} className="hover:bg-gray-50">
-                  <td className="px-4 py-3 font-medium">
+                  <td className={`${density.td} font-medium`}>
                     <Link href={`/dashboard/assets/${a.id}`} className="text-blue-600 hover:underline">
                       {a.name}
                     </Link>
                   </td>
-                  <td className="px-4 py-3">{a.type ?? a.category ?? "—"}</td>
-                  <td className="px-4 py-3">{a.serial_number ?? "—"}</td>
-                  <td className="px-4 py-3">{a.status ?? a.condition ?? "—"}</td>
-                  <td className="px-4 py-3">
+                  <td className={density.td}>{a.type ?? a.category ?? "—"}</td>
+                  <td className={density.td}>{a.serial_number ?? "—"}</td>
+                  <td className={density.td}>{a.status ?? a.condition ?? "—"}</td>
+                  <td className={density.td}>
                     <div className="flex gap-2">
                       <Button
                         size="sm"

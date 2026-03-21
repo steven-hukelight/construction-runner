@@ -11,12 +11,11 @@ export const dynamic = "force-dynamic";
 function computeIndicators(sections: Record<string, Record<string, unknown> | null>) {
   const rtw = sections.rightToWork;
   const rtwVerified = !!rtw?.rightToWorkVerified;
-  const rtwHasData = !!(rtw?.passportUrl || rtw?.visaUrl || rtw?.shareCode);
-  const rightToWork: "Pending" | "Verified" | "Missing" = rtwVerified
-    ? "Verified"
-    : rtwHasData
-      ? "Pending"
-      : "Missing";
+  const rtwHasId = !!(rtw?.passportUrl || rtw?.visaUrl);
+  const rtwHasProof = !!rtw?.proofOfAddressUrl;
+  const rtwComplete = rtwVerified || (rtwHasId && rtwHasProof);
+  const rtwPartial = (rtwHasId || rtwHasProof || rtw?.shareCode) && !rtwComplete;
+  const rightToWork: "Pending" | "Verified" | "Missing" = rtwComplete ? "Verified" : rtwPartial ? "Pending" : "Missing";
 
   const competencyCard = sections.competencyCard;
   const competencyCardComplete = !!(competencyCard && (competencyCard.card_number ?? competencyCard.cardNumber ?? competencyCard.file_url ?? competencyCard.fileUrl));
@@ -24,12 +23,13 @@ function computeIndicators(sections: Record<string, Record<string, unknown> | nu
 
   const med = sections.medical;
   const medicalVerified = !!med?.medicalVerified;
-  const medicalHasData = !!(med?.medicalDeclaration || med?.medicalCertificateUrl || med?.fitToWork != null);
-  const medical: "Pending" | "Verified" | "Missing" = medicalVerified
-    ? "Verified"
-    : medicalHasData
-      ? "Pending"
-      : "Missing";
+  const medHasIssues = med?.hasMedicalIssues ?? med?.has_medical_issues;
+  const medFitToWork = med?.fitToWork;
+  const medNoIssues = medHasIssues === false || medFitToWork === true || String(medFitToWork ?? "").toLowerCase() === "true";
+  const medHasCert = !!med?.medicalCertificateUrl;
+  const medComplete = medicalVerified || medNoIssues || medHasCert;
+  const medPartial = (med?.medicalDeclaration || med?.medicalCertificateUrl || med?.fitToWork != null) && !medComplete;
+  const medical: "Pending" | "Verified" | "Missing" = medComplete ? "Verified" : medPartial ? "Pending" : "Missing";
 
   const tr = sections.training;
   const trArr = Array.isArray(tr?.trainingRecords) ? tr.trainingRecords : [];

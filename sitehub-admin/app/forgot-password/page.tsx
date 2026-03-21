@@ -16,15 +16,20 @@ export default function ForgotPasswordPage() {
     e.preventDefault();
     setError("");
     setLoading(true);
+
     try {
-      const origin = typeof window !== "undefined" ? window.location.origin : "";
-      const { error: err } = await supabase.auth.resetPasswordForEmail(email.trim(), {
-        redirectTo: `${origin}/reset-password`,
-      });
+      const { error: err } = await supabase.auth.resetPasswordForEmail(
+        email.trim(),
+        {
+          redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password`,
+        }
+      );
+
       if (err) {
         setError(err.message);
         return;
       }
+
       setSuccess(true);
     } catch {
       setError("Something went wrong. Please try again.");

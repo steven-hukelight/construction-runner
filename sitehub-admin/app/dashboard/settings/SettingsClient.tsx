@@ -1,8 +1,9 @@
 "use client";
+/* eslint-disable @typescript-eslint/no-unused-vars */
+/* eslint-disable react-hooks/exhaustive-deps */
 
-
-import React, { useState } from "react";
-import DarkModeToggle from "../components/DarkModeToggle";
+import React, { useEffect, useState } from "react";
+import { useTheme } from "@/app/ThemeProvider";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
 
@@ -13,20 +14,17 @@ interface SettingsComponentProps {
   saving: boolean;
 }
 
-
-import { useState as useStateReact, useEffect } from "react";
-
 function CompanySettings({ saveSettings, saving }: SettingsComponentProps) {
-  const [companyName, setCompanyName] = useStateReact("");
-  const [regNumber, setRegNumber] = useStateReact("");
-  const [address, setAddress] = useStateReact("");
-  const [contactEmail, setContactEmail] = useStateReact("");
-  const [inviteCode, setInviteCode] = useStateReact<string | null>(null);
-  const [inviteCodeLoading, setInviteCodeLoading] = useStateReact(true);
-  const [regenLoading, setRegenLoading] = useStateReact(false);
-  const [linkedCompanyId, setLinkedCompanyId] = useStateReact<string | null>(null);
-  const [linkedCompanyName, setLinkedCompanyName] = useStateReact<string | null>(null);
-  const [meLoading, setMeLoading] = useStateReact(true);
+  const [companyName, setCompanyName] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [linkedCompanyId, setLinkedCompanyId] = useState<string | null>(null);
+  const [linkedCompanyName, setLinkedCompanyName] = useState<string | null>(null);
+  const [meLoading, setMeLoading] = useState(true);
 
   useEffect(() => {
     fetch("/api/me")
@@ -190,14 +188,14 @@ function AccountSettings({ saveSettings, saving }: SettingsComponentProps) {
 }
 
 function NotificationSettings({ saveSettings, saving }: SettingsComponentProps) {
-  const [inviteCode, setInviteCode] = useStateReact<string | null>(null);
-  const [inviteCodeLoading, setInviteCodeLoading] = useStateReact(true);
-  const [regenLoading, setRegenLoading] = useStateReact(false);
-  const [companyId, setCompanyId] = useStateReact<string | null>(null);
-  const [companyName, setCompanyName] = useStateReact("");
-  const [regNumber, setRegNumber] = useStateReact("");
-  const [address, setAddress] = useStateReact("");
-  const [contactEmail, setContactEmail] = useStateReact("");
+  const [inviteCode, setInviteCode] = useState<string | null>(null);
+  const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
+  const [regenLoading, setRegenLoading] = useState(false);
+  const [companyId, setCompanyId] = useState<string | null>(null);
+  const [companyName, setCompanyName] = useState("");
+  const [regNumber, setRegNumber] = useState("");
+  const [address, setAddress] = useState("");
+  const [contactEmail, setContactEmail] = useState("");
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
@@ -356,9 +354,10 @@ function SecuritySettings({ saveSettings, saving }: SettingsComponentProps) {
 }
 
 function DisplaySettings({ saveSettings, saving }: SettingsComponentProps) {
-  const [dateFormat, setDateFormat] = useStateReact("DD/MM/YYYY");
-  const [timeFormat, setTimeFormat] = useStateReact("24 Hour");
-  const [language, setLanguage] = useStateReact("English (UK)");
+  const { theme, setTheme } = useTheme();
+  const [dateFormat, setDateFormat] = useState("DD/MM/YYYY");
+  const [timeFormat, setTimeFormat] = useState("24 Hour");
+  const [language, setLanguage] = useState("English (UK)");
   const handleSave = () => {
     saveSettings("display", { dateFormat, timeFormat, language });
   };
@@ -368,10 +367,33 @@ function DisplaySettings({ saveSettings, saving }: SettingsComponentProps) {
       <div className="space-y-4">
         <div className="flex items-center justify-between py-3 border-b border-gray-100">
           <div>
-            <p className="font-semibold text-slate-900">Dark Mode</p>
-            <p className="text-sm text-slate-600">Switch between light and dark theme</p>
+            <p className="font-semibold text-slate-900">Theme</p>
+            <p className="text-sm text-slate-600">Choose light or dark theme</p>
           </div>
-          <DarkModeToggle />
+          <div className="flex gap-4 items-center">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="theme"
+                value="light"
+                checked={theme === "light"}
+                onChange={() => setTheme("light")}
+                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Light</span>
+            </label>
+            <label className="flex items-center gap-2 cursor-pointer">
+              <input
+                type="radio"
+                name="theme"
+                value="dark"
+                checked={theme === "dark"}
+                onChange={() => setTheme("dark")}
+                className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-slate-700 dark:text-slate-200">Dark</span>
+            </label>
+          </div>
         </div>
         <div className="py-3 border-b">
           <label className="block font-semibold text-gray-900 mb-2">Date Format</label>
@@ -453,7 +475,7 @@ function DataPrivacySettings({ saveSettings, saving }: SettingsComponentProps) {
   );
 }
 
-export default function SettingsClient({}: {}) {
+export default function SettingsClient() {
   const [activeTab, setActiveTab] = useState("account");
   const [saving, setSaving] = useState(false);
   

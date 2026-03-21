@@ -1,0 +1,8 @@
+{
+    "chat.tools.terminal.autoApprove": {
+        "/^cd /Users/steven_hukelight/supabase-project/sitehub-admin && node - <<'NODE'\nconst fs=require\\('fs'\\);\nconst s=fs\\.readFileSync\\('app/dashboard/profile/page\\.tsx','utf8'\\);\nlet stack=\\[\\];\nlet inSingle=false,inDouble=false,inTemplate=false,escaped=false;\nfor\\(let i=0;i<s\\.length;i\\+\\+\\)\\{\n  const ch=s\\[i\\];\n  if\\(escaped\\)\\{escaped=false;continue;\\}\n  if\\(ch==='\\\\\\\\'\\)\\{escaped=true;continue;\\}\n  if\\(ch==='\"' && !inSingle && !inTemplate\\)\\{inDouble=!inDouble;continue;\\}\n  if\\(ch===\"'\" && !inDouble && !inTemplate\\)\\{inSingle=!inSingle;continue;\\}\n  if\\(ch==='`' && !inSingle && !inDouble\\)\\{inTemplate=!inTemplate;continue;\\}\n  if\\(inSingle\\|\\|inDouble\\|\\|inTemplate\\) continue;\n  if\\(ch==='\\{' \\) stack\\.push\\(i\\);\n  else if\\(ch==='\\}'\\) stack\\.pop\\(\\);\n\\}\nconst pos=stack\\[stack\\.length-1\\];\nconst lines=s\\.slice\\(0,pos\\)\\.split\\(/\\\\r\\?\\\\n/\\);\nconsole\\.log\\('Unclosed at approx line', lines\\.length, 'col', lines\\[lines\\.length-1\\]\\.length\\+1\\);\nNODE$/": {
+            "approve": true,
+            "matchCommandLine": true
+        }
+    }
+}

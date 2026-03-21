@@ -1,6 +1,6 @@
 # Mobile — Privacy & Security Implementation Guide
 
-This guide covers embedding the combined **Privacy & Security Master Policy** in the Flutter mobile app. The mobile repo is separate from sitehub-admin; apply these changes in your Flutter codebase.
+This guide covers embedding the combined **Privacy & Security Master Policy** in the Flutter mobile app. The mobile repo is separate from the admin web app; apply these changes in your Flutter codebase.
 
 ---
 
@@ -99,7 +99,7 @@ class _Section extends StatelessWidget {
 }
 ```
 
-**Note:** Replace `[YOUR-DOMAIN]` with your production web domain (e.g. `app.sitehub.com`).
+**Note:** Replace `[YOUR-DOMAIN]` with your production web domain (e.g. `app.construction-runner.com`).
 
 ---
 
@@ -115,7 +115,7 @@ RichText(
   text: TextSpan(
     style: TextStyle(color: Colors.grey, fontSize: 12),
     children: [
-      TextSpan(text: 'By continuing, you agree to SiteHub\'s '),
+      TextSpan(text: 'By continuing, you agree to Construction Runner\'s '),
       TextSpan(
         text: 'Privacy & Security Policy',
         style: TextStyle(color: Colors.blue, decoration: TextDecoration.underline),

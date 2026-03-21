@@ -26,11 +26,11 @@ const colorClasses = {
 };
 
 const iconBgClasses = {
-  blue: "bg-blue-100 text-blue-600",
-  green: "bg-green-100 text-green-600",
-  cyan: "bg-cyan-100 text-cyan-600",
-  orange: "bg-orange-100 text-orange-600",
-  sky: "bg-sky-100 text-sky-600",
+  blue: "bg-blue-100 dark:bg-blue-900/50 text-blue-600 dark:text-blue-400",
+  green: "bg-green-100 dark:bg-green-900/50 text-green-600 dark:text-green-400",
+  cyan: "bg-cyan-100 dark:bg-cyan-900/50 text-cyan-600 dark:text-cyan-400",
+  orange: "bg-orange-100 dark:bg-orange-900/50 text-orange-600 dark:text-orange-400",
+  sky: "bg-sky-100 dark:bg-sky-900/50 text-sky-600 dark:text-sky-400",
 };
 
 export function StatCard({ 
@@ -47,9 +47,9 @@ export function StatCard({
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay, ease: [0.4, 0, 0.2, 1] }}
       whileHover={{}}
-      className="relative group"
+      className="relative group h-full"
     >
-      <div className="relative overflow-hidden rounded-xl bg-white border border-gray-200 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className="relative overflow-hidden rounded-xl bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 shadow-sm hover:shadow-md transition-all duration-200 h-full flex flex-col">
         {/* Animated gradient overlay */}
         <motion.div 
           className={cn(
@@ -67,7 +67,7 @@ export function StatCard({
           colorClasses[color]
         )} />
         
-        <div className="relative p-7">
+        <div className="relative p-7 flex-1 flex flex-col">
           <div className="flex items-start justify-between mb-6">
             <div className={cn(
               "p-4 rounded-2xl shadow-lg",
@@ -81,8 +81,8 @@ export function StatCard({
                 className={cn(
                   "px-3 py-1.5 rounded-full text-xs font-bold flex items-center gap-1",
                   trend.isPositive 
-                    ? "bg-green-100 text-green-700" 
-                    : "bg-red-100 text-red-700"
+                    ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300" 
+                    : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
                 )}
                 initial={{ opacity: 0, scale: 0.8 }}
                 animate={{ opacity: 1, scale: 1 }}
@@ -94,10 +94,10 @@ export function StatCard({
             )}
           </div>
           
-          <div>
-            <p className="text-sm font-medium text-[#6E6E6E] mb-2 uppercase tracking-wide">{title}</p>
+          <div className="mt-auto">
+            <p className="text-sm font-medium text-[#6E6E6E] dark:text-slate-400 mb-2 uppercase tracking-wide">{title}</p>
             <motion.p 
-              className="text-4xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 bg-clip-text text-transparent"
+              className="text-4xl font-bold bg-gradient-to-br from-gray-900 to-gray-600 dark:from-gray-100 dark:to-gray-300 bg-clip-text text-transparent"
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
               transition={{ delay: delay + 0.2 }}

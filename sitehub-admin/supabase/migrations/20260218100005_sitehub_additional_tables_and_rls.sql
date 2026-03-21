@@ -1,4 +1,4 @@
--- SiteHub: Additional tables and RLS (sitehub-admin)
+-- Construction Runner: Additional tables and RLS (sitehub-admin)
 -- Mirrors root supabase/migrations/20260218100008
 
 CREATE TABLE IF NOT EXISTS coshh (

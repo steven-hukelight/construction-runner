@@ -75,7 +75,7 @@ export default function OfflineWorking({ companyId }: { companyId: string }) {
         <div className="flex items-center gap-2">
           <span
             className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-sm font-medium ${
-              online ? "bg-green-100 text-green-700" : "bg-red-100 text-red-700"
+              online ? "bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300" : "bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300"
             }`}
           >
             <span className={`w-2 h-2 rounded-full ${online ? "bg-green-500" : "bg-red-500"}`} />
@@ -90,22 +90,22 @@ export default function OfflineWorking({ companyId }: { companyId: string }) {
       </div>
 
       {loading ? (
-        <div className="text-slate-500 text-sm py-8 text-center">Loading...</div>
+        <div className="text-slate-500 dark:text-slate-400 text-sm py-8 text-center">Loading...</div>
       ) : (
         <>
           <div className="mb-4">
-            <h4 className="text-sm font-medium text-slate-600 mb-2">Synced items</h4>
-            <div className="max-h-48 overflow-y-auto border rounded-lg p-2 bg-slate-50">
+            <h4 className="text-sm font-medium text-slate-600 dark:text-slate-400 mb-2">Synced items</h4>
+            <div className="max-h-48 overflow-y-auto border border-slate-200 dark:border-slate-600 rounded-lg p-2 bg-slate-50 dark:bg-slate-800">
               {syncedItems.length === 0 ? (
-                <div className="text-slate-400 text-sm">No synced items yet.</div>
+                <div className="text-slate-400 dark:text-slate-500 text-sm">No synced items yet.</div>
               ) : (
                 syncedItems.map((item) => (
-                  <div key={item.id} className="mb-2 py-1 border-b border-slate-100 last:border-0">
-                    <span className="font-medium text-blue-700">{item.type}</span>
-                    <span className="text-xs text-slate-400 ml-2">
+                  <div key={item.id} className="mb-2 py-1 border-b border-slate-100 dark:border-slate-700 last:border-0">
+                    <span className="font-medium text-blue-700 dark:text-blue-400">{item.type}</span>
+                    <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">
                       {new Date(item.synced_at ?? item.created_at).toLocaleString()}
                     </span>
-                    <pre className="text-xs text-slate-600 mt-0.5 overflow-x-auto whitespace-pre-wrap">
+                    <pre className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 overflow-x-auto whitespace-pre-wrap">
                       {JSON.stringify(item.payload)}
                     </pre>
                   </div>
@@ -116,12 +116,12 @@ export default function OfflineWorking({ companyId }: { companyId: string }) {
 
           {unsyncedCount > 0 && (
             <div className="mb-4">
-              <h4 className="text-sm font-medium text-amber-700 mb-2">Pending ({unsyncedCount})</h4>
-              <div className="max-h-32 overflow-y-auto border border-amber-200 rounded-lg p-2 bg-amber-50">
+              <h4 className="text-sm font-medium text-amber-700 dark:text-amber-400 mb-2">Pending ({unsyncedCount})</h4>
+              <div className="max-h-32 overflow-y-auto border border-amber-200 dark:border-amber-800 rounded-lg p-2 bg-amber-50 dark:bg-amber-900/30">
                 {pendingItems.map((item) => (
                   <div key={item.id} className="mb-2 py-1">
                     <span className="font-medium">{item.type}</span>
-                    <span className="text-xs text-slate-500 ml-2">
+                    <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
                       {new Date(item.created_at).toLocaleString()}
                     </span>
                   </div>

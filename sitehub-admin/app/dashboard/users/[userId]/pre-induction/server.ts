@@ -24,16 +24,13 @@ const TABLE_MAP: Record<SectionId, string> = {
   medical: "pre_induction_medical",
   training: "pre_induction_training",
   declarations: "pre_induction_declarations",
-};
+}
 
-function toDate(val: unknown): Date | null {
-  if (!val) return null;
-  if (val instanceof Date) return val;
-  if (typeof (val as { toDate?: () => Date }).toDate === "function") {
-    return (val as { toDate: () => Date }).toDate();
-  }
-  const d = new Date(val as string);
-  return isNaN(d.getTime()) ? null : d;
+function toBoolean(val: unknown): boolean {
+  if (typeof val === "boolean") return val;
+  if (typeof val === "string") return ["true", "t", "1", "yes", "y", "on"].includes(val.trim().toLowerCase());
+  if (typeof val === "number") return val !== 0;
+  return false;
 }
 
 function mapMedicalToCamelCase(row: Record<string, unknown> | null): Record<string, unknown> | null {
@@ -42,8 +39,9 @@ function mapMedicalToCamelCase(row: Record<string, unknown> | null): Record<stri
     ...row,
     medicalDeclaration: row.medical_declaration ?? row.medicalDeclaration,
     fitToWork: row.fit_to_work ?? row.fitToWork,
+    hasMedicalIssues: row.has_medical_issues ?? row.hasMedicalIssues,
     medicalCertificateUrl: row.medical_certificate_url ?? row.medicalCertificateUrl,
-    medicalVerified: !!row.medical_verified,
+    medicalVerified: toBoolean(row.medical_verified ?? row.medicalVerified),
     allergies: row.allergies ?? (row.data as Record<string, unknown>)?.allergies ?? "",
     medication: row.medication ?? (row.data as Record<string, unknown>)?.medication ?? "",
     notes: row.notes ?? (row.data as Record<string, unknown>)?.notes ?? "",
@@ -80,7 +78,7 @@ function mapRightToWorkToCamelCase(row: Record<string, unknown> | null): Record<
     visaExpiry: row.visa_expiry ?? row.visaExpiry,
     shareCode: row.share_code ?? row.shareCode,
     proofOfAddressUrl: row.proof_of_address_url ?? row.proofOfAddressUrl,
-    rightToWorkVerified: !!row.right_to_work_verified,
+    rightToWorkVerified: toBoolean(row.right_to_work_verified ?? row.rightToWorkVerified),
     notes: row.notes ?? (row.data as Record<string, unknown>)?.notes,
   };
 }

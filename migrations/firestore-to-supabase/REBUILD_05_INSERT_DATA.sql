@@ -1,5 +1,5 @@
 -- =============================================================================
--- SITEHUB REBUILD - STEP 5: IMPORT FIRESTORE JSON DATA
+-- Construction Runner REBUILD - STEP 5: IMPORT FIRESTORE JSON DATA
 -- =============================================================================
 -- Inserts raw data. user_id and created_by left NULL for backfill.
 -- firebase_uid stored for mapping.

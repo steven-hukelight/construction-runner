@@ -7,11 +7,12 @@ module.exports = {
     "./settings/**/*.{js,ts,jsx,tsx}",
     "./styles/**/*.{css}",
   ],
-  darkMode: 'class', // Enable dark mode using class strategy
+  darkMode: ['class', '[data-theme="dark"]'], // Dark styles only when data-theme="dark"
   theme: {
     extend: {
       fontFamily: {
-        sans: ['Sora', 'ui-sans-serif', 'system-ui', 'sans-serif'],
+        sf: ['SF Pro', 'sans-serif'],
+        sans: ['SF Pro', 'sans-serif'],
       },
       colors: {
         primary: {

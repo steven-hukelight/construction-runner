@@ -1,15 +1,16 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { EnhancedCard } from "./ui/enhanced-card";
 import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
 import { TrendingUp, Activity, PieChart as PieChartIcon } from "lucide-react";
+import type { DashboardDataTask, DashboardDataUser, DashboardDataSite, DashboardDataRams, TimestampLike } from "./dashboardTypes";
 
 interface DashboardChartsProps {
-  sites: any[];
-  rams: any[];
-  users: any[];
-  tasks: any[];
+  sites: DashboardDataSite[];
+  rams: DashboardDataRams[];
+  users: DashboardDataUser[];
+  tasks: DashboardDataTask[];
 }
 
 const COLORS = ['#3b82f6', '#10b981', '#0ea5e9', '#f59e0b', '#ef4444'];
@@ -21,8 +22,8 @@ function getMonthName(monthIndex: number) {
 }
 
 // Helper to process data by month
-function getMonthlyActivityData(sites: any[], rams: any[], users: any[]) {
-  const monthlyMap = new Map();
+function getMonthlyActivityData(sites: DashboardDataSite[], rams: DashboardDataRams[], users: DashboardDataUser[]) {
+  const monthlyMap = new Map<string, { month: string; year: number; sites: number; rams: number; users: number }>();
   const now = new Date();
   
   // Initialize last 6 months
@@ -38,7 +39,7 @@ function getMonthlyActivityData(sites: any[], rams: any[], users: any[]) {
     });
   }
   
-  const parseDate = (val: unknown): Date | null => {
+  const parseDate = (val: TimestampLike): Date | null => {
     if (!val) return null;
     if (typeof val === "string") return new Date(val);
     if (typeof val === "object" && val !== null && typeof (val as { toDate?: () => Date }).toDate === "function") return (val as { toDate: () => Date }).toDate();
@@ -50,43 +51,40 @@ function getMonthlyActivityData(sites: any[], rams: any[], users: any[]) {
   };
 
   // Count sites by month (API returns created_at, server may use createdAt)
-  sites?.forEach((item: any) => {
+  sites?.forEach((item) => {
     const ts = item.created_at ?? item.createdAt;
     const date = parseDate(ts);
     if (!date) return;
     const key = `${date.getFullYear()}-${date.getMonth()}`;
-    if (monthlyMap.has(key)) {
-      monthlyMap.get(key).sites++;
-    }
+    const bucket = monthlyMap.get(key);
+    if (bucket) bucket.sites++;
   });
 
   // Count RAMS by month
-  rams?.forEach((item: any) => {
+  rams?.forEach((item) => {
     const ts = item.created_at ?? item.createdAt;
     const date = parseDate(ts);
     if (!date) return;
     const key = `${date.getFullYear()}-${date.getMonth()}`;
-    if (monthlyMap.has(key)) {
-      monthlyMap.get(key).rams++;
-    }
+    const bucket = monthlyMap.get(key);
+    if (bucket) bucket.rams++;
   });
 
   // Count users by month
-  users?.forEach((item: any) => {
+  users?.forEach((item) => {
     const ts = item.created_at ?? item.createdAt;
     const date = parseDate(ts);
     if (!date) return;
     const key = `${date.getFullYear()}-${date.getMonth()}`;
-    if (monthlyMap.has(key)) {
-      monthlyMap.get(key).users++;
-    }
+    const bucket = monthlyMap.get(key);
+    if (bucket) bucket.users++;
   });
   
   return Array.from(monthlyMap.values());
 }
 
 // Helper to get growth trend data
-function getGrowthTrendData(sites: any[], rams: any[], users: any[]) {
+function getGrowthTrendData(sites: DashboardDataSite[], rams: DashboardDataRams[], users: DashboardDataUser[]) {
   const monthlyData = getMonthlyActivityData(sites, rams, users);
   
   return monthlyData.map((data, index) => {
@@ -116,22 +114,22 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
   const [taskView, setTaskView] = useState<'status' | 'trend'>('status');
   
   // Generate chart data from dashboard props
-  const monthlyActivityData = getMonthlyActivityData(sites, rams, users);
-  const growthTrendData = getGrowthTrendData(sites, rams, users);
+  const monthlyActivityData = useMemo(() => getMonthlyActivityData(sites, rams, users), [sites, rams, users]);
+  const growthTrendData = useMemo(() => getGrowthTrendData(sites, rams, users), [sites, rams, users]);
 
-  // RAMS status distribution
-  const ramsStatusData = [
-    { name: 'Approved', value: rams?.filter((r: any) => r.status === 'APPROVED')?.length || 0 },
-    { name: 'Pending', value: rams?.filter((r: any) => r.status === 'PENDING')?.length || 0 },
-    { name: 'Rejected', value: rams?.filter((r: any) => r.status === 'REJECTED')?.length || 0 },
-  ].filter(item => item.value > 0);
+  // RAMS status distribution (memoized to avoid re-filtering every render)
+  const ramsStatusData = useMemo(() => [
+    { name: 'Approved', value: rams?.filter((r) => r.status === 'APPROVED')?.length || 0 },
+    { name: 'Pending', value: rams?.filter((r) => r.status === 'PENDING')?.length || 0 },
+    { name: 'Rejected', value: rams?.filter((r) => r.status === 'REJECTED')?.length || 0 },
+  ].filter(item => item.value > 0), [rams]);
 
-  // Task completion data - calculate based on actual task status if available
-  const taskData = [
-    { name: 'Completed', value: tasks?.filter((t: any) => t.status === 'COMPLETED')?.length || 0 },
-    { name: 'In Progress', value: tasks?.filter((t: any) => t.status === 'IN_PROGRESS')?.length || 0 },
-    { name: 'Pending', value: tasks?.filter((t: any) => t.status === 'PENDING' || !t.status)?.length || 0 },
-  ].filter(item => item.value > 0);
+  // Task completion data (memoized)
+  const taskData = useMemo(() => [
+    { name: 'Completed', value: tasks?.filter((t) => t.status === 'COMPLETED')?.length || 0 },
+    { name: 'In Progress', value: tasks?.filter((t) => t.status === 'IN_PROGRESS')?.length || 0 },
+    { name: 'Pending', value: tasks?.filter((t) => t.status === 'PENDING' || !t.status)?.length || 0 },
+  ].filter(item => item.value > 0), [tasks]);
 
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -139,13 +137,13 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
       <EnhancedCard gradient delay={0.5}>
         {/* Tabs */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl">
+          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
             <button
               onClick={() => setActiveTab('activity')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 activeTab === 'activity'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -158,7 +156,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 activeTab === 'growth'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -217,13 +215,13 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
       <EnhancedCard gradient delay={0.6}>
         {/* Tabs */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl">
+          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
             <button
               onClick={() => setRamsView('pie')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 ramsView === 'pie'
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -236,7 +234,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 ramsView === 'bar'
                   ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -299,13 +297,13 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
       <EnhancedCard gradient delay={0.7}>
         {/* Tabs */}
         <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 backdrop-blur-sm rounded-xl">
+          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
             <button
               onClick={() => setTaskView('status')}
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 taskView === 'status'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">
@@ -318,7 +316,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
                 taskView === 'trend'
                   ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 hover:text-gray-900 hover:bg-white/50'
+                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
               }`}
             >
               <div className="flex items-center gap-2">

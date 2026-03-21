@@ -1,4 +1,4 @@
-deleteUserAndSubcollections(userId)
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Delete a user and all related subcollection rows in Supabase (site_inductions, certifications, etc)
 // Usage: node deleteUserWithSubcollections.js <userId>
 

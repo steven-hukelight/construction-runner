@@ -1,4 +1,4 @@
--- SiteHub: pre_induction tables (matches sitehub-admin/20250220000005)
+-- Construction Runner: pre_induction tables (matches sitehub-admin/20250220000005)
 -- Run this if pre_induction tables don't exist (e.g. when using root Supabase project)
 
 CREATE TABLE IF NOT EXISTS pre_induction_personal (

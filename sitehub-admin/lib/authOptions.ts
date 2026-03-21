@@ -55,7 +55,7 @@ export const authOptions = {
             token.profileId = null;
           }
         }
-      } catch (e) {
+      } catch {
         // Non-fatal: leave mapping unset if lookup fails
         token.uid = token.uid ?? null;
         token.profileId = token.profileId ?? null;

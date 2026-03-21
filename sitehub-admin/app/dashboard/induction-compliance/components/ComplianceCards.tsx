@@ -7,6 +7,7 @@ import ComplianceMissingItemsIcon from "./ComplianceMissingItemsIcon";
 import ComplianceExpiryWarnings from "./ComplianceExpiryWarnings";
 import ComplianceRowActions from "./ComplianceRowActions";
 import RAMSStatusBadge from "../../components/RAMSStatusBadge";
+import RoleBadge from "../../components/RoleBadge";
 
 type Props = {
   rows: ComplianceRow[];
@@ -48,8 +49,8 @@ export default function ComplianceCards({
                 <div className="font-medium text-gray-900 truncate">{row.userName}</div>
                 <div className="text-xs text-gray-500">
                   {row.companyName} • {row.siteName}
-                  {(row.userRole && row.userRole !== "OPERATIVE") && (
-                    <> • <span className="font-medium text-gray-600">{row.userRole}</span></>
+                  {row.userRole && (
+                    <> • <RoleBadge role={row.userRole} /></>
                   )}
                 </div>
                 {row.trade && <div className="text-xs text-gray-600 mt-0.5">{row.trade}</div>}

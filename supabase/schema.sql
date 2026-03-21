@@ -1,4 +1,4 @@
--- SiteHub Canonical Schema Reference
+-- Construction Runner Canonical Schema Reference
 -- This file references the canonical schema defined in migrations.
 -- Run schema validation: npm run validate:schema (from project root)
 -- Generates SCHEMA_DRIFT_REPORT.md and applies missing columns/indexes via migration.

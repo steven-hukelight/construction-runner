@@ -1,4 +1,4 @@
--- SiteHub: Additional tables and RLS policies
+-- Construction Runner: Additional tables and RLS policies
 -- Idempotent: CREATE IF NOT EXISTS
 
 -- Task assignments (many-to-many for tasks; may already exist from sitehub-admin)

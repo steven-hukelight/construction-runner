@@ -1,4 +1,4 @@
-name: SiteHub CI
+name: Construction Runner CI
 
 on:
   push:

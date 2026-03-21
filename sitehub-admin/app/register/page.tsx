@@ -10,6 +10,17 @@ function handleReturn() {
 
 function RegisterPageContent() {
   const searchParams = useSearchParams();
+  const [publicSettings, setPublicSettings] = useState<{
+    registrationsOpen?: boolean;
+    maintenanceMode?: boolean;
+  } | null>(null);
+
+  useEffect(() => {
+    fetch("/api/settings/public")
+      .then((r) => r.json())
+      .then(setPublicSettings)
+      .catch(() => setPublicSettings({ registrationsOpen: true, maintenanceMode: false }));
+  }, []);
 
   // New company request form state
   const [newCompanyPhone, setNewCompanyPhone] = useState("");
@@ -101,6 +112,45 @@ function RegisterPageContent() {
     } finally {
       setInviteLoading(false);
     }
+  }
+
+  const registrationsClosed = publicSettings && publicSettings.registrationsOpen === false;
+  const maintenance = publicSettings && publicSettings.maintenanceMode === true;
+  const blocked = registrationsClosed || maintenance;
+
+  if (!publicSettings) {
+    return (
+      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+        <div className="text-gray-500">Loading…</div>
+      </div>
+    );
+  }
+
+  if (blocked) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-8">
+        <button
+          onClick={handleReturn}
+          className="mb-6 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold shadow"
+          type="button"
+        >
+          ← Return to previous page
+        </button>
+        <div className="max-w-md text-center p-8 rounded-2xl bg-white shadow-xl border border-gray-200">
+          <h1 className="text-2xl font-bold text-gray-800 mb-4">
+            {maintenance ? "Maintenance in progress" : "Registrations are closed"}
+          </h1>
+          <p className="text-gray-600">
+            {maintenance
+              ? "We are performing maintenance. Please try again later."
+              : "New account requests are not currently being accepted. Please contact your administrator or try again later."}
+          </p>
+          <a href="/login" className="mt-6 inline-block text-blue-600 font-medium hover:underline">
+            Back to sign in
+          </a>
+        </div>
+      </div>
+    );
   }
 
   return (

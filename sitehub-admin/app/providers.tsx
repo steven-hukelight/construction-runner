@@ -1,21 +1,16 @@
 "use client";
 
 import { SessionProvider } from "next-auth/react";
-import { useEffect } from "react";
+import { type ReactNode } from "react";
+import { ThemeProvider } from "./ThemeProvider";
+import { DisplayPreferencesProvider } from "./DisplayPreferencesProvider";
 
-/* eslint-disable @typescript-eslint/no-explicit-any */
-export function Providers({ children }: any) {
-  useEffect(() => {
-    // Sync dark mode on client navigation/hydration
-    try {
-      const darkMode = localStorage.getItem('darkMode');
-      if (darkMode === 'true') {
-        document.documentElement.classList.add('dark');
-      } else {
-        document.documentElement.classList.remove('dark');
-      }
-    } catch (e) {}
-
-  }, []);
-  return <SessionProvider>{children}</SessionProvider>;
+export function Providers({ children }: { children: ReactNode }) {
+  return (
+    <ThemeProvider>
+      <DisplayPreferencesProvider>
+        <SessionProvider>{children}</SessionProvider>
+      </DisplayPreferencesProvider>
+    </ThemeProvider>
+  );
 }

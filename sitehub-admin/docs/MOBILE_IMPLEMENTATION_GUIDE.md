@@ -1,6 +1,163 @@
-# Mobile App Implementation Guide
+# Mobile App Implementation Guide (sitehub_worker_ready)
 
 This document provides implementation instructions for the Flutter mobile app. The mobile repo is separate from `sitehub-admin`; apply these changes in your mobile codebase.
+
+---
+
+## Complete Pre-Induction Flow (Supabase)
+
+### Path Convention (Mobile and Web Must Match)
+```
+{userId}/{sectionId}/{fieldName}_{timestamp}_{safeFileName}
+```
+- **userId**: Supabase auth user UUID
+- **sectionId**: `rightToWork`, `competencyCard`, `medical`, `certifications`, `training`, `declarations`
+- **fieldName**: `passportUrl`, `visaUrl`, `proofOfAddressUrl`, `medicalCertificate`, `competency_card`, `operativeSignature`, `cert-0`, `record-0`, etc.
+
+### Required Sections for Declaration (Certification & Training NOT required)
+- Personal (name or email)
+- Right to Work (passport or visa uploaded, or share code)
+- Competency Card (card number OR file)
+- Medical (fit-to-work ticked OR medical declaration/certificate)
+
+### Declaration Logic
+1. **Checkbox disabled** until all 4 required sections above are complete.
+2. **"Accept Declaration" button disabled** until checkbox is ticked.
+3. User must tick checkbox, then click button to persist.
+
+### Full Upload → View → Delete → Replace Flow
+
+```dart
+// 1. UPLOAD (returns path – store this)
+final path = await storageClient.uploadFile('pre-induction', 
+  '$userId/rightToWork/passportUrl_${DateTime.now().millisecondsSinceEpoch}_${file.name}', 
+  file);
+
+// 2. PERSIST TO DB (critical – without this, data disappears on reload)
+await Supabase.instance.client.from('pre_induction_right_to_work').upsert({
+  'user_id': userId,
+  'passport_url': path,
+  'updated_at': DateTime.now().toIso8601String(),
+}, onConflict: 'user_id');
+
+// 3. VIEW (prefer API proxy – more reliable; bucket is private)
+// Requires: import 'package:http/http.dart' as http;
+final baseUrl = 'https://your-sitehub-domain.com';  // or env config
+final res = await http.get(
+  Uri.parse('$baseUrl/api/pre-induction/file?path=${Uri.encodeComponent(path)}&client=app'),
+  headers: {'Authorization': 'Bearer ${Supabase.instance.client.auth.currentSession?.accessToken}'},
+);
+if (res.statusCode == 200) {
+  final json = jsonDecode(res.body) as Map<String, dynamic>;
+  final url = json['url'] as String?;
+  if (url != null) await launchUrl(Uri.parse(url));
+}
+
+// 4. DELETE
+await storageClient.deletePreInductionFile(path);  // or storedValue if it's a URL
+await Supabase.instance.client.from('pre_induction_right_to_work').update({
+  'passport_url': null,
+  'updated_at': DateTime.now().toIso8601String(),
+}).eq('user_id', userId);
+
+// 5. REPLACE = upload new file + persist (old file stays in storage; optional: delete old path first)
+```
+
+### Status Field
+- **users.pre_induction_status**: `'not_started'` | `'in_progress'` | `'complete'`
+- DB triggers update this automatically when pre_induction_* tables change.
+- Mobile and web both read/write this field.
+- **Complete** = Personal + RTW + Competency + Medical + Declaration all done.
+
+### StorageClient.dart (Copy from supabase/storage/storageClient.dart)
+Ensure your mobile app uses the updated `storageClient.dart` with:
+- `uploadFile()` – returns `Future<String>` (path)
+- `createPreInductionSignedUrl(pathOrUrl)` – fallback for viewing (prefer API proxy)
+- `deletePreInductionFile(pathOrUrl)` – for delete
+- `extractPreInductionPath(pathOrUrl)` – helper for path/URL parsing (use before API call)
+
+---
+
+## Pre-Induction Upload/View/Delete Fix (Supabase Direct)
+
+**Problem**: Upload works but view and delete fail on mobile when using direct Supabase.
+
+**Root cause**: The pre-induction bucket is **private**. `getPublicUrl` returns URLs that return 403. For delete, Supabase expects the storage path, not a full URL.
+
+**Fix** (in your mobile app):
+
+1. **Viewing documents** (prefer API proxy – Option B):
+   ```dart
+   // Extract storage path from stored value (path or URL)
+   final path = extractPreInductionPath(storedValue) ?? storedValue;
+   final res = await http.get(
+     Uri.parse('$baseUrl/api/pre-induction/file?path=${Uri.encodeComponent(path)}&client=app'),
+     headers: {'Authorization': 'Bearer ${session.accessToken}'},
+   );
+   if (res.statusCode == 200) {
+     final json = jsonDecode(res.body) as Map<String, dynamic>;
+     final url = json['url'] as String?;
+     if (url != null) await launchUrl(Uri.parse(url));
+   }
+   ```
+   Do **not** open the stored value directly or use `getFileUrl` – both fail for the private bucket. Fallback: `createPreInductionSignedUrl(storedValue)` if API is unavailable.
+
+2. **Delete**: Use `deletePreInductionFile` (not `deleteFile`) with the stored value:
+   ```dart
+   await storageClient.deletePreInductionFile(storedValue);  // path or URL
+   ```
+   `deletePreInductionFile` extracts the path from URLs; `deleteFile('pre-induction', url)` would fail.
+
+3. **Upload**: Already working – direct Supabase upload with a valid session.
+
+4. **If using API routes**: Add `Authorization: Bearer <access_token>` header.
+
+---
+
+## CRITICAL: Persist File Path to DB After Upload
+
+**Problem**: Files upload to storage and appear in Supabase, but disappear when you leave pre-induction and return.
+
+**Cause**: The storage upload succeeds, but the **path is never saved to the database**. The pre-induction tables (e.g. `pre_induction_right_to_work`, `pre_induction_medical`) store the file path/URL. When you re-enter, the app loads from the DB – which has no path.
+
+**Fix**: Immediately after each successful storage upload, save the path to the corresponding section table:
+
+**Option A – Direct Supabase (recommended if you use Supabase client elsewhere):**
+```dart
+// After storage upload succeeds:
+final path = response.path; // or your upload result path
+
+await Supabase.instance.client
+  .from('pre_induction_right_to_work')  // or medical, competency_card, etc.
+  .upsert({
+    'user_id': userId,
+    'passport_url': path,  // or medical_certificate_url, file_url, etc.
+    'updated_at': DateTime.now().toIso8601String(),
+  }, onConflict: 'user_id');
+```
+
+**Option B – API route:**
+```dart
+// After storage upload:
+await http.post(
+  '$baseUrl/api/pre-induction/$userId/right-to-work',  // or medical, etc.
+  headers: {
+    'Content-Type': 'application/json',
+    'Authorization': 'Bearer ${session.accessToken}',
+  },
+  body: jsonEncode({'passportUrl': path}),
+);
+```
+
+**Table/section mapping:**
+| Section       | Table                      | Path column(s)                          |
+|--------------|----------------------------|----------------------------------------|
+| Right to Work| pre_induction_right_to_work| passport_url, visa_url, proof_of_address_url |
+| Medical      | pre_induction_medical      | medical_certificate_url                 |
+| Competency   | pre_induction_competency_card | file_url                            |
+| Certifications | pre_induction_certifications | certifications[].fileUrl            |
+| Training     | pre_induction_training     | training_records[].fileUrl              |
+| Declarations | pre_induction_declarations | operative_signature_url                |
 
 ---
 
@@ -149,9 +306,59 @@ Key helpers (see `firestore.rules`):
 
 ---
 
-## 8. Storage Rules
+## 8. Storage Rules & Pre-Induction File Operations (Supabase Direct)
 
-Pre-Induction uploads: `pre-induction/{uid}/{section}/{filename}`
+The pre-induction bucket is **private**. Use the Supabase client directly (with user session) for upload/delete. For viewing, **must** use signed URLs.
+
+### Upload (Direct Supabase)
+```dart
+// Use StorageClient.uploadFile – requires authenticated Supabase session
+await storageClient.uploadFile('pre-induction', path, file);
+// Path format: userId/sectionId/fieldName_timestamp_filename
+// Example: abc-123/rightToWork/passport_1709123456_doc.pdf
+```
+
+### View (MUST use signed URL – getPublicUrl returns 403)
+
+**Recommended: API proxy (Option B)**
+```dart
+final path = extractPreInductionPath(storedValue) ?? storedValue;
+final res = await http.get(
+  Uri.parse('$baseUrl/api/pre-induction/file?path=${Uri.encodeComponent(path)}&client=app'),
+  headers: {'Authorization': 'Bearer ${session.accessToken}'},
+);
+if (res.statusCode == 200) {
+  final json = jsonDecode(res.body) as Map<String, dynamic>;
+  final url = json['url'] as String?;
+  if (url != null) await launchUrl(Uri.parse(url));
+}
+```
+
+**Fallback: Direct Supabase** (if API unavailable)
+```dart
+final viewUrl = await storageClient.createPreInductionSignedUrl(storedValue);
+await launchUrl(Uri.parse(viewUrl));
+```
+Pass the storage path (e.g. `userId/rightToWork/passport_123.pdf`), not a full URL.
+
+### Delete (Direct Supabase)
+```dart
+// Use deletePreInductionFile – accepts path or full URL
+await storageClient.deletePreInductionFile(storedValue);
+```
+
+### If using API routes instead of direct Supabase
+- **Upload**: POST `/api/pre-induction/upload` – body: `{ userId, sectionId, fieldName, fileName, fileBase64, uid? }`
+- **View**: GET `/api/pre-induction/file?url=<encoded-url>&uid=<userId>&client=app` – returns `{ url: signedUrl }`
+- **Delete**: POST `/api/pre-induction/delete-document` – body: `{ url, userId, uid? }`
+
+**Auth for API routes (mobile)**:
+- Send `Authorization: Bearer <supabase_access_token>` (from `supabase.auth.currentSession?.accessToken`), or
+- Send cookies from login response (role, uid, companyId, user_email), or
+- For own documents: include `uid` in body/query matching `userId`
+
+### Pre-Induction Path Format
+`pre-induction/{uid}/{section}/{filename}`
 - Operatives: upload to own `uid` only
 - Admins: can upload for any user
 - File types: jpg, jpeg, png, pdf

@@ -1,10 +1,12 @@
 import Link from "next/link";
 import PageHeader from "@/app/dashboard/components/PageHeader";
+import WelcomeBanner from "@/app/dashboard/components/WelcomeBanner";
 import SupervisorComplianceSection from "./components/SupervisorComplianceSection";
 
 export default function SupervisorDashboardPage() {
   return (
     <div className="space-y-6">
+      <WelcomeBanner subtitle="Here's an overview of your sites, attendance, and induction status." />
       <PageHeader
         title="Supervisor Dashboard"
         description="Quick access to attendance, induction, and compliance tools."

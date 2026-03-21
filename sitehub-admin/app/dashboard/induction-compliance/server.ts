@@ -3,6 +3,14 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getRamsStatusForSite } from "@/lib/ramsCompliance";
 import type { RamsStatus } from "@/lib/ramsCompliance";
+import { updatePreInductionStatus } from "@/app/api/pre-induction/[userId]/_utils/status";
+
+async function resolveUser(userIdOrEmail: string) {
+  const { data: byId } = await supabaseAdmin.from("users").select("*").eq("id", userIdOrEmail).maybeSingle();
+  if (byId) return byId as Record<string, unknown>;
+  const { data: byEmail } = await supabaseAdmin.from("users").select("*").eq("email", userIdOrEmail).maybeSingle();
+  return byEmail as Record<string, unknown> | null;
+}
 
 const EXPIRY_DAYS = 365;
 
@@ -73,6 +81,15 @@ function cid(u: { company_id?: string | null }): string {
   return (u.company_id ?? "") as string;
 }
 
+function isTruthyYes(value: unknown): boolean {
+  if (value === true) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "yes" || v === "y" || v === "1";
+  }
+  return false;
+}
+
 export async function getComplianceData(
   auth: { role: string | undefined; companyId: string | undefined }
 ): Promise<ComplianceData | null> {
@@ -132,17 +149,9 @@ export async function getComplianceData(
   }
 
   const roleSet = new Set<string>();
-  const users: ComplianceUser[] = usersRows.map((u) => {
+  usersRows.forEach((u) => {
     const userRole = (u.role as string) ?? "OPERATIVE";
     if (userRole) roleSet.add(userRole);
-    const c = cid(u);
-    return {
-      id: u.id,
-      name: (u.name ?? u.display_name ?? u.email ?? u.id) as string,
-      companyId: c,
-      companyName: companyNames[c] ?? c,
-      role: userRole,
-    };
   });
 
   const companyOptions = Array.from(companyIds)
@@ -166,8 +175,6 @@ export async function getComplianceData(
   for (const u of usersRows) {
     const userId = u.id;
     const preInductionStatus = (u.pre_induction_status as string) ?? "not_started";
-    const adminOverride = u.admin_pre_induction_override === true;
-
     // Profile (job_title, cscsNumber)
     const { data: profileRow } = await supabaseAdmin
       .from("user_profile_data")
@@ -175,7 +182,7 @@ export async function getComplianceData(
       .or(`user_id.eq.${userId},userid.eq.${userId}`)
       .limit(1)
       .maybeSingle();
-    let trade = (profileRow?.job_title ?? profileRow?.jobtitle ?? "") as string;
+    const trade = (profileRow?.job_title ?? profileRow?.jobtitle ?? "") as string;
     let cscsNumber = "";
     if (profileRow && typeof profileRow === "object" && "cscsNumber" in profileRow) {
       cscsNumber = (profileRow as Record<string, unknown>).cscsNumber as string;
@@ -183,10 +190,11 @@ export async function getComplianceData(
     if (trade) tradeSet.add(trade);
     userProfiles[userId] = { trade, cscsNumber };
 
-    // Pre-induction sections
-    const [personalRes, rightToWorkRes, certsRes, medicalRes, trainingRes, declarationsRes] = await Promise.all([
+    // Pre-induction sections (all use user_id; userid does not exist on these tables)
+    const [personalRes, rightToWorkRes, competencyRes, certsRes, medicalRes, trainingRes, declarationsRes] = await Promise.all([
       supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin.from("pre_induction_right_to_work").select("*").eq("user_id", userId).maybeSingle(),
+      supabaseAdmin.from("pre_induction_competency_card").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin.from("pre_induction_certifications").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin.from("pre_induction_medical").select("*").eq("user_id", userId).maybeSingle(),
       supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", userId).maybeSingle(),
@@ -195,6 +203,7 @@ export async function getComplianceData(
 
     const personal = personalRes.data;
     const rightToWork = rightToWorkRes.data;
+    const competencyCard = competencyRes.data;
     const certifications = certsRes.data;
     const medical = medicalRes.data;
     const training = trainingRes.data;
@@ -205,13 +214,34 @@ export async function getComplianceData(
       : [];
 
     const missingItems: string[] = [];
-    if (!(personal && ((personal as Record<string, unknown>).full_name || (personal as Record<string, unknown>).email)))
-      missingItems.push("Personal details");
-    if (!(rightToWork && (rightToWork as Record<string, unknown>).right_to_work_verified)) missingItems.push("Right to Work");
-    const hasCSCS = certArr.some((c) => String(c.type || "").toUpperCase() === "CSCS");
-    if (!hasCSCS || certArr.length === 0) missingItems.push("CSCS");
-    if (!(medical && (medical as Record<string, unknown>).medical_verified)) missingItems.push("Medical");
-    if (!(declarations && (declarations as Record<string, unknown>).operative_declaration_accepted)) missingItems.push("Declarations");
+    const personalComplete = !!(personal && ((personal as Record<string, unknown>).full_name || (personal as Record<string, unknown>).email));
+
+    // Right to Work: verified OR passport/visa AND proof of address
+    const rtwHasId = !!(rightToWork && ((rightToWork as Record<string, unknown>).passport_url ?? (rightToWork as Record<string, unknown>).passportUrl ?? (rightToWork as Record<string, unknown>).visa_url ?? (rightToWork as Record<string, unknown>).visaUrl));
+    const rtwHasProof = !!(rightToWork && ((rightToWork as Record<string, unknown>).proof_of_address_url ?? (rightToWork as Record<string, unknown>).proofOfAddressUrl));
+    const rtwVerified = !!rightToWork && Object.keys(rightToWork).length > 0 && ((rightToWork as Record<string, unknown>).right_to_work_verified ?? (rightToWork as Record<string, unknown>).rightToWorkVerified) === true;
+    const rightToWorkComplete = rtwVerified || (rtwHasId && rtwHasProof);
+
+    // Competency: BOTH document AND card number required
+    const ccHasDoc = !!((competencyCard as Record<string, unknown>)?.file_url ?? (competencyCard as Record<string, unknown>)?.fileUrl);
+    const ccNum = (((competencyCard as Record<string, unknown>)?.card_number ?? (competencyCard as Record<string, unknown>)?.cardNumber) ?? "").toString().trim();
+    const competencyOk = !!(competencyCard && Object.keys(competencyCard).length > 0 && ccHasDoc && ccNum.length > 0);
+
+    // Medical: no issues (has_medical_issues=false OR fit_to_work=true) = complete; else need cert or verified
+    const medHasIssues = (medical as Record<string, unknown> | null)?.has_medical_issues ?? (medical as Record<string, unknown> | null)?.hasMedicalIssues;
+    const medFitToWork = (medical as Record<string, unknown> | null)?.fit_to_work ?? (medical as Record<string, unknown> | null)?.fitToWork;
+    const medNoIssues = medHasIssues === false || isTruthyYes(medFitToWork);
+    const medHasCert = !!((medical as Record<string, unknown> | null)?.medical_certificate_url ?? (medical as Record<string, unknown> | null)?.medicalCertificateUrl);
+    const medicalVerified = !!medical && Object.keys(medical).length > 0 && ((medical as Record<string, unknown>).medical_verified ?? (medical as Record<string, unknown>).medicalVerified) === true;
+    const medicalComplete = medicalVerified || medNoIssues || medHasCert;
+
+    const declAccepted = !!declarations && Object.keys(declarations).length > 0 && ((declarations as Record<string, unknown>).operative_declaration_accepted ?? (declarations as Record<string, unknown>).operativeDeclarationAccepted) === true;
+
+    if (!personalComplete) missingItems.push("Personal details");
+    if (!rightToWorkComplete) missingItems.push("Right to Work");
+    if (!competencyOk) missingItems.push("Competency card");
+    if (!medicalComplete) missingItems.push("Medical");
+    if (!declAccepted) missingItems.push("Declarations");
 
     const expiryWarnings: { type: string; label: string; expiry: Date }[] = [];
     for (const c of certArr) {
@@ -229,10 +259,12 @@ export async function getComplianceData(
       expiryWarnings.push({ type: "visa", label: "Visa expiring soon", expiry: visaExp });
     }
 
+    const derivedPreInductionStatus = missingItems.length === 0 ? "complete" : preInductionStatus;
+
     userPreInduction[userId] = {
       missingItems,
       expiryWarnings,
-      preInductionStatus,
+      preInductionStatus: derivedPreInductionStatus,
       training: training as Record<string, unknown> | null,
     };
   }
@@ -244,9 +276,9 @@ export async function getComplianceData(
     const userId = userRow.id;
     const userData = userRow as Record<string, unknown>;
     const adminOverride = userData.admin_pre_induction_override === true;
-    const preInductionComplete = (userData.pre_induction_status ?? userData.preInductionStatus) === "complete";
-    const profile = userProfiles[userId] ?? { trade: "", cscsNumber: "" };
     const preInd = userPreInduction[userId] ?? { missingItems: [], expiryWarnings: [], preInductionStatus: "not_started", training: null };
+    const preInductionComplete = preInd.missingItems.length === 0;
+    const profile = userProfiles[userId] ?? { trade: "", cscsNumber: "" };
     matrix[userId] = matrix[userId] ?? {};
 
     const userRole = (userData.role as string) ?? "OPERATIVE";
@@ -390,11 +422,16 @@ export async function getComplianceDrawerData(
   auth: { role: string | undefined; companyId: string | undefined },
   options?: { siteIds?: string[] }
 ): Promise<ComplianceDrawerData | null> {
-  const { data: userRow } = await supabaseAdmin.from("users").select("*").eq("id", userId).single();
+  const userRow = await resolveUser(userId);
   if (!userRow) return null;
+  const actualUserId = (userRow.id as string) ?? userId;
 
-  const userData = userRow as Record<string, unknown>;
-  const userCompanyId = cid(userRow);
+  // Refresh status/score so the drawer reflects current data even if mobile updated first
+  await updatePreInductionStatus(actualUserId);
+
+  const { data: refreshedUser } = await supabaseAdmin.from("users").select("*").eq("id", actualUserId).maybeSingle();
+  const userData = (refreshedUser ?? userRow) as Record<string, unknown>;
+  const userCompanyId = cid((userData as { company_id?: string | null }) ?? (userRow as { company_id?: string | null }));
   if (auth.role !== "superuser" && auth.companyId !== userCompanyId) return null;
 
   let companyName: string | null = null;
@@ -403,11 +440,12 @@ export async function getComplianceDrawerData(
     companyName = (co?.name as string) ?? null;
   }
 
-  const sectionIds = ["personal", "rightToWork", "certifications", "medical", "training", "declarations"];
+  const sectionIds = ["personal", "rightToWork", "certifications", "competencyCard", "medical", "training", "declarations"];
   const tableMap: Record<string, string> = {
     personal: "pre_induction_personal",
     rightToWork: "pre_induction_right_to_work",
     certifications: "pre_induction_certifications",
+    competencyCard: "pre_induction_competency_card",
     medical: "pre_induction_medical",
     training: "pre_induction_training",
     declarations: "pre_induction_declarations",
@@ -416,7 +454,7 @@ export async function getComplianceDrawerData(
   const sections: Record<string, Record<string, unknown> | null> = {};
   for (const id of sectionIds) {
     const table = tableMap[id];
-    const { data } = await supabaseAdmin.from(table).select("*").eq("user_id", userId).maybeSingle();
+    const { data } = await supabaseAdmin.from(table).select("*").eq("user_id", actualUserId).maybeSingle();
     sections[id] = data ? (data as Record<string, unknown>) : null;
   }
 
@@ -483,13 +521,37 @@ export async function getComplianceDrawerData(
     }
   }
 
+  // Derive preInductionStatus from section data so drawer reflects reality (matches mobile/pre-induction rules)
+  const personal = sections.personal as Record<string, unknown> | null;
+  const rtw = sections.rightToWork as Record<string, unknown> | null;
+  const cc = sections.competencyCard as Record<string, unknown> | null;
+  const med = sections.medical as Record<string, unknown> | null;
+  const decl = sections.declarations as Record<string, unknown> | null;
+  const personalOk = !!(personal && (personal.full_name ?? personal.fullName ?? personal.email));
+  const rtwHasId = !!(rtw?.passport_url ?? rtw?.passportUrl ?? rtw?.visa_url ?? rtw?.visaUrl);
+  const rtwHasProof = !!(rtw?.proof_of_address_url ?? rtw?.proofOfAddressUrl);
+  const rtwVerified = !!(rtw && (rtw.right_to_work_verified ?? rtw.rightToWorkVerified) === true);
+  const rtwOk = rtwVerified || (rtwHasId && rtwHasProof);
+  const ccHasDoc = !!(cc?.file_url ?? cc?.fileUrl);
+  const ccNum = ((cc?.card_number ?? cc?.cardNumber) ?? "").toString().trim();
+  const ccOk = !!(cc && ccHasDoc && ccNum.length > 0);
+  const medHasIssues = med?.has_medical_issues ?? med?.hasMedicalIssues;
+  const medFit = med?.fit_to_work ?? med?.fitToWork;
+  const medNoIssues = medHasIssues === false || medFit === true || String(medFit ?? "").trim().toLowerCase() === "true";
+  const medCert = !!(med?.medical_certificate_url ?? med?.medicalCertificateUrl);
+  const medVerified = !!(med && (med.medical_verified ?? med.medicalVerified) === true);
+  const medOk = medVerified || medNoIssues || medCert;
+  const declOk = !!(decl && (decl.operative_declaration_accepted ?? decl.operativeDeclarationAccepted) === true);
+  const allComplete = personalOk && rtwOk && ccOk && medOk && declOk;
+  const derivedPreInductionStatus = allComplete ? "complete" : ((userData.pre_induction_status ?? userData.preInductionStatus ?? "not_started") as string);
+
   return {
     user: {
       id: userId,
       name: (userData.name ?? userData.display_name ?? null) as string | null,
       email: (userData.email ?? null) as string | null,
       companyName,
-      preInductionStatus: (userData.pre_induction_status ?? userData.preInductionStatus ?? "not_started") as string,
+      preInductionStatus: derivedPreInductionStatus,
       adminPreInductionOverride: (userData.admin_pre_induction_override ?? userData.adminPreInductionOverride ?? false) as boolean,
       complianceScore: (userData.compliance_score ?? userData.complianceScore ?? null) as number | null,
     },

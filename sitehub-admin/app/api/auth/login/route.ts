@@ -133,6 +133,17 @@ export async function POST(req: Request) {
       );
     }
 
+    // Operatives: allow via API (mobile app sends X-Client: mobile). Web uses setUserCookies which blocks operatives.
+    const clientHeader = req.headers.get("x-client")?.toLowerCase().trim();
+    const isMobileApp = clientHeader === "mobile";
+    const roleLower = (userRole || "").toLowerCase();
+    if (roleLower === "operative" && !isMobileApp) {
+      return NextResponse.json(
+        { error: "Operative web login is a future feature. Please use the mobile app." },
+        { status: 403 }
+      );
+    }
+
     // Superuser: skip company membership validation – they can select company in app
     if (isSuperuser) {
       userCompanyId = null; // Will be set by mobile via selectedCompanyId or web via impersonation

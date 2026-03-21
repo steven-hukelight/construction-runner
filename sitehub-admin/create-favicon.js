@@ -1,5 +1,5 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 const sharp = require('sharp');
-const fs = require('fs');
 
 async function createFavicon() {
   const size = 512;

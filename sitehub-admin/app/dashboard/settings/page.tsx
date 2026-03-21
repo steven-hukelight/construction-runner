@@ -1,54 +1,24 @@
 
 "use client";
 
-import { useState, useEffect } from "react";
+import Image from "next/image";
+import { useEffect, useState } from "react";
 import PageHeader from "../components/PageHeader";
-import { getRawCompanyIdFromCookie } from "@/lib/utils/cookies";
+import { useTheme } from "@/app/ThemeProvider";
+import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@/app/DisplayPreferencesProvider";
 
 export default function SettingsPage() {
-  // Superuser company switcher
-  const [isSuperuser, setIsSuperuser] = useState(false);
-  const [isImpersonating, setIsImpersonating] = useState(false);
-  const [companyList, setCompanyList] = useState<any[]>([]);
-  const [selectedCompanyId, setSelectedCompanyId] = useState<string>("");
-  const [hydrated, setHydrated] = useState(false);
-
-  useEffect(() => {
-    if (typeof window !== "undefined") {
-      setSelectedCompanyId(getRawCompanyIdFromCookie());
-      setHydrated(true);
-    }
-  }, []);
-
-  useEffect(() => {
-    if (!isSuperuser) return;
-    setCompanyList([
-      { id: "company1", name: "Acme Ltd" },
-      { id: "company2", name: "Globex Corp" },
-    ]);
-  }, [isSuperuser]);
-
-  function handleCompanySwitch(e: React.ChangeEvent<HTMLSelectElement>) {
-    setSelectedCompanyId(e.target.value);
-    try {
-      document.cookie = `companyId=${e.target.value}; path=/; SameSite=Lax; Secure`;
-    } catch {
-      /* document.cookie access denied */
-    }
-    window.location.reload();
-  }
-  const [activeTab, setActiveTab] = useState("personal");
+  const activeTabDefault = "personal";
+  const [activeTab, setActiveTab] = useState(activeTabDefault);
 
   const tabs = [
     { id: "personal", label: "Personal Information", icon: "👤" },
-    { id: "account", label: "Account", icon: "👤" },
     { id: "company", label: "Company", icon: "🏢" },
     { id: "notifications", label: "Notifications", icon: "🔔" },
     { id: "security", label: "Security", icon: "🔒" },
+    { id: "display", label: "Display", icon: "🎨" },
     { id: "data", label: "Data & Privacy", icon: "📊" },
   ];
-
-  if (!hydrated) return null;
 
   return (
     <>
@@ -65,7 +35,7 @@ export default function SettingsPage() {
                 className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-all ${
                   activeTab === tab.id
                     ? "bg-gradient-to-r from-[#7c5cff] to-[#5b8cff] text-white font-medium shadow-lg"
-                    : "text-gray-700 hover:bg-gray-50"
+                    : "text-gray-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-700"
                 }`}
               >
                 <span className="text-lg">{tab.icon}</span>
@@ -78,10 +48,10 @@ export default function SettingsPage() {
         {/* Content Area */}
         <div className="flex-1">
           {activeTab === "personal" && <PersonalInformationSettings />}
-          {activeTab === "account" && <AccountSettings />}
           {activeTab === "company" && <CompanySettings />}
           {activeTab === "notifications" && <NotificationSettings />}
           {activeTab === "security" && <SecuritySettings />}
+          {activeTab === "display" && <DisplaySettings />}
           {activeTab === "data" && <DataPrivacySettings />}
         </div>
       </div>
@@ -94,7 +64,8 @@ function PersonalInformationSettings() {
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Personal Information</h2>
       <p className="text-sm text-gray-600 mb-6">
-        Edit your name, phone, address, emergency contact, NI number, and other personal details in your Profile.
+        Edit your name, email, phone, address, emergency contact, NI number, and other personal details in your Profile.
+        This is the single place for your account details — used across the app.
       </p>
       <a
         href="/dashboard/profile"
@@ -102,31 +73,6 @@ function PersonalInformationSettings() {
       >
         Open Profile →
       </a>
-    </div>
-  );
-}
-
-function AccountSettings() {
-  return (
-    <div className="card p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Account Settings</h2>
-      <div className="space-y-6">
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Full Name</label>
-          <input type="text" className="input w-full" placeholder="Your name" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Email Address</label>
-          <input type="email" className="input w-full" placeholder="your@email.com" />
-        </div>
-        <div>
-          <label className="block text-sm font-semibold text-gray-700 mb-2">Phone Number</label>
-          <input type="tel" className="input w-full" placeholder="+44 123 456 7890" />
-        </div>
-        <div className="pt-4 border-t">
-          <button className="button">Save Changes</button>
-        </div>
-      </div>
     </div>
   );
 }
@@ -214,7 +160,7 @@ function CompanySettings() {
             <div className="flex items-center gap-4">
               <div className="w-20 h-20 rounded-xl border-2 border-dashed border-gray-200 bg-gray-50 flex items-center justify-center overflow-hidden">
                 {logoUrl ? (
-                  <img src={logoUrl} alt="Company logo" className="w-full h-full object-contain" />
+                  <Image src={logoUrl} alt="Company logo" fill className="object-contain" sizes="80px" />
                 ) : (
                   <span className="text-gray-400 text-xs">No logo</span>
                 )}
@@ -310,6 +256,94 @@ function NotificationSettings() {
         </div>
         <div className="pt-4 border-t">
           <button className="button">Save Preferences</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function DisplaySettings() {
+  const { theme, setTheme } = useTheme();
+  const { dateFormat, timeFormat, tableDensity, setDateFormat, setTimeFormat, setTableDensity } =
+    useDisplayPreferences();
+
+  return (
+    <div className="card p-6">
+      <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-6">Display Preferences</h2>
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">Theme</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">Follow system, or choose light or dark</p>
+          </div>
+          <div className="flex flex-wrap gap-4 items-center">
+            {(["light", "dark", "system"] as const).map((t) => (
+              <label key={t} className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="radio"
+                  name="theme"
+                  value={t}
+                  checked={theme === t}
+                  onChange={() => setTheme(t)}
+                  className="w-4 h-4 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-gray-700 dark:text-slate-300 capitalize">{t}</span>
+              </label>
+            ))}
+          </div>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">Date format</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">How dates are shown across the app</p>
+          </div>
+          <select
+            value={dateFormat}
+            onChange={(e) => setDateFormat(e.target.value as "ddmmyyyy" | "mmddyyyy")}
+            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="ddmmyyyy">DD/MM/YYYY (e.g. 06/03/2025)</option>
+            <option value="mmddyyyy">MM/DD/YYYY (e.g. 03/06/2025)</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">Time format</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">12-hour or 24-hour clock</p>
+          </div>
+          <select
+            value={timeFormat}
+            onChange={(e) => setTimeFormat(e.target.value as "12h" | "24h")}
+            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="24h">24-hour (e.g. 14:30)</option>
+            <option value="12h">12-hour (e.g. 2:30 PM)</option>
+          </select>
+        </div>
+
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">Table density</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">Font size and row spacing in tables</p>
+          </div>
+          <select
+            value={tableDensity}
+            onChange={(e) => setTableDensity(e.target.value as "compact" | "comfortable" | "spacious")}
+            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            <option value="compact">Compact</option>
+            <option value="comfortable">Comfortable</option>
+            <option value="spacious">Spacious</option>
+          </select>
+        </div>
+
+        <div className="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-600">
+          <p className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Preview</p>
+          <p className="text-sm text-gray-700 dark:text-slate-300">
+            Date: {formatDate(new Date())} · Time: {formatTime(new Date())} · Full: {formatDateTime(new Date())}
+          </p>
         </div>
       </div>
     </div>

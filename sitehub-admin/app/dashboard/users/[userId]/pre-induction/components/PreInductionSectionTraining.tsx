@@ -3,6 +3,7 @@
 import { useState } from "react";
 import toast from "react-hot-toast";
 import { Plus, Trash2, Upload } from "lucide-react";
+import { openPreInductionFile, saveTraining, uploadPreInductionFile } from "../clientActions";
 
 type TrainingRecord = {
   type: string;
@@ -81,27 +82,12 @@ export default function PreInductionSectionTraining({
     const key = `tr-${index}`;
     setUploading(key);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch(`/api/pre-induction/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            sectionId: "training",
-            fieldName: `record-${index}`,
-            fileName: file.name,
-            fileBase64: base64,
-          }),
-          credentials: "include",
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        updateRecord(index, { fileUrl: json.fileUrl });
-        toast.success("File uploaded");
-      };
-      reader.readAsDataURL(file);
+      const upload = await uploadPreInductionFile({ userId, sectionId: "training", fieldName: `record-${index}`, file });
+      const newRecords = records.map((r, idx) => (idx === index ? { ...r, fileUrl: upload.path } : r));
+      setRecords(newRecords);
+      await saveTraining(userId, { records: newRecords, ramsAccepted });
+      toast.success("File uploaded");
+      onSaved?.();
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -112,30 +98,7 @@ export default function PreInductionSectionTraining({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const payload = records.map((r) => ({
-        type: r.type || "Training",
-        completedAt: r.completedAt || null,
-        expiry: r.expiry || null,
-        fileUrl: r.fileUrl || null,
-        verified: r.verified,
-        verifiedBy: null,
-        verifiedAt: null,
-        notes: r.notes || null,
-      }));
-      const res = await fetch(`/api/pre-induction/${userId}/training`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          trainingRecords: payload,
-          ramsAccepted,
-          ramsAcceptedAt: ramsAccepted ? new Date().toISOString() : null,
-          ramsVersion: null,
-          updatedAt: new Date().toISOString(),
-        }),
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to save");
+      await saveTraining(userId, { records, ramsAccepted });
       toast.success("Training section saved");
       onSaved?.();
     } catch (e) {
@@ -213,9 +176,19 @@ export default function PreInductionSectionTraining({
                     {uploading === `tr-${i}` ? "Uploading..." : rec.fileUrl ? "Replace" : "Upload"}
                   </label>
                   {rec.fileUrl && (
-                    <a href={rec.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 truncate">
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        try {
+                          await openPreInductionFile(rec.fileUrl);
+                        } catch (err) {
+                          toast.error(err instanceof Error ? err.message : "Unable to open file");
+                        }
+                      }}
+                      className="text-xs text-blue-600 truncate hover:underline"
+                    >
                       View
-                    </a>
+                    </button>
                   )}
                 </div>
               </div>

@@ -1,19 +1,51 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState, useRef } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { Users, CheckCircle, Circle } from "lucide-react";
 import Table from "../components/ui/Table";
 import TableActions from "../components/ui/TableActions";
+import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
 import UserProfileModal from "./UserProfileModal";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
-export default function UsersTable({ data, profiles, currentUserRole }: any) {
-  const [rows, setRows] = useState<any[]>(data || []);
-  const [profileMap, setProfileMap] = useState<Map<string, any>>(new Map());
-  const [selectedProfile, setSelectedProfile] = useState<any>(null);
+type UserRow = {
+  id: string;
+  email?: string;
+  name?: string;
+  role?: string;
+  company_id?: string;
+  companyId?: string;
+  display_name?: string;
+};
+
+type Profile = {
+  id?: string;
+  userId?: string;
+  phone?: string;
+  avatar?: string;
+};
+
+type UsersTableProps = {
+  data?: UserRow[];
+  profiles?: Profile[];
+  currentUserRole?: string;
+};
+
+type MeResponse = {
+  id?: string;
+  companyName?: string;
+  company_id?: string;
+  companyId?: string;
+  email?: string;
+  name?: string;
+  role?: string;
+};
+
+export default function UsersTable({ data, profiles, currentUserRole }: UsersTableProps) {
+  const [rows, setRows] = useState<UserRow[]>(data ?? []);
+  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [currentCompanyName, setCurrentCompanyName] = useState<string | null>(null);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
@@ -24,7 +56,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
       .then((companies) => {
         if (Array.isArray(companies)) {
           const map: Record<string, string> = {};
-          companies.forEach((c: any) => {
+          companies.forEach((c: { id?: string; name?: string }) => {
             if (c.id && c.name) map[c.id] = c.name;
           });
           setCompanyMap(map);
@@ -33,37 +65,45 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
       .catch(() => setCompanyMap({}));
   }, []);
 
-  const [currentUser, setCurrentUser] = useState<any>(null);
-  const currentUserRef = useRef<any>(null);
-  currentUserRef.current = currentUser;
+  const [currentUser, setCurrentUser] = useState<MeResponse | null>(null);
+  const currentUserRef = useRef<MeResponse | null>(null);
+
+  useEffect(() => {
+    currentUserRef.current = currentUser;
+  }, [currentUser]);
 
   useEffect(() => {
     fetch("/api/me")
-      .then((res) => res.ok ? res.json() : {})
-      .then((me: any) => {
+      .then((res) => (res.ok ? res.json() : {}))
+      .then((me: MeResponse) => {
         if (me?.companyName) setCurrentCompanyName(me.companyName);
-        if (me?.company_id ?? me?.companyId) setCurrentCompanyId(me.company_id ?? me.companyId);
+        if (me?.company_id ?? me?.companyId) setCurrentCompanyId(me.company_id ?? me.companyId ?? null);
         if (me?.id) setCurrentUser(me);
       })
       .catch(() => {});
   }, []);
 
-  const mergeCurrentUser = (rows: any[]) => {
+  const mergeCurrentUser = useCallback((incomingRows: UserRow[]) => {
     const me = currentUserRef.current;
-    if (!me?.id) return rows;
-    const exists = rows.some((r: any) => r.id === me.id || r.email === me.email);
-    if (exists) return rows;
-    return [{ id: me.id, email: me.email, name: me.name, role: me.role, company_id: me.company_id ?? me.companyId }, ...rows];
-  };
+    if (!me?.id) return incomingRows;
+    const exists = incomingRows.some((r: UserRow) => r.id === me.id || r.email === me.email);
+    if (exists) return incomingRows;
+    return [
+      { id: me.id, email: me.email, name: me.name, role: me.role, company_id: me.company_id ?? me.companyId },
+      ...incomingRows,
+    ];
+  }, []);
 
+  // Sync rows when data prop or currentUser changes (consolidated to avoid race/duplicate updates)
   useEffect(() => {
-    setRows(mergeCurrentUser(data || []));
-  }, [data]);
-
-  useEffect(() => {
-    if (!currentUser?.id) return;
-    setRows((prev) => mergeCurrentUser(prev));
-  }, [currentUser]);
+    queueMicrotask(() => {
+      if (data !== undefined) {
+        setRows(mergeCurrentUser(data));
+      } else if (currentUser?.id) {
+        setRows((prev) => mergeCurrentUser(prev));
+      }
+    });
+  }, [data, currentUser?.id, mergeCurrentUser]);
 
   // Fetch users from Supabase or fall back to API
   useEffect(() => {
@@ -72,7 +112,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
       try {
         const res = await fetch("/api/users", { cache: "no-store", credentials: "include" });
         const json = await res.json();
-        const rowsFromApi = Array.isArray(json) ? json : [];
+        const rowsFromApi = Array.isArray(json) ? (json as UserRow[]) : [];
         setRows(mergeCurrentUser(rowsFromApi));
       } catch {
         /* keep existing rows */
@@ -90,7 +130,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
         .select("*")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false });
-      const normalized = (data ?? []).map((u: any) => ({
+      const normalized = (data ?? []).map((u: UserRow) => ({
         ...u,
         company_id: u.company_id,
         name: u.name ?? u.display_name ?? u.email ?? "",
@@ -109,17 +149,15 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
     return () => {
       void supabase.removeChannel(channel);
     };
-  }, []);
+  }, [mergeCurrentUser]);
 
-  useEffect(() => {
-    if (profiles) {
-      const map = new Map<string, any>();
-      profiles.forEach((p: any) => {
-        const key = p.id || p.userId;
-        if (key) map.set(key, p);
-      });
-      setProfileMap(map);
-    }
+  const profileMap = useMemo(() => {
+    const map = new Map<string, Profile>();
+    (profiles ?? []).forEach((p: Profile) => {
+      const key = p.id || p.userId;
+      if (key) map.set(key, p);
+    });
+    return map;
   }, [profiles]);
 
   async function handleRoleChange(id: string, role: string) {
@@ -139,31 +177,29 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
     setRows((prev) => prev.filter((row) => row.id !== id));
   }
 
-  const columns = [
+  type Column = { header: string; accessor: string; render?: (row: UserRow) => React.ReactNode };
+
+  const columns: Column[] = [
     { header: "Name", accessor: "name" },
     { header: "Email", accessor: "email" },
     {
       header: "Company",
       accessor: "company_id",
-      render: (row: any) => {
+      render: (row: UserRow) => {
         const cid = row.company_id ?? row.companyId;
-        const name = companyMap[cid] ?? (cid === currentCompanyId ? currentCompanyName : null);
+        const name = cid ? companyMap[cid] ?? (cid === currentCompanyId ? currentCompanyName : null) : null;
         return name || "—";
       },
     },
     {
       header: "Role",
       accessor: "role",
-      render: (row: any) => (
-        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-gray-100 text-gray-800">
-          {row.role || "—"}
-        </span>
-      ),
+      render: (row: UserRow) => <RoleBadge role={row.role} />,
     },
     {
       header: "Profile",
       accessor: "profile",
-      render: (row: any) => {
+      render: (row: UserRow) => {
         const profile = profileMap.get(row.id);
         const hasPhoneOrAvatar = profile && (profile.phone?.trim?.() || profile.avatar?.trim?.());
         return (
@@ -177,7 +213,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
               <span className="text-xs text-gray-600">{hasPhoneOrAvatar ? "Complete" : "Blank"}</span>
             </span>
             <Link
-              href={`/dashboard/operatives/${row.id}`}
+              href={`/dashboard/users/${row.id}`}
               className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
             >
               View profile
@@ -198,14 +234,14 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
     {
       header: "Actions",
       accessor: "actions",
-      render: (row: any) => {
+      render: (row: UserRow) => {
         const roleLower = (currentUserRole ?? "").toLowerCase();
         const canChangeRole = roleLower === "admin" || roleLower === "superuser" || roleLower === "sub_admin";
         const items: { label: string; onClick: () => void; variant?: "default" | "danger" }[] = [
-          { label: "View profile", onClick: () => window.location.assign(`/dashboard/operatives/${row.id}`) },
+          { label: "View profile", onClick: () => window.location.assign(`/dashboard/users/${row.id}`) },
         ];
         if (profileMap.get(row.id)) {
-          items.push({ label: "Edit profile", onClick: () => setSelectedProfile(profileMap.get(row.id)) });
+          items.push({ label: "Edit profile", onClick: () => setSelectedProfile(profileMap.get(row.id) ?? null) });
         }
         if (canChangeRole) {
           items.push(
@@ -224,15 +260,15 @@ export default function UsersTable({ data, profiles, currentUserRole }: any) {
     <>
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <Users className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">All Users</h3>
             <p className="text-sm text-slate-600">{rows.length} users registered</p>
           </div>
         </div>
-        <Table columns={columns} data={rows} density="comfortable" />
+        <Table columns={columns} data={rows} />
       </div>
       {selectedProfile && (
         <UserProfileModal

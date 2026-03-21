@@ -11,15 +11,6 @@ function safeGetCookieString(): string {
   }
 }
 
-function safeSetCookie(value: string): void {
-  if (typeof document === "undefined") return;
-  try {
-    document.cookie = value;
-  } catch {
-    // Access denied (e.g. cross-origin iframe)
-  }
-}
-
 export function getUserEmailFromCookie(): string {
   const cookies = safeGetCookieString().split(";");
   const emailCookie = cookies.find((c) => c.trim().startsWith("user_email="));

@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-require-imports */
 // Load .env files so RLS tests get SUPABASE_SERVICE_ROLE_KEY etc.
 const path = require("path");
 require("dotenv").config({ path: path.resolve(process.cwd(), ".env.local") });
@@ -12,9 +13,39 @@ if (typeof globalThis.TextEncoder === "undefined") {
   globalThis.TextDecoder = TextDecoder;
 }
 
-// Fetch polyfill for Node test environment (Supabase client and fetch() calls)
+// Web fetch/Request/Response polyfills for Node test environment (align with Next.js runtime)
 if (typeof globalThis.fetch === "undefined") {
-  globalThis.fetch = require("node-fetch");
+  // undici requires ReadableStream; Node 18+ provides it via stream/web
+  if (typeof globalThis.ReadableStream === "undefined") {
+    try {
+      const { ReadableStream } = require("stream/web");
+      globalThis.ReadableStream = ReadableStream;
+    } catch {
+      /* ignore */
+    }
+  }
+  try {
+    const { fetch, Headers, Request, Response, FormData, File, Blob } = require("undici");
+    globalThis.fetch = fetch;
+    globalThis.Headers = Headers;
+    globalThis.Request = Request;
+    globalThis.Response = Response;
+    globalThis.FormData = FormData || globalThis.FormData;
+    globalThis.File = File || globalThis.File;
+    globalThis.Blob = Blob || globalThis.Blob;
+  } catch {
+    const fetch = require("node-fetch");
+    globalThis.fetch = fetch;
+    globalThis.Headers = fetch.Headers;
+    globalThis.Request = fetch.Request;
+    globalThis.Response = fetch.Response;
+  }
+}
+
+// Crypto polyfill for Web Crypto APIs used by Next.js
+if (typeof globalThis.crypto === "undefined") {
+  const { webcrypto } = require("node:crypto");
+  globalThis.crypto = webcrypto;
 }
 
 

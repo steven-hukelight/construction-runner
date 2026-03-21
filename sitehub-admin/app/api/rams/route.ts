@@ -3,10 +3,6 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 
-function cid(x: { company_id?: string | null }): string | null {
-  return (x.company_id ?? null) as string | null;
-}
-
 function toTime(a: unknown): number {
   if (!a) return 0;
   if (a instanceof Date) return a.getTime();

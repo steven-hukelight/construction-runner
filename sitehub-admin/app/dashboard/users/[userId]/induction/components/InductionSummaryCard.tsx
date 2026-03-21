@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import RoleBadge from "@/app/dashboard/components/RoleBadge";
 
 const BLUE = "#2563EB";
 
@@ -61,7 +62,9 @@ export default function InductionSummaryCard({
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
-          <dd className="mt-0.5 text-sm font-medium text-gray-900">{user?.role ?? "—"}</dd>
+          <dd className="mt-0.5">
+            <RoleBadge role={user?.role} />
+          </dd>
         </div>
         <div>
           <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Sites inducted</dt>

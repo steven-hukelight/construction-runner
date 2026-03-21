@@ -1,50 +1,43 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import Table from "../components/ui/Table";
 import { Building2, Users, MapPin, UserPlus, FileText, RefreshCw } from "lucide-react";
 import Button from "../components/ui/Button";
 import Link from "next/link";
+import useSWR from "swr";
 
-type Company = { id: string; name?: string | null; userCount?: number; siteCount?: number; createdAt?: string | null };
 type UserRow = { id: string; email?: string | null; name?: string | null; display_name?: string | null; role?: string | null; company_id?: string | null };
 type Site = { id: string; name?: string; company_id?: string | null; address?: string | null };
 type Registration = { id: string; user_id?: string | null; company_id?: string | null; data?: { email?: string; status?: string }; created_at?: string };
-type LogEntry = { id: string; time: string; level: string; message: string; source?: string };
 
 export default function SuperuserAdminClient() {
-  const [companies, setCompanies] = useState<Company[]>([]);
-  const [users, setUsers] = useState<UserRow[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
-  const [registrations, setRegistrations] = useState<Registration[]>([]);
-  const [logs, setLogs] = useState<LogEntry[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [companyFilter, setCompanyFilter] = useState<string>("");
 
-  function loadAll() {
-    setLoading(true);
-    Promise.all([
+  const fetcher = async () => {
+    const [c, u, s, r, l] = await Promise.all([
       fetch("/api/companies").then((r) => r.json()).then((d) => (Array.isArray(d) ? d : [])),
       fetch("/api/users?all=true", { credentials: "include" }).then((r) => r.json()).then((d) => (Array.isArray(d) ? d : [])),
       fetch("/api/sites?all=true", { credentials: "include" }).then((r) => r.json()).then((d) => (Array.isArray(d) ? d : [])),
       fetch("/api/registrations").then((r) => r.json()).then((d) => (Array.isArray(d) ? d : [])),
       fetch("/api/maintenance/activity-log").then((r) => r.json()).then((d) => (Array.isArray(d) ? d : [])),
-    ])
-      .then(([c, u, s, r, l]) => {
-        setCompanies(c);
-        setUsers(u);
-        setSites(s);
-        setRegistrations(r);
-        setLogs(l);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }
+    ]);
+    return { companies: c, users: u, sites: s, registrations: r, logs: l };
+  };
 
-  useEffect(() => {
-    loadAll();
-  }, []);
+  const { data, isLoading, mutate } = useSWR(
+    "superuser-admin-dashboard",
+    fetcher,
+    { refreshInterval: 60000 }
+  );
 
-  if (loading) {
+  const companies = data?.companies ?? [];
+  const users = data?.users ?? [];
+  const sites = data?.sites ?? [];
+  const registrations = data?.registrations ?? [];
+  const logs = data?.logs ?? [];
+
+  if (isLoading) {
     return (
       <div className="py-16 flex items-center justify-center">
         <div className="animate-spin rounded-full h-12 w-12 border-2 border-blue-500 border-t-transparent" />
@@ -57,10 +50,30 @@ export default function SuperuserAdminClient() {
     return acc;
   }, {});
 
+  const filteredCompanies = companyFilter ? companies.filter((c) => c.id === companyFilter) : companies;
+  const filteredUsers = companyFilter ? users.filter((u) => u.company_id === companyFilter) : users;
+  const filteredSites = companyFilter ? sites.filter((s) => s.company_id === companyFilter) : sites;
+  const filteredRegistrations = companyFilter ? registrations.filter((r) => r.company_id === companyFilter) : registrations;
+
   return (
     <div className="space-y-10">
-      <div className="flex items-center gap-2">
-        <Button variant="secondary" onClick={loadAll} className="inline-flex items-center gap-2">
+      <div className="flex flex-wrap items-center gap-4">
+        <div className="flex items-center gap-2">
+          <label className="text-sm font-medium text-gray-700">Filter by company</label>
+          <select
+            value={companyFilter}
+            onChange={(e) => setCompanyFilter(e.target.value)}
+            className="input max-w-[220px]"
+          >
+            <option value="">All companies</option>
+            {companies.map((c) => (
+              <option key={c.id} value={c.id}>
+                {c.name ?? c.id}
+              </option>
+            ))}
+          </select>
+        </div>
+        <Button variant="secondary" onClick={() => mutate()} className="inline-flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />
           Refresh
         </Button>
@@ -89,7 +102,7 @@ export default function SuperuserAdminClient() {
             { header: "Users", accessor: "userCount" },
             { header: "Sites", accessor: "siteCount" },
           ]}
-          data={companies}
+          data={filteredCompanies}
         />
       </section>
 
@@ -120,7 +133,7 @@ export default function SuperuserAdminClient() {
               render: (r: UserRow) => companyMap[r.company_id ?? ""] ?? r.company_id ?? "—",
             },
           ]}
-          data={users}
+          data={filteredUsers}
         />
       </section>
 
@@ -150,7 +163,7 @@ export default function SuperuserAdminClient() {
               render: (r: Site) => companyMap[r.company_id ?? ""] ?? r.company_id ?? "—",
             },
           ]}
-          data={sites}
+          data={filteredSites}
         />
       </section>
 
@@ -189,7 +202,7 @@ export default function SuperuserAdminClient() {
                 r.created_at ? new Date(r.created_at).toLocaleString() : "—",
             },
           ]}
-          data={registrations}
+          data={filteredRegistrations}
         />
       </section>
 

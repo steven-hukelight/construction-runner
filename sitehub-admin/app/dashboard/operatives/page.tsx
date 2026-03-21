@@ -69,8 +69,8 @@ export default function OperativesPage() {
 
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <UserCog className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <UserCog className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">All Operatives</h3>
@@ -96,7 +96,6 @@ export default function OperativesPage() {
             },
           ]}
           data={users}
-          density="comfortable"
         />
       </div>
     </div>

@@ -1,8 +1,8 @@
-# SiteHub Regression Tests Summary
+# Construction Runner Regression Tests Summary
 
 ## Overview
 
-Automated regression tests for the SiteHub platform cover Auth, Pre-induction, Assets, Deliveries, Messaging, Tasks, and Near Miss features. Tests run with mocked Supabase and use Node environment for Web API compatibility.
+Automated regression tests for the Construction Runner platform cover Auth, Pre-induction, Assets, Deliveries, Messaging, Tasks, and Near Miss features. Tests run with mocked Supabase and use Node environment for Web API compatibility.
 
 **Run tests:** `npm run test:regression`
 

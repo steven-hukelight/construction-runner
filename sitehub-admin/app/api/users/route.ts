@@ -75,8 +75,8 @@ export async function GET(req: Request) {
     const { data: users } = await query;
     const allUserIds = (users ?? []).map((u: Record<string, unknown>) => u.id as string);
     // Enrich with name and phone from pre_induction_personal
-    let nameMap: Record<string, string> = {};
-    let phoneMap: Record<string, string> = {};
+    const nameMap: Record<string, string> = {};
+    const phoneMap: Record<string, string> = {};
     if (allUserIds.length > 0) {
       const { data: personalRows } = await supabaseAdmin
         .from("pre_induction_personal")
@@ -93,7 +93,7 @@ export async function GET(req: Request) {
       }
     }
     const mapped = (users || []).map((u: Record<string, unknown>) => {
-      const name = (u.name ?? u.display_name ?? nameMap[u.id as string] ?? u.email) as string;
+      const name = (nameMap[u.id as string] ?? u.name ?? u.display_name ?? u.email) as string;
       const phone = (u.phone ?? phoneMap[u.id as string] ?? "") as string;
       const lastLogin = u.last_login ?? u.lastLogin ?? null;
       return { ...u, name: name || u.name, phone: phone || u.phone, lastLogin, company_id: u.company_id, companyId: u.company_id };

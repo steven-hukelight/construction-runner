@@ -1,61 +1,57 @@
 "use client";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-import React, { useEffect, useState } from "react";
+import React, { useMemo } from "react";
 import Link from "next/link";
 import { FileText } from "lucide-react";
 import Table from "../components/ui/Table";
 import TableActions from "../components/ui/TableActions";
 import { updateRAMSStatus, deleteRAMS } from "./actions";
-import { useCompanyName } from "@/lib/hooks/useCompanyName";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
-
-function CompanyNameCell({ companyId }: { companyId: string }) {
-  const name = useCompanyName(companyId);
-  return <>{name ?? "—"}</>;
-}
+import useSWR from "swr";
 
 export default function RAMSTable({ data }: any) {
-  const [rows, setRows] = useState<any[]>(data || []);
+  const companyId = getCompanyIdFromClient();
+  const fetcher = (url: string) =>
+    fetch(url, { cache: "no-store", credentials: "include" }).then((r) =>
+      r.ok ? r.json() : []
+    );
 
-  useEffect(() => {
-    setRows(data || []);
-  }, [data]);
+  const { data: companies = [] } = useSWR(
+    "/api/companies",
+    fetcher,
+    { revalidateOnFocus: false }
+  );
+  const companyMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    (companies as { id?: string; name?: string }[]).forEach((c) => {
+      if (c?.id && c?.name) m[String(c.id)] = String(c.name);
+    });
+    return m;
+  }, [companies]);
 
-  // Load RAMS from API (so main contractors see own + subcontractor RAMS for their sites)
-  useEffect(() => {
-    const companyId = getCompanyIdFromClient();
-    if (!companyId) return;
-    let cancelled = false;
-    fetch("/api/rams", { credentials: "include" })
-      .then((r) => r.json())
-      .then((data) => {
-        if (!cancelled && Array.isArray(data)) setRows(data);
-      });
-    const interval = setInterval(() => {
-      fetch("/api/rams", { credentials: "include" })
-        .then((r) => r.json())
-        .then((data) => {
-          if (!cancelled && Array.isArray(data)) setRows(data);
-        });
-    }, 30000);
-    return () => {
-      cancelled = true;
-      clearInterval(interval);
-    };
-  }, []);
+  // Use SWR to refresh RAMS for own + subcontractor sites; fallback to server data.
+  const { data: rows, mutate } = useSWR<any[]>(
+    companyId ? "/api/rams" : null,
+    fetcher,
+    { fallbackData: Array.isArray(data) ? data : [], refreshInterval: 30000 }
+  );
+
+  const rowsSafe = rows ?? [];
 
   async function handleStatus(id: string, status: string) {
     await updateRAMSStatus(id, status);
-    setRows((prev) =>
-      prev.map((row) => (row.id === id ? { ...row, status } : row))
+    mutate((prev) =>
+      (prev ?? []).map((row) => (row.id === id ? { ...row, status } : row)),
+      false
     );
   }
 
   async function handleDelete(id: string) {
     if (!window.confirm("Are you sure you want to delete this RAMS?")) return;
     await deleteRAMS(id);
-    setRows((prev) => prev.filter((row) => row.id !== id));
+    mutate((prev) => (prev ?? []).filter((row) => row.id !== id), false);
   }
 
   const columns = [
@@ -72,7 +68,7 @@ export default function RAMSTable({ data }: any) {
     {
       header: "Company",
       accessor: "companyId",
-      render: (row: any) => (row.companyId ? <CompanyNameCell companyId={row.companyId} /> : "—"),
+      render: (row: any) => (row.companyId ? (companyMap[row.companyId] ?? "—") : "—"),
     },
     {
       header: "Status",
@@ -89,7 +85,7 @@ export default function RAMSTable({ data }: any) {
       render: (row: any) => (
         <TableActions
           items={[
-            ...(row.fileUrl ? [{ label: "View file", onClick: () => window.open(row.fileUrl, "_blank") }] : []),
+            ...(row.fileUrl ? [{ label: "View file", onClick: () => openDocumentUrl(row.fileUrl!) }] : []),
             { label: "Approve", onClick: () => handleStatus(row.id, "APPROVED") },
             { label: "Reject", onClick: () => handleStatus(row.id, "REJECTED") },
             { label: "Delete", onClick: () => handleDelete(row.id), variant: "danger" as const },
@@ -102,15 +98,15 @@ export default function RAMSTable({ data }: any) {
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-blue-100">
-          <FileText className="w-5 h-5 text-blue-600" />
+        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+          <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">All RAMS Documents</h3>
-          <p className="text-sm text-slate-600">{rows.length} documents uploaded</p>
+          <p className="text-sm text-slate-600">{rowsSafe.length} documents uploaded</p>
         </div>
       </div>
-      <Table columns={columns} data={rows} density="comfortable" />
+      <Table columns={columns} data={rowsSafe} />
     </div>
   );
 }

@@ -46,12 +46,12 @@ export default function ComplianceFilters({
   };
 
   const selectClass =
-    "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+    "rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
 
   return (
     <div className="flex flex-wrap items-center gap-4">
       <div className="flex items-center gap-2">
-        <label htmlFor="compliance-search" className="text-sm font-medium text-gray-700">
+        <label htmlFor="compliance-search" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Search
         </label>
         <input
@@ -65,7 +65,7 @@ export default function ComplianceFilters({
       </div>
 
       <div className="flex items-center gap-2">
-        <label htmlFor="compliance-status" className="text-sm font-medium text-gray-700">
+        <label htmlFor="compliance-status" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Status
         </label>
         <select
@@ -85,7 +85,7 @@ export default function ComplianceFilters({
       </div>
 
       <div className="flex items-center gap-2">
-        <label htmlFor="compliance-company" className="text-sm font-medium text-gray-700">
+        <label htmlFor="compliance-company" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Company
         </label>
         <select
@@ -105,7 +105,7 @@ export default function ComplianceFilters({
 
       {tradeOptions.length > 0 && (
         <div className="flex items-center gap-2">
-          <label htmlFor="compliance-trade" className="text-sm font-medium text-gray-700">
+          <label htmlFor="compliance-trade" className="text-sm font-medium text-gray-700 dark:text-slate-300">
             Trade
           </label>
           <select
@@ -126,7 +126,7 @@ export default function ComplianceFilters({
 
       {roleOptions.length > 0 && (
         <div className="flex items-center gap-2">
-          <label htmlFor="compliance-role" className="text-sm font-medium text-gray-700">
+          <label htmlFor="compliance-role" className="text-sm font-medium text-gray-700 dark:text-slate-300">
             Role
           </label>
           <select
@@ -146,7 +146,7 @@ export default function ComplianceFilters({
       )}
 
       <div className="flex items-center gap-2">
-        <label htmlFor="compliance-site" className="text-sm font-medium text-gray-700">
+        <label htmlFor="compliance-site" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Site
         </label>
         <select
@@ -165,7 +165,7 @@ export default function ComplianceFilters({
       </div>
 
       <div className="flex items-center gap-2">
-        <label htmlFor="compliance-expiry" className="text-sm font-medium text-gray-700">
+        <label htmlFor="compliance-expiry" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Expiry
         </label>
         <select

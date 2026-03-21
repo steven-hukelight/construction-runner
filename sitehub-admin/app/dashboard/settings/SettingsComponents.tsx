@@ -2,7 +2,7 @@
 import React from "react";
 
 export interface SettingsComponentProps {
-  saveSettings: any;
+  saveSettings: (section: string, data: Record<string, unknown>) => Promise<void>;
   saving: boolean;
 }
 

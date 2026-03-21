@@ -1,4 +1,5 @@
 import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
 
 const DASHBOARD_ROLES = ["ADMIN", "admin", "SUPERVISOR", "supervisor", "superuser", "OPERATIVE", "operative", "sub_admin"];
 
@@ -8,7 +9,7 @@ function isPublicPath(path: string): boolean {
   return PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
 }
 
-export function proxy(req: any) {
+export function proxy(req: NextRequest) {
   const path = req.nextUrl.pathname;
 
   // Clear stale auth cookies on login and auth callback – never preserve

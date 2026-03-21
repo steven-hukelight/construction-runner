@@ -14,10 +14,10 @@ async function sendWelcomeEmail(email: string, name: string, companyName: string
   const mailOptions = {
     from: process.env.SMTP_USER,
     to: email,
-    subject: "Welcome to SiteHub - Set Your Password",
+    subject: "Welcome to Construction Runner - Set Your Password",
     html: `
       <h2>Welcome, ${name || "User"}!</h2>
-      <p>Your account for <b>${companyName || "SiteHub"}</b> has been approved.</p>
+      <p>Your account for <b>${companyName || "Construction Runner"}</b> has been approved.</p>
       <p>Please <a href="${setupLink}">set your password</a> to activate your account.</p>
       <p>If you did not request this, please ignore this email.</p>
     `,

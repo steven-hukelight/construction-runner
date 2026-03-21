@@ -1,10 +1,11 @@
 import { render, screen } from '@testing-library/react';
 import Dashboard from '@/app/dashboard/page';
 import { SessionProvider } from 'next-auth/react';
+import type { Session } from 'next-auth';
 
 describe('Web Dashboard', () => {
   function renderWithSession(role: string) {
-    const session = {
+    const session: Session = {
       user: {
         email: `${role}@sitehub.com`,
         name: role.charAt(0).toUpperCase() + role.slice(1),
@@ -13,7 +14,7 @@ describe('Web Dashboard', () => {
       expires: '2099-01-01T00:00:00.000Z',
     };
     render(
-      <SessionProvider session={session as any}>
+      <SessionProvider session={session}>
         <Dashboard />
       </SessionProvider>
     );

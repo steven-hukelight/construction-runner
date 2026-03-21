@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import Link from "next/link";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import PageHeader from "@/app/dashboard/components/PageHeader";
+import RoleBadge from "@/app/dashboard/components/RoleBadge";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import PreInductionOverrideToggle from "./pre-induction/components/PreInductionOverrideToggle";
 
@@ -172,7 +173,9 @@ export default async function UserProfilePage({
           </div>
           <div>
             <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
-            <dd className="mt-0.5 text-sm font-medium text-gray-900">{userRole}</dd>
+            <dd className="mt-0.5">
+              <RoleBadge role={userRole === "—" ? null : userRole} />
+            </dd>
           </div>
           {companyName && (
             <div>

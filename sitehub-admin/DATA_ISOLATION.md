@@ -19,13 +19,12 @@ So:
 | Layer | What happens |
 |-------|----------------------|
 | **API (Next.js)** | All create handlers set `companyId` from cookie (or, for superuser, from body/query). All list/get handlers filter by `companyId` from cookie (or query for superuser). |
-| **Firestore rules** | Read/write allowed only when `resource.data.companyId == request.auth.token.companyId` (or superuser). Create allowed only when `request.resource.data.companyId == request.auth.token.companyId` (or superuser). |
+| **Supabase RLS** | Policies on company-scoped tables enforce `company_id = auth.jwt() ->> 'companyId'` (except for superuser/admin bypass). Inserts default `company_id` from the caller unless explicitly provided by superuser. |
 | **Dashboard** | Server-side fetch forwards the request cookies to the API, so the API always sees the correct `role` and `companyId` for the current user. |
 
-## Collections that are company-scoped
+## Tables that are company-scoped
 
-- **sites**, **rams**, **tasks**, **notices**, **deliveries**, **attendance**, **users** – all have `companyId` and are filtered by it.
-- **Certifications / training** – live under `users/{uid}/...`; access is effectively scoped by the user’s `companyId`.
+- **sites**, **rams**, **tasks**, **notices**, **deliveries**, **attendance**, **users**, **certifications/training** – all carry `company_id` and are filtered by it.
 
 ## Running the migration (assign existing data to Test Company)
 
@@ -35,30 +34,19 @@ To assign all existing data that has **no** `companyId` to **Test Company** (and
 node scripts/migrate-legacy-to-test-company.js
 ```
 
-Optional: set `TEST_COMPANY_ID=<firestore-company-doc-id>` to use an existing company doc instead of creating/looking up “Test Company”.
+Optional: set `TEST_COMPANY_ID=<supabase-company-id>` to use an existing company row instead of creating/looking up “Test Company”.
 
-- **Collections updated:** sites, rams, operatives, attendance, deliveries, tasks, notices, **users**, certifications, settings.
-- **Idempotent:** only docs with missing/empty `companyId` are updated; docs that already have a company (e.g. Briars, Wiltons) are left unchanged.
+- **Tables updated:** sites, rams, operatives, attendance, deliveries, tasks, notices, **users**, certifications, settings.
+- **Idempotent:** only rows with missing/empty `company_id` are updated; rows that already have a company are left unchanged.
 
 ## Web + mobile alignment (operatives per company)
 
-The **mobile app** (sitehub_worker_Ready) is aligned with the same multi-tenant model: workers and supervisors log into their **specific company** and only see that company’s data.
+The **mobile app** (sitehub_worker_Ready) follows the same multi-tenant rules: workers and supervisors log into their specific company and only see that company’s data via Supabase RLS.
 
-### Firebase Auth custom claims (required for mobile)
+- **User model:** `SiteHubUser` carries `company_id` from the Supabase profile.
+- **Auth gate:** If a worker/supervisor lacks `company_id`, the app blocks access until assigned.
+- **Reads:** Company-scoped tables (sites, notices, tasks, rams, attendance, deliveries, user lists) query with `company_id = currentUser.company_id`; superuser/admin without company can see all.
+- **Creates:** All inserts set `company_id` from the current user unless a superuser overrides.
+- **RLS:** Policies mirror the above; attendance/rams/tasks/notices/deliveries/sites/users enforce `company_id` equality except for superuser/admin bypass.
 
-Firestore rules use **`request.auth.token.companyId`** and **`request.auth.token.role`**. The mobile app relies on the Firebase Auth ID token, so these must be set as **custom claims** when a user is approved:
-
-- **Web** sets claims when approving users:
-  - **Registrations** (`/api/auth/registrations`): on approve, `setCustomUserClaims(uid, { companyId, role, approved, superuser? })`.
-  - **Final approve admin** (`/api/auth/final-approve-admin`): `setCustomUserClaims(uid, { approved, role, companyId })`.
-- Ensure every **user document** in Firestore has **`companyId`**; the mobile app reads it and uses it for all company-scoped queries and creates.
-
-### Mobile app behaviour
-
-- **User model:** `SiteHubUser` includes **`companyId`** from the Firestore user doc.
-- **Auth gate:** If the user is a worker or supervisor and has no `companyId`, the app shows “No company assigned” and blocks access until an admin assigns them to a company.
-- **Reads:** All company-scoped collections (sites, notices, tasks, rams, attendance, deliveries, user lists) are queried with **`.where('companyId', isEqualTo: user.companyId)`** (or equivalent) when the user has a company; superuser/admin without company see all (null filter).
-- **Creates:** Every create into company-scoped collections (attendance, tasks, notices, rams, deliveries, sites) sets **`companyId`** from the current user.
-- **Firestore rules:** Global **attendance** read is company-scoped: `resource.data.companyId == request.auth.token.companyId || request.auth.token.superuser`. Rams create requires `request.resource.data.companyId == request.auth.token.companyId` (or superuser).
-
-With this, the web app (sitehub-admin) and the mobile app (sitehub_worker_Ready) both enforce the same per-company data isolation for operatives.
+With this, the web app (sitehub-admin) and the mobile app (sitehub_worker_Ready) both enforce the same per-company data isolation under Supabase.

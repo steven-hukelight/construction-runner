@@ -30,55 +30,71 @@ export async function GET() {
     const userData = users[0] as Record<string, unknown>;
     const userId = userData.id as string;
 
-    const { data: profileRows } = await supabaseAdmin
-      .from("profiles")
-      .select("*")
-      .eq("user_id", userId)
-      .limit(1);
+    const [profileRes, personalRes] = await Promise.all([
+      supabaseAdmin.from("profiles").select("*").eq("user_id", userId).limit(1),
+      supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", userId).maybeSingle(),
+    ]);
+    const profileData = profileRes.data?.[0] ?? {};
+    const personalRow = personalRes.data as {
+      full_name?: string | null;
+      phone?: string | null;
+      email?: string | null;
+      address?: string | null;
+      emergency_contact_name?: string | null;
+      emergency_contact_relationship?: string | null;
+      emergency_contact_phone?: string | null;
+      national_insurance?: string | null;
+      utr?: string | null;
+      date_of_birth?: string | null;
+      updated_at?: string | null;
+      data?: Record<string, unknown>;
+    } | null;
 
-    const profileData = profileRows?.[0] ?? {};
-
-    // Resolve display name: users.display_name, then pre_induction_personal, never email local-part for "name"
-    let resolvedName: string | null = (userData.display_name ?? userData.name ?? userData.displayName ?? "") as string;
+    // Name: personal settings (pre_induction_personal) is source of truth, then users, never role
+    const prData = personalRow?.data ?? {};
+    let resolvedName: string | null = (
+      personalRow?.full_name ??
+      prData?.full_name ??
+      prData?.fullName ??
+      userData.display_name ??
+      userData.name ??
+      userData.displayName ??
+      ""
+    ) as string;
     if (!resolvedName || !String(resolvedName).trim()) {
-      const { data: personal } = await supabaseAdmin
-        .from("pre_induction_personal")
-        .select("full_name, data")
-        .eq("user_id", userId)
-        .maybeSingle();
-      const pr = personal as { full_name?: string | null; data?: Record<string, unknown> } | null;
-      resolvedName = (pr?.full_name ?? pr?.data?.full_name ?? pr?.data?.fullName ?? "") as string;
+      const local = (email || "").split("@")[0]?.trim();
+      resolvedName = local ? local.charAt(0).toUpperCase() + local.slice(1).toLowerCase() : null;
     }
-    if (!resolvedName || !String(resolvedName).trim()) resolvedName = null;
 
+    // Merge: Profile settings from profiles table (source of truth), fallback to pre_induction_personal
     const merged = {
       id: userId,
-      email: userData.email ?? email,
+      email: userData.email ?? personalRow?.email ?? email,
       name: resolvedName,
       displayName: resolvedName,
       role: userData.role ?? "ADMIN",
       status: userData.status ?? "Active",
       createdAt: userData.createdat ?? userData.created_at ?? null,
-      updatedAt: userData.updated_at ?? profileData.updated_at ?? null,
+      updatedAt: userData.updated_at ?? profileData.updated_at ?? personalRow?.updated_at ?? null,
       joinedDate: userData.createdat ?? userData.created_at ?? null,
-      phone: userData.phone ?? profileData.phone ?? null,
+      phone: profileData.phone ?? userData.phone ?? personalRow?.phone ?? null,
       avatar: userData.avatar ?? null,
       adminPreInductionOverride: !!(userData.admin_pre_induction_override ?? userData.adminPreInductionOverride),
       bio: userData.bio ?? null,
-      addressLine1: profileData.address_line1 ?? profileData.address ?? null,
-      location: profileData.address_line1 ?? profileData.town ?? null,
-      address: profileData.address_line1 ?? profileData.address ?? null,
+      addressLine1: profileData.address_line1 ?? profileData.address ?? personalRow?.address ?? null,
+      location: profileData.address_line1 ?? profileData.address ?? profileData.town ?? personalRow?.address ?? null,
+      address: profileData.address_line1 ?? profileData.address ?? personalRow?.address ?? null,
       town: profileData.town ?? null,
       postcode: profileData.postcode ?? null,
-      dateOfBirth: profileData.date_of_birth ?? profileData.dateofbirth ?? null,
-      dob: profileData.date_of_birth ?? profileData.dateofbirth ?? null,
+      dateOfBirth: profileData.date_of_birth ?? profileData.dateofbirth ?? personalRow?.date_of_birth ?? null,
+      dob: profileData.date_of_birth ?? profileData.dateofbirth ?? personalRow?.date_of_birth ?? null,
       jobTitle: profileData.job_title ?? profileData.jobtitle ?? null,
-      emergencyContactName: profileData.emergency_contact_name ?? profileData.emergencycontactname ?? null,
-      emergencyContactPhone: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? null,
-      emergencyPhone: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? null,
-      emergencyContactNumber: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? null,
-      nationalInsurance: profileData.ni_number ?? profileData.national_insurance ?? profileData.nationalinsurance ?? null,
-      utr: profileData.utr_number ?? profileData.utr ?? null,
+      emergencyContactName: profileData.emergency_contact_name ?? profileData.emergencycontactname ?? personalRow?.emergency_contact_name ?? null,
+      emergencyContactPhone: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? personalRow?.emergency_contact_phone ?? null,
+      emergencyPhone: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? personalRow?.emergency_contact_phone ?? null,
+      emergencyContactNumber: profileData.emergency_contact_phone ?? profileData.emergencycontactphone ?? personalRow?.emergency_contact_phone ?? null,
+      nationalInsurance: profileData.ni_number ?? profileData.national_insurance ?? profileData.nationalinsurance ?? personalRow?.national_insurance ?? null,
+      utr: profileData.utr_number ?? profileData.utr ?? personalRow?.utr ?? null,
       notes: userData.notes ?? null,
     };
 

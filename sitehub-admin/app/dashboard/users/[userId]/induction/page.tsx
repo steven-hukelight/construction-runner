@@ -52,9 +52,18 @@ export default async function InductionProfilePage({
       <section>
         <h3 className="text-lg font-semibold text-gray-900 mb-3">Site inductions</h3>
         {data.rows.length === 0 ? (
-          <p className="text-gray-500 py-6 rounded-xl border border-gray-200 bg-white">
-            No induction records yet.
-          </p>
+          <div className="py-6 px-6 rounded-xl border border-gray-200 bg-gray-50">
+            <p className="text-gray-600 mb-2">No induction records yet.</p>
+            <p className="text-sm text-gray-500">
+              Assign this user to sites (Sites → select a site → Assigned operatives) and have them complete site induction via the app or the site&apos;s Induction tab. Records will appear here.
+            </p>
+            <Link
+              href="/dashboard/sites"
+              className="inline-flex mt-3 text-sm font-medium text-blue-600 hover:text-blue-700"
+            >
+              Go to Sites →
+            </Link>
+          </div>
         ) : (
           <InductionTable userId={params.userId} rows={data.rows} />
         )}

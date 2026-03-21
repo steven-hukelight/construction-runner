@@ -1,6 +1,6 @@
-# SiteHub Platform: Complete End-to-End Testing Checklist
+# Construction Runner Platform: Complete End-to-End Testing Checklist
 
-This checklist ensures robust, production-grade coverage for all major SiteHub features and integrations, including web, mobile, authentication, Row Level Security (RLS), storage, realtime, and Edge Functions.
+This checklist ensures robust, production-grade coverage for all major Construction Runner features and integrations, including web, mobile, authentication, Row Level Security (RLS), storage, realtime, and Edge Functions.
 
 ---
 
@@ -129,4 +129,4 @@ This checklist ensures robust, production-grade coverage for all major SiteHub f
 ---
 
 **Last updated:** 2026-02-14  
-**Maintainer:** SiteHub Engineering
+**Maintainer:** Construction Runner Engineering

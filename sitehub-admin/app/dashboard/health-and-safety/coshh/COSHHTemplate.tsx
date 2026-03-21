@@ -1,7 +1,8 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { FlaskConical, Plus, Trash2 } from "lucide-react";
+import { FlaskConical, Plus } from "lucide-react";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
@@ -30,7 +31,7 @@ export default function COSHHTemplate() {
   useEffect(() => {
     const companyId = getCompanyIdFromClient();
     if (!companyId) return;
-    fetch("/api/coshh", { credentials: "include" })
+    fetch("/api/coshh", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then(setItems);
   }, []);
@@ -79,7 +80,7 @@ export default function COSHHTemplate() {
         <TableActions
           items={[
             ...(row.fileUrl
-              ? [{ label: "View", onClick: () => window.open(row.fileUrl, "_blank") }]
+              ? [{ label: "View", onClick: () => openDocumentUrl(row.fileUrl!) }]
               : []),
             { label: "Delete", onClick: () => remove(row.id), variant: "danger" as const },
           ]}
@@ -151,7 +152,7 @@ export default function COSHHTemplate() {
         </div>
       )}
 
-      <Table columns={columns} data={items} density="comfortable" />
+      <Table columns={columns} data={items} />
     </div>
   );
 }

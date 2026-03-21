@@ -68,7 +68,6 @@ export async function POST(
 
     const cookieStore = await cookies();
     const userEmail = cookieStore.get("user_email")?.value?.trim();
-    const role = cookieStore.get("role")?.value;
     let senderId: string | null = null;
     let senderName = "Anonymous";
 

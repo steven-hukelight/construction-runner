@@ -1,14 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
 import { Palette, ToggleLeft, Megaphone, Shield, Clock, Key, ShieldCheck, History, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink } from "lucide-react";
 
 export default function GlobalSettingsPage() {
-  const [branding, setBranding] = useState({ appName: "SiteHub", supportEmail: "" });
+  const [branding, setBranding] = useState({ appName: "Construction Runner", supportEmail: "" });
   const [featureToggles, setFeatureToggles] = useState({ registrationsOpen: true, maintenanceMode: false });
+  const [announcement, setAnnouncement] = useState("");
   const [security, setSecurity] = useState({
     sessionTimeoutMinutes: 60,
     passwordMinLength: 8,
@@ -20,10 +21,93 @@ export default function GlobalSettingsPage() {
     auditLogRetentionDays: 90,
   });
   const [saving, setSaving] = useState<string | null>(null);
+  const [saveError, setSaveError] = useState<string | null>(null);
 
-  function handleSave(section: string) {
+  useEffect(() => {
+    fetch("/api/settings/global", { credentials: "include", cache: "no-store" })
+      .then((res) => res.json())
+      .then((data) => {
+        const b = data.branding ?? {};
+        setBranding({
+          appName: b.appName ?? data.appName ?? data.brandName ?? "Construction Runner",
+          supportEmail: b.supportEmail ?? data.supportEmail ?? "",
+        });
+        const ft = data.featureToggles ?? {};
+        setFeatureToggles({
+          registrationsOpen: ft.registrationsOpen ?? data.registrationsOpen ?? data.featureA ?? true,
+          maintenanceMode: ft.maintenanceMode ?? data.maintenanceMode ?? data.maintenance ?? false,
+        });
+        setAnnouncement(data.announcement ?? data.announcements?.message ?? "");
+        const sec = data.security ?? {};
+        setSecurity((s) => ({
+          ...s,
+          ...(typeof sec.sessionTimeoutMinutes === "number" && { sessionTimeoutMinutes: sec.sessionTimeoutMinutes }),
+          ...(typeof sec.passwordMinLength === "number" && { passwordMinLength: sec.passwordMinLength }),
+          ...(typeof sec.requirePasswordExpiry === "boolean" && { requirePasswordExpiry: sec.requirePasswordExpiry }),
+          ...(typeof sec.passwordExpiryDays === "number" && { passwordExpiryDays: sec.passwordExpiryDays }),
+          ...(typeof sec.twoFactorEnabled === "boolean" && { twoFactorEnabled: sec.twoFactorEnabled }),
+          ...(typeof sec.maxLoginAttempts === "number" && { maxLoginAttempts: sec.maxLoginAttempts }),
+          ...(typeof sec.lockoutMinutes === "number" && { lockoutMinutes: sec.lockoutMinutes }),
+          ...(typeof sec.auditLogRetentionDays === "number" && { auditLogRetentionDays: sec.auditLogRetentionDays }),
+        }));
+      })
+      .catch(() => {});
+  }, []);
+
+  async function handleSave(section: string) {
     setSaving(section);
-    setTimeout(() => setSaving(null), 800);
+    setSaveError(null);
+    try {
+      let res: Response;
+      let body: Record<string, unknown>;
+      if (section === "branding") {
+        body = { section: "branding", config: { appName: branding.appName, supportEmail: branding.supportEmail } };
+        res = await fetch("/api/settings/global", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+      } else if (section === "toggles") {
+        body = { section: "featureToggles", config: featureToggles };
+        res = await fetch("/api/settings/global", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+      } else if (section === "announcements") {
+        body = { section: "announcements", config: { message: announcement } };
+        res = await fetch("/api/settings/global", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+      } else if (section === "security") {
+        body = { section: "security", config: security };
+        res = await fetch("/api/settings/global", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+      } else {
+        setSaving(null);
+        return;
+      }
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        const msg = err?.error ?? (res.status === 403 ? "Access denied. Log in as superuser." : "Failed to save");
+        setSaveError(msg);
+      } else {
+        setSaveError(null);
+      }
+    } catch {
+      setSaveError("Failed to save");
+    } finally {
+      setSaving(null);
+    }
   }
 
   return (
@@ -34,6 +118,12 @@ export default function GlobalSettingsPage() {
         title="Global settings"
         description="Platform-wide configuration. Changes apply across all tenants."
       />
+
+      {saveError && (
+        <div className="rounded-lg bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+          {saveError}
+        </div>
+      )}
 
       <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         <div className="card">
@@ -125,10 +215,11 @@ export default function GlobalSettingsPage() {
             <textarea
               className="input w-full min-h-[100px]"
               placeholder="No announcement set. Add a message to show to all users."
-              readOnly
+              value={announcement}
+              onChange={(e) => setAnnouncement(e.target.value)}
             />
-            <Button size="sm" variant="secondary" disabled>
-              Configure (coming soon)
+            <Button size="sm" onClick={() => handleSave("announcements")} disabled={saving === "announcements"}>
+              {saving === "announcements" ? "Saving…" : "Save"}
             </Button>
           </div>
         </div>

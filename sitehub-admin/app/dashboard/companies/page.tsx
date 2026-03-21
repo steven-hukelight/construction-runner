@@ -29,7 +29,7 @@ export default function CompaniesPage() {
   const [editModal, setEditModal] = useState<Company | null>(null);
   const [editName, setEditName] = useState("");
   const [updating, setUpdating] = useState(false);
-  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [companyFilter, setCompanyFilter] = useState<string>("");
 
   function loadCompanies() {
     setLoading(true);
@@ -154,7 +154,6 @@ export default function CompaniesPage() {
   }
 
   async function handleDeleteCompany(company: Company, force: boolean) {
-    setDeletingId(company.id);
     try {
       const res = await fetch(`/api/companies/${company.id}?force=${force}`, { method: "DELETE" });
       if (res.ok) {
@@ -164,7 +163,6 @@ export default function CompaniesPage() {
         alert(err.error || "Failed to delete");
       }
     } finally {
-      setDeletingId(null);
     }
   }
 
@@ -298,6 +296,22 @@ export default function CompaniesPage() {
         }
       />
 
+      <div className="flex flex-wrap items-center gap-3 mb-4">
+        <label className="text-sm font-medium text-gray-700">Filter company</label>
+        <select
+          value={companyFilter}
+          onChange={(e) => setCompanyFilter(e.target.value)}
+          className="input max-w-[220px]"
+        >
+          <option value="">All companies</option>
+          {companies.map((c) => (
+            <option key={c.id} value={c.id}>
+              {c.name || c.id}
+            </option>
+          ))}
+        </select>
+      </div>
+
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
           <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
@@ -321,7 +335,10 @@ export default function CompaniesPage() {
             </Button>
           </div>
         ) : (
-          <Table columns={columns} data={companies} density="comfortable" />
+          <Table
+            columns={columns}
+            data={companyFilter ? companies.filter((c) => c.id === companyFilter) : companies}
+          />
         )}
       </div>
 

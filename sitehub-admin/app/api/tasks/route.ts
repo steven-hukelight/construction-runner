@@ -5,10 +5,10 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 
 export async function GET(req: Request) {
   try {
-  const cookieStore = await cookies();
-  const { searchParams } = new URL(req.url);
-  const role = cookieStore.get("role")?.value;
-  let companyId = searchParams.get("companyId")?.trim() || cookieStore.get("companyId")?.value;
+    const cookieStore = await cookies();
+    const { searchParams } = new URL(req.url);
+    const role = cookieStore.get("role")?.value;
+    let companyId = searchParams.get("companyId")?.trim() || cookieStore.get("companyId")?.value;
     if (!companyId && role !== "superuser") {
       companyId =
         (await resolveCompanyId({
@@ -92,8 +92,9 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
     return NextResponse.json([]);
-  } catch (e: any) {
-    console.error("GET /api/tasks failed:", e?.message || e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    console.error("GET /api/tasks failed:", msg);
     return NextResponse.json([], { status: 200 });
   }
 }

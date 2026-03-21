@@ -132,7 +132,7 @@ export default function PrivacyPolicyPage() {
             </h2>
             <p className="text-sm leading-relaxed">
               For privacy queries or to exercise your rights, contact your company&apos;s data protection
-              officer or the SiteHub administrator. Include your email and a description of your request.
+              officer or the Construction Runner administrator. Include your email and a description of your request.
             </p>
           </section>
         </div>

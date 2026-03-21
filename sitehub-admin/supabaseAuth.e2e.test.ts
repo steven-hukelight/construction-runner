@@ -1,7 +1,7 @@
 // Automated Supabase Auth feature parity and session persistence test
 // Run with: npx jest supabaseAuth.e2e.test.ts
 
-import { createClient } from '@supabase/supabase-js';
+import { createClient, type Session } from '@supabase/supabase-js';
 
 const SUPABASE_URL = process.env.SUPABASE_URL;
 const SUPABASE_ANON_KEY = process.env.SUPABASE_ANON_KEY;
@@ -11,7 +11,7 @@ const TEST_PASSWORD = process.env.TEST_PASSWORD || 'TestPassword123!';
 const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 describe('Supabase Auth Feature Parity & Session Persistence', () => {
-  let session: any;
+  let session: Session | null = null;
 
   it('signs up a new user', async () => {
     const { data, error } = await supabase.auth.signUp({
@@ -36,8 +36,8 @@ describe('Supabase Auth Feature Parity & Session Persistence', () => {
   it('persists session and restores after reload', async () => {
     // Simulate storing and restoring session
     const { data, error } = await supabase.auth.setSession({
-      access_token: session.access_token,
-      refresh_token: session.refresh_token,
+      access_token: session?.access_token ?? '',
+      refresh_token: session?.refresh_token ?? '',
     });
     expect(error).toBeNull();
     expect(data.session).toBeDefined();

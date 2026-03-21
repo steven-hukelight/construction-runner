@@ -1,10 +1,21 @@
 "use client";
 
 import { useEffect, useMemo, useState, useCallback } from "react";
+import Image from "next/image";
 import { useSession } from "next-auth/react";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import Table from "@/app/dashboard/components/ui/Table";
 import { Database } from "lucide-react";
+
+type MaybeDate =
+  | string
+  | number
+  | Date
+  | { toDate?: () => Date; seconds?: number; _seconds?: number }
+  | null
+  | undefined;
+
+type AttachmentLike = { url?: string; downloadUrl?: string; downloadURL?: string; href?: string };
 
 type Item = {
   id: string;
@@ -12,14 +23,27 @@ type Item = {
   issuer?: string;
   attachmentUrl?: string;
   attachmentType?: string;
-  issueDate?: any;
-  expiryDate?: any;
-  createdAt?: any;
+  mimeType?: string;
+  contentType?: string;
+  issueDate?: MaybeDate;
+  expiryDate?: MaybeDate;
+  createdAt?: MaybeDate;
   userId?: string | null;
   parentCollection?: string | null;
   parentId?: string | null;
   path?: string;
-};
+  attachment?: { url?: string; type?: string } | string | null;
+  fileUrl?: string;
+  url?: string;
+  photoUrl?: string;
+  imageUrl?: string;
+  file?: { url?: string } | null;
+  files?: AttachmentLike[];
+  attachments?: AttachmentLike[];
+} & Record<string, unknown>;
+
+type UserSummary = { id?: string; name?: string; email?: string; displayName?: string };
+type ProfileSummary = { id?: string; userId?: string; displayName?: string };
 
 export default function CertificationsPage() {
   const { data: session } = useSession();
@@ -30,8 +54,8 @@ export default function CertificationsPage() {
   const [filter, setFilter] = useState("");
   const [userFilter, setUserFilter] = useState("");
   const [mine, setMine] = useState(false);
-  const [users, setUsers] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
+  const [users, setUsers] = useState<UserSummary[]>([]);
+  const [profiles, setProfiles] = useState<ProfileSummary[]>([]);
 
   // Load certs/training via API
   useEffect(() => {
@@ -52,11 +76,14 @@ export default function CertificationsPage() {
   }, []);
 
 
+  const sessionUser = session?.user as { id?: string; uid?: string } | undefined;
+  const sessionUid = sessionUser?.id ?? sessionUser?.uid ?? "";
+
   const items = tab === "certifications" ? certs : training;
   const filteredItems = useMemo(() => {
     const q = filter.trim().toLowerCase();
     let base = items;
-    const uid = mine && (session as any)?.user?.uid ? String((session as any).user.uid) : userFilter.trim();
+    const uid = mine && sessionUid ? sessionUid : userFilter.trim();
     if (uid) {
       const uf = uid;
       base = base.filter((it) => (it.userId || "") === uf);
@@ -68,17 +95,19 @@ export default function CertificationsPage() {
         .map((v) => String(v).toLowerCase());
       return hay.some((h) => h.includes(q));
     });
-  }, [items, filter, userFilter, mine, session]);
+  }, [items, filter, userFilter, mine, sessionUid]);
 
   const userMap = useMemo(() => {
-    const m = new Map<string, any>();
-    users.forEach((u: any) => m.set(String(u.id), u));
+    const m = new Map<string, UserSummary>();
+    users.forEach((u) => {
+      if (u.id) m.set(String(u.id), u);
+    });
     return m;
   }, [users]);
 
   const profileByUserId = useMemo(() => {
-    const m = new Map<string, any>();
-    profiles.forEach((p: any) => {
+    const m = new Map<string, ProfileSummary>();
+    profiles.forEach((p) => {
       const uid = p.id ?? p.userId;
       if (uid) m.set(String(uid), p);
     });
@@ -277,8 +306,8 @@ export default function CertificationsPage() {
 
       <div className="card">
         <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-100">
-            <Database className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+            <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">{tab === "certifications" ? "Certifications" : "Training"}</h3>
@@ -292,7 +321,6 @@ export default function CertificationsPage() {
           <div className="p-6 text-sm text-gray-500">No records yet</div>
         ) : (
           <Table
-            density="comfortable"
             columns={[
               { header: "Title", accessor: "title" },
               { header: "Issuer", accessor: "issuer" },
@@ -312,32 +340,16 @@ export default function CertificationsPage() {
               {
                 header: "Attachment",
                 render: (row: Item) => {
-                  // Try common attachment fields across certs/training
-                  const url =
-                    (row as any).attachmentUrl ||
-                    (row as any).attachment?.url ||
-                    (row as any).fileUrl ||
-                    (row as any).url ||
-                    (row as any).photoUrl ||
-                    (row as any).imageUrl ||
-                    (typeof (row as any).attachment === "string" ? (row as any).attachment : null) ||
-                    (row as any).file?.url ||
-                    ((row as any).files && (row as any).files[0]?.url) ||
-                    ((row as any).attachments && ((row as any).attachments[0]?.url || (row as any).attachments[0]?.downloadUrl || (row as any).attachments[0]?.downloadURL || (row as any).attachments[0]?.href)) ||
-                    null;
+                  const url = getAttachmentUrl(row);
+                  let type = getAttachmentMime(row);
 
-                  let type =
-                    String((row as any).attachmentType || (row as any).attachment?.type || (row as any).mimeType || (row as any).contentType || "").toLowerCase();
-
-                  // If type is absent, infer from URL or data URI
                   if (!type && typeof url === "string") {
-                    // Data URI detection
                     const dataMatch = url.match(/^data:([a-zA-Z0-9-]+\/[a-zA-Z0-9-]+);base64,/);
-                    if (dataMatch && dataMatch[1]) {
+                    if (dataMatch?.[1]) {
                       type = dataMatch[1].toLowerCase();
                     } else {
                       const m = url.match(/\.([a-zA-Z0-9]+)(?:\?|$)/);
-                      if (m && m[1]) type = m[1].toLowerCase();
+                      if (m?.[1]) type = m[1].toLowerCase();
                     }
                   }
 
@@ -348,11 +360,13 @@ export default function CertificationsPage() {
                   if (isImage) {
                     return (
                       <a href={url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-2">
-                        <img
+                        <Image
                           src={url}
                           alt={row.title || "Attachment"}
+                          width={48}
+                          height={48}
                           className="w-12 h-12 rounded object-cover border border-gray-200"
-                          loading="lazy"
+                          unoptimized
                         />
                         <span className="text-blue-600 hover:underline">Open</span>
                       </a>
@@ -384,39 +398,26 @@ export default function CertificationsPage() {
   );
 }
 
-function mapDoc(d: { id: string; data: () => Record<string, unknown>; ref: { parent: { parent: { id: string; parent?: { id?: string } } | null }; path: string } }): Item {
-  const data = d.data();
-  const parent = d.ref.parent.parent;
-  let parentId: string | null = null;
-  let parentCollection: string | null = null;
-  let userId: string | null = null;
-  if (parent) {
-    parentId = parent.id;
-    parentCollection = parent.parent?.id || null;
-  }
-  userId = (data.userId as string) || null;
-  return {
-    id: d.id,
-    ...data,
-    parentId,
-    parentCollection,
-    userId,
-    path: d.ref.path,
-  } as Item;
-}
-
-function toDateString(val: any): string {
+function toDateString(val: MaybeDate): string {
   if (!val) return "—";
   try {
-    // Legacy object with toDate()
-    if (typeof val?.toDate === "function") return formatUk(val.toDate());
-    // Legacy seconds-based timestamp
-    if (val?.seconds) return formatUk(new Date(val.seconds * 1000));
-    if (val?._seconds) return formatUk(new Date(val._seconds * 1000));
+    // Firestore-style object with toDate()
+    if (typeof (val as { toDate?: () => Date }).toDate === "function") {
+      return formatUk((val as { toDate: () => Date }).toDate());
+    }
+    // Firestore-style seconds-based timestamp
+    if (typeof (val as { seconds?: number }).seconds === "number") {
+      return formatUk(new Date((val as { seconds: number }).seconds * 1000));
+    }
+    if (typeof (val as { _seconds?: number })._seconds === "number") {
+      return formatUk(new Date((val as { _seconds: number })._seconds * 1000));
+    }
+    // Already a Date
+    if (val instanceof Date) return formatUk(val);
     // String or number
     if (typeof val === "string") return formatUk(new Date(val));
     if (typeof val === "number") return formatUk(new Date(val));
-    return formatUk(new Date(val));
+    return "—";
   } catch {
     return "—";
   }
@@ -431,27 +432,57 @@ function formatUk(d: Date): string {
 }
 
 // Robust date resolution for varying field names
-function resolveIssueDate(it: Item): any {
+function resolveIssueDate(it: Item): MaybeDate {
   return (
     it.issueDate ??
-    (it as any).issuedAt ??
-    (it as any).issue ??
-    (it as any).startDate ??
-    (it as any).dateIssued ??
-    (it as any).date ??
-    (it as any).trainingDate ??
-    (it as any).completedOn ??
-    (it as any).completedDate ?? null
+    it["issuedAt"] ??
+    it["issue"] ??
+    it["startDate"] ??
+    it["dateIssued"] ??
+    it["date"] ??
+    it["trainingDate"] ??
+    it["completedOn"] ??
+    it["completedDate"] ??
+    null
   );
 }
 
-function resolveExpiryDate(it: Item): any {
+function resolveExpiryDate(it: Item): MaybeDate {
   return (
     it.expiryDate ??
-    (it as any).expiry ??
-    (it as any).expires ??
-    (it as any).expiration ??
-    (it as any).expirationDate ??
-    (it as any).validUntil ?? null
+    it["expiry"] ??
+    it["expires"] ??
+    it["expiration"] ??
+    it["expirationDate"] ??
+    it["validUntil"] ??
+    null
   );
+}
+
+function getAttachmentUrl(row: Item): string | null {
+  const url =
+    row.attachmentUrl ??
+    (typeof row.attachment === "string" ? row.attachment : row.attachment?.url) ??
+    row.fileUrl ??
+    row.url ??
+    row.photoUrl ??
+    row.imageUrl ??
+    row.file?.url ??
+    row.files?.[0]?.url ??
+    row.attachments?.[0]?.url ??
+    row.attachments?.[0]?.downloadUrl ??
+    row.attachments?.[0]?.downloadURL ??
+    row.attachments?.[0]?.href ??
+    null;
+  return url ?? null;
+}
+
+function getAttachmentMime(row: Item): string {
+  const type =
+    row.attachmentType ??
+    (typeof row.attachment !== "string" ? row.attachment?.type : undefined) ??
+    row.mimeType ??
+    row.contentType ??
+    "";
+  return type ? String(type).toLowerCase() : "";
 }

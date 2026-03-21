@@ -1,12 +1,14 @@
 "use client";
 import { useEffect, useState } from "react";
+import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
-import EditRegistrationModal from "./EditRegistrationModal";
+import EditRegistrationModal, { type Registration } from "./EditRegistrationModal";
 
 export default function ApprovalsSection() {
-  const [pending, setPending] = useState<any[]>([]);
+  const density = useTableDensityClasses();
+  const [pending, setPending] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
-  const [editing, setEditing] = useState<any | null>(null);
+  const [editing, setEditing] = useState<Registration | null>(null);
 
   useEffect(() => {
     setLoading(true);
@@ -15,7 +17,7 @@ export default function ApprovalsSection() {
       .then(data => {
         // Only show registrations with status PENDING or COMPANY_ADMIN_PENDING
         const filtered = Array.isArray(data)
-          ? data.filter(r => r.status === "PENDING" || r.status === "COMPANY_ADMIN_PENDING")
+          ? data.filter((r: Registration & { status?: string }) => r.status === "PENDING" || r.status === "COMPANY_ADMIN_PENDING")
           : [];
         setPending(filtered);
       })
@@ -50,7 +52,7 @@ export default function ApprovalsSection() {
   async function handleReject(id: string) {
     setLoading(true);
     await fetch(`/api/registrations/${id}/reject`, { method: "POST" });
-    setPending(pending.filter(r => r.id !== id));
+    setPending((prev) => prev.filter(r => r.id !== id));
     setLoading(false);
   }
 
@@ -62,22 +64,22 @@ export default function ApprovalsSection() {
         <div className="text-gray-500">No pending registrations.</div>
       )}
       {pending.length > 0 && (
-        <table className="w-full mt-4">
+        <table className={`w-full mt-4 ${density.table}`}>
           <thead>
             <tr>
-              <th className="text-left">Name</th>
-              <th className="text-left">Email</th>
-              <th className="text-left">Company</th>
-              <th className="text-left">Actions</th>
+              <th className={`text-left ${density.th}`}>Name</th>
+              <th className={`text-left ${density.th}`}>Email</th>
+              <th className={`text-left ${density.th}`}>Company</th>
+              <th className={`text-left ${density.th}`}>Actions</th>
             </tr>
           </thead>
           <tbody>
             {pending.map(reg => (
               <tr key={reg.id}>
-                <td>{reg.name}</td>
-                <td>{reg.email}</td>
-                <td>{reg.companyName}</td>
-                <td>
+                <td className={density.td}>{reg.name}</td>
+                <td className={density.td}>{reg.email}</td>
+                <td className={density.td}>{reg.companyName}</td>
+                <td className={density.td}>
                   <Button onClick={() => handleApprove(reg)} className="mr-2" size="sm" variant="primary">Approve</Button>
                   <Button onClick={() => handleReject(reg.id)} className="mr-2" size="sm" variant="danger">Reject</Button>
                   <Button onClick={() => setEditing(reg)} size="sm" variant="secondary">Edit</Button>
@@ -91,8 +93,8 @@ export default function ApprovalsSection() {
         <EditRegistrationModal
           registration={editing}
           onClose={() => setEditing(null)}
-          onSave={(updated: { name?: string; email?: string; companyName?: string }) => {
-            setPending(pending.map(r => r.id === editing.id ? { ...r, ...updated } : r));
+          onSave={(updated: Partial<Registration>) => {
+            setPending(prev => prev.map(r => r.id === editing.id ? { ...r, ...updated } : r));
             setEditing(null);
           }}
         />

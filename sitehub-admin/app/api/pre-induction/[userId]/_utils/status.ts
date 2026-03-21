@@ -1,14 +1,53 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
+async function resolveUser(userIdOrEmail: string) {
+  const { data: byId } = await supabaseAdmin.from("users").select("*").eq("id", userIdOrEmail).maybeSingle();
+  if (byId) return byId as Record<string, unknown>;
+  const { data: byEmail } = await supabaseAdmin.from("users").select("*").eq("email", userIdOrEmail).maybeSingle();
+  return byEmail as Record<string, unknown> | null;
+}
+
+function isTruthyYes(value: unknown): boolean {
+  if (value === true) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "yes" || v === "y" || v === "1";
+  }
+  return false;
+}
+
+/** Required for completion: Personal, Right to Work (documents), Competency Card, Medical, Declaration. Certification & Training are optional. */
 export async function updatePreInductionStatus(userId: string): Promise<void> {
+  const userRow = await resolveUser(userId);
+  if (!userRow) return;
+  const actualUserId = (userRow.id as string) ?? userId;
+
+  async function fetchSection(table: string) {
+    const res = await supabaseAdmin.from(table).select("*").eq("user_id", actualUserId).maybeSingle();
+    return res;
+  }
+
   const [personalRes, rightToWorkRes, competencyRes, medicalRes, trainingRes, declarationsRes] = await Promise.all([
-    supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("pre_induction_right_to_work").select("*").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("pre_induction_competency_card").select("*").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("pre_induction_medical").select("*").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", userId).maybeSingle(),
-    supabaseAdmin.from("pre_induction_declarations").select("*").eq("user_id", userId).maybeSingle(),
+    fetchSection("pre_induction_personal"),
+    fetchSection("pre_induction_right_to_work"),
+    fetchSection("pre_induction_competency_card"),
+    fetchSection("pre_induction_medical"),
+    fetchSection("pre_induction_training"),
+    fetchSection("pre_induction_declarations"),
   ]);
+
+  if (process.env.NODE_ENV !== "production" && (userId.includes("sh.light83") || actualUserId === "8e5a0e26-1ad7-43d5-b89b-391c07328845")) {
+    console.log("[TRACE pre-induction rows status]", {
+      userId,
+      actualUserId,
+      personal: personalRes,
+      rtw: rightToWorkRes,
+      competency: competencyRes,
+      medical: medicalRes,
+      training: trainingRes,
+      declarations: declarationsRes,
+    });
+  }
 
   const personal = personalRes.data as Record<string, unknown> | null;
   const rightToWork = rightToWorkRes.data as Record<string, unknown> | null;
@@ -18,9 +57,23 @@ export async function updatePreInductionStatus(userId: string): Promise<void> {
   const declarations = declarationsRes.data as Record<string, unknown> | null;
 
   const personalComplete = !!(personal && Object.keys(personal).length > 0 && (personal.full_name || personal.email));
-  const rightToWorkComplete = !!(rightToWork && Object.keys(rightToWork).length > 0) && (rightToWork.right_to_work_verified ?? rightToWork.rightToWorkVerified) === true;
-  const competencyCardComplete = !!(competencyCardData && Object.keys(competencyCardData).length > 0 && (competencyCardData.card_number ?? competencyCardData.cardNumber ?? competencyCardData.file_url ?? competencyCardData.fileUrl));
-  const medicalComplete = !!(medical && Object.keys(medical).length > 0) && (medical.medical_verified ?? medical.medicalVerified) === true;
+  // Right to Work: (passport OR visa) AND proof_of_address required; OR admin verified
+  const rtwHasId = !!(rightToWork && (rightToWork.passport_url ?? rightToWork.passportUrl ?? rightToWork.visa_url ?? rightToWork.visaUrl));
+  const rtwHasProof = !!(rightToWork && (rightToWork.proof_of_address_url ?? rightToWork.proofOfAddressUrl));
+  const rtwVerified = rightToWork?.right_to_work_verified ?? rightToWork?.rightToWorkVerified;
+  const rightToWorkComplete = !!(rightToWork && Object.keys(rightToWork).length > 0 && (rtwVerified === true || (rtwHasId && rtwHasProof)));
+  // Competency Card: BOTH document AND card details (number) required
+  const ccHasDoc = !!(competencyCardData?.file_url ?? competencyCardData?.fileUrl);
+  const ccNum = ((competencyCardData?.card_number ?? competencyCardData?.cardNumber) ?? "").toString().trim();
+  const ccHasDetails = ccNum.length > 0;
+  const competencyCardComplete = !!(competencyCardData && Object.keys(competencyCardData).length > 0 && ccHasDoc && ccHasDetails);
+  // Medical: no issues (has_medical_issues=false OR fit_to_work=true) = complete; else need cert or verified
+  const medHasIssues = medical?.has_medical_issues ?? medical?.hasMedicalIssues;
+  const medFitToWork = medical?.fit_to_work ?? medical?.fitToWork;
+  const medNoIssues = medHasIssues === false || isTruthyYes(medFitToWork);
+  const medHasCert = !!(medical?.medical_certificate_url ?? medical?.medicalCertificateUrl);
+  const medVerified = medical?.medical_verified ?? medical?.medicalVerified;
+  const medicalComplete = !!(medical && Object.keys(medical).length > 0 && (medVerified === true || medNoIssues || medHasCert));
   const declarationsComplete = !!(declarations && Object.keys(declarations).length > 0) && (declarations.operative_declaration_accepted ?? declarations.operativeDeclarationAccepted) === true;
 
   const allRequired = personalComplete && rightToWorkComplete && competencyCardComplete && medicalComplete && declarationsComplete;
@@ -42,7 +95,7 @@ export async function updatePreInductionStatus(userId: string): Promise<void> {
   await supabaseAdmin.from("users").update({
     pre_induction_status: status,
     compliance_score: complianceScore,
-  }).eq("id", userId);
+  }).eq("id", actualUserId);
 }
 
 function computeComplianceScore(params: {
@@ -54,11 +107,20 @@ function computeComplianceScore(params: {
 }): number {
   let score = 0;
   const { rightToWork, competencyCard, medical, training, declarations } = params;
-  const rtw = rightToWork?.right_to_work_verified ?? rightToWork?.rightToWorkVerified;
-  const med = medical?.medical_verified ?? medical?.medicalVerified;
+  const rtwVerified = rightToWork?.right_to_work_verified ?? rightToWork?.rightToWorkVerified;
+  const rtwHasId = !!(rightToWork && (rightToWork.passport_url ?? rightToWork.passportUrl ?? rightToWork.visa_url ?? rightToWork.visaUrl));
+  const rtwHasProof = !!(rightToWork && (rightToWork.proof_of_address_url ?? rightToWork.proofOfAddressUrl));
+  const rtwComplete = rtwVerified === true || (rtwHasId && rtwHasProof);
 
-  if (rtw === true) score += 30;
-  if (med === true) score += 20;
+  const medVerified = medical?.medical_verified ?? medical?.medicalVerified;
+  const medHasIssues = medical?.has_medical_issues ?? medical?.hasMedicalIssues;
+  const medFitToWork = medical?.fit_to_work ?? medical?.fitToWork;
+  const medNoIssues = medHasIssues === false || isTruthyYes(medFitToWork);
+  const medHasCert = !!(medical?.medical_certificate_url ?? medical?.medicalCertificateUrl);
+  const medComplete = medVerified === true || medNoIssues || medHasCert;
+
+  if (rtwComplete) score += 30;
+  if (medComplete) score += 20;
 
   const hasCompetencyCard = !!(competencyCard && (competencyCard.card_number ?? competencyCard.cardNumber ?? competencyCard.file_url ?? competencyCard.fileUrl));
   if (hasCompetencyCard) score += 20;
@@ -78,35 +140,36 @@ function computeComplianceScore(params: {
   return Math.min(100, Math.max(0, score));
 }
 
-function isExpired(exp: unknown): boolean {
-  if (!exp) return false;
-  let date: Date | null = null;
-  if (typeof (exp as { toDate?: () => Date }).toDate === "function") {
-    date = (exp as { toDate: () => Date }).toDate();
-  } else if (exp instanceof Date) {
-    date = exp;
-  } else if (typeof exp === "string") {
-    date = new Date(exp);
-  }
-  return date ? date.getTime() < Date.now() : false;
-}
-
 export function getMissingSections(
   sectionData: Array<Record<string, unknown> | undefined>
 ): Record<string, boolean> {
-  const [personal, rightToWork, competencyCard, medical, _training, declarations] = sectionData;
+  const [personal, rightToWork, competencyCard, medical, , declarations] = sectionData;
   const personalExists = !!personal && Object.keys(personal).length > 0 && (personal.full_name || personal.email);
+
+  // Right to Work is considered present when verified OR the required documents are uploaded
+  const rtwHasId = !!(rightToWork && (rightToWork.passport_url ?? rightToWork.passportUrl ?? rightToWork.visa_url ?? rightToWork.visaUrl));
+  const rtwHasProof = !!(rightToWork && (rightToWork.proof_of_address_url ?? rightToWork.proofOfAddressUrl));
   const rtwVerified = !!rightToWork && Object.keys(rightToWork).length > 0 && (rightToWork.right_to_work_verified ?? rightToWork.rightToWorkVerified) === true;
+  const rightToWorkComplete = rtwVerified || (rtwHasId && rtwHasProof);
+
   const competencyOk = !!(competencyCard && (competencyCard.card_number ?? competencyCard.cardNumber ?? competencyCard.file_url ?? competencyCard.fileUrl));
+
+  // Medical: no issues (has_medical_issues=false OR fit_to_work=true) = complete; else need cert or verified
+  const medHasIssues = medical?.has_medical_issues ?? medical?.hasMedicalIssues;
+  const medFitToWork = medical?.fit_to_work ?? medical?.fitToWork;
+  const medNoIssues = medHasIssues === false || isTruthyYes(medFitToWork);
+  const medHasCert = !!(medical?.medical_certificate_url ?? medical?.medicalCertificateUrl);
   const medicalVerified = !!medical && Object.keys(medical).length > 0 && (medical.medical_verified ?? medical.medicalVerified) === true;
+  const medicalComplete = medicalVerified || medNoIssues || medHasCert;
+
   const declAccepted = !!declarations && Object.keys(declarations).length > 0 && (declarations.operative_declaration_accepted ?? declarations.operativeDeclarationAccepted) === true;
 
   return {
     personal: !personalExists,
-    rightToWork: !rtwVerified,
+    rightToWork: !rightToWorkComplete,
     certifications: false,
     competencyCard: !competencyOk,
-    medical: !medicalVerified,
+    medical: !medicalComplete,
     training: false,
     declarations: !declAccepted,
   };

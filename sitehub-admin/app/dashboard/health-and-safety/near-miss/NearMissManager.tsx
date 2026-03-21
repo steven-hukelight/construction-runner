@@ -1,9 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, CheckCircle2, FileDown } from "lucide-react";
-import Button from "../../components/ui/Button";
-import Input from "../../components/ui/Input";
+import { AlertTriangle, FileDown } from "lucide-react";
 import Table from "../../components/ui/Table";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import Link from "next/link";
@@ -30,7 +28,7 @@ export default function NearMissManager() {
       setLoading(false);
       return;
     }
-    fetch("/api/near-miss?unreviewed=false", { credentials: "include" })
+    fetch("/api/near-miss?unreviewed=false", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((data) => setItems(Array.isArray(data) ? data : []))
       .finally(() => setLoading(false));
@@ -125,8 +123,8 @@ export default function NearMissManager() {
   return (
     <div className="card">
       <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-amber-100">
-          <AlertTriangle className="w-5 h-5 text-amber-600" />
+        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
+          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
         </div>
         <div>
           <h3 className="text-lg font-semibold text-slate-900">Near Miss Reports</h3>
@@ -139,7 +137,7 @@ export default function NearMissManager() {
       ) : items.length === 0 ? (
         <div className="p-6 text-sm text-gray-500">No near miss reports yet.</div>
       ) : (
-        <Table columns={columns} data={items} density="comfortable" />
+        <Table columns={columns} data={items} />
       )}
     </div>
   );

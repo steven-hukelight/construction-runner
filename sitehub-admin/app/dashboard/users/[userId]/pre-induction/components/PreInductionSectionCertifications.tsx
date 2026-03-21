@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { getPreInductionFileViewUrl } from "@/lib/preInductionFileUrl";
 import { Plus, Trash2, Upload } from "lucide-react";
 
 const CERT_TYPES = [
@@ -80,27 +81,28 @@ export default function PreInductionSectionCertifications({
     const key = `cert-${index}`;
     setUploading(key);
     try {
-      const reader = new FileReader();
-      reader.onload = async () => {
-        const base64 = (reader.result as string).split(",")[1];
-        const res = await fetch(`/api/pre-induction/upload`, {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({
-            userId,
-            sectionId: "certifications",
-            fieldName: `cert-${index}`,
-            fileName: file.name,
-            fileBase64: base64,
-          }),
-          credentials: "include",
-        });
-        const json = await res.json();
-        if (!res.ok) throw new Error(json.error ?? "Upload failed");
-        updateCert(index, { fileUrl: json.fileUrl });
-        toast.success("File uploaded");
-      };
-      reader.readAsDataURL(file);
+      const base64 = await new Promise<string>((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = () => resolve((reader.result as string).split(",")[1] ?? "");
+        reader.onerror = () => reject(reader.error);
+        reader.readAsDataURL(file);
+      });
+      const res = await fetch(`/api/pre-induction/upload`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          userId,
+          sectionId: "certifications",
+          fieldName: `cert-${index}`,
+          fileName: file.name,
+          fileBase64: base64,
+        }),
+        credentials: "include",
+      });
+      const json = await res.json();
+      if (!res.ok) throw new Error(json.error ?? "Upload failed");
+      updateCert(index, { fileUrl: json.fileUrl });
+      toast.success("File uploaded");
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
@@ -141,6 +143,16 @@ export default function PreInductionSectionCertifications({
   return (
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900">Certifications</h3>
+      <div className="mt-2 block">
+        <button
+          type="button"
+          onClick={addCert}
+          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
+        >
+          <Plus size={16} />
+          Add Cert
+        </button>
+      </div>
       <div className="space-y-4">
         {certs.map((cert, i) => (
           <div
@@ -204,7 +216,7 @@ export default function PreInductionSectionCertifications({
                     {uploading === `cert-${i}` ? "Uploading..." : cert.fileUrl ? "Replace" : "Upload"}
                   </label>
                   {cert.fileUrl && (
-                    <a href={cert.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 truncate">
+                    <a href={getPreInductionFileViewUrl(cert.fileUrl) ?? cert.fileUrl} target="_blank" rel="noopener noreferrer" className="text-xs text-blue-600 truncate">
                       View
                     </a>
                   )}
@@ -244,15 +256,7 @@ export default function PreInductionSectionCertifications({
           </div>
         ))}
       </div>
-      <div className="flex items-center justify-between">
-        <button
-          type="button"
-          onClick={addCert}
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <Plus size={16} />
-          Add certification
-        </button>
+      <div className="flex justify-end">
         <button
           type="button"
           onClick={handleSave}

@@ -1,13 +1,18 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const VALID_ROLES = ["superuser", "admin", "ADMIN", "supervisor", "SUPERVISOR", "operative", "OPERATIVE", "sub_admin"];
+const VALID_ROLES = ["superuser", "admin", "ADMIN", "supervisor", "SUPERVISOR", "sub_admin"];
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value?.trim();
   const roleLower = role?.toLowerCase();
   const impersonating = cookieStore.get("impersonating")?.value === "true";
+
+  // Operative web login is a future feature – redirect operatives to login
+  if (roleLower === "operative") {
+    redirect("/login?blocked=operative");
+  }
 
   // Role missing or invalid → login (do not default to admin)
   if (!role || !VALID_ROLES.includes(role)) {
@@ -20,10 +25,6 @@ export default async function DashboardPage() {
 
   if (roleLower === "admin") {
     redirect("/dashboard/admin-dashboard");
-  }
-
-  if (roleLower === "operative") {
-    redirect("/dashboard/operative-dashboard");
   }
 
   if (roleLower === "sub_admin") {

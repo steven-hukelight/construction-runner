@@ -1,4 +1,4 @@
--- SiteHub: sites and companies columns for API compatibility
+-- Construction Runner: sites and companies columns for API compatibility
 
 -- Sites: columns expected by /api/sites
 ALTER TABLE sites ADD COLUMN IF NOT EXISTS location JSONB;

@@ -14,7 +14,6 @@ export async function POST(req: Request) {
     if (!invite) return NextResponse.json({ error: "Invalid invite code" }, { status: 400 });
     if ((invite.type as string) !== "subcontractor") return NextResponse.json({ error: "Invalid invite code type" }, { status: 400 });
 
-    const mainContractorId = invite.main_contractor_id as string;
     const siteId = invite.site_id as string;
 
     const partnerName = body.companyName?.trim() || `${name}'s company`;

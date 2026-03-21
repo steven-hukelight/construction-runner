@@ -1,7 +1,8 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Button from "../../../components/ui/Button";
 import { updateRAMSStatus } from "../../../rams/actions";
 
@@ -22,7 +23,7 @@ export default function RAMSDetailClient({ ramsId }: { ramsId: string }) {
   const [rams, setRams] = useState<RAMS | null>(null);
   const [loading, setLoading] = useState(true);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const res = await fetch("/api/rams", { credentials: "include" });
@@ -35,11 +36,11 @@ export default function RAMSDetailClient({ ramsId }: { ramsId: string }) {
     } finally {
       setLoading(false);
     }
-  }
+  }, [ramsId]);
 
   useEffect(() => {
     load();
-  }, [ramsId]);
+  }, [load]);
 
   async function handleApprove() {
     await updateRAMSStatus(ramsId, "APPROVED");
@@ -105,14 +106,13 @@ export default function RAMSDetailClient({ ramsId }: { ramsId: string }) {
       {fileUrl && (
         <div className="card p-6">
           <h3 className="font-semibold mb-4">Document</h3>
-          <a
-            href={fileUrl}
-            target="_blank"
-            rel="noopener noreferrer"
+          <button
+            type="button"
+            onClick={() => openDocumentUrl(fileUrl)}
             className="inline-flex items-center gap-2 text-blue-600 hover:underline"
           >
             View document
-          </a>
+          </button>
         </div>
       )}
 

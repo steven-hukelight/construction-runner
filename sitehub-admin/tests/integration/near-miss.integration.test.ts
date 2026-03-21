@@ -14,7 +14,6 @@ const run = hasApiIntegrationEnv();
 
 (run ? describe : describe.skip)("Near miss integration", () => {
   let ctx: Awaited<ReturnType<typeof getAuthContext>>;
-  let createdReportId: string;
   let siteId: string | null = null;
 
   beforeAll(async () => {
@@ -46,8 +45,7 @@ const run = hasApiIntegrationEnv();
     const res = await POST(req);
     expect([200, 400, 500]).toContain(res.status);
     if (res.status === 200) {
-      const json = await res.json();
-      createdReportId = json.id;
+      await res.json();
     }
   });
 

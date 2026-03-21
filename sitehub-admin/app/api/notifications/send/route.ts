@@ -24,13 +24,14 @@ export async function POST(req: Request) {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ userId, title, message, data }),
     });
-    const json = await res.json();
+    const json = await res.json().catch(() => ({}));
     if (!res.ok) {
       return NextResponse.json({ error: json.error || "Failed to send notification" }, { status: 500 });
     }
     return NextResponse.json({ success: true });
-  } catch (e: any) {
-    console.error("POST /api/notifications/send failed:", e?.message || e);
+  } catch (e: unknown) {
+    const msg = e instanceof Error ? e.message : "Unknown error";
+    console.error("POST /api/notifications/send failed:", msg);
     return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

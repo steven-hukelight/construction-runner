@@ -12,7 +12,7 @@
  * Requires: Firebase Admin SDK (serviceAccountKey.json or env vars)
  */
 
-
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;

@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useRef } from "react";
 import { MoreHorizontal, Eye, MapPin, RotateCcw, FileQuestion, Shield, Trash2, Upload, CheckCircle } from "lucide-react";
 import type { ComplianceRow } from "../server";
 
@@ -26,6 +26,16 @@ export default function ComplianceRowActions({
   onRemoveFromSite,
 }: Props) {
   const [open, setOpen] = useState(false);
+  const [openUpward, setOpenUpward] = useState(false);
+  const buttonRef = useRef<HTMLButtonElement>(null);
+
+  const handleToggle = () => {
+    if (!open && buttonRef.current) {
+      const rect = buttonRef.current.getBoundingClientRect();
+      setOpenUpward(window.innerHeight - rect.bottom < 200);
+    }
+    setOpen((o) => !o);
+  };
   const canAssign = row.status === "compliant" || row.status === "grandfathered" || row.status === "override_applied";
 
   const actions: { label: string; icon: React.ElementType; onClick?: () => void; adminOnly?: boolean }[] = [
@@ -56,8 +66,9 @@ export default function ComplianceRowActions({
   return (
     <div className="relative">
       <button
+        ref={buttonRef}
         type="button"
-        onClick={() => setOpen(!open)}
+        onClick={handleToggle}
         className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900"
         aria-label="Actions"
       >
@@ -70,7 +81,9 @@ export default function ComplianceRowActions({
             aria-hidden
             onClick={() => setOpen(false)}
           />
-          <div className="absolute right-0 top-full mt-1 z-20 w-48 rounded-lg border border-gray-200 bg-white py-1 shadow-lg">
+          <div
+            className={`absolute right-0 z-20 w-48 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg ${openUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
+          >
             {actions.map((a, i) => {
               const Icon = a.icon;
               return (

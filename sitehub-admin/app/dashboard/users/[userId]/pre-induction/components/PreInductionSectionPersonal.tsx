@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import toast from "react-hot-toast";
+import { savePersonal } from "../clientActions";
 
 function getStr(d: Record<string, unknown> | null, k: string): string {
   const v = d?.[k];
@@ -41,14 +42,7 @@ export default function PreInductionSectionPersonal({
   const handleSave = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`/api/pre-induction/${userId}/personal`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ ...form, updatedAt: new Date().toISOString() }),
-        credentials: "include",
-      });
-      const json = await res.json();
-      if (!res.ok) throw new Error(json.error ?? "Failed to save");
+      await savePersonal(userId, form);
       toast.success("Personal section saved");
       onSaved?.();
     } catch (e) {

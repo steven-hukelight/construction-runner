@@ -1,4 +1,4 @@
-# SiteHub Visual Enhancement Summary
+# Construction Runner Visual Enhancement Summary
 
 ## ✅ Completed Enhancements
 

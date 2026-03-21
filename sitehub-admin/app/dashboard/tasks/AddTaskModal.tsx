@@ -1,6 +1,4 @@
 "use client";
-
-/* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState, useEffect } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -62,9 +60,15 @@ export default function AddTaskModal() {
     <div className="space-y-3">
       <Button onClick={() => setOpen((v) => !v)}>{open ? "Close" : "Add Task"}</Button>
       {open && (
-        <div className="card w-full md:max-w-xl">
-          <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4 sm:mb-6">Add Task</h3>
-          <div className="space-y-4 sm:space-y-5">
+        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
+          <div
+            className="absolute inset-0 bg-black/50 backdrop-blur-sm"
+            onClick={() => setOpen(false)}
+            aria-hidden
+          />
+          <div className="relative z-10 w-full max-w-xl lg:max-w-2xl card shadow-2xl max-h-[90vh] overflow-y-auto">
+            <h3 className="text-base sm:text-lg font-semibold text-slate-900 mb-4 sm:mb-6">Add Task</h3>
+            <div className="space-y-4 sm:space-y-5">
             <Input
               label="Title"
               value={form.title}
@@ -85,7 +89,7 @@ export default function AddTaskModal() {
             </div>
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-2">Assigned To (select multiple)</label>
-              <div className="max-h-40 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
+              <div className="max-h-64 overflow-y-auto border border-slate-200 rounded-lg p-2 space-y-1">
                 {users.map((u) => (
                   <label key={u.id} className="flex items-center gap-2 cursor-pointer hover:bg-slate-50 rounded px-2 py-1">
                     <input
@@ -110,6 +114,7 @@ export default function AddTaskModal() {
               <Button onClick={handleSubmit} className="w-full">
                 Save Task
               </Button>
+            </div>
             </div>
           </div>
         </div>

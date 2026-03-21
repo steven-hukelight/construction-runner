@@ -21,7 +21,7 @@ export default function SiteRulesManager() {
   const [form, setForm] = useState({ category: "PPE", title: "", description: "" });
 
   useEffect(() => {
-    fetch("/api/site-rules", { credentials: "include" })
+    fetch("/api/site-rules", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((d) => setRules(d.rules ?? []))
       .finally(() => setLoading(false));
@@ -79,8 +79,8 @@ export default function SiteRulesManager() {
     <div className="card">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-amber-100">
-            <ScrollText className="w-5 h-5 text-amber-600" />
+          <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
+            <ScrollText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
             <h3 className="text-lg font-semibold text-slate-900">Site Rules</h3>

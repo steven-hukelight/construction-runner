@@ -1,4 +1,4 @@
--- SiteHub: Missing tables for API compatibility
+-- Construction Runner: Missing tables for API compatibility
 -- Idempotent: CREATE IF NOT EXISTS / ADD COLUMN IF NOT EXISTS
 -- These tables are referenced by API routes but may not exist in clean deployments.
 

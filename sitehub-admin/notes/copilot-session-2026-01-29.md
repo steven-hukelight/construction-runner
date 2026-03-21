@@ -5,7 +5,7 @@ This file captures a short summary of what we implemented today in the `sitehub-
 ## Key changes today
 
 - **Sidebar & Branding**
-  - Adjusted spacing between logo and "SiteHub" text in the sidebar.
+  - Adjusted spacing between logo and "Construction Runner" text in the sidebar.
 
 - **Sites: Geofencing**
   - Added support for storing `geofence` data on `sites` in Firestore (center, radius in metres, and optional polygon fence).

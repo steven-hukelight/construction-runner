@@ -27,10 +27,10 @@ export function EnhancedCard({
       whileHover={hover ? {} : {}}
       className={cn(
         "relative rounded-xl p-6 backdrop-blur-xl overflow-hidden",
-        "border border-gray-200/80 shadow-sm",
+        "border border-gray-200/80 dark:border-slate-600/80 shadow-sm",
         "transition-all duration-200",
         gradient && "bg-gradient-to-br from-blue-500/90 via-blue-600/90 to-blue-700/90",
-        !gradient && "bg-white/95",
+        !gradient && "bg-white/95 dark:bg-slate-800/95",
         hover && "hover:shadow-md hover:border-gray-300/80",
         className
       )}

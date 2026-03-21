@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import PageHeader from "../../components/PageHeader";
 import NearMissManager from "./NearMissManager";
-import { resolveCompanyId } from "@/lib/auth/companyId";
+import AddNearMissModal from "./AddNearMissModal";
 
 export const dynamic = "force-dynamic";
 
@@ -24,6 +24,7 @@ export default async function NearMissPage() {
       <PageHeader
         title="Near Miss"
         description="Safety incidents that didn't result in injury. Review and track reports."
+        action={<AddNearMissModal />}
       />
       <NearMissManager />
     </div>

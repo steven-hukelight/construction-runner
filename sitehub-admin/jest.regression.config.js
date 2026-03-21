@@ -1,4 +1,5 @@
 /** Jest config for regression tests - uses node env and mocks */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const base = require("./jest.config.js");
 module.exports = {
   ...base,

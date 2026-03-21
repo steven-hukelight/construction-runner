@@ -5,6 +5,7 @@
  * - Verify site_id filter
  * - Verify list refresh
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 import {
   setMockCookies,

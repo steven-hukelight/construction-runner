@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 
@@ -101,7 +101,7 @@ export default function SignInOut() {
           <Input
             label="Site name (optional)"
             value={siteName}
-            onChange={(e: any) => setSiteName(e.target.value)}
+            onChange={(e: ChangeEvent<HTMLInputElement>) => setSiteName(e.target.value)}
           />
         </div>
       </div>

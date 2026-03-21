@@ -1,7 +1,8 @@
 "use client";
 
 import React from "react";
-import { FileText, Image, ExternalLink, CheckCircle, XCircle } from "lucide-react";
+import { FileText, Image as ImageIcon, ExternalLink, CheckCircle, XCircle } from "lucide-react";
+import { getPreInductionFileViewUrl } from "@/lib/preInductionFileUrl";
 
 type DocItem = {
   url?: string;
@@ -49,7 +50,7 @@ export default function ComplianceDocumentPreview({
             <div className="flex items-start gap-3">
               <div className="shrink-0 h-10 w-10 rounded-lg bg-gray-200 flex items-center justify-center">
                 {isImage ? (
-                  <Image className="h-5 w-5 text-gray-600" />
+                  <ImageIcon aria-hidden="true" className="h-5 w-5 text-gray-600" />
                 ) : (
                   <FileText className="h-5 w-5 text-gray-600" />
                 )}
@@ -64,6 +65,8 @@ export default function ComplianceDocumentPreview({
                     <span className="ml-2">
                       {doc.verified ? (
                         <span className="text-emerald-600">Verified</span>
+                      ) : doc.url ? (
+                        <span className="text-emerald-600">Provided</span>
                       ) : (
                         <span className="text-amber-600">Pending</span>
                       )}
@@ -72,7 +75,7 @@ export default function ComplianceDocumentPreview({
                 </div>
                 {doc.url && (
                   <a
-                    href={doc.url}
+                    href={getPreInductionFileViewUrl(doc.url) ?? doc.url}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="inline-flex items-center gap-1 mt-2 text-xs text-blue-600 hover:underline"

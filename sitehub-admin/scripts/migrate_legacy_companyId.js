@@ -1,7 +1,7 @@
 // migrate_legacy_companyId.js
 // Migrates legacy documents missing companyId to the Test Company
 
-
+/* eslint-disable @typescript-eslint/no-require-imports */
 const { createClient } = require('@supabase/supabase-js');
 
 const supabaseUrl = process.env.SUPABASE_URL;

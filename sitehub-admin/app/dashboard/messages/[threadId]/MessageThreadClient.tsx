@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 
@@ -22,7 +22,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingThread, setDeletingThread] = useState(false);
 
-  async function load() {
+  const load = useCallback(async () => {
     setLoading(true);
     try {
       const q = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
@@ -34,7 +34,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
     } finally {
       setLoading(false);
     }
-  }
+  }, [companyId, threadId]);
 
   async function deleteMessage(messageId: string) {
     if (!canDelete) return;
@@ -96,8 +96,8 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
   }
 
   useEffect(() => {
-    load();
-  }, [threadId]);
+    void load();
+  }, [load]);
 
   async function sendMessage() {
     if (!newMessage.trim()) return;
@@ -109,7 +109,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
         body: JSON.stringify({ thread_id: threadId, body: newMessage.trim() }),
       });
       setNewMessage("");
-      load();
+      void load();
     } catch (e) {
       console.error(e);
     } finally {

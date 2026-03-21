@@ -4,7 +4,7 @@ import { buildSubcontractorComplianceDataset } from "@/app/dashboard/subcontract
 
 export const dynamic = "force-dynamic";
 
-export async function GET(req: Request) {
+export async function GET() {
   try {
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value;

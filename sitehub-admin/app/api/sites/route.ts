@@ -54,44 +54,50 @@ export async function GET(req: Request) {
 }
 
 export async function POST(req: Request) {
-  const body = await req.json();
-  const lat = body.geofence?.center?.lat ?? body.location?.lat;
-  const lng = body.geofence?.center?.lng ?? body.location?.lng;
-  const radiusMeters = body.geofence?.radiusMeters;
+  try {
+    const body = await req.json();
+    const lat = body.geofence?.center?.lat ?? body.location?.lat;
+    const lng = body.geofence?.center?.lng ?? body.location?.lng;
+    const radiusMeters = body.geofence?.radiusMeters;
 
-  const cookieStore = await cookies();
-  const role = cookieStore.get("role")?.value;
-  const companyId =
-    cookieStore.get("companyId")?.value ||
-    (await resolveCompanyId({
-      cookieCompanyId: cookieStore.get("companyId")?.value,
-      userEmail: cookieStore.get("user_email")?.value,
-      role,
-    })) ||
-    null;
-  const assignedCompanyId = role === "superuser" ? (body.companyId ?? companyId ?? null) : (companyId ?? null);
-  if (!assignedCompanyId) {
-    return NextResponse.json({ error: "companyId required" }, { status: 400 });
+    const cookieStore = await cookies();
+    const role = cookieStore.get("role")?.value;
+    const companyId =
+      cookieStore.get("companyId")?.value ||
+      (await resolveCompanyId({
+        cookieCompanyId: cookieStore.get("companyId")?.value,
+        userEmail: cookieStore.get("user_email")?.value,
+        role,
+      })) ||
+      null;
+    const assignedCompanyId = role === "superuser" ? (body.companyId ?? companyId ?? null) : (companyId ?? null);
+    if (!assignedCompanyId) {
+      return NextResponse.json({ error: "companyId required" }, { status: 400 });
+    }
+
+    const { data, error } = await supabaseAdmin.from("sites").insert({
+      name: body.name,
+      location: body.location,
+      geofence: body.geofence ?? null,
+      latitude: lat ?? null,
+      longitude: lng ?? null,
+      radius_meters: radiusMeters ?? null,
+      show_on_map: body.showOnMap ?? true,
+      active: body.active ?? true,
+      manager_id: body.managerId ?? null,
+      company_id: assignedCompanyId,
+    }).select("id").single();
+
+    if (error) {
+      console.error("POST /api/sites failed:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
+    return NextResponse.json({ id: data?.id }, { status: 201 });
+  } catch (e: unknown) {
+    const err = e as { message?: string };
+    console.error("POST /api/sites failed:", err?.message || e);
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
-
-  const { data, error } = await supabaseAdmin.from("sites").insert({
-    name: body.name,
-    location: body.location,
-    geofence: body.geofence ?? null,
-    latitude: lat ?? null,
-    longitude: lng ?? null,
-    radius_meters: radiusMeters ?? null,
-    show_on_map: body.showOnMap ?? true,
-    active: body.active ?? true,
-    manager_id: body.managerId ?? null,
-    company_id: assignedCompanyId,
-  }).select("id").single();
-
-  if (error) {
-    console.error("POST /api/sites failed:", error);
-    return NextResponse.json({ error: error.message }, { status: 500 });
-  }
-  return NextResponse.json({ id: data?.id }, { status: 201 });
 }
 
 export async function DELETE(req: Request) {

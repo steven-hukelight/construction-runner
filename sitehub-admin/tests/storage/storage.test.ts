@@ -8,7 +8,7 @@ const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 describe('Storage', () => {
   const bucket = 'user-uploads';
   const testFilePath = './tests/storage/test-upload.txt';
-  const testFileContent = 'Hello, SiteHub Storage!';
+  const testFileContent = 'Hello, Construction Runner Storage!';
   const testFileKey = 'test-folder/test-upload.txt';
 
   beforeAll(() => {

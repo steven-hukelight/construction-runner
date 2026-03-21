@@ -1,13 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo } from "react";
-import { User, Mail, Phone, MapPin, Calendar, Shield, FileText, Award, Settings, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
-import { Card } from "../components/ui/Card";
+import React, { useState, useEffect, useMemo, useCallback } from "react";
+import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
-import { getUserEmailFromCookie, sanitizeEmail, getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import SuperuserSelfOverrideSection from "../induction-compliance/components/SuperuserSelfOverrideSection";
 import Link from "next/link";
+import { getRoleFromClient } from "@/lib/utils/cookies";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 
 type TabType = "personal" | "activity" | "certifications" | "medical" | "induction" | "privacy";
 
@@ -62,7 +62,6 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState("");
-  const [extraDocId, setExtraDocId] = useState<string | null>(null);
   const [extra, setExtra] = useState({
     jobTitle: "",
     emergencyContactName: "",
@@ -79,6 +78,15 @@ export default function ProfilePage() {
   const [showNiSummary, setShowNiSummary] = useState(false);
   const [showUtrSummary, setShowUtrSummary] = useState(false);
 
+  const [showCertModal, setShowCertModal] = useState(false);
+  const [certForm, setCertForm] = useState({
+    name: "",
+    description: "",
+    cardNumber: "",
+    issuedDate: "",
+    expiryDate: "",
+    file: null as File | null,
+  });
   function maskNi(val: string): string {
     if (!val) return "";
     const clean = val.replace(/\s+/g, "");
@@ -108,112 +116,100 @@ export default function ProfilePage() {
     const v = (val || "").replace(/\s+/g, "");
     return v === "" || /^(\+44\d{10}|0\d{10}|\d{11})$/.test(v);
   }
-  function getDobParts(input: any): { d: string; m: string; y: string } {
+  const getDobParts = useCallback((input: unknown): { d: string; m: string; y: string } => {
     try {
       if (!input) return { d: "", m: "", y: "" };
       let dt: Date | null = null;
-      if (typeof input?.toDate === 'function') dt = input.toDate();
-      else if (typeof input?.seconds === 'number') dt = new Date(input.seconds * 1000);
+      if (typeof (input as { toDate?: () => Date }).toDate === "function") dt = (input as { toDate: () => Date }).toDate();
+      else if (typeof (input as { seconds?: number }).seconds === "number") dt = new Date((input as { seconds: number }).seconds * 1000);
       else if (input instanceof Date) dt = input;
-      else if (typeof input === 'string') {
+      else if (typeof input === "string") {
         const s = input.trim();
         const mIso = s.match(/^(\d{4})-(\d{2})-(\d{2})$/);
         const mUk = s.match(/^([0-3]?\d)[\/-]([01]?\d)[\/-](\d{4})$/);
         if (mIso) return { y: mIso[1], m: mIso[2], d: mIso[3] };
-        if (mUk) return { d: mUk[1].padStart(2, '0'), m: mUk[2].padStart(2, '0'), y: mUk[3] };
+        if (mUk) return { d: mUk[1].padStart(2, "0"), m: mUk[2].padStart(2, "0"), y: mUk[3] };
         const p = Date.parse(s);
         if (!isNaN(p)) dt = new Date(p);
       }
       if (dt) {
-        const d = String(dt.getDate()).padStart(2, '0');
-        const m = String(dt.getMonth() + 1).padStart(2, '0');
+        const d = String(dt.getDate()).padStart(2, "0");
+        const m = String(dt.getMonth() + 1).padStart(2, "0");
         const y = String(dt.getFullYear());
         return { d, m, y };
       }
     } catch {}
     return { d: "", m: "", y: "" };
-  }
-
-  const [showCertModal, setShowCertModal] = useState(false);
-  const [certForm, setCertForm] = useState({
-    name: "",
-    description: "",
-    cardNumber: "",
-    issuedDate: "",
-    expiryDate: "",
-    file: null as File | null,
-  });
-
-  useEffect(() => {
-    async function initializeProfile() {
-      await loadProfileViaApi();
-      await loadCertifications();
-      await loadMedicalRecords();
-    }
-    initializeProfile();
   }, []);
 
-  useEffect(() => {
-    if (!userId) return;
-    const unsub = subscribeExtraProfile();
-    return () => {
-      if (typeof unsub === 'function') unsub();
-    };
-  }, [userId]);
-
-  async function loadCertifications() {
+  const loadCertifications = useCallback(async () => {
     try {
-      const r = await fetch("/api/profiles/me", { credentials: "include" });
-      const me = await r.json();
-      const uid = me?.id || userId;
+      const r = await fetch("/api/profiles/me", { credentials: "include" }).catch(() => null);
+      if (!r) return;
+      const json = await r.json().catch(() => null);
+      const me = json && (Array.isArray(json) && json.length ? json[0] : json);
+      const uid = (me?.id as string) || userId;
       if (!uid) return;
-      const certRes = await fetch(`/api/certifications?userId=${encodeURIComponent(uid)}`, { credentials: "include" });
-      const data = certRes.ok ? await certRes.json() : [];
-      setCertifications((Array.isArray(data) ? data : []).map((d: any) => ({
-        id: d.id,
-        name: d.name || d.type,
-        description: d.description || "",
-        cardNumber: d.cardNumber,
-        issuedDate: d.issuedDate || d.issued_at || d.issuedAt,
-        expiryDate: d.expiryDate || d.expires_at || d.expiresAt,
-        status: d.status || "valid",
-        color: d.color || "emerald",
-        fileUrl: d.fileUrl || d.attachment_url,
-        fileName: d.fileName,
-        uploadedAt: d.uploadedAt || d.updated_at,
+      const certRes = await fetch(`/api/certifications?userId=${encodeURIComponent(uid)}`, { credentials: "include" }).catch(() => null);
+      if (!certRes) return;
+      const data = certRes.ok ? await certRes.json().catch(() => []) : [];
+      setCertifications((Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
+        id: String(d.id ?? ""),
+        name: String(d.name ?? d.type ?? ""),
+        description: String(d.description ?? ""),
+        cardNumber: (d.cardNumber as string) ?? undefined,
+        issuedDate: (d.issuedDate as string) ?? (d.issued_at as string) ?? (d.issuedAt as string),
+        expiryDate: (d.expiryDate as string) ?? (d.expires_at as string) ?? (d.expiresAt as string) ?? "",
+        status: (d.status as Certification["status"]) ?? "valid",
+        color: (d.color as Certification["color"]) ?? "emerald",
+        fileUrl: (d.fileUrl as string) ?? (d.attachment_url as string),
+        fileName: d.fileName as string | undefined,
+        uploadedAt: (d.uploadedAt as string) ?? (d.updated_at as string),
       })));
     } catch (error) {
       console.error("Error loading certifications:", error);
     }
-  }
+  }, [userId]);
 
-  async function loadMedicalRecords() {
+  const loadMedicalRecords = useCallback(async () => {
     try {
-      const r = await fetch("/api/profiles/me", { credentials: "include" });
-      const me = await r.json();
-      const uid = me?.id || userId;
+      const r = await fetch("/api/profiles/me", { credentials: "include" }).catch(() => null);
+      if (!r) return;
+      const json = await r.json().catch(() => null);
+      const me = json && (Array.isArray(json) && json.length ? json[0] : json);
+      const uid = (me?.id as string) || userId;
       if (!uid) return;
-      const medRes = await fetch(`/api/users/${encodeURIComponent(uid)}/medical`, { credentials: "include" });
-      const data = medRes.ok ? await medRes.json() : [];
-      setMedical((Array.isArray(data) ? data : []).map((d: any) => ({
-        id: d.id,
-        title: d.title,
-        notes: d.notes,
-        fileUrl: d.file_url || d.fileUrl,
-        fileName: d.file_name || d.fileName,
-        createdAt: d.created_at || d.createdAt,
+      const medRes = await fetch(`/api/users/${encodeURIComponent(uid)}/medical`, { credentials: "include" }).catch(() => null);
+      if (!medRes) return;
+      const data = medRes.ok ? await medRes.json().catch(() => []) : [];
+      setMedical((Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
+        id: String(d.id ?? ""),
+        title: (d.title as string) ?? undefined,
+        notes: (d.notes as string) ?? undefined,
+        fileUrl: (d.file_url as string) ?? (d.fileUrl as string),
+        fileName: (d.file_name as string) ?? (d.fileName as string),
+        createdAt: (d.created_at as string) ?? (d.createdAt as string),
       })));
     } catch (error) {
       console.error("Error loading medical records:", error);
     }
-  }
+  }, [userId]);
 
-  /** Load profile via /api/profiles/me - uses cookies, works for all roles (superuser + company admins). */
-  async function loadProfileViaApi() {
+  const loadProfileViaApi = useCallback(async () => {
     try {
-      const r = await fetch("/api/profiles/me", { cache: "no-store", credentials: "include" });
-      const json = await r.json();
-      const data = Array.isArray(json) && json.length ? json[0] : null;
+      const r = await fetch("/api/profiles/me", { cache: "no-store", credentials: "include" }).catch(() => null);
+      if (!r || !r.ok) {
+        const fallbackId = await loadProfile();
+        if (fallbackId) await loadProfileData(fallbackId);
+        return;
+      }
+      const json = await r.json().catch(() => null);
+      if (!json) {
+        const fallbackId = await loadProfile();
+        if (fallbackId) await loadProfileData(fallbackId);
+        return;
+      }
+      const data = Array.isArray(json) && json.length ? json[0] : json && typeof json === "object" ? json : null;
       if (!data || typeof data !== "object") {
         setLoading(false);
         const fallbackId = await loadProfile();
@@ -228,7 +224,6 @@ export default function ProfilePage() {
         return;
       }
       setUserId(profileUserId);
-      setExtraDocId(profileUserId);
       const created = (data.createdAt as string) || (data.joinedDate as string) || "";
       setProfile({
         name: String(data.displayName || data.name || "").trim(),
@@ -260,7 +255,25 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, [getDobParts, loadProfileData]);
+
+  useEffect(() => {
+    const initializeProfile = async () => {
+      await loadProfileViaApi();
+      await loadCertifications();
+      await loadMedicalRecords();
+    };
+    void initializeProfile();
+  }, [loadCertifications, loadMedicalRecords, loadProfileViaApi]);
+
+  useEffect(() => {
+    if (!userId) return;
+    const unsub = subscribeExtraProfile();
+    return () => {
+      if (typeof unsub === 'function') unsub();
+    };
+  }, [userId]);
+
 
   /** Resolves userId from email. Used as fallback. */
   async function loadProfile(): Promise<string | undefined> {
@@ -291,7 +304,6 @@ export default function ProfilePage() {
   /** Load personal info from profiles/users. Tries API first, then direct Supabase. */
   async function loadProfileData(profileUserId: string) {
     const applyData = (data: Record<string, unknown>) => {
-      setExtraDocId(profileUserId);
       const displayName = String(data.displayName || data.name || "").trim();
       const phone = String(data.phone || "").trim();
       const address = String(data.addressLine1 || data.location || "").trim();
@@ -407,17 +419,13 @@ export default function ProfilePage() {
 
       alert("Profile saved successfully!");
       await loadProfileViaApi();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error saving profile:", error);
-      alert("Failed to save profile: " + (error?.message || "Unknown error"));
-      if (error?.code) alert("Error code: " + error.code);
+      const message = error instanceof Error ? error.message : "Unknown error";
+      alert("Failed to save profile: " + message);
     } finally {
       setSaving(false);
     }
-  }
-
-  async function loadExtraProfile() {
-    await loadProfileViaApi();
   }
 
   /** Saves personal info to users/{userId}/profile/data via API (called from "Save Personal Info" button). */
@@ -457,7 +465,11 @@ export default function ProfilePage() {
     if (!userId) return () => {};
     const channel = supabase
       .channel(`profile-${userId}`)
-      .on("postgres_changes", { event: "*", schema: "public", table: "profiles", filter: `user_id=eq.${userId}` }, () => loadProfileViaApi())
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "profiles", filter: `user_id=eq.${userId}` },
+        () => void loadProfileViaApi()
+      )
       .subscribe();
     return () => supabase.removeChannel(channel);
   }
@@ -526,9 +538,10 @@ export default function ProfilePage() {
 
       alert("Certification added successfully!");
       await loadCertifications();
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Error adding certification:", error);
-      alert("Failed to add certification: " + (error?.message || error?.code || "Unknown error"));
+      const message = error instanceof Error ? error.message : "Unknown error";
+      alert("Failed to add certification: " + message);
     }
   }
 
@@ -595,25 +608,31 @@ export default function ProfilePage() {
     }
   }
 
+  const displayName = profile.name || profile.email || "";
+
+  const initials = useMemo(() => {
+    const parts = displayName.split(" ").filter((n) => n && n.trim());
+    if (parts.length === 0) return "U";
+    return parts
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  }, [displayName]);
+
   function triggerFileUpload(certId: string) {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = 'image/*,.pdf,.doc,.docx';
-    input.onchange = (e: any) => {
-      const file = e.target?.files?.[0];
+    const input = document.createElement("input");
+    input.type = "file";
+    input.accept = "image/*,.pdf,.doc,.docx";
+    input.onchange = (e: Event) => {
+      const target = e.target as HTMLInputElement | null;
+      const file = target?.files?.[0];
       if (file) {
         handleFileUpload(certId, file);
       }
     };
     input.click();
   }
-
-  const displayName = profile.name?.trim() || "User";
-  const initials = useMemo(() => {
-    const parts = displayName.split(' ').filter(n => n && n.trim());
-    if (parts.length === 0) return 'U';
-    return parts.map(n => n[0]).join('').toUpperCase().slice(0, 2);
-  }, [displayName]);
 
   if (loading) {
     return <div>Loading...</div>;
@@ -1166,16 +1185,15 @@ export default function ProfilePage() {
                           <div className="pt-3 border-t border-gray-200">
                             {cert.fileUrl && cert.fileName ? (
                               <div className="flex items-center justify-between">
-                                <a
-                                  href={cert.fileUrl}
-                                  target="_blank"
-                                  rel="noreferrer"
+                                <button
+                                  type="button"
+                                  onClick={() => openDocumentUrl(cert.fileUrl!)}
                                   className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                                 >
                                   <FileText size={14} />
                                   {cert.fileName}
                                   <span className="text-slate-400">↗</span>
-                                </a>
+                                </button>
                                 <button
                                   onClick={() => triggerFileUpload(cert.id)}
                                   className="text-xs text-slate-500 hover:text-blue-600 transition-colors"
@@ -1275,9 +1293,10 @@ export default function ProfilePage() {
                           credentials: "include",
                         });
                         if (!r.ok) throw new Error("Failed to save");
-                      } catch (err) {
+                      } catch (err: unknown) {
                         setExtra((prev) => ({ ...prev, restrictNonEssentialProcessing: !v }));
-                        alert("Failed to update setting");
+                        const message = err instanceof Error ? err.message : "Failed to update setting";
+                        alert(message);
                       }
                     }}
                     className="rounded border-gray-300 text-blue-600"
@@ -1392,16 +1411,15 @@ export default function ProfilePage() {
                         )}
                         {record.fileUrl && record.fileName && (
                           <div className="pt-3 border-t border-gray-100">
-                            <a
-                              href={record.fileUrl}
-                              target="_blank"
-                              rel="noreferrer"
+                            <button
+                              type="button"
+                              onClick={() => openDocumentUrl(record.fileUrl!)}
                               className="inline-flex items-center gap-2 text-sm font-medium text-blue-600 hover:text-blue-700 transition-colors"
                             >
                               <FileText size={14} />
                               {record.fileName}
                               <span className="text-slate-400">↗</span>
-                            </a>
+                            </button>
                           </div>
                         )}
                       </div>

@@ -1,22 +1,23 @@
 "use client";
-/* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { useEffect, useState } from "react";
-import jsPDF from "jspdf";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
 
+type TimestampLike = { toDate?: () => Date } | string | number | Date;
 type AttendanceLog = {
   id: string;
-  timestamp?: { toDate?: () => Date } | string | Date;
+  timestamp?: TimestampLike;
   name?: string;
   displayName?: string;
   operativeName?: string;
   userId?: string;
+  user_id?: string;
   operativeId?: string;
   email?: string;
   siteName?: string;
   siteId?: string;
+  site_id?: string;
   action?: string;
 };
 
@@ -28,17 +29,94 @@ type PersonStatus = {
   lastTime: string;
 };
 
+type User = { id?: string; userId?: string; name?: string; displayName?: string; display_name?: string; email?: string };
+type Profile = { id?: string; userId?: string; displayName?: string; display_name?: string; email?: string };
+type Site = { id?: string; name?: string };
+
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
+const asString = (value: unknown): string | undefined => {
+  if (typeof value === "string") return value;
+  if (typeof value === "number") return String(value);
+  return undefined;
+};
+
+const normalizeUser = (value: unknown): User => {
+  if (!value || typeof value !== "object") return {};
+  const obj = value as Record<string, unknown>;
+  return {
+    id: asString(obj.id ?? obj.userId),
+    userId: asString(obj.userId),
+    name: asString(obj.name),
+    displayName: asString(obj.displayName ?? obj.display_name),
+    display_name: asString(obj.display_name),
+    email: asString(obj.email),
+  };
+};
+
+const normalizeProfile = (value: unknown): Profile => {
+  if (!value || typeof value !== "object") return {};
+  const obj = value as Record<string, unknown>;
+  return {
+    id: asString(obj.id ?? obj.userId),
+    userId: asString(obj.userId),
+    displayName: asString(obj.displayName ?? obj.display_name),
+    display_name: asString(obj.display_name),
+    email: asString(obj.email),
+  };
+};
+
+const normalizeSite = (value: unknown): Site => {
+  if (!value || typeof value !== "object") return {};
+  const obj = value as Record<string, unknown>;
+  return {
+    id: asString(obj.id),
+    name: asString(obj.name),
+  };
+};
+
+function formatTimestamp(value: TimestampLike | undefined): string {
+  if (!value) return "";
+  if (typeof value === "string" || typeof value === "number") {
+    const dt = new Date(value);
+    return isNaN(dt.getTime()) ? String(value) : dt.toLocaleString("en-GB");
+  }
+  if (value instanceof Date) return value.toLocaleString("en-GB");
+  if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
+    try {
+      return value.toDate().toLocaleString("en-GB");
+    } catch {
+      return "";
+    }
+  }
+  return "";
+}
+
+function normalizeAction(a: string): "sign_in" | "sign_out" {
+  const s = a.toLowerCase().trim();
+  if (
+    s === "in" ||
+    s === "sign in" ||
+    s === "signin" ||
+    s === "sign_in" ||
+    s === "entered" ||
+    s === "checkin" ||
+    s === "check-in"
+  ) {
+    return "sign_in";
+  }
+  return "sign_out";
+}
+
 export default function RoleCall() {
   const [people, setPeople] = useState<PersonStatus[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
-  const [users, setUsers] = useState<any[]>([]);
-  const [profiles, setProfiles] = useState<any[]>([]);
-  const [sites, setSites] = useState<any[]>([]);
+  const [users, setUsers] = useState<User[]>([]);
+  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string | "all">("all");
   const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
   const [archiving, setArchiving] = useState(false);
@@ -54,39 +132,24 @@ export default function RoleCall() {
     const filtered =
       selectedSiteId === "all"
         ? attendanceLogs
-        : attendanceLogs.filter(
-            (l) => String(l.siteId || (l as { site_id?: string }).site_id || "") === String(selectedSiteId)
-          );
+        : attendanceLogs.filter((l) => String(l.siteId ?? l.site_id ?? "") === String(selectedSiteId));
 
     const seen = new Map<string, PersonStatus>();
     filtered.forEach((data) => {
-      const uid = String(data.userId || data.operativeId || (data as { user_id?: string }).user_id || "").trim();
-      const key = uid || String(data.name || data.id || "").trim();
+      const uid = String(data.userId ?? data.operativeId ?? data.user_id ?? "").trim();
+      const key = uid || String(data.name ?? data.id ?? "").trim();
       if (!key || seen.has(key)) return;
 
-      const t: any = data.timestamp;
-      let formatted = "";
-      if (t?.toDate) formatted = t.toDate().toLocaleString("en-GB");
-      else if (t instanceof Date) formatted = t.toLocaleString("en-GB");
-      else if (t) {
-        try {
-          const dt = typeof t === "string" || typeof t === "number" ? new Date(t) : null;
-          formatted = dt && !isNaN(dt.getTime()) ? dt.toLocaleString("en-GB") : String(t);
-        } catch {
-          formatted = String(t);
-        }
-      }
-
-      const actionRaw = String(data.action || "").trim();
+      const actionRaw = String(data.action ?? "").trim();
       const actionNorm = normalizeAction(actionRaw);
-      const resolvedName = resolveName(uid, data);
+      const resolvedName = resolveName(uid, data, users, profiles);
 
       seen.set(key, {
         id: key,
         name: resolvedName,
         lastAction: actionRaw,
         lastActionNormalized: actionNorm,
-        lastTime: formatted,
+        lastTime: formatTimestamp(data.timestamp),
       });
     });
 
@@ -104,7 +167,7 @@ export default function RoleCall() {
           credentials: "include",
         });
         const json = await res.json();
-        setAttendanceLogs(Array.isArray(json) ? json : []);
+        setAttendanceLogs(Array.isArray(json) ? (json as AttendanceLog[]) : []);
       } catch {
         setAttendanceLogs([]);
       }
@@ -130,9 +193,9 @@ export default function RoleCall() {
             sitesRes.json(),
             profilesRes.json(),
           ]);
-          setUsers(Array.isArray(usersJson) ? usersJson : []);
-          setSites(Array.isArray(sitesJson) ? sitesJson : []);
-          setProfiles(Array.isArray(profilesJson) ? profilesJson : []);
+          setUsers(Array.isArray(usersJson) ? usersJson.map(normalizeUser) : []);
+          setSites(Array.isArray(sitesJson) ? sitesJson.map(normalizeSite) : []);
+          setProfiles(Array.isArray(profilesJson) ? profilesJson.map(normalizeProfile) : []);
         }
       } catch {
         if (!cancelled) {
@@ -147,24 +210,6 @@ export default function RoleCall() {
       cancelled = true;
     };
   }, []);
-
-  function resolveName(uid: string, data: AttendanceLog): string {
-    const trimmedUid = String(uid || "").trim();
-    if (trimmedUid) {
-      const p = profiles.find((x) => String(x.id ?? x.userId) === trimmedUid);
-      if (p?.displayName && String(p.displayName).trim()) return String(p.displayName);
-      const u = users.find((x) => String(x.id) === trimmedUid);
-      if (u?.name && String(u.name).trim()) return String(u.name);
-      if (u?.email && String(u.email).includes("@")) return String(u.email).split("@")[0];
-    }
-    // Fall back to API-enriched or stamped values
-    if (data.name && String(data.name).trim()) return String(data.name);
-    if (data.displayName && String(data.displayName).trim()) return String(data.displayName);
-    if (data.operativeName && String(data.operativeName).trim()) return String(data.operativeName);
-    if (data.email && String(data.email).includes("@")) return String(data.email).split("@")[0];
-    if (data.operativeId && String(data.operativeId).trim()) return String(data.operativeId);
-    return "Unknown";
-  }
 
   const handleExportCSV = () => {
     if (!people.length) return;
@@ -193,9 +238,10 @@ export default function RoleCall() {
     URL.revokeObjectURL(url);
   };
 
-  const handleExportPDF = () => {
+  const handleExportPDF = async () => {
     if (!people.length) return;
 
+    const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     doc.setFontSize(14);
     doc.text("Role Call", 14, 16);
@@ -242,9 +288,10 @@ export default function RoleCall() {
       } else {
         alert(data?.error ?? "Failed to archive");
       }
-    } catch (e) {
+    } catch (e: unknown) {
+      const msg = e instanceof Error ? e.message : "Unknown error";
       console.error(e);
-      alert("Failed to archive role call");
+      alert(`Failed to archive role call: ${msg}`);
     } finally {
       setArchiving(false);
     }
@@ -309,7 +356,7 @@ export default function RoleCall() {
             <select
               className="input text-xs"
               value={selectedSiteId}
-              onChange={(e) => setSelectedSiteId(e.target.value as any)}
+              onChange={(e) => setSelectedSiteId(e.target.value as string | "all")}
             >
               <option value="all">All sites</option>
               {sites.map((s) => (
@@ -348,18 +395,20 @@ export default function RoleCall() {
   );
 }
 
-function normalizeAction(a: string): "sign_in" | "sign_out" {
-  const s = a.toLowerCase().trim();
-  if (
-    s === "in" ||
-    s === "sign in" ||
-    s === "signin" ||
-    s === "sign_in" ||
-    s === "entered" ||
-    s === "checkin" ||
-    s === "check-in"
-  ) {
-    return "sign_in";
+function resolveName(uid: string, data: AttendanceLog, users: User[], profiles: Profile[]): string {
+  const trimmedUid = String(uid || "").trim();
+  if (trimmedUid) {
+    const p = profiles.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
+    if (p?.displayName && String(p.displayName).trim()) return String(p.displayName);
+    const u = users.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
+    if (u?.name && String(u.name).trim()) return String(u.name);
+    if (u?.email && String(u.email).includes("@")) return String(u.email).split("@")[0];
   }
-  return "sign_out";
+  // Fall back to API-enriched or stamped values
+  if (data.name && String(data.name).trim()) return String(data.name);
+  if (data.displayName && String(data.displayName).trim()) return String(data.displayName);
+  if (data.operativeName && String(data.operativeName).trim()) return String(data.operativeName);
+  if (data.email && String(data.email).includes("@")) return String(data.email).split("@")[0];
+  if (data.operativeId && String(data.operativeId).trim()) return String(data.operativeId);
+  return "Unknown";
 }

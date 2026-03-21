@@ -7,6 +7,21 @@ export async function POST(req: Request) {
     const { email, name, companyName, companyCode } = body;
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
+    const { data: settingsRow } = await supabaseAdmin
+      .from("settings")
+      .select("config")
+      .eq("id", "00000000-0000-0000-0000-000000000001")
+      .single();
+    const cfg = (settingsRow?.config as Record<string, unknown>) ?? {};
+    const featureToggles = (cfg?.featureToggles as Record<string, unknown>) ?? {};
+    const registrationsOpen = featureToggles?.registrationsOpen ?? cfg?.featureA ?? true;
+    if (registrationsOpen === false) {
+      return NextResponse.json(
+        { error: "Registrations are currently closed. Please try again later." },
+        { status: 403 }
+      );
+    }
+
     let companyId: string | null = null;
     let companyDoc: { name?: string; invite_code?: string } | null = null;
 

@@ -9,10 +9,6 @@ const run = hasApiIntegrationEnv();
 const hasDbUrl = () =>
   !!(process.env.DATABASE_URL || process.env.SUPABASE_DB_URL)?.trim();
 
-interface ExplainRow {
-  "QUERY PLAN": string;
-}
-
 /** Check index exists by querying pg_indexes via raw pg */
 async function indexExists(tableName: string, indexName: string): Promise<boolean> {
   const conn = process.env.DATABASE_URL || process.env.SUPABASE_DB_URL;

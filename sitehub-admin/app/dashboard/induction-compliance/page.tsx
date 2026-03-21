@@ -18,10 +18,10 @@ export default async function InductionCompliancePage() {
           description="Induction status across users and sites."
         />
         <SuperuserSelfOverrideBlock />
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center rounded-xl border border-gray-200 bg-gray-50/50 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 mb-2">Superuser: No Company Selected</h2>
-          <p className="text-gray-600 mb-4">You must impersonate a company to view induction compliance.</p>
-          <p className="text-gray-500 text-sm">Use the sidebar to select a company to impersonate.</p>
+        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-800/60 p-8">
+          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">Superuser: No Company Selected</h2>
+          <p className="text-gray-600 dark:text-slate-400 mb-4">You must impersonate a company to view induction compliance.</p>
+          <p className="text-gray-500 dark:text-slate-500 text-sm">Use the sidebar to select a company to impersonate.</p>
         </div>
       </div>
     );
@@ -66,7 +66,6 @@ export default async function InductionCompliancePage() {
       />
       {(role === "superuser" || role === "admin" || role === "ADMIN") && <SuperuserSelfOverrideBlock />}
       <ComplianceClient
-        users={data.users}
         sites={data.sites}
         companyOptions={data.companyOptions}
         tradeOptions={data.tradeOptions}

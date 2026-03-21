@@ -18,7 +18,12 @@ function getClient(): SupabaseClient {
   }
 
   try {
-    _client = createClient(url.trim(), key.trim());
+    _client = createClient(url.trim(), key.trim(), {
+      auth: {
+        detectSessionInUrl: true,
+        flowType: "implicit", // Tokens in hash - works when link opened from any device (email on phone, etc.)
+      },
+    });
     return _client;
   } catch (e) {
     _initError = e instanceof Error ? e : new Error(String(e));

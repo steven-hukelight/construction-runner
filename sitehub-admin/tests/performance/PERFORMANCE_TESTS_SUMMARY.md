@@ -1,8 +1,8 @@
-# SiteHub Performance Tests Summary
+# Construction Runner Performance Tests Summary
 
 ## Overview
 
-Performance tests for the SiteHub platform span four categories: API, Mobile, Web, and Database.
+Performance tests for the Construction Runner platform span four categories: API, Mobile, Web, and Database.
 
 ---
 

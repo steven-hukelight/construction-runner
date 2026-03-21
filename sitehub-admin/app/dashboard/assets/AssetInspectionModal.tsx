@@ -23,11 +23,8 @@ export default function AssetInspectionModal({
   async function handleSubmit() {
     setSubmitting(true);
     try {
-      let photoUrl: string | null = null;
-      if (photoFile) {
-        // TODO: Upload to asset_photos bucket, get URL
-        // For now, omit photo; add upload endpoint when storage is configured
-      }
+      // Photo uploads are not yet wired; drop the file until storage endpoint is added.
+      const photoUrl: string | null = photoFile ? null : null;
       const res = await fetch("/api/assets/inspection", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -41,6 +38,7 @@ export default function AssetInspectionModal({
       }
       onSuccess();
     } catch (e) {
+      console.error(e);
       alert("Inspection failed");
     } finally {
       setSubmitting(false);

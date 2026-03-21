@@ -45,7 +45,7 @@ export default function TableActions({ items }: { items: TableActionItem[] }) {
   const menu = open && (
     <div
       data-table-actions-menu
-      className="fixed py-1 w-40 bg-white border border-gray-200 rounded-lg shadow-xl z-[9999]"
+      className="fixed py-1 w-40 bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-600 rounded-lg shadow-xl z-[9999]"
       style={{
         top: position.openUp ? undefined : position.top,
         bottom: position.openUp ? position.bottom : undefined,
@@ -62,8 +62,8 @@ export default function TableActions({ items }: { items: TableActionItem[] }) {
           }}
           className={`block w-full text-left px-3 py-2 text-sm transition-colors ${
             item.variant === "danger"
-              ? "text-red-600 hover:bg-red-50"
-              : "text-gray-700 hover:bg-gray-100"
+              ? "text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/30"
+              : "text-gray-700 dark:text-slate-200 hover:bg-gray-100 dark:hover:bg-slate-700"
           }`}
         >
           {item.label}
@@ -77,7 +77,7 @@ export default function TableActions({ items }: { items: TableActionItem[] }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 bg-white hover:bg-gray-50 text-gray-600 hover:text-gray-900 transition-colors"
+        className="inline-flex items-center justify-center w-8 h-8 rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-600 dark:text-slate-300 hover:text-gray-900 dark:hover:text-slate-100 transition-colors"
         aria-label="Actions"
       >
         <span className="sr-only">Actions</span>

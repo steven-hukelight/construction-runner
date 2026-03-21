@@ -2,13 +2,6 @@
  * Integration test environment checks.
  * Tests run ONLY when all required env vars are present; otherwise skipped gracefully.
  */
-const required = [
-  "SUPABASE_URL",
-  "SUPABASE_ANON_KEY",
-  "TEST_EMAIL",
-  "TEST_PASSWORD",
-] as const;
-
 /** Required for auth-only tests (Supabase Auth) */
 export function hasIntegrationEnv(): boolean {
   const anon =

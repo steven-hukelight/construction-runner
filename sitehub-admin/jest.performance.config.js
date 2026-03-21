@@ -1,4 +1,5 @@
 /** Jest config for performance tests – API and database. Uses real Supabase when env vars are set. */
+/* eslint-disable @typescript-eslint/no-require-imports */
 const base = require("./jest.integration.config.js");
 module.exports = {
   ...base,

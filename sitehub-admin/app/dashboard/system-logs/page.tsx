@@ -83,9 +83,9 @@ export default function SystemLogsPage() {
 
       {clearConfirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
-          <div className="bg-white rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-2">Clear System Logs</h3>
-            <p className="text-sm text-gray-600 mb-6">
+          <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-semibold mb-2 dark:text-slate-100">Clear System Logs</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">
               This will delete all rows from the system_logs table. This action cannot be undone. The clear action will be recorded in audit_logs.
             </p>
             <div className="flex gap-2 justify-end">
@@ -102,12 +102,12 @@ export default function SystemLogsPage() {
 
       <div className="card">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-            <FileText className="w-5 h-5 text-blue-600" />
+          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 dark:from-blue-500/20 dark:to-blue-600/20 border border-blue-200/40 dark:border-slate-600">
+            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900">Recent activity</h3>
-            <p className="text-sm text-gray-600">System and audit events</p>
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Recent activity</h3>
+            <p className="text-sm text-gray-600 dark:text-slate-400">System and audit events</p>
           </div>
         </div>
         {loading ? (
@@ -115,13 +115,13 @@ export default function SystemLogsPage() {
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
           </div>
         ) : logs.length === 0 ? (
-          <div className="py-10 px-4 rounded-xl bg-gray-50/80 border border-gray-200/60">
+          <div className="py-10 px-4 rounded-xl bg-gray-50/80 dark:bg-slate-700/60 border border-gray-200/60 dark:border-slate-600">
             <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              <Info className="w-5 h-5 text-blue-600 dark:text-blue-400 flex-shrink-0 mt-0.5" />
               <div>
-                <p className="font-medium text-gray-900">No activity log yet</p>
-                <p className="text-sm text-gray-600 mt-1">
-                  Add an activity log API (e.g. <code className="text-xs bg-gray-200/80 px-1.5 py-0.5 rounded">/api/maintenance/activity-log</code>) that returns recent events from Supabase or your logging service to see live entries here.
+                <p className="font-medium text-gray-900 dark:text-slate-100">No activity log yet</p>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
+                  Add an activity log API (e.g. <code className="text-xs bg-gray-200/80 dark:bg-slate-700 px-1.5 py-0.5 rounded">/api/maintenance/activity-log</code>) that returns recent events from Supabase or your logging service to see live entries here.
                 </p>
               </div>
             </div>
@@ -131,7 +131,7 @@ export default function SystemLogsPage() {
             {logs.map((entry) => (
               <div
                 key={entry.id}
-                className="flex items-start gap-3 py-3 px-4 rounded-xl bg-gray-50/60 border border-gray-200/40 hover:bg-gray-50 transition-colors"
+                className="flex items-start gap-3 py-3 px-4 rounded-xl bg-gray-50/60 dark:bg-slate-700/60 border border-gray-200/40 dark:border-slate-600 hover:bg-gray-50 dark:hover:bg-slate-700 transition-colors"
               >
                 {entry.level === "error" ? (
                   <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
@@ -139,8 +139,8 @@ export default function SystemLogsPage() {
                   <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{entry.message}</p>
-                  <p className="text-xs text-gray-500 mt-1">
+                  <p className="text-sm text-gray-900 dark:text-slate-100">{entry.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
                     {entry.time} {entry.source && `· ${entry.source}`}
                   </p>
                 </div>

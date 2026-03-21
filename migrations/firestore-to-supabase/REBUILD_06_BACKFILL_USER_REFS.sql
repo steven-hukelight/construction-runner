@@ -1,5 +1,5 @@
 -- =============================================================================
--- SITEHUB REBUILD - STEP 6: BACKFILL USER REFERENCES
+-- Construction Runner REBUILD - STEP 6: BACKFILL USER REFERENCES
 -- =============================================================================
 -- Run after REBUILD_05_INSERT_DATA.sql
 -- Maps firebase_uid to users.id (UUID)

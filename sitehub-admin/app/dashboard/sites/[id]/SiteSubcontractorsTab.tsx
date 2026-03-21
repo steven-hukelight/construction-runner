@@ -1,9 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
-import { useCompanyName } from "@/lib/hooks/useCompanyName";
+import { useState, useEffect, useMemo } from "react";
 import Link from "next/link";
 import { Building2, Users, FileText } from "lucide-react";
+import useSWR from "swr";
 
 type Subcontractor = { companyId: string; companyName?: string };
 type AssignedOp = { id: string; operativeId: string; companyId: string; status?: string };
@@ -14,6 +14,23 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
   const [assigned, setAssigned] = useState<AssignedOp[]>([]);
   const [rams, setRams] = useState<RamsDoc[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const { data: companies = [] } = useSWR(
+    "/api/companies",
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    },
+    { revalidateOnFocus: false }
+  );
+  const companyMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    (companies as { id?: string; name?: string }[]).forEach((c) => {
+      if (c?.id && c?.name) m[String(c.id)] = String(c.name);
+    });
+    return m;
+  }, [companies]);
 
   useEffect(() => {
     if (!siteId) return;
@@ -90,7 +107,7 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
             {Object.entries(assignedByCompany).map(([companyId, list]) => (
               <div key={companyId}>
                 <p className="text-sm font-medium text-gray-700 mb-2">
-                  <CompanyName companyId={companyId} />
+                  {companyMap[companyId] ?? companyId}
                 </p>
                 <ul className="list-disc list-inside text-sm text-gray-600">
                   {list.map((a) => (
@@ -115,7 +132,7 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
             {Object.entries(ramsByCompany).map(([companyId, list]) => (
               <div key={companyId}>
                 <p className="text-sm font-medium text-gray-700 mb-2">
-                  <CompanyName companyId={companyId} />
+                  {companyMap[companyId] ?? companyId}
                 </p>
                 <ul className="space-y-1 text-sm text-gray-600">
                   {list.map((r) => (
@@ -132,9 +149,4 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
       </div>
     </div>
   );
-}
-
-function CompanyName({ companyId }: { companyId: string }) {
-  const name = useCompanyName(companyId);
-  return <>{name ?? companyId}</>;
 }

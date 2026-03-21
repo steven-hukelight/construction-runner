@@ -6,6 +6,7 @@
  * - Archive thread
  * - Verify archived threads hidden
  */
+/* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 import {
   setMockCookies,
