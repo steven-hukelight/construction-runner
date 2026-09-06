@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
 
@@ -80,19 +81,22 @@ const normalizeSite = (value: unknown): Site => {
 
 function formatTimestamp(value: TimestampLike | undefined): string {
   if (!value) return "";
+  let dt: Date;
   if (typeof value === "string" || typeof value === "number") {
-    const dt = new Date(value);
-    return isNaN(dt.getTime()) ? String(value) : dt.toLocaleString("en-GB");
-  }
-  if (value instanceof Date) return value.toLocaleString("en-GB");
-  if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
+    dt = new Date(value);
+    if (isNaN(dt.getTime())) return String(value);
+  } else if (value instanceof Date) {
+    dt = value;
+  } else if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
     try {
-      return value.toDate().toLocaleString("en-GB");
+      dt = value.toDate();
     } catch {
       return "";
     }
+  } else {
+    return "";
   }
-  return "";
+  return formatDateTime(dt);
 }
 
 function normalizeAction(a: string): "sign_in" | "sign_out" {
@@ -111,15 +115,21 @@ function normalizeAction(a: string): "sign_in" | "sign_out" {
   return "sign_out";
 }
 
-export default function RoleCall() {
+export default function RoleCall({
+  selectedDate: selectedDateProp,
+  onArchived,
+}: { selectedDate?: string; onArchived?: () => void }) {
   const [people, setPeople] = useState<PersonStatus[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string | "all">("all");
-  const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
+  const [localDate, setLocalDate] = useState<string>(() => todayStr());
+  const selectedDate = selectedDateProp ?? localDate;
   const [archiving, setArchiving] = useState(false);
+  const [statusTab, setStatusTab] = useState<"signed_in" | "signed_out">("signed_in");
+  const isToday = selectedDate === todayStr();
 
   const selectedSiteName = (() => {
     if (selectedSiteId === "all") return "All sites";
@@ -156,16 +166,36 @@ export default function RoleCall() {
     setPeople(Array.from(seen.values()));
   }, [attendanceLogs, selectedSiteId, users, profiles]);
 
-  // Load attendance from API (filtered by date for fire role call)
+  const signedInPeople = useMemo(
+    () => people.filter((p) => p.lastActionNormalized === "sign_in"),
+    [people]
+  );
+  const signedOutPeople = useMemo(
+    () => people.filter((p) => p.lastActionNormalized === "sign_out"),
+    [people]
+  );
+  const displayedPeople = statusTab === "signed_in" ? signedInPeople : signedOutPeople;
+
+  // Load attendance from API (today = live; past days = archive)
   useEffect(() => {
     const load = async () => {
       try {
-        const params = new URLSearchParams({ limit: "500", date: selectedDate });
+        const params = new URLSearchParams({ limit: "500" });
         if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
-        const res = await fetch(`/api/attendance?${params}`, {
-          cache: "no-store",
-          credentials: "include",
-        });
+        let res: Response;
+        if (isToday) {
+          // Latest live row per person (including leftover open sessions until midnight archive).
+          res = await fetch(`/api/attendance?${params}`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+        } else {
+          params.set("date", selectedDate);
+          res = await fetch(`/api/attendance/archive?${params}`, {
+            cache: "no-store",
+            credentials: "include",
+          });
+        }
         const json = await res.json();
         setAttendanceLogs(Array.isArray(json) ? (json as AttendanceLog[]) : []);
       } catch {
@@ -173,9 +203,11 @@ export default function RoleCall() {
       }
     };
     load();
-    const interval = setInterval(load, 30000);
-    return () => clearInterval(interval);
-  }, [selectedDate, selectedSiteId]);
+    const interval = isToday ? setInterval(load, 30000) : undefined;
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [selectedDate, selectedSiteId, isToday]);
 
   // Load users/profiles/sites from API
   useEffect(() => {
@@ -212,13 +244,13 @@ export default function RoleCall() {
   }, []);
 
   const handleExportCSV = () => {
-    if (!people.length) return;
+    if (!displayedPeople.length) return;
 
     const header = "Name,Last Action,Last Time\n";
-    const rows = people
+    const rows = displayedPeople
       .map((p) => {
         const safeName = (p.name || "").replace(/"/g, '""');
-        return `"${safeName}",${p.lastAction},${p.lastTime}`;
+        return `"${safeName}",${p.lastActionNormalized === "sign_in" ? "SIGN IN" : "SIGN OUT"},${p.lastTime}`;
       })
       .join("\n");
 
@@ -230,7 +262,7 @@ export default function RoleCall() {
     link.href = url;
     link.setAttribute(
       "download",
-      `role-call-${new Date().toISOString().slice(0, 10)}.csv`
+      `role-call-${statusTab === "signed_in" ? "signed-in" : "signed-out"}-${selectedDate}.csv`
     );
     document.body.appendChild(link);
     link.click();
@@ -239,18 +271,18 @@ export default function RoleCall() {
   };
 
   const handleExportPDF = async () => {
-    if (!people.length) return;
+    if (!displayedPeople.length) return;
 
     const { default: jsPDF } = await import("jspdf");
     const doc = new jsPDF();
     doc.setFontSize(14);
-    doc.text("Role Call", 14, 16);
+    doc.text(statusTab === "signed_in" ? "Role Call — Signed in" : "Role Call — Signed out", 14, 16);
     doc.setFontSize(10);
 
     let y = 26;
     const lineHeight = 7;
 
-    people.forEach((p, index) => {
+    displayedPeople.forEach((p, index) => {
       if (y > 280) {
         doc.addPage();
         y = 20;
@@ -263,7 +295,7 @@ export default function RoleCall() {
       y += lineHeight;
     });
 
-    doc.save(`role-call-${new Date().toISOString().slice(0, 10)}.pdf`);
+    doc.save(`role-call-${statusTab === "signed_in" ? "signed-in" : "signed-out"}-${selectedDate}.pdf`);
   };
 
   const handleArchiveAndClear = async () => {
@@ -281,9 +313,10 @@ export default function RoleCall() {
       });
       const data = await res.json();
       if (res.ok) {
-        setSelectedDate(todayStr());
+        setLocalDate(todayStr());
         setPeople([]);
         setAttendanceLogs([]);
+        onArchived?.();
         alert(`Role call for ${selectedDate} archived. Ready for next session.`);
       } else {
         alert(data?.error ?? "Failed to archive");
@@ -339,18 +372,22 @@ export default function RoleCall() {
       <div className="flex items-center justify-between gap-3 flex-wrap">
         <div className="flex items-center gap-3 flex-wrap">
           <div>
-            <h3 className="text-sm font-semibold text-slate-900">Role Call</h3>
-            <p className="text-xs text-slate-500">Fire roll call — daily sign-in status per operative.</p>
+            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Role Call</h3>
+            <p className="text-xs text-slate-500 dark:text-slate-400">
+              Fire roll call — signed-in operatives first; signed-out on the other tab.
+            </p>
           </div>
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-600">Date</label>
-            <input
-              type="date"
-              className="input text-xs"
-              value={selectedDate}
-              onChange={(e) => setSelectedDate(e.target.value || todayStr())}
-            />
-          </div>
+          {selectedDateProp == null && (
+            <div className="flex items-center gap-2">
+              <label className="text-xs text-slate-600">Date</label>
+              <input
+                type="date"
+                className="input text-xs"
+                value={selectedDate}
+                onChange={(e) => setLocalDate(e.target.value || todayStr())}
+              />
+            </div>
+          )}
           <div className="flex items-center gap-2">
             <label className="text-xs text-slate-600">Site</label>
             <select
@@ -367,11 +404,13 @@ export default function RoleCall() {
         </div>
         {people.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700">Date: {selectedDate}</span>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700">Site: {selectedSiteName}</span>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700">{people.length} {people.length === 1 ? "person" : "people"}</span>
-            <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV}>Export CSV</Button>
-            <Button size="sm" type="button" onClick={handleExportPDF}>Export PDF</Button>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Date: {selectedDate}</span>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Site: {selectedSiteName}</span>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+              {displayedPeople.length} {displayedPeople.length === 1 ? "person" : "people"}
+            </span>
+            <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV} disabled={!displayedPeople.length}>Export CSV</Button>
+            <Button size="sm" type="button" onClick={handleExportPDF} disabled={!displayedPeople.length}>Export PDF</Button>
             <Button
               variant="secondary"
               size="sm"
@@ -386,10 +425,43 @@ export default function RoleCall() {
         )}
       </div>
 
+      <div className="bg-slate-100/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-600 rounded-xl p-1 inline-flex gap-1">
+        <button
+          type="button"
+          onClick={() => setStatusTab("signed_in")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            statusTab === "signed_in"
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          }`}
+        >
+          Signed in ({signedInPeople.length})
+        </button>
+        <button
+          type="button"
+          onClick={() => setStatusTab("signed_out")}
+          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
+            statusTab === "signed_out"
+              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
+              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
+          }`}
+        >
+          Signed out ({signedOutPeople.length})
+        </button>
+      </div>
+
       {people.length === 0 ? (
-        <p className="text-sm text-slate-500">No attendance activity yet.</p>
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {isToday ? "No attendance activity yet." : `No archived attendance for ${selectedDate}.`}
+        </p>
+      ) : displayedPeople.length === 0 ? (
+        <p className="text-sm text-slate-500 dark:text-slate-400">
+          {statusTab === "signed_in"
+            ? "No one is signed in."
+            : "No one has signed out yet."}
+        </p>
       ) : (
-        <Table columns={columns} data={people} />
+        <Table columns={columns} data={displayedPeople} />
       )}
     </div>
   );
