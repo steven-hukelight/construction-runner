@@ -58,7 +58,7 @@ export async function GET(req: Request) {
       return NextResponse.json([mapped]);
     }
 
-    let query = supabaseAdmin.from("users").select("*").order("created_at", { ascending: false });
+    let query = supabaseAdmin.from("users").select("*").order("created_at", { ascending: false }).limit(500);
     if (role === "superuser") {
       if (all) {
         /* no company filter */

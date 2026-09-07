@@ -1,18 +1,21 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { motion } from "framer-motion";
-import { Sparkles, Calendar } from "lucide-react";
+import { Sparkles, Calendar, Clock, LogIn } from "lucide-react";
 import useSWR from "swr";
 
 type WelcomeBannerProps = {
   subtitle?: string;
+  /** Site clock-in pill — only for field roles (e.g. supervisor); set from server via {@link isSiteAttendanceRole}. */
+  showSiteAttendance?: boolean;
 };
 
 /** Subtle dark overlay for text contrast; can swap for text-shadow/pill/darker text later */
 const OVERLAY_OPACITY = "rgba(0, 0, 0, 0.2)";
 
-export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
+export default function WelcomeBanner({ subtitle, showSiteAttendance = false }: WelcomeBannerProps) {
   const { data: userName, isValidating } = useSWR(
     "/api/profiles/me",
     async (url) => {
@@ -22,7 +25,21 @@ export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
       const me = Array.isArray(arr) ? arr[0] : arr;
       return (me?.name ?? me?.displayName ?? "").trim();
     },
-    { revalidateOnFocus: true }
+    // Name doesn't change between tab switches — avoid a re-fetch storm on
+    // every window/tab focus. Dedupe over a minute so quick back-and-forth
+    // navigation reuses the cached name.
+    { revalidateOnFocus: false, dedupingInterval: 60_000 },
+  );
+  const { data: attendanceStatus } = useSWR(
+    showSiteAttendance ? "/api/me/attendance-status" : null,
+    async (url) => {
+      const res = await fetch(url, { credentials: "include" });
+      if (!res.ok) return { signedIn: false };
+      return res.json() as Promise<{ signedIn: boolean; siteName?: string }>;
+    },
+    // Attendance status endpoint runs 4+ DB queries per call; poll on the
+    // banner's own timer (component-level 60s tick), not on every focus.
+    { revalidateOnFocus: false, dedupingInterval: 30_000 },
   );
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mounted, setMounted] = useState(false);
@@ -44,12 +61,7 @@ export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
     return "Good evening";
   };
 
-  const formattedDate = currentTime.toLocaleDateString('en-GB', { 
-    weekday: 'long', 
-    year: 'numeric', 
-    month: 'long', 
-    day: 'numeric' 
-  });
+  const formattedDate = formatDate(currentTime);
 
   return (
     <motion.div
@@ -112,10 +124,31 @@ export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
               initial={{ opacity: 0, x: -20 }}
               animate={{ opacity: 1, x: 0 }}
               transition={{ delay: 0.2, duration: 0.6 }}
-              className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 mb-4 border border-white dark:border-slate-600 shadow-lg"
+              className="flex flex-wrap items-center gap-2 mb-4"
             >
-              <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-              <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Welcome back</span>
+              <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 border border-white dark:border-slate-600 shadow-lg">
+                <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
+                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Welcome back</span>
+              </div>
+              {showSiteAttendance && attendanceStatus && (
+                <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 border border-white dark:border-slate-600 shadow-lg">
+                  {attendanceStatus.signedIn ? (
+                    <>
+                      <LogIn className="w-4 h-4 text-green-600 dark:text-green-400" />
+                      <span className="text-sm font-bold text-green-700 dark:text-green-300">
+                        Signed in{attendanceStatus.siteName ? ` at ${attendanceStatus.siteName}` : ""}
+                      </span>
+                    </>
+                  ) : (
+                    <>
+                      <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
+                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
+                        Not clocked in
+                      </span>
+                    </>
+                  )}
+                </div>
+              )}
             </motion.div>
             
             <motion.h1
@@ -158,16 +191,16 @@ export default function WelcomeBanner({ subtitle }: WelcomeBannerProps) {
             transition={{ delay: 0.5, duration: 0.6 }}
             className="lg:flex-shrink-0"
           >
-            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl p-6 border-4 border-blue-300 dark:border-slate-600 shadow-xl min-w-[240px]">
+            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl p-6 border-4 border-blue-300 dark:border-slate-600 shadow-xl min-w-[200px] shrink-0">
               <div className="flex items-start gap-4">
                 <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
                   <Calendar className="w-6 h-6 text-white" />
                 </div>
-                <div>
+                <div className="min-w-0 flex-1">
                   <div className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide mb-1">
                     Today
                   </div>
-                  <div className="text-base text-slate-700 dark:text-slate-200 font-bold leading-tight">
+                  <div className="text-base text-slate-700 dark:text-slate-200 font-bold leading-tight whitespace-nowrap overflow-visible">
                     {mounted ? formattedDate : ' '}
                   </div>
                 </div>

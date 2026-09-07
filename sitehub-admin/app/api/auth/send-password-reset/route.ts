@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getServerPublicOrigin } from "@/lib/url";
 import { provisionLegacyUser } from "@/lib/provisionLegacyUser";
 import nodemailer from "nodemailer";
 
@@ -60,10 +61,7 @@ export async function POST(req: Request) {
       }
     }
 
-    const baseUrl =
-      process.env.NEXT_PUBLIC_BASE_URL ||
-      process.env.NEXTAUTH_URL ||
-      (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+    const baseUrl = getServerPublicOrigin();
     const redirectUrl = `${baseUrl.replace(/\/$/, "")}/reset-password`;
 
     if (!redirectUrl.startsWith("http")) {
@@ -113,12 +111,23 @@ export async function POST(req: Request) {
     const hasResend = !!process.env.RESEND_API_KEY;
     const hasSendGrid = !!process.env.SENDGRID_API_KEY;
     const hasSmtp = !!(process.env.SMTP_HOST && process.env.SMTP_USER && process.env.SMTP_PASS);
+
+    // Fallback: if no external provider is configured, let Supabase send the reset email.
+    // This preserves admin reset behavior in environments that only use Supabase Auth mailer.
     if (!hasResend && !hasSendGrid && !hasSmtp) {
-      console.error("send-password-reset: No email configured (RESEND_API_KEY, SENDGRID_API_KEY, or SMTP_HOST/USER/PASS)");
-      return NextResponse.json(
-        { error: "Email sending is not configured. Set RESEND_API_KEY, SENDGRID_API_KEY, or SMTP_HOST/SMTP_USER/SMTP_PASS." },
-        { status: 503 }
-      );
+      try {
+        const { error } = await supabaseAdmin.auth.resetPasswordForEmail(email, {
+          redirectTo: redirectUrl,
+        });
+        if (error) throw error;
+        return NextResponse.json({ ok: true, message: "Password reset email sent." });
+      } catch (fallbackErr) {
+        console.error("send-password-reset: Supabase fallback send failed", fallbackErr);
+        return NextResponse.json(
+          { error: "Failed to send password reset email. Configure SMTP provider or check Supabase Auth email settings." },
+          { status: 500 }
+        );
+      }
     }
 
     if (hasResend) {

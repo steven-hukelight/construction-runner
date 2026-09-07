@@ -1,10 +1,19 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import { getComplianceData } from "./server";
 import ComplianceClient from "./components/ComplianceClient";
 import SuperuserSelfOverrideBlock from "./components/SuperuserSelfOverrideBlock";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 export default async function InductionCompliancePage() {
+  // Induction Compliance is largely a Pre-Induction dashboard; when the
+  // feature is hidden site-wide, send users somewhere useful. All backing
+  // data still exists — flip `preInductionUiEnabled` back to `true` to
+  // restore the page.
+  if (!preInductionUiEnabled) {
+    redirect("/dashboard");
+  }
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
   const companyId = cookieStore.get("companyId")?.value;

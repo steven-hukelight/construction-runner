@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
+import { useSWRConfig } from "swr";
 import { MapPin } from "lucide-react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
@@ -22,7 +22,7 @@ export default function AddSiteModal() {
   const [loading, setLoading] = useState(false);
   const [showMap, setShowMap] = useState(false);
   const [polygon, setPolygon] = useState<{ lat: number; lng: number }[]>([]);
-  const router = useRouter();
+  const { mutate } = useSWRConfig();
 
   async function handleSubmit() {
     setError(null);
@@ -70,7 +70,8 @@ export default function AddSiteModal() {
       setLoading(true);
       await createSite(payload);
       setOpen(false);
-      router.refresh();
+      // Revalidate table data without re-running Server Components (avoids production RSC digest errors).
+      await mutate("/api/sites");
     } catch (e: any) {
       setError(e?.message || "Failed to create site");
     } finally {

@@ -6,15 +6,17 @@ import { AlertCircle, Calendar } from "lucide-react";
 type ExpiryItem = {
   type: string;
   label: string;
-  expiry: Date;
+  /** ISO string from server (RSC-safe) */
+  expiry: string;
 };
 
 type Props = {
   items: ExpiryItem[];
 };
 
-function isExpired(expiry: Date): boolean {
-  return expiry.getTime() < Date.now();
+function isExpired(expiry: string): boolean {
+  const t = new Date(expiry).getTime();
+  return !isNaN(t) && t < Date.now();
 }
 
 export default function ComplianceExpiryWarnings({ items }: Props) {
@@ -24,7 +26,11 @@ export default function ComplianceExpiryWarnings({ items }: Props) {
   const expiring = items.filter((i) => !isExpired(i.expiry));
   const tooltip = [
     ...expired.map((i) => `${i.label} – expired`),
-    ...expiring.map((i) => `${i.label} – ${i.expiry.toLocaleDateString()}`),
+    ...expiring.map((i) => {
+      const d = new Date(i.expiry);
+      const label = isNaN(d.getTime()) ? "—" : d.toLocaleDateString();
+      return `${i.label} – ${label}`;
+    }),
   ].join("\n");
 
   return (

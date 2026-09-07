@@ -27,13 +27,21 @@ export default async function RAMSDetailPage({ params }: PageProps) {
     redirect("/dashboard/health-and-safety/rams");
   }
 
+  const roleLower = role?.toLowerCase() ?? "";
+  const canViewAcknowledgements =
+    roleLower === "admin" || roleLower === "supervisor" || roleLower === "superuser";
+
   return (
     <div className="relative space-y-8">
       <PageHeader
         title="RAMS Document"
         description="View version history, acknowledge, and manage RAMS."
       />
-      <RAMSDetailClient ramsId={id} />
+      <RAMSDetailClient
+        ramsId={id}
+        companyId={companyId ?? null}
+        canViewAcknowledgements={canViewAcknowledgements}
+      />
     </div>
   );
 }

@@ -16,7 +16,8 @@ export type SiteInductionOperative = {
   companyId: string;
   companyName: string;
   status: SiteInductionStatus;
-  completedAt: Date | null;
+  /** ISO string — required for Server Component → client serialization */
+  completedAt: string | null;
 };
 
 export type SiteInductionData = {
@@ -88,15 +89,17 @@ export async function getSiteInductionData(
     const companyName = companyNames[companyId] ?? companyId;
 
     let status: SiteInductionOperative["status"] = "Induction Required";
-    let completedAt: Date | null = null;
+    let completedAtDate: Date | null = null;
     const adminOverride = (user as { admin_pre_induction_override?: boolean })?.admin_pre_induction_override === true;
     const preInductionComplete = (user?.pre_induction_status as string) === "complete";
 
     if (ind) {
-      completedAt = ind.completed_at ? new Date(ind.completed_at) : null;
+      completedAtDate = ind.completed_at ? new Date(ind.completed_at) : null;
       const statusVal = (ind.status ?? "completed") as string;
       const grandfathered = ind.grandfathered === true;
-      const isExpired = completedAt && now.getTime() - completedAt.getTime() > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+      const isExpired =
+        completedAtDate &&
+        now.getTime() - completedAtDate.getTime() > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
       if (isExpired) status = "Expired";
       else if (statusVal === "completed") status = grandfathered ? "Grandfathered" : "Inducted";
       else {
@@ -110,7 +113,17 @@ export async function getSiteInductionData(
       else status = "Induction Required";
     }
 
-    operatives.push({ operativeId, operativeName, companyId, companyName, status, completedAt });
+    operatives.push({
+      operativeId,
+      operativeName,
+      companyId,
+      companyName,
+      status,
+      completedAt:
+        completedAtDate && !isNaN(completedAtDate.getTime())
+          ? completedAtDate.toISOString()
+          : null,
+    });
   }
 
   return { site: { id: siteId, name: siteName, mainContractorId }, operatives, companyOptions };

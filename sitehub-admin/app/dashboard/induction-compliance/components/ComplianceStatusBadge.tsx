@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import Link from "next/link";
 import type { ComplianceFilterStatus } from "../server";
 
 const STATUS_STYLES: Record<ComplianceFilterStatus, { bg: string; text: string }> = {
@@ -23,16 +24,23 @@ const STATUS_LABELS: Record<ComplianceFilterStatus, string> = {
 
 type Props = {
   status: ComplianceFilterStatus;
+  siteId?: string | null;
 };
 
-export default function ComplianceStatusBadge({ status }: Props) {
+export default function ComplianceStatusBadge({ status, siteId }: Props) {
   const s = STATUS_STYLES[status] ?? { bg: "bg-gray-100 dark:bg-slate-700", text: "text-gray-700 dark:text-slate-300" };
   const label = STATUS_LABELS[status] ?? status;
-  return (
-    <span
-      className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md whitespace-nowrap ${s.bg} ${s.text}`}
-    >
-      {label}
-    </span>
-  );
+  const className = `inline-flex px-2 py-0.5 text-xs font-medium rounded-md whitespace-nowrap ${s.bg} ${s.text}`;
+  if (status === "missing_induction" && siteId) {
+    return (
+      <Link
+        href={`/dashboard/sites/${siteId}/induction`}
+        className={`${className} hover:opacity-80 transition-opacity`}
+        title="Go to site Induction tab"
+      >
+        {label}
+      </Link>
+    );
+  }
+  return <span className={className}>{label}</span>;
 }

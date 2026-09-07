@@ -3,11 +3,13 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { writeAuditLog } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { sendPushToUsers } from "@/lib/onesignal";
 
 export async function POST(req: Request) {
   const form = await req.formData();
   const file = form.get("file") as File;
   const title = (form.get("title") as string) || (file?.name ?? "Untitled");
+  const body = (form.get("body") as string) || "";
   const siteId = (form.get("siteId") as string) || "";
 
   const cookieStore = await cookies();
@@ -38,12 +40,16 @@ export async function POST(req: Request) {
   const { data: urlData } = supabaseAdmin.storage.from("briefings").getPublicUrl(uploadData.path);
   const fileUrl = urlData.publicUrl;
 
+  const { data: users } = email ? await supabaseAdmin.from("users").select("id").eq("email", email).limit(1) : { data: [] };
+  const actorId = (users?.[0] as { id?: string })?.id ?? null;
+
   const { data: briefing, error: insertError } = await supabaseAdmin.from("briefings").insert({
     title: title.trim() || file.name,
+    body: body.trim() || null,
     file_url: fileUrl,
     company_id: companyId,
     site_id: siteId.trim() || null,
-    uploaded_by: "admin",
+    uploaded_by: actorId,
   }).select("id").single();
 
   if (insertError) {
@@ -51,16 +57,25 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: insertError.message }, { status: 500 });
   }
 
-  const { data: users } = email ? await supabaseAdmin.from("users").select("id").eq("email", email).limit(1) : { data: [] };
-  const actorId = users?.[0]?.id ?? "unknown";
   await writeAuditLog({
-    userId: actorId,
+    userId: actorId ?? "unknown",
     action: "briefing_upload",
     timestamp: new Date(),
-    actorId,
+    actorId: actorId ?? "unknown",
     actorEmail: email ?? null,
     metadata: { briefingId: briefing?.id, title: title || file.name },
   });
+
+  const { data: companyUsers } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
+  const userIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean);
+  if (userIds.length > 0) {
+    sendPushToUsers(
+      userIds,
+      `New Briefing: ${title.trim() || file.name}`,
+      "New toolbox talk / briefing added",
+      { type: "briefing", screen: "briefings" }
+    ).catch((e) => console.error("Briefing push failed:", e));
+  }
 
   return NextResponse.json({ success: true });
 }

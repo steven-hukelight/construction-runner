@@ -33,25 +33,29 @@ export async function GET(
     }
 
     const userIds = [...new Set((assigns ?? []).map((a) => a.user_id))];
-    const users: Record<string, { email?: string; display_name?: string }> = {};
+    const users: Record<string, { email?: string; display_name?: string; name?: string }> = {};
     if (userIds.length > 0) {
-      const { data: uData } = await supabaseAdmin
-        .from("users")
-        .select("id, email")
-        .in("id", userIds);
-      const { data: pData } = await supabaseAdmin
-        .from("profiles")
-        .select("id, display_name")
-        .in("id", userIds);
-
-      (uData ?? []).forEach((u) => { users[u.id] = { ...users[u.id], email: u.email }; });
-      (pData ?? []).forEach((p) => { users[p.id] = { ...users[p.id], display_name: p.display_name }; });
+      const [uData, pData, personalData] = await Promise.all([
+        supabaseAdmin.from("users").select("id, email, display_name, name").in("id", userIds),
+        supabaseAdmin.from("profiles").select("id, display_name").in("id", userIds),
+        supabaseAdmin.from("pre_induction_personal").select("user_id, full_name").in("user_id", userIds),
+      ]);
+      (uData.data ?? []).forEach((u: { id: string; email?: string; display_name?: string; name?: string }) => {
+        users[u.id] = { ...users[u.id], email: u.email, display_name: u.display_name || u.name };
+      });
+      (pData.data ?? []).forEach((p: { id: string; display_name?: string }) => {
+        if (p.display_name) users[p.id] = { ...users[p.id], display_name: p.display_name };
+      });
+      (personalData.data ?? []).forEach((pr: { user_id: string; full_name?: string }) => {
+        if (pr.full_name) users[pr.user_id] = { ...users[pr.user_id], display_name: pr.full_name };
+      });
     }
 
-    const result = (assigns ?? []).map((a) => ({
-      ...a,
-      user: users[a.user_id] ?? {},
-    }));
+    const result = (assigns ?? []).map((a) => {
+      const u = users[a.user_id] ?? {};
+      const displayName = u.display_name || u.name || u.email || "Unknown";
+      return { ...a, user: { ...u, display_name: displayName } };
+    });
 
     return NextResponse.json(result);
   } catch (e) {

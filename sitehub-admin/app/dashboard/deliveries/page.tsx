@@ -1,7 +1,9 @@
 import PageHeader from "../components/PageHeader";
 import DeliveriesTable from "./DeliveriesTable";
 import AddDeliveryModal from "./AddDeliveryModal";
+import HaulageManager from "./HaulageManager";
 import { fetchDeliveries } from "./actions";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function DeliveriesPage() {
   const deliveries = await fetchDeliveries();
@@ -17,7 +19,9 @@ export default async function DeliveriesPage() {
         action={<AddDeliveryModal />}
       />
 
-      <DeliveriesTable data={deliveries} />
+      <HaulageManager />
+
+      <DeliveriesTable data={deepSerializeForClient(deliveries)} />
     </div>
   );
 }

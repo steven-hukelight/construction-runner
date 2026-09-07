@@ -32,12 +32,12 @@ test.describe("Reset password flow", () => {
   });
 
   test("login page has forgot password link", async ({ page }) => {
-    await page.goto(`${baseURL}/login`);
+    await page.goto(`${baseURL}/admin/login`);
     await expect(page.getByRole("link", { name: /forgot password/i })).toBeVisible();
   });
 
   test("forgot-password link navigates correctly", async ({ page }) => {
-    await page.goto(`${baseURL}/login`);
+    await page.goto(`${baseURL}/admin/login`);
     await page.getByRole("link", { name: /forgot password/i }).click();
     await expect(page).toHaveURL(/forgot-password/);
   });

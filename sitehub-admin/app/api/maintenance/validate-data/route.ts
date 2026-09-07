@@ -13,7 +13,7 @@ export async function GET() {
     const { data: companies } = await supabaseAdmin.from("companies").select("id, name");
     const companyList = (companies ?? []).map((c) => ({ id: c.id, name: c.name }));
 
-    const tables = ["sites", "users", "tasks", "notices", "rams", "deliveries"] as const;
+    const tables = ["sites", "users", "tasks", "rams", "deliveries"] as const;
     const perCompany: Record<string, Record<string, number>> = {};
     const missingCompanyId: Record<string, number> = {};
 

@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { X, ExternalLink, AlertTriangle, Clock, FileText } from "lucide-react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import RAMSStatusBadge from "../components/RAMSStatusBadge";
 import SubcontractorUploadMissingDocuments from "./SubcontractorUploadMissingDocuments";
@@ -325,7 +326,7 @@ export default function SubcontractorOperativeDrawer({
                       </div>
                       {r.currentVersion && <p><span className="font-medium">Current version:</span> {r.currentVersion}</p>}
                       {r.acceptedVersion && <p><span className="font-medium">Accepted version:</span> {r.acceptedVersion}</p>}
-                      {r.acceptedAt && <p><span className="font-medium">Accepted at:</span> {new Date(r.acceptedAt).toLocaleString()}</p>}
+                      {r.acceptedAt && <p><span className="font-medium">Accepted at:</span> {formatDateTime(r.acceptedAt)}</p>}
                       {r.fileUrl && (
                         <button
                           type="button"

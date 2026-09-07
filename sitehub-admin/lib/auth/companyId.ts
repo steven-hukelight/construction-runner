@@ -20,20 +20,26 @@ export async function resolveCompanyId(params: {
   const roleLower = (role ?? "").toLowerCase();
   if (roleLower === "superuser") {
     const override = (headerOverride ?? queryCompanyId ?? "").trim();
-    return override;
+    if (override) return override;
+    // Impersonation / company switch often stores company on cookie only.
+    return (cookieCompanyId ?? "").trim();
   }
 
   let companyId = (cookieCompanyId ?? "").trim();
   if (companyId) return companyId;
 
   if (userEmail) {
-    const { data } = await supabaseAdmin
-      .from("users")
-      .select("company_id")
-      .eq("email", userEmail.trim())
-      .limit(1)
-      .maybeSingle();
-    if (data) companyId = cid(data as { company_id?: string | null });
+    try {
+      const { data } = await supabaseAdmin
+        .from("users")
+        .select("company_id")
+        .eq("email", userEmail.trim())
+        .limit(1)
+        .maybeSingle();
+      if (data) companyId = cid(data as { company_id?: string | null });
+    } catch (e) {
+      console.error("[resolveCompanyId] users lookup failed (check SUPABASE_* env server-side):", e);
+    }
   }
   return companyId;
 }

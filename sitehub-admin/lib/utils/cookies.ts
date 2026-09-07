@@ -23,6 +23,12 @@ export function getUserIdFromCookie(): string {
   return idCookie ? decodeURIComponent(idCookie.split("=")[1]) : "";
 }
 
+/** User ID (public.users.id) from uid cookie, set by setUserCookies after login. */
+export function getUidFromCookie(): string {
+  const match = safeGetCookieString().match(/(?:^|; )uid=([^;]*)/);
+  return match ? decodeURIComponent(match[1]).trim() : "";
+}
+
 export function sanitizeEmail(email: string): string {
   return email.replace(/[^a-zA-Z0-9]/g, '_');
 }
@@ -48,7 +54,7 @@ export function getRawCompanyIdFromCookie(): string {
 
 /**
  * Company ID from cookie (public.users.company_id).
- * Accepts any non-empty value (UUID or Firestore-style IDs).
+ * Accepts any non-empty value (UUID or other string ids).
  */
 export function getCompanyIdFromClient(): string | null {
   const raw = getRawCompanyIdFromCookie();

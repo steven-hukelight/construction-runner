@@ -3,6 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { mutate } from "swr";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import MapPicker from "../MapPicker";
@@ -83,6 +84,7 @@ export default function EditSiteForm({ site }: { site: any }) {
     try {
       setLoading(true);
       await updateSite(site.id, payload);
+      await mutate("/api/sites");
       router.push("/dashboard/sites");
       router.refresh();
     } catch (e: any) {

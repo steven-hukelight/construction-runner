@@ -130,7 +130,6 @@ async function checkDbRows(): Promise<void> {
       "users",
       "sites",
       "tasks",
-      "notices",
       "deliveries",
       "attendance",
       "rams",

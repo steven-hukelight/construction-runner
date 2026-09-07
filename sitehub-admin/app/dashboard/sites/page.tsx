@@ -4,6 +4,7 @@ import AddSiteModal from "./AddSiteModal";
 import { fetchSites } from "./actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function SitesPage() {
   const cookieStore = await cookies();
@@ -22,14 +23,36 @@ export default async function SitesPage() {
 
   let companyId = cookieStore.get("companyId")?.value;
   if (!companyId && role !== "superuser") {
-    companyId =
-      (await resolveCompanyId({
-        cookieCompanyId: cookieStore.get("companyId")?.value,
-        userEmail: cookieStore.get("user_email")?.value,
-        role,
-      })) || undefined;
+    try {
+      companyId =
+        (await resolveCompanyId({
+          cookieCompanyId: cookieStore.get("companyId")?.value,
+          userEmail: cookieStore.get("user_email")?.value,
+          role,
+        })) || undefined;
+    } catch (e) {
+      console.error("Sites page resolveCompanyId:", e);
+      companyId = undefined;
+    }
   }
-  const sites = await fetchSites(companyId);
+  let sites: Awaited<ReturnType<typeof fetchSites>> = [];
+  try {
+    sites = await fetchSites(companyId);
+  } catch (e) {
+    console.error("Sites page fetchSites:", e);
+  }
+  const sitesList = Array.isArray(sites) ? sites : [];
+  let tableData: typeof sitesList = [];
+  try {
+    tableData = deepSerializeForClient(sitesList);
+  } catch (e) {
+    console.error("Sites page deepSerializeForClient:", e);
+    try {
+      tableData = JSON.parse(JSON.stringify(sitesList)) as typeof sitesList;
+    } catch {
+      tableData = [];
+    }
+  }
 
   return (
     <div className="relative space-y-8">
@@ -43,7 +66,7 @@ export default async function SitesPage() {
 
       <AddSiteModal />
 
-      <SitesTable data={sites} />
+      <SitesTable data={tableData} />
     </div>
   );
 }

@@ -7,7 +7,14 @@ import Input from "../components/ui/Input";
 type User = { id: string; name?: string; email?: string };
 type Site = { id: string; name?: string };
 
-export default function SignInOut() {
+type SignInOutProps = {
+  /** Compact layout when shown above the table (toggle panel). */
+  embedded?: boolean;
+  /** Called after a successful POST so the parent can refetch the log. */
+  onRecorded?: () => void;
+};
+
+export default function SignInOut({ embedded = false, onRecorded }: SignInOutProps = {}) {
   const [users, setUsers] = useState<User[]>([]);
   const [selected, setSelected] = useState("");
   const [action, setAction] = useState("IN");
@@ -49,6 +56,7 @@ export default function SignInOut() {
       setNotes("");
       setSiteName("");
       setSiteId("");
+      onRecorded?.();
       alert("Attendance recorded");
     } catch {
       alert("Error recording attendance");
@@ -58,11 +66,19 @@ export default function SignInOut() {
   }
 
   return (
-    <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-6 space-y-5">
-      <div>
-        <h3 className="text-base font-semibold text-gray-900">Record Attendance</h3>
-        <p className="text-sm text-gray-600 mt-1">Sign operatives in or out of sites</p>
-      </div>
+    <div
+      className={
+        embedded
+          ? "space-y-4"
+          : "bg-white border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-6 space-y-5"
+      }
+    >
+      {!embedded && (
+        <div>
+          <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Record Attendance</h3>
+          <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">Sign operatives in or out of sites</p>
+        </div>
+      )}
       
       <div className="space-y-4">
         <div>
@@ -137,7 +153,11 @@ export default function SignInOut() {
           className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-h-[80px] resize-none"
         />
       </div>
-      <Button onClick={submit} disabled={loading} className="w-full">
+      <Button
+        onClick={submit}
+        disabled={loading}
+        className={embedded ? "w-full min-h-[48px] text-base font-semibold" : "w-full"}
+      >
         {loading ? "Recording..." : "Record Attendance"}
       </Button>
     </div>

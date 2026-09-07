@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { getServerPublicOrigin } from "@/lib/url";
 
 export async function GET() {
   try {
@@ -14,15 +15,25 @@ export async function GET() {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data } = await supabaseAdmin.from("registrations").select("id, data");
+    const { data } = await supabaseAdmin.from("registrations").select("id, company_id, data");
     const regs = (data ?? [])
-      .filter((r) => ((r.data as { status?: string })?.status ?? "") === "PENDING" || ((r.data as { status?: string })?.status ?? "") === "COMPANY_ADMIN_PENDING")
       .filter((r) => {
-        if (role === "superuser") return true;
-        const regData = r.data as { companyId?: string };
-        return (regData?.companyId ?? "") === (companyId ?? "");
+        const st = (r.data as { status?: string })?.status ?? "";
+        return st === "PENDING" || st === "COMPANY_ADMIN_PENDING";
       })
-      .map((r) => ({ id: r.id, ...(r.data as object) }));
+      .filter((r) => {
+        if (roleLower === "superuser") return true;
+        const rowCid = r.company_id ? String(r.company_id).trim() : "";
+        return rowCid === (companyId ?? "").trim();
+      })
+      .map((r) => {
+        const d = (r.data as Record<string, unknown>) ?? {};
+        return {
+          id: r.id,
+          ...d,
+          companyId: d.companyId ?? r.company_id ?? null,
+        };
+      });
     return NextResponse.json(regs);
   } catch (err) {
     console.error("registrations GET error", err);
@@ -33,7 +44,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { id, role } = body;
+    const { id, role: roleFromBody } = body;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
     const cookieStore = await cookies();
@@ -42,20 +53,30 @@ export async function POST(req: Request) {
 
     const effectiveApproverRole = actualApproverRole === "superuser" ? "SUPERUSER" : actualApproverRole.toUpperCase();
 
-    if (role === "ADMIN" || role === "SUPERVISOR") {
+    const assignRoleUpper = String(roleFromBody ?? "OPERATIVE").toUpperCase();
+
+    if (assignRoleUpper === "ADMIN" || assignRoleUpper === "SUPERVISOR") {
       if (effectiveApproverRole !== "ADMIN" && effectiveApproverRole !== "SUPERUSER") {
         return NextResponse.json({ error: "Only approved ADMIN or SUPERUSER can approve ADMIN/SUPERVISOR roles" }, { status: 403 });
       }
-    } else if (role === "OPERATIVE") {
-      if (effectiveApproverRole !== "ADMIN" && effectiveApproverRole !== "SUPERVISOR" && effectiveApproverRole !== "SUPERUSER") {
+    } else if (assignRoleUpper === "OPERATIVE") {
+      if (
+        effectiveApproverRole !== "ADMIN" &&
+        effectiveApproverRole !== "SUPERVISOR" &&
+        effectiveApproverRole !== "SUPERUSER" &&
+        effectiveApproverRole !== "SUB_ADMIN"
+      ) {
         return NextResponse.json({ error: "Only approved ADMIN/SUPERVISOR or SUPERUSER can approve OPERATIVE role" }, { status: 403 });
       }
+    } else {
+      return NextResponse.json({ error: "Invalid role for approval" }, { status: 400 });
     }
 
-    const { data: regRow } = await supabaseAdmin.from("registrations").select("id, data").eq("id", id).maybeSingle();
+    const { data: regRow } = await supabaseAdmin.from("registrations").select("id, company_id, data").eq("id", id).maybeSingle();
     if (!regRow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
     const reg = regRow.data as { email?: string; name?: string; status?: string; role?: string; companyId?: string };
+    const effectiveCompanyId = regRow.company_id ?? reg.companyId ?? null;
     if (reg.status !== "PENDING" && reg.status !== "COMPANY_ADMIN_PENDING") {
       return NextResponse.json({ error: "Already processed" }, { status: 400 });
     }
@@ -81,15 +102,15 @@ export async function POST(req: Request) {
     if (!authUser) return NextResponse.json({ error: "Failed to create auth user" }, { status: 500 });
 
     const isCompanyAdmin = reg.role === "ADMIN" && reg.status === "COMPANY_ADMIN_PENDING";
-    const approved = !isCompanyAdmin;
-    const roleVal = (role ?? "operative").toLowerCase();
+    const approvedForApp = !isCompanyAdmin;
+    const roleVal = (roleFromBody ?? reg.role ?? "OPERATIVE").toString().toLowerCase();
 
     await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
       app_metadata: {
-        approved,
+        approved: approvedForApp,
         role: roleVal,
-        companyId: reg.companyId ?? null,
-        superuser: (role === "ADMIN" || role === "SUPERUSER") && reg.email?.endsWith?.("@sitehub.com"),
+        companyId: effectiveCompanyId,
+        superuser: assignRoleUpper === "ADMIN" && reg.email?.endsWith?.("@construction-runner.com"),
       },
     });
 
@@ -98,8 +119,9 @@ export async function POST(req: Request) {
         id: authUser.id,
         email: reg.email ?? null,
         display_name: reg.name ?? "",
-        company_id: reg.companyId ?? null,
+        company_id: effectiveCompanyId,
         role: roleVal,
+        approved: approvedForApp,
       },
       { onConflict: "id" }
     );
@@ -109,6 +131,7 @@ export async function POST(req: Request) {
       .update({
         data: {
           ...reg,
+          companyId: effectiveCompanyId,
           status: isCompanyAdmin ? "ADMIN_SETUP_PENDING" : "APPROVED",
           approved_at: new Date().toISOString(),
           user_id: authUser.id,
@@ -118,7 +141,8 @@ export async function POST(req: Request) {
       .eq("id", id);
 
     try {
-      await fetch(`${process.env.NEXT_PUBLIC_BASE_URL ?? ""}/api/auth/sendWelcome`, {
+      const publicBase = getServerPublicOrigin();
+      await fetch(`${publicBase.replace(/\/$/, "")}/api/auth/sendWelcome`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: authUser.id, tempPassword }),
@@ -128,7 +152,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const base = process.env.NEXT_PUBLIC_BASE_URL || process.env.NEXTAUTH_URL || (process.env.VERCEL_URL ? `https://${process.env.VERCEL_URL}` : "http://localhost:3000");
+      const base = getServerPublicOrigin();
       await fetch(`${base.replace(/\/$/, "")}/api/auth/send-password-reset`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },

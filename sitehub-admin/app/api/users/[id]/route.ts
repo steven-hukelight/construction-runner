@@ -57,6 +57,11 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       : "";
     if (fullName && String(fullName).trim()) name = String(fullName).trim();
 
+    const personalData = personal
+      ? ((personal as { data?: Record<string, unknown> }).data ?? {})
+      : {};
+    const personalJobTitle = (personalData.job_title ?? personalData.jobTitle ?? personalData.jobRole ?? null) as string | null;
+
     let companyName: string | null = null;
     if (userCompanyId) {
       const { data: co } = await supabaseAdmin.from("companies").select("name").eq("id", userCompanyId).maybeSingle();
@@ -69,6 +74,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       .eq("user_id", id)
       .limit(1);
     const profile = (profileRows?.[0] ?? {}) as Record<string, unknown>;
+    const profileJobTitle = (profile.job_title ?? profile.jobtitle ?? null) as string | null;
 
     const preInductionStatus = (u.pre_induction_status ?? "not_started") as string;
     const adminPreInductionOverride = u.admin_pre_induction_override === true;
@@ -86,7 +92,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
       addressLine1: profile.address_line1 ?? profile.address ?? undefined,
       town: profile.town ?? undefined,
       postcode: profile.postcode ?? undefined,
-      jobTitle: profile.job_title ?? profile.jobtitle ?? undefined,
+      jobTitle: (personalJobTitle && String(personalJobTitle).trim()) || (profileJobTitle && String(profileJobTitle).trim()) || undefined,
       emergencyContactName: profile.emergency_contact_name ?? undefined,
       emergencyContactPhone: profile.emergency_contact_phone ?? undefined,
       nationalInsurance: profile.ni_number ?? profile.national_insurance ?? undefined,
@@ -197,6 +203,21 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
       return NextResponse.json({ error: "Forbidden: cannot delete user in another company" }, { status: 403 });
     }
   }
-  await supabaseAdmin.from("users").delete().eq("id", id);
+
+  // Remove Supabase Auth identity (otherwise they can still sign in; public.users row is only app profile)
+  try {
+    const { error: authDelErr } = await supabaseAdmin.auth.admin.deleteUser(id);
+    if (authDelErr && !String(authDelErr.message ?? "").toLowerCase().includes("not found")) {
+      console.warn("DELETE /api/users/[id]: auth.admin.deleteUser:", authDelErr.message);
+    }
+  } catch (e) {
+    console.warn("DELETE /api/users/[id]: auth delete exception:", e);
+  }
+
+  const { error: pubErr } = await supabaseAdmin.from("users").delete().eq("id", id);
+  if (pubErr) {
+    console.error("DELETE /api/users/[id]: public.users delete:", pubErr);
+    return NextResponse.json({ error: pubErr.message ?? "Failed to delete user" }, { status: 500 });
+  }
   return NextResponse.json({ success: true });
 }

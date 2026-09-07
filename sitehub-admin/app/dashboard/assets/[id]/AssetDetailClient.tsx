@@ -29,6 +29,8 @@ interface Assignment {
 interface AssetImage {
   id: string;
   file_url: string;
+  /** Signed URL from API when storage is private (use for thumbnails). */
+  view_url?: string | null;
   created_at: string;
   uploaded_by_name?: string | null;
 }
@@ -242,14 +244,16 @@ export default function AssetDetailClient({
         <div className="card p-6">
           <h3 className="font-semibold mb-4">Images</h3>
           <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {images.map((img) => (
+            {images.map((img) => {
+              const displaySrc = (img.view_url ?? img.file_url).trim();
+              return (
               <div key={img.id} className="space-y-1">
                 <button
                   type="button"
                   onClick={() => openDocumentUrl(img.file_url)}
                   className="relative aspect-square rounded-lg overflow-hidden border border-gray-200 bg-gray-50 cursor-pointer text-left block w-full"
                 >
-                  <Image src={img.file_url} alt="Asset" fill sizes="200px" className="object-cover" unoptimized />
+                  <Image src={displaySrc} alt="Asset" fill sizes="200px" className="object-cover" unoptimized />
                 </button>
                 {img.uploaded_by_name && (
                   <p className="text-xs text-gray-500 truncate" title={img.uploaded_by_name}>
@@ -257,7 +261,8 @@ export default function AssetDetailClient({
                   </p>
                 )}
               </div>
-            ))}
+            );
+            })}
           </div>
         </div>
       )}

@@ -2,10 +2,12 @@
 
 import React from "react";
 import { X, FileText } from "lucide-react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import SupervisorInductionStatusBadge from "./SupervisorInductionStatusBadge";
 import SupervisorActions from "./SupervisorActions";
 import RAMSStatusBadge from "../../components/RAMSStatusBadge";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 import type { SupervisorOperativeRow } from "../utils/buildSupervisorComplianceDataset";
 import type { RamsStatus } from "@/lib/ramsCompliance";
 import useSWR from "swr";
@@ -84,7 +86,9 @@ export default function SupervisorOperativeDrawer({
                 <p><span className="font-medium">Name:</span> {data.user.name ?? "—"}</p>
                 <p><span className="font-medium">Email:</span> {data.user.email ?? "—"}</p>
                 <p><span className="font-medium">Company:</span> {data.user.companyName ?? "—"}</p>
-                <p><span className="font-medium">Pre-Induction:</span> {data.user.preInductionStatus.replace("_", " ")}</p>
+                {preInductionUiEnabled && (
+                  <p><span className="font-medium">Pre-Induction:</span> {data.user.preInductionStatus.replace("_", " ")}</p>
+                )}
                 {data.user.complianceScore != null && (
                   <p><span className="font-medium">Score:</span> {data.user.complianceScore}/100</p>
                 )}
@@ -162,7 +166,7 @@ export default function SupervisorOperativeDrawer({
                     <p><span className="font-medium">Accepted version:</span> {data.rams.acceptedVersion}</p>
                   )}
                   {data.rams.acceptedAt && (
-                    <p><span className="font-medium">Accepted at:</span> {new Date(data.rams.acceptedAt).toLocaleString()}</p>
+                    <p><span className="font-medium">Accepted at:</span> {formatDateTime(data.rams.acceptedAt)}</p>
                   )}
                   {data.rams?.fileUrl && (
                     <button
@@ -211,7 +215,7 @@ export default function SupervisorOperativeDrawer({
                       >
                         {h.status}
                       </span>
-                      {h.completedAt && <span className="text-gray-500">{new Date(h.completedAt).toLocaleDateString()}</span>}
+                      {h.completedAt && <span className="text-gray-500">{formatDateTime(h.completedAt)}</span>}
                     </li>
                   ))}
                 </ul>

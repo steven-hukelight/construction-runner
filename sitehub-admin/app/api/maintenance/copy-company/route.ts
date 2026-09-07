@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { randomUUID } from "crypto";
 
 export const dynamic = "force-dynamic";
 
@@ -36,6 +37,7 @@ export async function POST(req: Request) {
       delete rest.updated_at;
       await supabaseAdmin.from("sites").insert({
         ...rest,
+        id: randomUUID(),
         company_id: newCompanyId,
         name: (site.name ?? "Site") as string,
       });

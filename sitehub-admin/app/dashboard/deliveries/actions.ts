@@ -1,6 +1,6 @@
 "use server";
 
-import { getBaseUrl } from "@/lib/url";
+import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
 import { headers } from "next/headers";
 
 async function getCookieHeader(): Promise<string | undefined> {
@@ -13,22 +13,27 @@ async function getCookieHeader(): Promise<string | undefined> {
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function fetchDeliveries() {
-  const base = getBaseUrl();
-  const url = `${base}/api/deliveries`;
-  const cookie = await getCookieHeader();
-  const headersInit: HeadersInit = { "Cache-Control": "no-store" };
-  if (cookie) headersInit.Cookie = cookie;
-  const res = await fetch(url, { cache: "no-store", headers: headersInit });
-  if (!res.ok) return [];
   try {
-    return await res.json();
-  } catch {
+    const base = await getServerRequestBaseUrl();
+    const url = `${base}/api/deliveries`;
+    const cookie = await getCookieHeader();
+    const headersInit: HeadersInit = { "Cache-Control": "no-store" };
+    if (cookie) headersInit.Cookie = cookie;
+    const res = await fetch(url, { cache: "no-store", headers: headersInit });
+    if (!res.ok) return [];
+    try {
+      return await res.json();
+    } catch {
+      return [];
+    }
+  } catch (e) {
+    console.error("fetchDeliveries:", e);
     return [];
   }
 }
 
 export async function createDelivery(data: any) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/deliveries`;
   const cookie = await getCookieHeader();
   const headersInit: HeadersInit = { "Content-Type": "application/json" };
@@ -41,7 +46,7 @@ export async function createDelivery(data: any) {
 }
 
 export async function updateDeliveryStatus(id: string, status: string) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/deliveries/${id}`;
   const cookie = await getCookieHeader();
   const headersInit: HeadersInit = { "Content-Type": "application/json" };
@@ -54,7 +59,7 @@ export async function updateDeliveryStatus(id: string, status: string) {
 }
 
 export async function deleteDelivery(id: string) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/deliveries/${id}`;
   const cookie = await getCookieHeader();
   const headersInit: HeadersInit = {};

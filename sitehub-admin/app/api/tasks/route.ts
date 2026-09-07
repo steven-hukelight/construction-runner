@@ -2,6 +2,77 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { sendPushToUsers } from "@/lib/onesignal";
+
+type TaskRow = {
+  id?: string;
+  site_id?: string | null;
+  assigned_to?: string | null;
+  assigned_to_ids?: string[];
+  [k: string]: unknown;
+};
+
+async function enrichTasksWithNames(list: TaskRow[]): Promise<TaskRow[]> {
+  if (list.length === 0) return list;
+  const siteIds = [...new Set(list.map((t) => t.site_id).filter(Boolean))] as string[];
+  const userIds = new Set<string>();
+  for (const t of list) {
+    const ids = t.assigned_to_ids ?? (t.assigned_to ? [t.assigned_to] : []);
+    ids.forEach((id) => userIds.add(id));
+  }
+  const [sitesRes, usersRes] = await Promise.all([
+    siteIds.length > 0
+      ? supabaseAdmin.from("sites").select("id, name").in("id", siteIds)
+      : { data: [] },
+    userIds.size > 0
+      ? supabaseAdmin.from("users").select("id, display_name, email").in("id", [...userIds])
+      : { data: [] },
+  ]);
+  const siteMap = new Map<string, string>();
+  (sitesRes.data ?? []).forEach((s: { id: string; name?: string }) => {
+    siteMap.set(s.id, s.name ?? s.id);
+  });
+  const userMap = new Map<string, string>();
+  (usersRes.data ?? []).forEach((u: { id: string; display_name?: string; email?: string }) => {
+    const name = u.display_name?.trim() || (u.email ? String(u.email).split("@")[0] : null);
+    userMap.set(u.id, name || u.id);
+  });
+  return list.map((t) => {
+    const assigneeIds = t.assigned_to_ids ?? (t.assigned_to ? [t.assigned_to] : []);
+    const assignedNames = assigneeIds.map((id) => userMap.get(id) ?? id).filter(Boolean);
+    return {
+      ...t,
+      site_name: t.site_id ? (siteMap.get(t.site_id) ?? t.site_id) : null,
+      assigned_to_names: assignedNames,
+    };
+  });
+}
+
+async function enrichTasksWithAttachments(list: TaskRow[]): Promise<TaskRow[]> {
+  if (list.length === 0) return list;
+  const taskIds = list.map((t) => t.id).filter(Boolean) as string[];
+  const { data: attachments } = await supabaseAdmin
+    .from("task_attachments")
+    .select("id, task_id, file_url, file_name, file_type, created_at")
+    .in("task_id", taskIds)
+    .order("created_at", { ascending: true });
+  const byTask = new Map<string, { id: string; file_url: string; file_name?: string; file_type?: string }[]>();
+  for (const a of attachments ?? []) {
+    const tid = (a as { task_id: string }).task_id;
+    const arr = byTask.get(tid) ?? [];
+    arr.push({
+      id: (a as { id: string }).id,
+      file_url: (a as { file_url: string }).file_url,
+      file_name: (a as { file_name?: string }).file_name,
+      file_type: (a as { file_type?: string }).file_type,
+    });
+    byTask.set(tid, arr);
+  }
+  return list.map((t) => ({
+    ...t,
+    attachments: byTask.get(String(t.id)) ?? [],
+  }));
+}
 
 export async function GET(req: Request) {
   try {
@@ -25,10 +96,13 @@ export async function GET(req: Request) {
     if (role === "superuser" && !companyId) {
       const { data } = await supabaseAdmin
         .from("tasks")
-        .select("id, title, description, status, company_id, site_id, assigned_to, created_at")
+        .select("id, title, description, status, company_id, site_id, assigned_to, created_at, due_date")
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
-      return NextResponse.json(data || []);
+      const list = (data || []) as TaskRow[];
+      let enriched = await enrichTasksWithNames(list);
+      enriched = await enrichTasksWithAttachments(enriched);
+      return NextResponse.json(enriched);
     }
     const roleLower = (role ?? "").toLowerCase();
     if (roleLower === "operative") {
@@ -58,14 +132,16 @@ export async function GET(req: Request) {
           return true;
         });
         merged.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
-        return NextResponse.json(merged);
+        let enriched = await enrichTasksWithNames(merged as TaskRow[]);
+        enriched = await enrichTasksWithAttachments(enriched);
+        return NextResponse.json(enriched);
       }
       return NextResponse.json([]);
     }
     if (companyId) {
       let tasksQuery = supabaseAdmin
         .from("tasks")
-        .select("id, title, description, status, company_id, site_id, assigned_to, created_at")
+        .select("id, title, description, status, company_id, site_id, assigned_to, created_at, due_date")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
@@ -83,10 +159,12 @@ export async function GET(req: Request) {
           if (!arr.includes(a.user_id)) arr.push(a.user_id);
           byTask.set(a.task_id, arr);
         }
-        const enriched = list.map((t) => ({
+        const withIds = list.map((t) => ({
           ...t,
           assigned_to_ids: byTask.get(t.id) ?? (t.assigned_to ? [t.assigned_to] : []),
         }));
+        let enriched = await enrichTasksWithNames(withIds);
+        enriched = await enrichTasksWithAttachments(enriched);
         return NextResponse.json(enriched);
       }
       return NextResponse.json([]);
@@ -124,6 +202,7 @@ export async function POST(req: Request) {
   const assignedToIds = (b.assignedToIds ?? (b.assignedTo ? [b.assignedTo] : [])) as string[];
   const firstAssignee = Array.isArray(assignedToIds) ? assignedToIds[0] : assignedToIds;
 
+  const dueDateVal = (b.dueDate ?? b.due_date ?? null) as string | null;
   const insertPayload: Record<string, unknown> = {
     id: crypto.randomUUID(),
     title: (b.title ?? "Untitled") as string,
@@ -132,6 +211,7 @@ export async function POST(req: Request) {
     company_id: assignedCompanyId,
     site_id: (b.siteId ?? b.site_id ?? null) as string | null,
     assigned_to: firstAssignee ?? null,
+    due_date: dueDateVal && String(dueDateVal).trim() ? dueDateVal : null,
   };
 
   const { data, error } = await supabaseAdmin.from("tasks").insert(insertPayload).select("id").single();
@@ -142,11 +222,23 @@ export async function POST(req: Request) {
   }
 
   const taskId = data?.id;
+  const taskTitle = (insertPayload.title as string) || "Untitled Task";
   if (taskId && Array.isArray(assignedToIds) && assignedToIds.length > 0) {
     const uniqueIds = [...new Set(assignedToIds)].filter(Boolean);
     await supabaseAdmin.from("task_assignments").insert(
       uniqueIds.map((uid) => ({ task_id: taskId, user_id: uid }))
     );
+    sendPushToUsers(uniqueIds, "New task assigned", taskTitle, {
+      type: "task",
+      taskId: String(taskId),
+      screen: "tasks",
+    })
+      .then((r) => {
+        if (!r.sent) {
+          console.error("Task push not delivered:", r.error, "→ assignee ids:", uniqueIds.join(", "));
+        }
+      })
+      .catch((e) => console.error("Task push failed:", e));
   }
 
   return NextResponse.json({ id: taskId }, { status: 201 });

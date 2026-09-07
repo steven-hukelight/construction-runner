@@ -21,17 +21,29 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
     const body = await req.json();
     const authUid = (await cookies()).get("uid")?.value;
 
-    const certs = Array.isArray(body.certifications) ? body.certifications : [];
-    const certifications = certs.map((c: Record<string, unknown>) => ({
-      type: c.type ?? "Other",
-      cardNumber: c.cardNumber ?? null,
-      fileUrl: c.fileUrl ?? null,
-      expiry: c.expiry ? toTimestamp(c.expiry as string) : null,
-      verified: !!c.verified,
-      verifiedBy: c.verified ? authUid ?? null : null,
-      verifiedAt: c.verified ? new Date().toISOString() : null,
-      notes: c.notes ?? null,
-    }));
+    const rawList =
+      (Array.isArray(body.certifications) && body.certifications) ||
+      (Array.isArray(body.certificationRecords) && body.certificationRecords) ||
+      (Array.isArray(body.certification_records) && body.certification_records) ||
+      [];
+    const certs = rawList as Record<string, unknown>[];
+    const certifications = certs.map((c: Record<string, unknown>) => {
+      const expRaw = c.expiry ?? c.expiry_date;
+      return {
+        type: (typeof c.type === "string" ? c.type : null) ?? "Other",
+        cardNumber: c.cardNumber ?? c.card_number ?? null,
+        fileUrl: c.fileUrl ?? c.file_url ?? null,
+        expiry: expRaw ? toTimestamp(String(expRaw)) : null,
+        verified: !!c.verified,
+        verifiedBy: c.verified
+          ? ((c.verifiedBy ?? c.verified_by) as string | null) ?? authUid ?? null
+          : null,
+        verifiedAt: c.verified
+          ? ((c.verifiedAt ?? c.verified_at) as string | null) ?? new Date().toISOString()
+          : null,
+        notes: c.notes ?? null,
+      };
+    });
 
     const { error: upsertErr } = await supabaseAdmin
       .from("pre_induction_certifications")

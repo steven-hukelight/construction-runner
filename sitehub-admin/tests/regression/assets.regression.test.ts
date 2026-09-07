@@ -86,7 +86,7 @@ describe("Assets regression tests", () => {
 
   it("should add inspection", async () => {
     mockSupabaseResponseQueue.push(
-      { data: { id: userId }, error: null },
+      { data: { id: "asset-1", company_id: companyId }, error: null },
       { data: { id: "inspection-id" }, error: null }
     );
 

@@ -9,6 +9,7 @@ import SubcontractorInviteOperative from "./SubcontractorInviteOperative";
 import SubcontractorUploadMissingDocuments from "./SubcontractorUploadMissingDocuments";
 import SubcontractorRequestVerification from "./SubcontractorRequestVerification";
 import type { SubcontractorOperativeRow } from "./utils/buildSubcontractorComplianceDataset";
+import FeedbackLink from "@/app/components/FeedbackLink";
 
 type LinkedSite = { id: string; name?: string };
 
@@ -130,6 +131,7 @@ export default function SubcontractorOnboardingPage() {
               {loading ? <Loader2 className="h-5 w-5 animate-spin" /> : <RefreshCw className="h-5 w-5" />}
               Refresh
             </button>
+            <FeedbackLink variant="button" />
 
             <div className="flex flex-wrap items-center gap-3 flex-1">
               <input

@@ -2,6 +2,7 @@
 
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "@/app/dashboard/components/ui/Table";
 import Button from "@/app/dashboard/components/ui/Button";
 
@@ -9,13 +10,14 @@ export type InductionRow = {
   siteId: string;
   siteName: string;
   status: "completed" | "not_started" | "expired";
-  completedAt: Date | null;
+  completedAt: string | null;
 };
 
-function formatCompletedAt(completedAt: Date | null): string {
+function formatCompletedAt(completedAt: string | null): string {
   if (!completedAt) return "—";
-  const d = completedAt instanceof Date ? completedAt : new Date(completedAt);
-  return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
+  const d = new Date(completedAt);
+  if (isNaN(d.getTime())) return "—";
+  return formatDateTime(d);
 }
 
 function StatusBadge({ status }: { status: InductionRow["status"] }) {

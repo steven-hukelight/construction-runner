@@ -1,3 +1,5 @@
+import { randomUUID } from "node:crypto";
+import { normalizeCoshhRow } from "@/lib/coshhRow";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
@@ -20,8 +22,14 @@ export async function GET() {
 
     let query = supabaseAdmin.from("coshh").select("*").order("created_at", { ascending: false });
     if (companyId) query = query.eq("company_id", companyId);
-    const { data } = await query;
-    return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
+    const { data, error } = await query;
+    if (error) {
+      console.error("GET /api/coshh:", error.message);
+      return NextResponse.json([], { status: 200 });
+    }
+    return NextResponse.json(
+      (data ?? []).map((d) => normalizeCoshhRow(d as Record<string, unknown>))
+    );
   } catch (e) {
     console.error("GET /api/coshh:", e);
     return NextResponse.json([]);
@@ -42,15 +50,45 @@ export async function POST(req: Request) {
   }
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
-  const { title, substance, hazardSymbols, ppe, fileUrl } = body;
-  const { data, error } = await supabaseAdmin.from("coshh").insert({
-    title: title || "Untitled",
-    substance: substance || "",
-    hazard_symbols: hazardSymbols || [],
-    ppe: ppe || "",
+  const title = (body.title as string) || "Untitled";
+  const substance = typeof body.substance === "string" ? body.substance : "";
+  const hazardSymbols = Array.isArray(body.hazardSymbols)
+    ? (body.hazardSymbols as unknown[]).map((x) => String(x))
+    : [];
+  const ppe = typeof body.ppe === "string" ? body.ppe : "";
+  const fileUrl = body.fileUrl != null ? String(body.fileUrl) : null;
+
+  const id = randomUUID();
+
+  const fullRow: Record<string, unknown> = {
+    id,
+    title,
+    substance,
+    hazard_symbols: hazardSymbols,
+    ppe,
     file_url: fileUrl || null,
     company_id: companyId,
-  }).select("id").single();
+  };
+
+  let { data, error } = await supabaseAdmin.from("coshh").insert(fullRow).select("id").single();
+
+  if (error) {
+    console.warn("POST /api/coshh full row failed, using body JSON fallback:", error.message);
+    const bodyJson = JSON.stringify({
+      substance,
+      hazardSymbols,
+      ppe,
+    });
+    const fallback = {
+      id,
+      title,
+      company_id: companyId,
+      body: bodyJson,
+    };
+    const retry = await supabaseAdmin.from("coshh").insert(fallback).select("id").single();
+    data = retry.data;
+    error = retry.error;
+  }
 
   if (error) {
     console.error("POST /api/coshh failed:", error);

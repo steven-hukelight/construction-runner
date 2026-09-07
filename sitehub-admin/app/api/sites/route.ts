@@ -1,11 +1,10 @@
+import { purgeSiteBeforeDelete } from "@/app/api/sites/_utils/purgeSiteBeforeDelete";
+import { ensureSiteAccess } from "@/app/api/sites/_utils/siteAccess";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
-
-function cid(x: { company_id?: string | null }): string | null {
-  return (x.company_id ?? null) as string | null;
-}
+import { randomUUID } from "crypto";
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +21,7 @@ export async function GET(req: Request) {
     if (role === "superuser") {
       const all = searchParams.get("all") === "true";
       if (all) {
-        const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false });
+        const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false }).limit(500);
         return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
       }
       companyId = searchParams.get("companyId") || companyId || undefined;
@@ -31,10 +30,11 @@ export async function GET(req: Request) {
           .from("sites")
           .select("*")
           .eq("company_id", companyId)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(500);
         return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
       }
-      const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false });
+      const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false }).limit(500);
       return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
     }
     if (companyId) {
@@ -42,7 +42,8 @@ export async function GET(req: Request) {
         .from("sites")
         .select("*")
         .eq("company_id", companyId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
       return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
     }
     return NextResponse.json([], { status: 200 });
@@ -76,6 +77,7 @@ export async function POST(req: Request) {
     }
 
     const { data, error } = await supabaseAdmin.from("sites").insert({
+      id: randomUUID(),
       name: body.name,
       location: body.location,
       geofence: body.geofence ?? null,
@@ -106,30 +108,24 @@ export async function DELETE(req: Request) {
     const id = searchParams.get("id");
     if (!id) return NextResponse.json({ error: "Missing id" }, { status: 400 });
 
-    const cookieStore = await cookies();
-    const role = cookieStore.get("role")?.value;
-    let companyId = cookieStore.get("companyId")?.value;
-    if (!companyId && role !== "superuser") {
-      companyId =
-        (await resolveCompanyId({
-          cookieCompanyId: cookieStore.get("companyId")?.value,
-          userEmail: cookieStore.get("user_email")?.value,
-          role,
-        })) || undefined;
-    }
-    if (role !== "superuser") {
-      if (!companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-      const { data: site } = await supabaseAdmin.from("sites").select("*").eq("id", id).single();
-      if (!site) return NextResponse.json({ error: "Not found" }, { status: 404 });
-      const siteCompanyId = cid(site);
-      if (siteCompanyId !== companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    const forbid = await ensureSiteAccess(id);
+    if (forbid) return forbid;
+
+    const purgeErr = await purgeSiteBeforeDelete(id);
+    if (purgeErr) {
+      console.error("DELETE /api/sites purge failed:", purgeErr);
+      return NextResponse.json({ error: purgeErr }, { status: 500 });
     }
 
-    await supabaseAdmin.from("sites").delete().eq("id", id);
+    const { error } = await supabaseAdmin.from("sites").delete().eq("id", id);
+    if (error) {
+      console.error("DELETE /api/sites failed:", error);
+      return NextResponse.json({ error: error.message }, { status: 500 });
+    }
     return NextResponse.json({ success: true });
   } catch (e: unknown) {
     const err = e as { message?: string };
     console.error("DELETE /api/sites failed:", err?.message || e);
-    return NextResponse.json({ success: false }, { status: 200 });
+    return NextResponse.json({ error: "Server error" }, { status: 500 });
   }
 }

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "../components/ui/Table";
 import { Building2, Users, MapPin, UserPlus, FileText, RefreshCw } from "lucide-react";
 import Button from "../components/ui/Button";
@@ -28,7 +29,7 @@ export default function SuperuserAdminClient() {
   const { data, isLoading, mutate } = useSWR(
     "superuser-admin-dashboard",
     fetcher,
-    { refreshInterval: 60000 }
+    { refreshInterval: 15_000 }
   );
 
   const companies = data?.companies ?? [];
@@ -199,7 +200,7 @@ export default function SuperuserAdminClient() {
               header: "Created",
               accessor: "created_at",
               render: (r: Registration) =>
-                r.created_at ? new Date(r.created_at).toLocaleString() : "—",
+                r.created_at ? formatDateTime(r.created_at) : "—",
             },
           ]}
           data={filteredRegistrations}

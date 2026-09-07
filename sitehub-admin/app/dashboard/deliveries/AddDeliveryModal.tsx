@@ -17,19 +17,27 @@ export default function AddDeliveryModal() {
   const [form, setForm] = useState({
     reference: "",
     wholesaler: "",
+    wholesalerOther: "",
     siteId: "",
     site: "",
     scheduledAt: "",
     notes: "",
   });
+  const [haulageList, setHaulageList] = useState<{ id: string; name: string }[]>([]);
 
   useEffect(() => {
     if (!open) return;
-    fetch("/api/sites", { credentials: "include" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((list) => {
-        const sitesList = Array.isArray(list) ? list : [];
+    Promise.all([
+      fetch("/api/sites", { credentials: "include" }),
+      fetch("/api/deliveries/haulage", { credentials: "include" }),
+    ])
+      .then(async ([sitesRes, haulageRes]) => {
+        const sitesJson = sitesRes.ok ? await sitesRes.json() : [];
+        const haulageJson = haulageRes.ok ? await haulageRes.json() : [];
+        const sitesList = Array.isArray(sitesJson) ? sitesJson : [];
+        const haulageData = Array.isArray(haulageJson) ? haulageJson : [];
         setSites(sitesList);
+        setHaulageList(haulageData);
         const currentSiteId = getCurrentSiteIdFromCookie();
         let siteIdToUse = "";
         let siteNameToUse = "";
@@ -48,10 +56,15 @@ export default function AddDeliveryModal() {
       .catch(() => setSites([]));
   }, [open]);
 
+  const effectiveWholesaler = form.wholesaler === "__other__" ? form.wholesalerOther.trim() : form.wholesaler;
+  const canSubmit = effectiveWholesaler.length > 0;
+
   async function handleSubmit() {
-    await createDelivery(form);
+    if (!canSubmit) return;
+    const payload = { ...form, wholesaler: effectiveWholesaler };
+    await createDelivery(payload);
     setOpen(false);
-    setForm({ reference: "", wholesaler: "", siteId: "", site: "", scheduledAt: "", notes: "" });
+    setForm({ reference: "", wholesaler: "", wholesalerOther: "", siteId: "", site: "", scheduledAt: "", notes: "" });
     router.refresh();
   }
 
@@ -86,12 +99,29 @@ export default function AddDeliveryModal() {
               value={form.reference}
               onChange={(e: any) => setForm({ ...form, reference: e.target.value })}
             />
-            <Input
-              label="Supplier / Wholesaler"
-              value={form.wholesaler}
-              onChange={(e: any) => setForm({ ...form, wholesaler: e.target.value })}
-              placeholder="e.g. Edmunsons, Medlocks"
-            />
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Supplier / Wholesaler</label>
+              <select
+                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [&>option]:text-slate-900 [&>option]:bg-white"
+                value={form.wholesaler}
+                onChange={(e: any) => setForm({ ...form, wholesaler: e.target.value })}
+              >
+                <option value="">Select...</option>
+                {haulageList.map((h) => (
+                  <option key={h.id} value={h.name} className="text-slate-900">{h.name}</option>
+                ))}
+                <option value="__other__" className="text-slate-900">Other</option>
+              </select>
+              {form.wholesaler === "__other__" && (
+                <Input
+                  className="mt-2"
+                  label="Wholesaler name"
+                  value={form.wholesalerOther}
+                  onChange={(e: any) => setForm({ ...form, wholesalerOther: e.target.value })}
+                  placeholder="Type custom name"
+                />
+              )}
+            </div>
 
             <div>
               <label className="block text-sm font-medium text-slate-700 mb-1">Site</label>
@@ -131,7 +161,7 @@ export default function AddDeliveryModal() {
               placeholder="Optional notes"
             />
 
-            <Button onClick={handleSubmit} className="w-full">
+            <Button onClick={handleSubmit} className="w-full" disabled={!canSubmit}>
               Save Delivery
             </Button>
             </div>

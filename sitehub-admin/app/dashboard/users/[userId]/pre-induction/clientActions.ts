@@ -52,39 +52,34 @@ export async function openPreInductionFile(path: string | null | undefined): Pro
 }
 
 export async function savePersonal(userId: string, form: Record<string, unknown>): Promise<void> {
-  const payload = {
-    user_id: userId,
-    full_name: (form.fullName as string) ?? "",
-    date_of_birth: form.dateOfBirth ? normalizeDate(form.dateOfBirth as string) : null,
-    phone: (form.phone as string) ?? "",
-    email: (form.email as string) ?? "",
-    address: (form.address as string) ?? "",
-    emergency_contact_name: (form.emergencyContactName as string) ?? "",
-    emergency_contact_relationship: (form.emergencyContactRelationship as string) ?? "",
-    emergency_contact_phone: (form.emergencyContactPhone as string) ?? "",
-    national_insurance: (form.nationalInsuranceNumber as string) ?? (form.nationalInsurance as string) ?? "",
-    utr: (form.utrNumber as string) ?? (form.utr as string) ?? "",
-    data: {
+  // Admin dashboard uses cookie auth, not Supabase Auth — browser anon client has no auth.uid(),
+  // so RLS on pre_induction_personal blocks direct upserts. Use API + service role instead.
+  const dateOfBirth = form.dateOfBirth ? normalizeDate(form.dateOfBirth as string) : null;
+  const res = await fetch(`/api/pre-induction/${encodeURIComponent(userId)}/personal`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({
+      fullName: (form.fullName as string) ?? "",
+      dateOfBirth,
+      phone: (form.phone as string) ?? "",
+      email: (form.email as string) ?? "",
+      address: (form.address as string) ?? "",
+      emergencyContactName: (form.emergencyContactName as string) ?? "",
+      emergencyContactRelationship: (form.emergencyContactRelationship as string) ?? "",
+      emergencyContactPhone: (form.emergencyContactPhone as string) ?? "",
+      nationalInsuranceNumber: (form.nationalInsuranceNumber as string) ?? (form.nationalInsurance as string) ?? "",
+      utrNumber: (form.utrNumber as string) ?? (form.utr as string) ?? "",
       employerCompanyId: (form.employerCompanyId as string) ?? "",
       supervisorName: (form.supervisorName as string) ?? "",
       trade: (form.trade as string) ?? "",
       jobRole: (form.jobRole as string) ?? "",
       payrollNumber: (form.payrollNumber as string) ?? "",
-    },
-    updated_at: new Date().toISOString(),
-  };
-
-  const { error } = await supabase.from("pre_induction_personal").upsert(payload, { onConflict: "user_id" });
-  if (error) throw new Error(error.message);
-
-  // Best-effort sync display name/phone
-  try {
-    await supabase
-      .from("users")
-      .update({ display_name: payload.full_name || null, phone: payload.phone || null, updated_at: payload.updated_at })
-      .eq("id", userId);
-  } catch {
-    // ignore
+    }),
+  });
+  const json = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) {
+    throw new Error(json.error || `Save failed (${res.status})`);
   }
 }
 

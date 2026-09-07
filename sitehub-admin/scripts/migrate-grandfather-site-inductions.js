@@ -9,7 +9,7 @@
  * Does NOT modify induction completion dates or statuses.
  *
  * Usage: node scripts/migrate-grandfather-site-inductions.js
- * Requires: Firebase Admin SDK (serviceAccountKey.json or env vars)
+ * Requires: SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY
  */
 
 /* eslint-disable @typescript-eslint/no-require-imports */

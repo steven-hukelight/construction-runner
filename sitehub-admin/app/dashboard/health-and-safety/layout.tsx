@@ -2,15 +2,17 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
+import { useEffect, useState } from "react";
 import { FileText, MessageSquare, ScrollText, FlaskConical, AlertTriangle, AlertCircle } from "lucide-react";
+import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 
 const subTabs = [
-  { name: "RAMS", href: "/dashboard/health-and-safety/rams", icon: FileText },
-  { name: "Briefings", href: "/dashboard/health-and-safety/briefings", icon: MessageSquare },
-  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", icon: ScrollText },
-  { name: "COSHH", href: "/dashboard/health-and-safety/coshh", icon: FlaskConical },
-  { name: "Safety Alerts", href: "/dashboard/health-and-safety/alerts", icon: AlertTriangle },
-  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", icon: AlertCircle },
+  { name: "RAMS", href: "/dashboard/health-and-safety/rams", icon: FileText, countKey: "rams" as const },
+  { name: "Briefings", href: "/dashboard/health-and-safety/briefings", icon: MessageSquare, countKey: "briefings" as const },
+  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", icon: ScrollText, countKey: null },
+  { name: "COSHH", href: "/dashboard/health-and-safety/coshh", icon: FlaskConical, countKey: null },
+  { name: "Alerts", href: "/dashboard/health-and-safety/alerts", icon: AlertTriangle, countKey: "alerts" as const },
+  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", icon: AlertCircle, countKey: "nearMiss" as const },
 ];
 
 export default function HealthAndSafetyLayout({
@@ -19,6 +21,19 @@ export default function HealthAndSafetyLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
+  const [counts, setCounts] = useState<{ nearMiss?: number }>({});
+
+  useEffect(() => {
+    const role = getRoleFromClient();
+    const companyId = getCompanyIdFromClient();
+    if (!role || role === "operative") return;
+    const params = new URLSearchParams({ unreviewed: "true" });
+    if (companyId) params.set("companyId", companyId);
+    fetch(`/api/near-miss?${params}`)
+      .then((r) => r.json())
+      .then((arr) => setCounts({ nearMiss: Array.isArray(arr) ? arr.length : 0 }))
+      .catch(() => {});
+  }, [pathname]);
 
   return (
     <div className="space-y-6">
@@ -26,6 +41,7 @@ export default function HealthAndSafetyLayout({
         {subTabs.map((tab) => {
           const Icon = tab.icon;
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
+          const badge = tab.countKey === "nearMiss" && (counts.nearMiss ?? 0) > 0 ? counts.nearMiss : null;
           return (
             <Link
               key={tab.href}
@@ -38,6 +54,11 @@ export default function HealthAndSafetyLayout({
             >
               <Icon size={18} strokeWidth={2} />
               {tab.name}
+              {badge != null && (
+                <span className="inline-flex items-center justify-center min-w-[1.25rem] h-5 px-1.5 rounded-full text-xs font-medium bg-amber-500 text-white">
+                  {badge > 99 ? "99+" : badge}
+                </span>
+              )}
             </Link>
           );
         })}

@@ -2,8 +2,9 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 
-async function ensureAccess(req?: Request): Promise<{ companyId: string; userId: string; error: NextResponse | null }> {
+async function ensureAccess(req?: Request): Promise<{ companyId: string; userId: string; role: string | undefined; error: NextResponse | null }> {
   const cookieStore = await cookies();
   const uid = cookieStore.get("uid")?.value?.trim();
   const userEmail = cookieStore.get("user_email")?.value?.trim();
@@ -14,7 +15,7 @@ async function ensureAccess(req?: Request): Promise<{ companyId: string; userId:
   const queryCompanyId = req ? new URL(req.url).searchParams.get("companyId")?.trim() || undefined : undefined;
 
   if (!uid && !userEmail) {
-    return { companyId: "", userId: "", error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
+    return { companyId: "", userId: "", role: undefined, error: NextResponse.json({ error: "Unauthorized" }, { status: 401 }) };
   }
 
   let userId = uid ?? null;
@@ -29,7 +30,7 @@ async function ensureAccess(req?: Request): Promise<{ companyId: string; userId:
       if (!companyId) companyId = (data as { company_id?: string }).company_id ?? "";
     }
   }
-  if (!userId) return { companyId: "", userId: "", error: NextResponse.json({ error: "User not found" }, { status: 401 }) };
+  if (!userId) return { companyId: "", userId: "", role, error: NextResponse.json({ error: "User not found" }, { status: 401 }) };
 
   if (!companyId) {
     companyId =
@@ -40,12 +41,37 @@ async function ensureAccess(req?: Request): Promise<{ companyId: string; userId:
         queryCompanyId,
       })) || "";
   }
-  return { companyId, userId, error: null };
+  return { companyId, userId, role, error: null };
+}
+
+/** Prefer Bearer (mobile); fall back to session cookies (web). */
+async function resolveThreadsAuth(req: Request): Promise<{
+  companyId: string;
+  userId: string;
+  role: string | undefined;
+  error: NextResponse | null;
+}> {
+  const auth = await resolveMobileApiAuth(req);
+  const url = new URL(req.url);
+  const queryCompanyId = url.searchParams.get("companyId")?.trim() || undefined;
+
+  if (auth.uid) {
+    let companyId = (auth.companyId ?? "").trim();
+    if (auth.isSuperuser && queryCompanyId) {
+      companyId = queryCompanyId;
+    }
+    if (!companyId) {
+      return { companyId: "", userId: auth.uid, role: auth.role ?? undefined, error: null };
+    }
+    return { companyId, userId: auth.uid, role: auth.role ?? undefined, error: null };
+  }
+
+  return ensureAccess(req);
 }
 
 export async function GET(req: Request) {
   try {
-    const { companyId, userId, error } = await ensureAccess(req);
+    const { companyId, userId, role, error } = await resolveThreadsAuth(req);
     if (error) return error;
     if (!companyId) return NextResponse.json([], { status: 200 });
 
@@ -73,17 +99,29 @@ export async function GET(req: Request) {
     const threadIds = (threads ?? []).map((t) => (t as { id: string }).id);
     if (threadIds.length === 0) return NextResponse.json([]);
 
+    let recipientsData: Array<{ thread_id: string; user_id: string; last_read_at?: string | null }> = [];
     const { data: recipients, error: recErr } = await supabaseAdmin
       .from("message_recipients")
-      .select("thread_id, user_id")
+      .select("thread_id, user_id, last_read_at")
       .in("thread_id", threadIds);
+    if (!recErr && recipients && Array.isArray(recipients)) {
+      recipientsData = recipients as Array<{ thread_id: string; user_id: string; last_read_at?: string | null }>;
+    } else if (recErr) {
+      const { data: fallback } = await supabaseAdmin
+        .from("message_recipients")
+        .select("thread_id, user_id")
+        .in("thread_id", threadIds);
+      if (fallback && Array.isArray(fallback)) {
+        recipientsData = fallback as Array<{ thread_id: string; user_id: string }>;
+      }
+    }
 
     const userInThread = new Set<string>();
-    if (!recErr && recipients) {
-      for (const r of recipients) {
-        if ((r as { user_id: string }).user_id === userId) {
-          userInThread.add((r as { thread_id: string }).thread_id);
-        }
+    const userLastReadByThread = new Map<string, string>();
+    for (const r of recipientsData) {
+      if (r.user_id === userId) {
+        userInThread.add(r.thread_id);
+        if ("last_read_at" in r && r.last_read_at) userLastReadByThread.set(r.thread_id, r.last_read_at);
       }
     }
 
@@ -104,17 +142,28 @@ export async function GET(req: Request) {
     }
     }
 
-    const list = (threads ?? []).map((t) => {
-      const o = t as { id: string; created_by: string; created_at: string };
-      return {
-        id: o.id,
-        createdBy: o.created_by,
-        createdAt: o.created_at,
-        lastMessage: byThread.get(o.id)?.body ?? null,
-        lastAt: byThread.get(o.id)?.created_at ?? o.created_at,
-        inThread: userInThread.has(o.id),
-      };
-    });
+    const roleLower = (role ?? "").toLowerCase();
+    const isAdminOrSupervisor = ["admin", "supervisor", "sub_admin", "superuser"].includes(roleLower);
+
+    const list = (threads ?? [])
+      .map((t) => {
+        const o = t as { id: string; created_by: string; created_at: string };
+        const inThread = userInThread.has(o.id);
+        const lastAt = byThread.get(o.id)?.created_at ?? o.created_at;
+        const lastRead = userLastReadByThread.get(o.id);
+        const unread = inThread && lastAt && (!lastRead || new Date(lastRead).getTime() < new Date(lastAt).getTime());
+        return {
+          id: o.id,
+          createdBy: o.created_by,
+          createdAt: o.created_at,
+          lastMessage: byThread.get(o.id)?.body ?? null,
+          lastAt,
+          inThread,
+          unread: unread ?? false,
+        };
+      })
+      .filter((t) => isAdminOrSupervisor || t.inThread);
+
     return NextResponse.json(list);
   } catch (e) {
     console.error("GET /api/messages/threads failed:", e);
@@ -124,7 +173,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { companyId, userId, error } = await ensureAccess(req);
+    const { companyId, userId, error } = await resolveThreadsAuth(req);
     if (error) return error;
     if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
@@ -144,7 +193,24 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: threadErr.message }, { status: 500 });
     }
 
-    const allRecipients = [userId, ...recipientIds].filter((id, i, a) => a.indexOf(id) === i);
+    let allRecipients = [userId, ...recipientIds].filter((id, i, a) => a.indexOf(id) === i);
+
+    // When operative creates thread with no other recipients, auto-add company admins/supervisors so they can respond
+    const { data: creator } = await supabaseAdmin.from("users").select("role").eq("id", userId).maybeSingle();
+    const creatorRole = ((creator as { role?: string })?.role ?? "").toLowerCase();
+    if (creatorRole === "operative" && recipientIds.length === 0) {
+      const { data: companyUsers } = await supabaseAdmin
+        .from("users")
+        .select("id, role")
+        .eq("company_id", companyId);
+      const adminRoles = ["admin", "supervisor", "sub_admin", "superuser"];
+      const adminIds = (companyUsers ?? [])
+        .filter((u) => adminRoles.includes(((u as { role?: string }).role ?? "").toLowerCase()))
+        .map((u) => (u as { id: string }).id)
+        .filter((id) => id !== userId);
+      allRecipients = [...new Set([...allRecipients, ...adminIds])];
+    }
+
     await supabaseAdmin.from("message_recipients").insert(
       allRecipients.map((uid) => ({ thread_id: thread?.id, user_id: uid }))
     );

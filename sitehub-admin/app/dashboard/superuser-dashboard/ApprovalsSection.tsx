@@ -13,13 +13,20 @@ export default function ApprovalsSection() {
   useEffect(() => {
     setLoading(true);
     fetch("/api/registrations")
-      .then(res => res.json())
-      .then(data => {
-        // Only show registrations with status PENDING or COMPANY_ADMIN_PENDING
+      .then((res) => res.json())
+      .then((data) => {
         const filtered = Array.isArray(data)
-          ? data.filter((r: Registration & { status?: string }) => r.status === "PENDING" || r.status === "COMPANY_ADMIN_PENDING")
+          ? data
+              .filter((row: { data?: { status?: string } }) => {
+                const st = row.data?.status ?? "";
+                return st === "PENDING" || st === "COMPANY_ADMIN_PENDING";
+              })
+              .map((row: { id: string; data?: Record<string, unknown> }) => ({
+                id: row.id,
+                ...(row.data ?? {}),
+              }))
           : [];
-        setPending(filtered);
+        setPending(filtered as Registration[]);
       })
       .catch(() => setPending([]))
       .finally(() => setLoading(false));
@@ -34,8 +41,7 @@ export default function ApprovalsSection() {
         credentials: "include",
         body: JSON.stringify({
           id: reg.id,
-          role: reg.role || "VIEWER",
-          approverRole: "SUPERUSER",
+          role: (reg.role || "OPERATIVE").toString().toUpperCase(),
         }),
       });
       if (res.ok) {

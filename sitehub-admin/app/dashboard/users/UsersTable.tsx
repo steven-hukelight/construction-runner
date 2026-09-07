@@ -177,6 +177,29 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
     setRows((prev) => prev.filter((row) => row.id !== id));
   }
 
+  async function handleSendPasswordReset(row: UserRow) {
+    if (!row.email) {
+      alert("User has no email.");
+      return;
+    }
+    try {
+      const res = await fetch("/api/auth/send-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email: row.email, userId: row.id }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Failed to send reset email");
+        return;
+      }
+      alert("Password reset email sent.");
+    } catch {
+      alert("Failed to send reset email");
+    }
+  }
+
   type Column = { header: string; accessor: string; render?: (row: UserRow) => React.ReactNode };
 
   const columns: Column[] = [
@@ -249,6 +272,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
             { label: "Set role → Supervisor", onClick: () => handleRoleChange(row.id, "SUPERVISOR") },
             { label: "Set role → Operative", onClick: () => handleRoleChange(row.id, "OPERATIVE") }
           );
+          items.push({ label: "Send reset email", onClick: () => handleSendPasswordReset(row) });
         }
         items.push({ label: "Delete user", onClick: () => handleDelete(row.id), variant: "danger" });
         return <TableActions items={items} />;

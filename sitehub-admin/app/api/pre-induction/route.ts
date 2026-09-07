@@ -1,7 +1,6 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { resolveCompanyId } from "@/lib/auth/companyId";
+import { checkPreInductionAccess } from "./[userId]/_utils/auth";
 
 const SECTION_IDS = [
   "personal",
@@ -76,12 +75,42 @@ function mapMedicalToCamelCase(row: Record<string, unknown> | null): Record<stri
 
 function mapTrainingToCamelCase(row: Record<string, unknown> | null): Record<string, unknown> | null {
   if (!row) return null;
+  const rawRecords = row.training_records ?? row.trainingRecords ?? [];
+  const arr = Array.isArray(rawRecords) ? rawRecords : [];
+  const trainingRecords = arr.map((r: Record<string, unknown>) => ({
+    type: typeof r.type === "string" ? r.type : "Training",
+    completedAt: r.completedAt ?? r.completed_at ?? null,
+    expiry: r.expiry ?? r.expiry_date ?? null,
+    fileUrl: r.fileUrl ?? r.file_url ?? null,
+    verified: !!r.verified,
+    notes: r.notes ?? null,
+  }));
   return {
     ...row,
-    trainingRecords: row.training_records ?? row.trainingRecords ?? [],
+    trainingRecords,
     ramsAccepted: !!row.rams_accepted,
     ramsAcceptedAt: row.rams_accepted_at ?? row.ramsAcceptedAt,
     ramsVersion: row.rams_version ?? row.ramsVersion ?? "",
+  };
+}
+
+function mapCertificationsToCamelCase(row: Record<string, unknown> | null): Record<string, unknown> | null {
+  if (!row) return null;
+  const rawList = row.certifications;
+  const list = Array.isArray(rawList) ? rawList : [];
+  const certifications = list.map((c: Record<string, unknown>) => ({
+    type: typeof c.type === "string" ? c.type : "Other",
+    cardNumber: c.cardNumber ?? c.card_number ?? null,
+    fileUrl: c.fileUrl ?? c.file_url ?? null,
+    expiry: c.expiry ?? c.expiry_date ?? null,
+    verified: !!c.verified,
+    verifiedBy: c.verifiedBy ?? c.verified_by ?? null,
+    verifiedAt: c.verifiedAt ?? c.verified_at ?? null,
+    notes: c.notes ?? null,
+  }));
+  return {
+    ...row,
+    certifications,
   };
 }
 
@@ -107,32 +136,10 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing userId" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const role = cookieStore.get("role")?.value;
-    const userEmail = cookieStore.get("user_email")?.value;
-
-    let companyId = cookieStore.get("companyId")?.value;
-    if (!companyId && role !== "superuser") {
-      companyId =
-        (await resolveCompanyId({
-          cookieCompanyId: cookieStore.get("companyId")?.value,
-          userEmail,
-          role,
-        })) || undefined;
+    const access = await checkPreInductionAccess(userId, req);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error ?? "Forbidden" }, { status: access.status ?? 403 });
     }
-
-    const { data: userRow } = await supabaseAdmin.from("users").select("id, company_id").eq("id", userId).maybeSingle();
-    if (!userRow) return NextResponse.json({ error: "User not found" }, { status: 404 });
-
-    const userCompanyId = String(userRow.company_id ?? "").trim();
-
-    let canAccess = role === "superuser";
-    if (!canAccess && companyId && companyId === userCompanyId) canAccess = true;
-    if (!canAccess && userEmail) {
-      const { data: me } = await supabaseAdmin.from("users").select("id").eq("email", userEmail.trim()).maybeSingle();
-      if (me?.id === userId) canAccess = true;
-    }
-    if (!canAccess) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
     const sections: { section: string; [k: string]: unknown }[] = [];
 
@@ -157,6 +164,7 @@ export async function GET(req: Request) {
     }
 
     const MAPPER: Record<string, (r: Record<string, unknown> | null) => Record<string, unknown> | null> = {
+      certifications: mapCertificationsToCamelCase,
       competencyCard: mapCompetencyCardToCamelCase,
       rightToWork: mapRightToWorkToCamelCase,
       medical: mapMedicalToCamelCase,

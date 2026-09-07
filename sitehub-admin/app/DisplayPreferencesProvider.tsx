@@ -12,18 +12,30 @@ type DisplayPreferences = {
   dateFormat: DateFormat;
   timeFormat: TimeFormat;
   tableDensity: TableDensity;
+  /** HTTPS URL or data:image/*; stored locally per browser */
+  dashboardBackgroundImageUrl: string | null;
+  /** Heavy blur on the image layer (frosted-glass look) */
+  dashboardBackgroundBlur: boolean;
+  /** Opacity of the light/dark scrim over the image (0.35–0.92) */
+  dashboardBackgroundOverlay: number;
 };
 
 const defaults: DisplayPreferences = {
   dateFormat: "ddmmyyyy",
   timeFormat: "24h",
   tableDensity: "comfortable",
+  dashboardBackgroundImageUrl: null,
+  dashboardBackgroundBlur: true,
+  dashboardBackgroundOverlay: 0.72,
 };
 
 type ContextValue = DisplayPreferences & {
   setDateFormat: (v: DateFormat) => void;
   setTimeFormat: (v: TimeFormat) => void;
   setTableDensity: (v: TableDensity) => void;
+  setDashboardBackgroundImageUrl: (v: string | null) => void;
+  setDashboardBackgroundBlur: (v: boolean) => void;
+  setDashboardBackgroundOverlay: (v: number) => void;
 };
 
 const DisplayPreferencesContext = createContext<ContextValue | null>(null);
@@ -34,10 +46,23 @@ function loadPreferences(): DisplayPreferences {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaults;
     const parsed = JSON.parse(raw) as Partial<DisplayPreferences>;
+    let overlay = parsed.dashboardBackgroundOverlay;
+    if (typeof overlay !== "number" || overlay < 0.35 || overlay > 0.92) {
+      overlay = defaults.dashboardBackgroundOverlay;
+    }
     return {
       dateFormat: parsed.dateFormat ?? defaults.dateFormat,
       timeFormat: parsed.timeFormat ?? defaults.timeFormat,
       tableDensity: parsed.tableDensity ?? defaults.tableDensity,
+      dashboardBackgroundImageUrl:
+        typeof parsed.dashboardBackgroundImageUrl === "string"
+          ? parsed.dashboardBackgroundImageUrl.trim() || null
+          : defaults.dashboardBackgroundImageUrl,
+      dashboardBackgroundBlur:
+        typeof parsed.dashboardBackgroundBlur === "boolean"
+          ? parsed.dashboardBackgroundBlur
+          : defaults.dashboardBackgroundBlur,
+      dashboardBackgroundOverlay: overlay,
     };
   } catch {
     return defaults;
@@ -96,7 +121,6 @@ export function formatTime(
   return d.toLocaleTimeString("en-GB", {
     hour: "2-digit",
     minute: "2-digit",
-    second: format === "24h" ? "2-digit" : undefined,
     hour12: format === "12h",
   });
 }
@@ -134,6 +158,10 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
     setDateFormat: (v) => update({ dateFormat: v }),
     setTimeFormat: (v) => update({ timeFormat: v }),
     setTableDensity: (v) => update({ tableDensity: v }),
+    setDashboardBackgroundImageUrl: (v) => update({ dashboardBackgroundImageUrl: v }),
+    setDashboardBackgroundBlur: (v) => update({ dashboardBackgroundBlur: v }),
+    setDashboardBackgroundOverlay: (v) =>
+      update({ dashboardBackgroundOverlay: Math.min(0.92, Math.max(0.35, v)) }),
   };
 
   return (

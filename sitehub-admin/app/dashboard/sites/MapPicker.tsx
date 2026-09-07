@@ -52,7 +52,7 @@ export default function MapPicker({
       const startLat = lat ? parseFloat(lat) : 51.505;
       const startLng = lng ? parseFloat(lng) : -0.09;
 
-      const map = L.map(containerRef.current).setView([startLat, startLng], 13);
+      const map = L.map(containerRef.current).setView([startLat, startLng], 17);
       mapRef.current = map;
 
       L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
@@ -287,18 +287,20 @@ export default function MapPicker({
 
     try {
       setSearching(true);
-      const headers = { "Accept-Language": "en-GB" };
-      const searchWithCountry = (countryCodes?: string) => {
-        const params = new URLSearchParams({
-          q: query.trim(),
-          format: "json",
-          limit: "1",
-        });
+      // Proxied via /api/geocode/search so Nominatim gets a valid User-Agent and avoids browser CORS blocks.
+      const searchWithCountry = async (countryCodes?: string) => {
+        const params = new URLSearchParams({ q: query.trim(), limit: "1" });
         if (countryCodes) params.set("countrycodes", countryCodes);
-        return fetch(
-          `https://nominatim.openstreetmap.org/search?${params.toString()}`,
-          { headers }
-        ).then((r) => r.json());
+        const r = await fetch(`/api/geocode/search?${params.toString()}`);
+        if (!r.ok) {
+          const err = await r.json().catch(() => ({}));
+          throw new Error(
+            typeof (err as { error?: string }).error === "string"
+              ? (err as { error: string }).error
+              : `HTTP ${r.status}`
+          );
+        }
+        return r.json() as Promise<any[]>;
       };
 
       let json: any[] = await searchWithCountry("gb");
@@ -317,7 +319,7 @@ export default function MapPicker({
         return;
       }
 
-      mapRef.current.setView([cLat, cLng], 16);
+      mapRef.current.setView([cLat, cLng], 18);
       if (markerRef.current) {
         markerRef.current.setLatLng([cLat, cLng]);
       } else {
@@ -327,8 +329,13 @@ export default function MapPicker({
       }
 
       onChange({ lat: cLat.toFixed(6), lng: cLng.toFixed(6) });
-    } catch {
-      setSearchError("Search failed. Please try again.");
+    } catch (err) {
+      console.warn("[MapPicker] search error", err);
+      setSearchError(
+        err instanceof Error && err.message
+          ? err.message
+          : "Search failed. Please try again."
+      );
     } finally {
       setSearching(false);
     }
@@ -472,8 +479,7 @@ export default function MapPicker({
       )}
       <div
         ref={containerRef}
-        className="w-full rounded-xl border border-slate-200 overflow-hidden bg-slate-100"
-        style={{ height: "256px" }}
+        className="w-full min-h-[420px] h-[min(55vh,520px)] rounded-xl border border-slate-200 overflow-hidden bg-slate-100"
       />
     </div>
   );

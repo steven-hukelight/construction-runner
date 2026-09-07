@@ -1,2 +1,4 @@
 # Migration failure logs (Firestore→Supabase import artifacts)
 *_failed.log
+.vercel
+.env*.local

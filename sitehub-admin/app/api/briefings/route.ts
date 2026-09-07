@@ -22,7 +22,7 @@ export async function GET(req: Request) {
 
     if (role === "superuser") companyId = searchParams.get("companyId") || companyId || undefined;
 
-    let query = supabaseAdmin.from("briefings").select("*").order("created_at", { ascending: false });
+    let query = supabaseAdmin.from("briefings").select("*").order("created_at", { ascending: false }).limit(500);
     if (companyId) query = query.eq("company_id", companyId);
     const { data } = await query;
     const briefings = (data ?? []).map((d) => ({ id: d.id, ...d }));

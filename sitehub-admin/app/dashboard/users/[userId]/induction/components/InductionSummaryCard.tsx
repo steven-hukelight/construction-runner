@@ -7,7 +7,7 @@ const BLUE = "#2563EB";
 
 type Summary = {
   totalSitesInducted: number;
-  lastInductionDate: Date | null;
+  lastInductionDate: string | null;
   activeCount: number;
   expiredCount: number;
 };
@@ -28,17 +28,15 @@ export default function InductionSummaryCard({
   user: User | null;
   summary: Summary;
 }) {
-  const lastDate =
-    summary.lastInductionDate instanceof Date
-      ? summary.lastInductionDate
-      : summary.lastInductionDate
-        ? new Date(summary.lastInductionDate)
-        : null;
-  const lastFormatted = lastDate
-    ? lastDate.toLocaleDateString(undefined, {
-        dateStyle: "medium",
-      })
-    : "—";
+  const lastDate = summary.lastInductionDate
+    ? new Date(summary.lastInductionDate)
+    : null;
+  const lastFormatted =
+    lastDate && !isNaN(lastDate.getTime())
+      ? lastDate.toLocaleDateString(undefined, {
+          dateStyle: "medium",
+        })
+      : "—";
 
   return (
     <div

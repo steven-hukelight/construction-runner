@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useCallback } from "react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 
 interface Message {
@@ -16,12 +17,24 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Fetch messages for the company
-    fetch(`/api/companies/${companyId}/messages`)
-      .then((res) => res.json())
-      .then((data) => setMessages(Array.isArray(data) ? data : []));
+  const fetchMessages = useCallback(async () => {
+    try {
+      const res = await fetch(`/api/companies/${companyId}/messages`);
+      const data = await res.json();
+      setMessages(Array.isArray(data) ? data : []);
+    } catch {
+      setMessages([]);
+    }
   }, [companyId]);
+
+  useEffect(() => {
+    void fetchMessages();
+  }, [fetchMessages]);
+
+  useEffect(() => {
+    const id = setInterval(fetchMessages, 3000);
+    return () => clearInterval(id);
+  }, [fetchMessages]);
 
   async function deleteMessage(messageId: string) {
     if (!canDelete) return;
@@ -51,11 +64,7 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
       body: JSON.stringify({ content: newMessage }),
     });
     setNewMessage("");
-    // Refresh messages
-    fetch(`/api/companies/${companyId}/messages`)
-      .then((res) => res.json())
-      .then((data) => setMessages(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
+    void fetchMessages().finally(() => setLoading(false));
   }
 
   return (
@@ -69,7 +78,7 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
             <div key={msg.id} className="mb-2 group">
               <div className="flex items-center gap-2">
                 <span className="font-bold text-blue-700">{msg.sender}</span>
-                <span className="text-xs text-slate-400">{new Date(msg.timestamp).toLocaleString()}</span>
+                <span className="text-xs text-slate-400">{formatDateTime(msg.timestamp)}</span>
                 {canDelete && (
                   <button
                     type="button"

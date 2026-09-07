@@ -3,12 +3,15 @@
 import React, { useState, useEffect } from "react";
 import { Shield } from "lucide-react";
 import Button from "@/app/dashboard/components/ui/Button";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 export default function SuperuserSelfOverrideBlock() {
   const [loading, setLoading] = useState(false);
   const [overrideOn, setOverrideOn] = useState<boolean | null>(null);
 
   useEffect(() => {
+    // Skip the fetch entirely when the pre-induction UI is disabled site-wide.
+    if (!preInductionUiEnabled) return;
     fetch("/api/profiles/me", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((json) => {
@@ -17,6 +20,10 @@ export default function SuperuserSelfOverrideBlock() {
       })
       .catch(() => {});
   }, []);
+
+  // Hide the self-override UI when the pre-induction UI is disabled site-wide.
+  // The backing API is still there for restoration.
+  if (!preInductionUiEnabled) return null;
 
   async function toggleOverride() {
     setLoading(true);

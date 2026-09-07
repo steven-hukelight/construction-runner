@@ -15,7 +15,8 @@ type Props = {
   isSubcontractorAdmin: boolean;
   onRowClick: (userId: string) => void;
   onViewDetails: (userId: string) => void;
-  onAssignToSite?: (userId: string, siteId: string) => void;
+  onAssignToSite?: (userId: string, siteId: string, companyId?: string) => void;
+  onMarkInducted?: (userId: string, siteId: string) => void;
   onResetInduction?: (userId: string, siteId: string) => void;
   onRequestDocuments?: (userId: string) => void;
   onApplyOverride?: (userId: string) => void;
@@ -28,6 +29,7 @@ export default function ComplianceTable({
   onRowClick,
   onViewDetails,
   onAssignToSite,
+  onMarkInducted,
   onResetInduction,
   onRequestDocuments,
   onApplyOverride,
@@ -96,9 +98,20 @@ export default function ComplianceTable({
                 <td className={`${density.td} text-gray-700 dark:text-slate-200`}>{row.companyName}</td>
                 <td className={`${density.td} text-gray-700 dark:text-slate-200`}>{row.siteName}</td>
                 <td className={density.td}>
-                  <ComplianceStatusBadge status={row.status} />
+                  <ComplianceStatusBadge status={row.status} siteId={row.siteId} />
                 </td>
-                <td className={density.td} title={row.ramsVersion ? `Version: ${row.ramsVersion}${row.ramsAcceptedAt ? ` | Accepted: ${row.ramsAcceptedAt.toLocaleString()}` : ""}` : undefined}>
+                <td
+                  className={density.td}
+                  title={
+                    row.ramsVersion
+                      ? `Version: ${row.ramsVersion}${
+                          row.ramsAcceptedAt
+                            ? ` | Accepted: ${new Date(row.ramsAcceptedAt).toLocaleString()}`
+                            : ""
+                        }`
+                      : undefined
+                  }
+                >
                   <RAMSStatusBadge status={row.ramsStatus} />
                 </td>
                 <td className={density.td}>
@@ -122,6 +135,7 @@ export default function ComplianceTable({
                     isSubcontractorAdmin={isSubcontractorAdmin}
                     onViewDetails={onViewDetails}
                     onAssignToSite={onAssignToSite}
+                    onMarkInducted={onMarkInducted}
                     onResetInduction={onResetInduction}
                     onRequestDocuments={onRequestDocuments}
                     onApplyOverride={onApplyOverride}

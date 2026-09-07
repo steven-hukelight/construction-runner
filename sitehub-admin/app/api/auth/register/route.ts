@@ -1,10 +1,14 @@
+import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { notifyAdminsOperativePendingSignup } from "@/lib/notifyAdminPendingOperative";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, name, companyName, companyCode } = body;
+    const { email, name, companyName, companyCode, password: rawPassword } = body;
+    const password =
+      typeof rawPassword === "string" && rawPassword.length >= 8 ? rawPassword : undefined;
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 
     const { data: settingsRow } = await supabaseAdmin
@@ -25,8 +29,13 @@ export async function POST(req: Request) {
     let companyId: string | null = null;
     let companyDoc: { name?: string; invite_code?: string } | null = null;
 
-    if (companyCode) {
-      const { data } = await supabaseAdmin.from("companies").select("id, name, invite_code").eq("invite_code", companyCode).limit(1);
+    if (companyCode && String(companyCode).trim()) {
+      const normalizedCode = String(companyCode).trim().toUpperCase();
+      const { data } = await supabaseAdmin
+        .from("companies")
+        .select("id, name, invite_code")
+        .eq("invite_code", normalizedCode)
+        .limit(1);
       if (!data?.length) return NextResponse.json({ error: "Invalid company code" }, { status: 400 });
       companyDoc = data[0];
       companyId = data[0].id;
@@ -48,11 +57,13 @@ export async function POST(req: Request) {
     const { data: reg, error: regErr } = await supabaseAdmin
       .from("registrations")
       .insert({
+        id: randomUUID(),
         company_id: companyId,
         data: {
           email,
           name: name ?? null,
           companyName: companyDoc?.name ?? null,
+          companyId,
           status: regStatus,
           role: regRole,
         },
@@ -60,7 +71,17 @@ export async function POST(req: Request) {
       .select("id")
       .single();
 
-    if (regErr || !reg) return NextResponse.json({ error: "Registration failed" }, { status: 500 });
+    if (regErr || !reg) {
+      console.error("registrations insert failed:", regErr?.message, regErr);
+      return NextResponse.json(
+        {
+          error:
+            regErr?.message?.trim() ||
+            "Registration failed (could not save pending signup — check database registrations table).",
+        },
+        { status: 500 }
+      );
+    }
 
     let authUser: { id: string } | null = null;
     try {
@@ -68,6 +89,7 @@ export async function POST(req: Request) {
         email,
         email_confirm: true,
         user_metadata: { name: name ?? undefined },
+        ...(password ? { password } : {}),
       });
       if (!error && created?.user) authUser = { id: created.user.id };
       else if (error?.message?.includes("already been registered")) {
@@ -86,9 +108,20 @@ export async function POST(req: Request) {
           display_name: name ?? "",
           company_id: companyId,
           role: isFirstAdmin ? "admin" : "operative",
+          approved: false,
         },
         { onConflict: "id" }
       );
+    }
+
+    if (!isFirstAdmin) {
+      void notifyAdminsOperativePendingSignup({
+        companyId: String(companyId),
+        companyName: companyDoc?.name ?? null,
+        operativeName: typeof name === "string" ? name : null,
+        operativeEmail: email,
+        registrationId: reg.id,
+      }).catch((e) => console.error("notifyAdminsOperativePendingSignup:", e));
     }
 
     const res = NextResponse.json({ id: reg.id, companyId, inviteCode: companyDoc?.invite_code }, { status: 201 });

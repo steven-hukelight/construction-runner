@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 
 interface OfflineItem {
@@ -103,7 +104,7 @@ export default function OfflineWorking({ companyId }: { companyId: string }) {
                   <div key={item.id} className="mb-2 py-1 border-b border-slate-100 dark:border-slate-700 last:border-0">
                     <span className="font-medium text-blue-700 dark:text-blue-400">{item.type}</span>
                     <span className="text-xs text-slate-400 dark:text-slate-500 ml-2">
-                      {new Date(item.synced_at ?? item.created_at).toLocaleString()}
+                      {formatDateTime(item.synced_at ?? item.created_at)}
                     </span>
                     <pre className="text-xs text-slate-600 dark:text-slate-300 mt-0.5 overflow-x-auto whitespace-pre-wrap">
                       {JSON.stringify(item.payload)}
@@ -122,7 +123,7 @@ export default function OfflineWorking({ companyId }: { companyId: string }) {
                   <div key={item.id} className="mb-2 py-1">
                     <span className="font-medium">{item.type}</span>
                     <span className="text-xs text-slate-500 dark:text-slate-400 ml-2">
-                      {new Date(item.created_at).toLocaleString()}
+                      {formatDateTime(item.created_at)}
                     </span>
                   </div>
                 ))}

@@ -6,7 +6,7 @@ import type { Session } from 'next-auth';
 describe('Profile Management', () => {
   it('should allow editing profile', () => {
     const session: Session = {
-      user: { email: 'user@sitehub.com', name: 'User', role: 'user' },
+      user: { email: 'user@construction-runner.com', name: 'User', role: 'user' },
       expires: '2099-01-01T00:00:00.000Z',
     };
     render(

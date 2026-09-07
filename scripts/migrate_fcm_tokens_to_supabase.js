@@ -1,6 +1,7 @@
 // scripts/migrate_fcm_tokens_to_supabase.js
+// Optional one-off: copy FCM tokens from a legacy Google Cloud user collection into Supabase `user_devices`.
 // Usage: node scripts/migrate_fcm_tokens_to_supabase.js
-// Requires: GOOGLE_APPLICATION_CREDENTIALS set for Firestore, SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY set for Supabase
+// Requires: GOOGLE_APPLICATION_CREDENTIALS, SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY (uses firebase-admin to read the legacy store).
 
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { getFirestore } = require('firebase-admin/firestore');

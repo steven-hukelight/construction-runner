@@ -45,6 +45,7 @@ export async function GET() {
     const pr = personal as { full_name?: string | null; data?: Record<string, unknown> } | null;
     const d = pr?.data ?? {};
     const resolvedName = (pr?.full_name ?? d?.full_name ?? d?.fullName ?? userData.display_name ?? userData.name ?? userData.displayName ?? email?.split("@")[0] ?? null) as string | null;
+    const jobTitle = (d?.job_title ?? d?.jobTitle ?? d?.jobRole ?? null) as string | null;
 
     let companyName: string | null = null;
     if (companyId) {
@@ -52,11 +53,37 @@ export async function GET() {
       companyName = company?.name ?? null;
     }
 
+    let profileJobTitle: string | null = null;
+    try {
+      const { data: profile } = await supabaseAdmin.from("profiles").select("job_title").eq("user_id", userId).maybeSingle();
+      profileJobTitle = (profile?.job_title ?? null) as string | null;
+    } catch {
+      // profiles may not exist
+    }
+
+    const approved = userData.approved !== false;
+
+    const roleNorm = String(userData.role ?? "").toLowerCase();
+    const managerRoles = ["admin", "supervisor", "sub_admin"];
+    const prefsRaw = userData.email_notification_preferences as unknown;
+    const emailNotificationPreferences =
+      managerRoles.includes(roleNorm) && prefsRaw && typeof prefsRaw === "object"
+        ? {
+            operativePendingApproval:
+              (prefsRaw as Record<string, unknown>).operativePendingApproval !== false,
+          }
+        : managerRoles.includes(roleNorm)
+          ? { operativePendingApproval: true }
+          : null;
+
     return NextResponse.json({
       id: userId,
       email,
       name: resolvedName,
       role: userData.role ?? null,
+      approved,
+      emailNotificationPreferences,
+      jobTitle: (jobTitle && String(jobTitle).trim()) || (profileJobTitle && String(profileJobTitle).trim()) || null,
       company_id: companyId,
       companyId, // legacy alias
       companyName,

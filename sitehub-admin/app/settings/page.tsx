@@ -218,8 +218,8 @@ function NotificationSettings() {
 
         <div className="flex items-center justify-between py-3 border-b">
           <div>
-            <p className="font-semibold text-gray-900">Site Notices</p>
-            <p className="text-sm text-gray-600">Receive notifications for site announcements</p>
+            <p className="font-semibold text-gray-900">Safety alerts</p>
+            <p className="text-sm text-gray-600">Critical alerts from Safety → Alerts</p>
           </div>
           <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
         </div>

@@ -8,6 +8,7 @@
  */
 /* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
+jest.mock("@/lib/onesignal", () => ({ sendPushToUsers: jest.fn().mockResolvedValue({ sent: true }) }));
 import {
   setMockCookies,
   clearMockCookies,
@@ -53,7 +54,15 @@ describe("Messaging regression tests", () => {
       { data: { id: userId, company_id: companyId }, error: null },
       { data: { company_id: companyId }, error: null },
       { data: { user_id: userId }, error: null },
-      { data: { id: "msg-123" }, error: null }
+      { data: { id: "msg-123" }, error: null },
+      {
+        data: [
+          { user_id: userId },
+          { user_id: "other-recipient-id" },
+        ],
+        error: null,
+      },
+      { data: { name: "Test Admin", display_name: null, email: "admin@test.com" }, error: null }
     );
 
     const { POST } = await import("@/app/api/messages/send/route");

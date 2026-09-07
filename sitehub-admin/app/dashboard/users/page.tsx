@@ -1,11 +1,11 @@
 import PageHeader from "../components/PageHeader";
 import UsersTable from "./UsersTable";
 import InviteUserModal from "./InviteUserModal";
-import ApprovalsModal from "./ApprovalsModal";
 import { fetchUsers } from "./actions";
 import { fetchProfiles } from "./profileActions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function UsersPage() {
   const cookieStore = await cookies();
@@ -44,7 +44,6 @@ export default async function UsersPage() {
         action={
           <div className="flex items-center gap-3">
             <InviteUserModal />
-            <ApprovalsModal />
           </div>
         }
       />
@@ -53,7 +52,11 @@ export default async function UsersPage() {
         {/* Decorative background element */}
         <div className="absolute -top-4 -right-4 w-72 h-72 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-full blur-3xl -z-10" />
         
-        <UsersTable data={users} profiles={profiles} currentUserRole={currentUserRole} />
+        <UsersTable
+          data={deepSerializeForClient(users)}
+          profiles={deepSerializeForClient(profiles)}
+          currentUserRole={currentUserRole}
+        />
       </div>
     </div>
   );

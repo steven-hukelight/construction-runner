@@ -37,11 +37,25 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
   const check = await canManageSite(siteId);
   if (!check.ok) return check.error!;
 
-  const { data } = await supabaseAdmin
+  const { data: rows } = await supabaseAdmin
     .from("assigned_operatives")
-    .select("*")
+    .select("id, site_id, user_id, userid, assigned_at, assignedat")
     .eq("site_id", siteId);
-  const list = (data ?? []).map((d) => ({ id: d.user_id ?? d.userid ?? d.id, ...d }));
+  const userIds = [...new Set((rows ?? []).map((r) => r.user_id ?? r.userid).filter(Boolean))];
+  const { data: users } = userIds.length
+    ? await supabaseAdmin.from("users").select("id, company_id").in("id", userIds)
+    : { data: [] };
+  const companyByUser = Object.fromEntries((users ?? []).map((u) => [u.id, u.company_id ?? ""]));
+  const list = (rows ?? []).map((d) => {
+    const uid = d.user_id ?? d.userid ?? d.id;
+    return {
+      ...d,
+      id: uid,
+      operativeId: uid,
+      user_id: uid,
+      companyId: companyByUser[uid] ?? null,
+    };
+  });
   return NextResponse.json(list);
 }
 

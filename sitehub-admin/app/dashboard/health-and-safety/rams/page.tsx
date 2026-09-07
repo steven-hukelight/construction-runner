@@ -4,6 +4,7 @@ import RAMSUploadModal from "../../rams/RAMSUploadModal";
 import { fetchRAMS } from "../../rams/actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function RAMSPage() {
   const cookieStore = await cookies();
@@ -40,7 +41,7 @@ export default async function RAMSPage() {
         description="Risk Assessments & Method Statements. Manage RAMS documents across your sites."
         action={<RAMSUploadModal />}
       />
-      <RAMSTable data={rams} />
+      <RAMSTable data={deepSerializeForClient(rams)} />
     </div>
   );
 }

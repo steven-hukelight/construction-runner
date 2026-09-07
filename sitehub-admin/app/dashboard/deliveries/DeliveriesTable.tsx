@@ -4,8 +4,10 @@ import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Package } from "lucide-react";
 import Table from "../components/ui/Table";
+import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { updateDeliveryStatus, deleteDelivery } from "./actions";
 import useSWR from "swr";
 
@@ -13,13 +15,19 @@ interface Delivery {
   id: string;
   reference?: string;
   siteId?: string;
+  site_id?: string;
   site?: string;
   status?: string;
   scheduledAt?: string;
+  scheduled_at?: string;
   createdAt?: { toDate?: () => Date } | Date | string;
+  created_at?: { toDate?: () => Date } | Date | string;
   notes?: string;
   podUrl?: string;
+  pod_url?: string;
   loadUrl?: string;
+  load_url?: string;
+  load_photos?: string[];
   wholesaler?: string;
   [key: string]: unknown;
 }
@@ -61,19 +69,20 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   }
 
   function formatDate(d: Delivery): string {
-    const raw = d.scheduledAt ?? d.createdAt;
+    const raw = d.scheduledAt ?? d.scheduled_at ?? d.createdAt ?? d.created_at;
     if (!raw) return "";
-    if (typeof raw === "string") return raw.slice(0, 16).replace("T", " ");
-    if (raw && typeof raw === "object" && "toDate" in raw && typeof (raw as { toDate: () => Date }).toDate === "function") {
-      const dt = (raw as { toDate: () => Date }).toDate();
-      return dt.toISOString().slice(0, 16).replace("T", " ");
+    let date: Date;
+    if (typeof raw === "string") date = new Date(raw);
+    else if (raw && typeof raw === "object" && "toDate" in raw && typeof (raw as { toDate: () => Date }).toDate === "function")
+      date = (raw as { toDate: () => Date }).toDate();
+    else if (raw instanceof Date) date = raw;
+    else {
+      const obj = raw as { seconds?: number; _seconds?: number };
+      const sec = obj.seconds ?? obj._seconds;
+      if (typeof sec !== "number") return "";
+      date = new Date(sec * 1000);
     }
-    if (raw instanceof Date) return raw.toISOString().slice(0, 16).replace("T", " ");
-    // Legacy timestamp: { seconds, nanoseconds } or { _seconds, _nanoseconds }
-    const obj = raw as { seconds?: number; nanoseconds?: number; _seconds?: number; _nanoseconds?: number };
-    const sec = obj.seconds ?? obj._seconds;
-    if (typeof sec === "number") return new Date(sec * 1000).toISOString().slice(0, 16).replace("T", " ");
-    return "";
+    return formatDateTime(date);
   }
 
   const handleExportCSV = useCallback(() => {
@@ -83,7 +92,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     const body = rows
       .map((r) => {
         const ref = (r.reference || r.wholesaler || "").toString().replace(/"/g, '""');
-        const site = (r.site || r.siteId || "").toString().replace(/"/g, '""');
+        const site = (r.site || r.siteId || r.site_id || "").toString().replace(/"/g, '""');
         const date = formatDate(r).replace(/"/g, '""');
         const status = (r.status || "").toString().replace(/"/g, '""');
         const notes = (r.notes || "").toString().replace(/"/g, '""');
@@ -135,7 +144,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   const filteredRows = useMemo(() => {
     if (!dateFrom && !dateTo) return rows;
     return rows.filter((r) => {
-      const raw = r.scheduledAt ?? r.createdAt;
+      const raw = r.scheduledAt ?? r.scheduled_at ?? r.createdAt ?? r.created_at;
       if (!raw) return true;
       let ts: number;
       if (typeof raw === "string") ts = new Date(raw).getTime();
@@ -162,13 +171,22 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
         </Link>
       ),
     },
-    { header: "Site", accessor: "site", render: (row: Delivery) => (row.site || row.siteId || "—") },
-    { header: "Date", accessor: "date", render: (row: Delivery) => formatDate(row) || "—" },
+    { header: "Site", accessor: "site", render: (row: Delivery) => (row.site || row.siteId || row.site_id || "—") },
+    {
+      header: "Date",
+      accessor: "date",
+      type: "date",
+      render: (row: Delivery) => formatDate(row) || "—",
+    },
     {
       header: "Images",
       accessor: "images",
       render: (row: Delivery) => {
-        const urls = [row.podUrl, row.loadUrl].filter(Boolean);
+        const urls = [
+          row.podUrl ?? row.pod_url,
+          ...(Array.isArray(row.load_photos) ? row.load_photos : []),
+          row.loadUrl ?? row.load_url,
+        ].filter((value, index, arr): value is string => Boolean(value) && arr.indexOf(value) === index);
         if (urls.length === 0) return "—";
         return (
           <span className="flex flex-wrap gap-1">
@@ -180,7 +198,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs"
               >
-                {row.podUrl && row.loadUrl ? (i === 0 ? "POD" : "Load") : "View"}
+                {i === 0 ? "POD" : `Load ${i}`}
               </a>
             ))}
           </span>
@@ -188,7 +206,11 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       },
     },
     { header: "Notes", accessor: "notes", render: (row: Delivery) => (row.notes ? String(row.notes).slice(0, 40) + (String(row.notes).length > 40 ? "…" : "") : "—") },
-    { header: "Status", accessor: "status", render: (row: Delivery) => row.status || "—" },
+    {
+      header: "Status",
+      accessor: "status",
+      render: (row: Delivery) => <TaskStatusPill status={row.status} />,
+    },
     {
       header: "Actions",
       accessor: "actions",

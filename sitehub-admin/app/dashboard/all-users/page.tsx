@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
 import Table from "../components/ui/Table";
 import RoleBadge from "../components/RoleBadge";
@@ -147,6 +148,7 @@ export default function AllUsersPage() {
       let res = await fetch("/api/auth/send-password-reset", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        credentials: "include",
         body: JSON.stringify({ email, userId: user.id }),
       });
       let data = await res.json().catch(() => ({}));
@@ -167,6 +169,7 @@ export default function AllUsersPage() {
         res = await fetch("/api/auth/send-password-reset", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
+          credentials: "include",
           body: JSON.stringify({ email, userId: newId }),
         });
         data = await res.json().catch(() => ({}));
@@ -212,7 +215,7 @@ export default function AllUsersPage() {
       header: "Last login",
       accessor: "lastLogin",
       render: (row: UserRow) =>
-        row.lastLogin ? new Date(row.lastLogin).toLocaleString() : "—",
+        row.lastLogin ? formatDateTime(row.lastLogin) : "—",
     },
     {
       header: "Profile",

@@ -13,11 +13,10 @@ export async function GET(req: Request) {
     const companyId = new URL(req.url).searchParams.get("companyId");
     if (!companyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
 
-    const [sitesRes, usersRes, tasksRes, noticesRes, ramsRes, deliveriesRes, usersForAtt] = await Promise.all([
+    const [sitesRes, usersRes, tasksRes, ramsRes, deliveriesRes, usersForAtt] = await Promise.all([
       supabaseAdmin.from("sites").select("*").eq("company_id", companyId),
       supabaseAdmin.from("users").select("*").eq("company_id", companyId),
       supabaseAdmin.from("tasks").select("*").eq("company_id", companyId),
-      supabaseAdmin.from("notices").select("*").eq("company_id", companyId),
       supabaseAdmin.from("rams").select("*").eq("company_id", companyId),
       supabaseAdmin.from("deliveries").select("*").eq("company_id", companyId),
       supabaseAdmin.from("users").select("id").eq("company_id", companyId),
@@ -34,7 +33,6 @@ export async function GET(req: Request) {
       sites: sitesRes.data ?? [],
       users: usersRes.data ?? [],
       tasks: tasksRes.data ?? [],
-      notices: noticesRes.data ?? [],
       rams: ramsRes.data ?? [],
       deliveries: deliveriesRes.data ?? [],
       attendance: attendance ?? [],

@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import PageHeader from "../components/PageHeader";
-import { FileText, RefreshCw, AlertCircle, Info, Trash2 } from "lucide-react";
+import { FileText, RefreshCw, AlertCircle, AlertTriangle, Info, Trash2 } from "lucide-react";
 import Button from "../components/ui/Button";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { getRoleFromClient } from "@/lib/utils/cookies";
 
 type LogEntry = {
   id: string;
@@ -13,23 +15,54 @@ type LogEntry = {
   source?: string;
 };
 
-function fetchLogs(): Promise<LogEntry[]> {
-  return fetch("/api/maintenance/activity-log")
-    .then((res) => res.json())
-    .then((data) => (Array.isArray(data) ? data : []))
-    .catch(() => []);
+const POLL_INTERVAL_MS = 10_000;
+
+type FetchLogsResult = { logs: LogEntry[]; error?: string };
+
+async function fetchLogs(): Promise<FetchLogsResult> {
+  try {
+    const res = await fetch("/api/maintenance/activity-log");
+    const data = await res.json();
+    if (!res.ok) {
+      const err = typeof (data as { error?: string }).error === "string" ? (data as { error: string }).error : "Could not load activity";
+      return { logs: [], error: err };
+    }
+    return { logs: Array.isArray(data) ? data : [] };
+  } catch {
+    return { logs: [], error: "Network error" };
+  }
 }
 
 export default function SystemLogsPage() {
   const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [loadError, setLoadError] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
   const [clearConfirmOpen, setClearConfirmOpen] = useState(false);
   const [clearing, setClearing] = useState(false);
+  const [canClearSystemLogs, setCanClearSystemLogs] = useState(false);
 
   useEffect(() => {
-    setLoading(true);
-    fetchLogs().then(setLogs).finally(() => setLoading(false));
+    queueMicrotask(() => setCanClearSystemLogs(getRoleFromClient()?.toLowerCase() === "superuser"));
   }, []);
+
+  const loadLogs = useCallback((showLoading = true) => {
+    if (showLoading) setLoading(true);
+    return fetchLogs()
+      .then(({ logs: next, error }) => {
+        setLogs(next);
+        setLoadError(error ?? null);
+      })
+      .finally(() => setLoading(false));
+  }, []);
+
+  useEffect(() => {
+    loadLogs();
+  }, [loadLogs]);
+
+  useEffect(() => {
+    const id = setInterval(() => loadLogs(false), POLL_INTERVAL_MS);
+    return () => clearInterval(id);
+  }, [loadLogs]);
 
   async function handleClearLogs() {
     setClearing(true);
@@ -37,9 +70,7 @@ export default function SystemLogsPage() {
       const res = await fetch("/api/system-logs/clear", { method: "POST" });
       if (res.ok) {
         setClearConfirmOpen(false);
-        setLoading(true);
-        const data = await fetchLogs();
-        setLogs(data);
+        await loadLogs();
       }
     } finally {
       setClearing(false);
@@ -58,25 +89,24 @@ export default function SystemLogsPage() {
           <div className="flex items-center gap-2">
             <Button
               variant="secondary"
-              onClick={() => {
-                setLoading(true);
-                fetchLogs().then(setLogs).finally(() => setLoading(false));
-              }}
+              onClick={() => loadLogs()}
               disabled={loading}
               className="inline-flex items-center gap-2"
             >
               <RefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
               Refresh
             </Button>
-            <Button
-              variant="danger"
-              onClick={() => setClearConfirmOpen(true)}
-              disabled={loading}
-              className="inline-flex items-center gap-2"
-            >
-              <Trash2 className="w-4 h-4" />
-              Clear Logs
-            </Button>
+            {canClearSystemLogs && (
+              <Button
+                variant="danger"
+                onClick={() => setClearConfirmOpen(true)}
+                disabled={loading}
+                className="inline-flex items-center gap-2"
+              >
+                <Trash2 className="w-4 h-4" />
+                Clear Logs
+              </Button>
+            )}
           </div>
         }
       />
@@ -106,13 +136,29 @@ export default function SystemLogsPage() {
             <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Recent activity</h3>
-            <p className="text-sm text-gray-600 dark:text-slate-400">System and audit events</p>
+            <div className="flex items-center gap-2">
+              <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Recent activity</h3>
+              <span className="flex items-center gap-1 px-2 py-0.5 text-xs font-medium text-emerald-700 dark:text-emerald-400 bg-emerald-100/80 dark:bg-emerald-900/30 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                Live
+              </span>
+            </div>
+            <p className="text-sm text-gray-600 dark:text-slate-400">System and audit events · auto-refreshes every 10s</p>
           </div>
         </div>
         {loading ? (
           <div className="py-12 flex items-center justify-center">
             <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
+          </div>
+        ) : loadError ? (
+          <div className="py-10 px-4 rounded-xl bg-amber-50/90 dark:bg-amber-950/30 border border-amber-200/80 dark:border-amber-800/60">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="font-medium text-gray-900 dark:text-slate-100">Could not load activity</p>
+                <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">{loadError}</p>
+              </div>
+            </div>
           </div>
         ) : logs.length === 0 ? (
           <div className="py-10 px-4 rounded-xl bg-gray-50/80 dark:bg-slate-700/60 border border-gray-200/60 dark:border-slate-600">
@@ -121,7 +167,7 @@ export default function SystemLogsPage() {
               <div>
                 <p className="font-medium text-gray-900 dark:text-slate-100">No activity log yet</p>
                 <p className="text-sm text-gray-600 dark:text-slate-400 mt-1">
-                  Add an activity log API (e.g. <code className="text-xs bg-gray-200/80 dark:bg-slate-700 px-1.5 py-0.5 rounded">/api/maintenance/activity-log</code>) that returns recent events from Supabase or your logging service to see live entries here.
+                  Company audit events, registrations, and (for platform admins) auth and system messages appear here. Activity refreshes every 10 seconds.
                 </p>
               </div>
             </div>
@@ -135,13 +181,16 @@ export default function SystemLogsPage() {
               >
                 {entry.level === "error" ? (
                   <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0 mt-0.5" />
+                ) : entry.level === "warn" ? (
+                  <AlertTriangle className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" />
                 ) : (
                   <Info className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
                 )}
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900 dark:text-slate-100">{entry.message}</p>
-                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1">
-                    {entry.time} {entry.source && `· ${entry.source}`}
+                  <p className="text-sm text-gray-900 dark:text-slate-100 leading-snug">{entry.message}</p>
+                  <p className="text-xs text-gray-500 dark:text-slate-400 mt-1 tabular-nums">
+                    {formatDateTime(entry.time)}
+                    {entry.source ? ` · ${entry.source}` : ""}
                   </p>
                 </div>
               </div>

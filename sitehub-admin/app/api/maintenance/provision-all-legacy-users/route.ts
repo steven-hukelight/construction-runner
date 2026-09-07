@@ -6,7 +6,7 @@ import { provisionLegacyUser } from "@/lib/provisionLegacyUser";
 /**
  * POST /api/maintenance/provision-all-legacy-users
  * Superuser only. Provisions auth accounts for all users in public.users
- * who do not yet have an auth.users record (e.g. migrated from Firebase).
+ * who do not yet have an auth.users record (e.g. legacy import).
  * After provisioning, users can log in via password reset.
  */
 export const dynamic = "force-dynamic";

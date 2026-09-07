@@ -1,0 +1,43 @@
+{
+  "name": "SiteHub",
+  "industry": "construction",
+  "platforms": {
+    "web": {
+      "stack": ["Next.js 16", "TypeScript", "Tailwind v4", "Framer Motion", "Supabase"],
+      "auth": "Next-Auth"
+    },
+    "mobile": {
+      "stack": ["Flutter", "Material 3", "Supabase", "Hive"],
+      "targets": ["iOS", "Android"]
+    }
+  },
+  "design": {
+    "font": "SF Pro",
+    "primary": "#2563EB",
+    "colors": {
+      "background": { "light": "#F8FAFC", "dark": "#0F1117" },
+      "card": { "light": "#FFFFFF", "dark": "#1A1D25" },
+      "success": "#10B981",
+      "danger": "#EF4444",
+      "warning": "#F59E0B"
+    },
+    "radius": { "card": 12, "input": 8, "pill": 20 },
+    "spacing": [4, 8, 12, 16, 24, 32]
+  },
+  "webLayout": {
+    "sidebar": "260px collapsible",
+    "nav": ["Dashboard", "Tasks", "Deliveries", "Assets", "Messages", "Settings"],
+    "safety": ["RAMS", "Briefings", "COSHH", "Site Rules", "Alerts", "Near Miss"],
+    "admin": ["Sites", "Subcontractors", "Induction", "Users", "Operatives", "Attendance"]
+  },
+  "mobileLayout": {
+    "home": ["WelcomeBanner", "QuickActionCards"],
+    "actions": ["Check In", "Tasks", "Briefings"],
+    "nav": "Bottom nav + drawer for admins"
+  },
+  "components": {
+    "web": ["StatCard", "Table", "Modal", "StatusPill", "PageHeader"],
+    "mobile": ["QuickActionCard", "AdminDrawer", "ProBottomSheet"]
+  },
+  "roles": ["operative", "supervisor", "admin", "superuser"]
+}

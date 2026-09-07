@@ -2,6 +2,7 @@
 
 import React from "react";
 import type { SupervisorOperativeStatus } from "../utils/buildSupervisorComplianceDataset";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 const STATUS_STYLES: Record<SupervisorOperativeStatus, { bg: string; text: string }> = {
   Inducted: { bg: "bg-emerald-100", text: "text-emerald-800" },
@@ -12,14 +13,26 @@ const STATUS_STYLES: Record<SupervisorOperativeStatus, { bg: string; text: strin
   Expired: { bg: "bg-red-100", text: "text-red-800" },
 };
 
-const DISPLAY_LABELS: Record<SupervisorOperativeStatus, string> = {
-  Inducted: "Inducted",
-  Grandfathered: "Grandfathered",
-  "Pre-Induction Required": "Pre-Induction Required",
-  "Pre-Induction Override": "Override Applied",
-  "Induction Required": "Ready for Induction",
-  Expired: "Not Inducted",
-};
+// When the pre-induction UI is disabled site-wide we still receive the
+// "Pre-Induction *" status values from the compliance builder, but we
+// present them with neutral labels so users don't see the feature name.
+const DISPLAY_LABELS: Record<SupervisorOperativeStatus, string> = preInductionUiEnabled
+  ? {
+      Inducted: "Inducted",
+      Grandfathered: "Grandfathered",
+      "Pre-Induction Required": "Pre-Induction Required",
+      "Pre-Induction Override": "Override Applied",
+      "Induction Required": "Ready for Induction",
+      Expired: "Not Inducted",
+    }
+  : {
+      Inducted: "Inducted",
+      Grandfathered: "Grandfathered",
+      "Pre-Induction Required": "Induction Required",
+      "Pre-Induction Override": "Override Applied",
+      "Induction Required": "Ready for Induction",
+      Expired: "Not Inducted",
+    };
 
 type Props = {
   status: SupervisorOperativeStatus;

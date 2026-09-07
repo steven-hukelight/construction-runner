@@ -149,7 +149,7 @@ function ResetPasswordPage() {
       }
 
       setSuccess(true);
-      setTimeout(() => router.replace("/login"), 2000);
+      setTimeout(() => router.replace("/admin/login"), 2000);
     } catch {
       setError("Something went wrong. Please try again.");
     } finally {
@@ -220,7 +220,7 @@ function ResetPasswordPage() {
                 {loading ? "Resetting..." : "Reset Password"}
               </button>
 
-              <Link href="/login" className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2">
+              <Link href="/admin/login" className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2">
                 ← Back to sign in
               </Link>
             </form>

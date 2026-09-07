@@ -9,7 +9,7 @@ type Props = {
   isSubcontractorAdmin: boolean;
   onToggleOverride?: (userId: string) => void;
   onResetInduction?: (userId: string, siteId: string) => void;
-  onAssignToSite?: (userId: string, siteId?: string) => void;
+  onAssignToSite?: (userId: string, siteId?: string, companyId?: string) => void;
   onVerifyAll?: (userId: string) => void;
   onRequestDocuments?: (userId: string) => void;
   onRemoveFromSite?: (userId: string, siteId: string) => void;
@@ -92,7 +92,7 @@ export default function ComplianceAdminActions({
         <button
           type="button"
           className={btnClass}
-          onClick={() => handle("assign", () => onAssignToSite(userId, siteId))}
+          onClick={() => handle("assign", () => onAssignToSite(userId, siteId, undefined))}
           disabled={loading !== null}
         >
           <MapPin className="h-4 w-4" />

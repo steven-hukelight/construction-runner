@@ -1,14 +1,13 @@
 "use client";
 
-
-
-import React, { useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import { Sparkles } from "lucide-react";
 import LogoutButton from "../LogoutButton";
 import NotificationDropdown from "../NotificationDropdown";
+import FeedbackLink from "@/app/components/FeedbackLink";
 import { usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { getRoleFromClient } from "@/lib/utils/cookies";
+import { getRoleFromClient, getUserEmailFromCookie } from "@/lib/utils/cookies";
 
 const CompanySwitcher = dynamic(() => import("../CompanySwitcher"), { ssr: false });
 
@@ -23,6 +22,7 @@ const SEGMENT_TO_TITLE: Record<string, string> = {
   assets: "Asset",
   rams: "RAMS",
   "near-miss": "Near miss",
+  alerts: "Alert",
   messages: "Message",
   deliveries: "Delivery",
   companies: "Company",
@@ -48,6 +48,21 @@ function getPageTitle(pathname: string): string {
     .join(" ");
 }
 
+function getInitials(value: string): string {
+  const cleaned = value.trim();
+  if (!cleaned) return "U";
+
+  const parts = cleaned
+    .replace(/@.*$/, "")
+    .split(/[\s._-]+/)
+    .filter(Boolean);
+
+  if (parts.length === 0) return "U";
+  if (parts.length === 1) return parts[0].slice(0, 2).toUpperCase();
+
+  return `${parts[0][0] ?? ""}${parts[1][0] ?? ""}`.toUpperCase();
+}
+
 export default function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
@@ -56,7 +71,37 @@ export default function Topbar() {
   function handleProfile() {
     router.push("/dashboard/profile");
   }
-  const isSuperuser = typeof window !== "undefined" && getRoleFromClient()?.toLowerCase() === "superuser";
+
+  // Resolve isSuperuser only after mount to avoid hydration mismatch (server has no cookies)
+  const [isSuperuser, setIsSuperuser] = useState(false);
+  const [profileInitials, setProfileInitials] = useState("U");
+  useEffect(() => {
+    let cancelled = false;
+    const emailFromCookie = getUserEmailFromCookie() ?? "";
+    queueMicrotask(() => {
+      if (cancelled) return;
+      setIsSuperuser(getRoleFromClient()?.toLowerCase() === "superuser");
+      if (emailFromCookie) {
+        setProfileInitials(getInitials(emailFromCookie));
+      }
+    });
+
+    fetch("/api/profiles/me", { cache: "no-store", credentials: "include" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((json) => {
+        if (cancelled || !json) return;
+        const me = Array.isArray(json) && json.length ? json[0] : json;
+        const label = String(me?.displayName || me?.name || me?.email || emailFromCookie || "").trim();
+        if (label) {
+          setProfileInitials(getInitials(label));
+        }
+      })
+      .catch(() => {});
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   // Clean cache-bust param from URL after company switch (keeps URL clean)
   useEffect(() => {
@@ -87,16 +132,16 @@ export default function Topbar() {
       </div>
 
       <div className="flex items-center gap-4">
+        <FeedbackLink variant="topbar" />
         <NotificationDropdown />
 
-        <button 
+        <button
           onClick={handleProfile}
-          className="relative overflow-hidden p-0.5 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 transition-all duration-300 hover:shadow-xl hover:shadow-blue-500/30 cursor-pointer group"
-          title="View profile"
+          className="inline-flex h-12 w-10 items-center justify-center rounded-[1.15rem] bg-blue-600 text-white shadow-[0_8px_18px_rgba(37,99,235,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_12px_24px_rgba(37,99,235,0.3)] focus:outline-none focus:ring-4 focus:ring-blue-200"
+          title="Open profile settings"
+          aria-label="Open profile settings"
         >
-          <div className="bg-white/10 backdrop-blur-sm p-3 rounded-[10px] flex items-center justify-center">
-            <span className="text-white font-bold text-base">S</span>
-          </div>
+          <span className="text-base font-semibold tracking-tight">{profileInitials}</span>
         </button>
 
         <LogoutButton />

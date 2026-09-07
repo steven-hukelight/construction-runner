@@ -1,0 +1,34 @@
+---
+description: Premium mobile UI standards for Construction Runner screens and widgets
+globs: sitehub_worker_Ready/lib/{screens,Widgets}/**/*.dart
+alwaysApply: false
+---
+
+# Construction Runner Mobile UI
+
+- Design every mobile screen and widget with a bright, premium light theme inspired by Linear and Apple.
+- Use `#1E4ED8` as the primary accent; gradients should be subtle and never overpower the layout.
+- Keep spacing on the 8 / 12 / 16 / 24 / 32 scale only.
+- Use 10-12px radii for cards and containers, with very soft shadows and no harsh borders.
+- Preserve strong typography hierarchy in SF Pro: title first, subtitle second, metadata third.
+
+# Component Standards
+
+- Top bars should feel clean and light: CR logo, semibold title, muted date/time, subtle divider or 2-3% shadow.
+- Search bars should be pill-shaped with a light gray fill, blue focus ring, blue search icon, and muted sentence-case placeholder text.
+- Lists like alerts, site rules, near misses, and similar record views should use white cards with soft shadows, 16-20px internal padding, and clear title/subtitle/metadata hierarchy.
+- Severity and category badges should follow brand color logic: warning yellow, emergency red, info blue, with optional colored left-edge accents.
+- Modals should prefer bottom-sheet presentation with rounded top corners, soft blur backdrop, and smooth slide-up motion.
+- Empty states should stay minimal, geometric, and professional with a short CTA.
+
+# Interaction And Copy
+
+- Use subtle fade/slide motion and light stagger only; avoid flashy animations.
+- Keep labels in sentence case and copy short, clear, and professional.
+- Fix obvious typos while editing UI copy.
+- Avoid clutter, dark themes, arbitrary colors, compressed spacing, and cartoonish visuals.
+
+# Editing Guidance
+
+- When updating existing mobile UI, polish toward this system rather than introducing one-off styles.
+- Prefer consistency with existing premium app patterns over inventing a new visual direction per screen.

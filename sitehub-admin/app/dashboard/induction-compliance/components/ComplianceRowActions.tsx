@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useRef } from "react";
-import { MoreHorizontal, Eye, MapPin, RotateCcw, FileQuestion, Shield, Trash2, Upload, CheckCircle } from "lucide-react";
+import { MoreHorizontal, Eye, MapPin, RotateCcw, FileQuestion, Shield, Trash2, Upload, CheckCircle, Check } from "lucide-react";
 import type { ComplianceRow } from "../server";
 
 type Props = {
   row: ComplianceRow;
   isSubcontractorAdmin: boolean;
   onViewDetails: (userId: string) => void;
-  onAssignToSite?: (userId: string, siteId: string) => void;
+  onAssignToSite?: (userId: string, siteId: string, companyId: string) => void;
+  onMarkInducted?: (userId: string, siteId: string) => void;
   onResetInduction?: (userId: string, siteId: string) => void;
   onRequestDocuments?: (userId: string) => void;
   onApplyOverride?: (userId: string) => void;
@@ -20,6 +21,7 @@ export default function ComplianceRowActions({
   isSubcontractorAdmin,
   onViewDetails,
   onAssignToSite,
+  onMarkInducted,
   onResetInduction,
   onRequestDocuments,
   onApplyOverride,
@@ -37,11 +39,15 @@ export default function ComplianceRowActions({
     setOpen((o) => !o);
   };
   const canAssign = row.status === "compliant" || row.status === "grandfathered" || row.status === "override_applied";
+  const canMarkInducted = ["missing_induction", "missing_pre_induction", "override_applied"].includes(row.status);
 
   const actions: { label: string; icon: React.ElementType; onClick?: () => void; adminOnly?: boolean }[] = [
     { label: "View Details", icon: Eye, onClick: () => onViewDetails(row.userId) },
     ...(canAssign && onAssignToSite && !isSubcontractorAdmin
-      ? [{ label: "Assign to Site", icon: MapPin, onClick: () => onAssignToSite(row.userId, row.siteId) }]
+      ? [{ label: "Assign to Site", icon: MapPin, onClick: () => onAssignToSite(row.userId, row.siteId, row.companyId) }]
+      : []),
+    ...(canMarkInducted && onMarkInducted && !isSubcontractorAdmin
+      ? [{ label: "Mark inducted", icon: Check, onClick: () => onMarkInducted(row.userId, row.siteId) }]
       : []),
     ...(onResetInduction && !isSubcontractorAdmin
       ? [{ label: "Reset Induction", icon: RotateCcw, onClick: () => onResetInduction(row.userId, row.siteId) }]

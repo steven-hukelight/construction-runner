@@ -401,11 +401,11 @@ export default function CertificationsPage() {
 function toDateString(val: MaybeDate): string {
   if (!val) return "—";
   try {
-    // Firestore-style object with toDate()
+    // Object with toDate() (e.g. some client SDKs)
     if (typeof (val as { toDate?: () => Date }).toDate === "function") {
       return formatUk((val as { toDate: () => Date }).toDate());
     }
-    // Firestore-style seconds-based timestamp
+    // Seconds-based timestamp object { seconds } or { _seconds }
     if (typeof (val as { seconds?: number }).seconds === "number") {
       return formatUk(new Date((val as { seconds: number }).seconds * 1000));
     }

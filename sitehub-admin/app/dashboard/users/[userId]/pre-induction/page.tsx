@@ -1,10 +1,13 @@
 import { cookies } from "next/headers";
+import { redirect } from "next/navigation";
 import Link from "next/link";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import { getPreInductionData } from "./server";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 import PreInductionSummaryCard from "./components/PreInductionSummaryCard";
 import PreInductionOverrideToggle from "./components/PreInductionOverrideToggle";
 import PreInductionLayoutWithRefresh from "./components/PreInductionLayoutWithRefresh";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 export const dynamic = "force-dynamic";
 
@@ -57,6 +60,12 @@ export default async function PreInductionPage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
+  // Pre-induction UI is hidden site-wide. Send anyone landing on a direct
+  // pre-induction URL back to the user record. Data + APIs remain intact.
+  if (!preInductionUiEnabled) {
+    const { userId: userIdEarly } = await params;
+    redirect(`/dashboard/users/${userIdEarly}`);
+  }
   const { userId } = await params;
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
@@ -105,7 +114,7 @@ export default async function PreInductionPage({
         adminPreInductionOverride={data.user.adminPreInductionOverride}
         canEdit={canEditOverride}
       />
-      <PreInductionLayoutWithRefresh userId={userId} sections={data.sections} />
+      <PreInductionLayoutWithRefresh userId={userId} sections={deepSerializeForClient(data.sections)} />
     </div>
   );
 }

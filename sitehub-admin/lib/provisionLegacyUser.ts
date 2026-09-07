@@ -5,7 +5,6 @@ const TABLES_TO_UPDATE: { table: string; column: string }[] = [
   { table: "tasks", column: "assigned_to" },
   { table: "deliveries", column: "delivered_by" },
   { table: "profiles", column: "user_id" },
-  { table: "notices_read", column: "user_id" },
   { table: "upload_logs", column: "user_id" },
   { table: "near_miss", column: "operative_id" },
   { table: "offline_queue", column: "user_id" },
@@ -27,6 +26,7 @@ const TABLES_TO_UPDATE: { table: string; column: string }[] = [
   { table: "assigned_operatives", column: "user_id" },
   { table: "user_site_inductions", column: "user_id" },
   { table: "briefing_acknowledgements", column: "user_id" },
+  { table: "rams_acknowledgements", column: "user_id" },
   { table: "user_pre_induction_profile", column: "user_id" },
 ];
 

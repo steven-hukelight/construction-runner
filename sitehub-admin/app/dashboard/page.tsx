@@ -11,12 +11,12 @@ export default async function DashboardPage() {
 
   // Operative web login is a future feature – redirect operatives to login
   if (roleLower === "operative") {
-    redirect("/login?blocked=operative");
+    redirect("/admin/login?blocked=operative");
   }
 
   // Role missing or invalid → login (do not default to admin)
   if (!role || !VALID_ROLES.includes(role)) {
-    redirect("/login");
+    redirect("/admin/login");
   }
 
   if (roleLower === "superuser" && !impersonating) {

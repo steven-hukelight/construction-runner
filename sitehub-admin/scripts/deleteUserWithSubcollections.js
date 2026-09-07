@@ -15,8 +15,6 @@ async function deleteUserAndSubcollections(userId) {
   await supabase.from('certifications').delete().eq('user_id', userId);
   // Delete training
   await supabase.from('training').delete().eq('user_id', userId);
-  // Delete notices (if user-specific)
-  await supabase.from('notices').delete().eq('user_id', userId);
   // Delete tasks (if user-specific)
   await supabase.from('tasks').delete().eq('user_id', userId);
   // Delete user row

@@ -1,22 +1,27 @@
 "use server";
 
 import { cookies } from "next/headers";
-import { getBaseUrl } from "@/lib/url";
+import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export async function fetchProfiles() {
-  const base = getBaseUrl();
-  const url = `${base}/api/profiles`;
-  const headers: HeadersInit = { "Cache-Control": "no-store" };
-  const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  if (cookieHeader) headers.Cookie = cookieHeader;
-  const res = await fetch(url, { cache: "no-store", headers });
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const base = await getServerRequestBaseUrl();
+    const url = `${base}/api/profiles`;
+    const headers: HeadersInit = { "Cache-Control": "no-store" };
+    const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+    if (cookieHeader) headers.Cookie = cookieHeader;
+    const res = await fetch(url, { cache: "no-store", headers });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) {
+    console.error("fetchProfiles:", e);
+    return [];
+  }
 }
 
 export async function updateProfile(id: string, data: any) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const headers: HeadersInit = { "Content-Type": "application/json" };
   const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   if (cookieHeader) headers.Cookie = cookieHeader;

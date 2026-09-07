@@ -105,6 +105,7 @@ export async function GET() {
     const securityCfg = (cfg?.security as Record<string, unknown>) ?? {};
     const announcements = (cfg?.announcements as Record<string, unknown>) ?? {};
     const announcementMsg = (announcements?.message as string) ?? (cfg?.announcement as string) ?? "";
+    const emailNotifications = (cfg?.emailNotifications as Record<string, unknown>) ?? {};
     return NextResponse.json({
       brandName: cfg?.brandName ?? branding?.appName ?? "Construction Runner",
       appName: branding?.appName ?? cfg?.brandName ?? "Construction Runner",
@@ -120,6 +121,9 @@ export async function GET() {
       featureToggles,
       security: securityCfg,
       announcements: { message: announcementMsg },
+      emailNotifications: {
+        operativePendingApproval: emailNotifications.operativePendingApproval !== false,
+      },
     });
   } catch (e: unknown) {
     const msg = e instanceof Error ? e.message : "Unknown error";

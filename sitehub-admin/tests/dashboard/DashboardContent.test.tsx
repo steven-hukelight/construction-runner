@@ -27,7 +27,6 @@ const defaultProps = {
   activeRAMS: 1,
   totalUsers: 3,
   totalTasks: 2,
-  totalNotices: 0,
   sites: [
     { id: "s1", name: "Site Alpha", company_id: "co-a", created_at: "2024-01-15T10:00:00Z" },
     { id: "s2", name: "Site Beta", company_id: "co-a", created_at: "2024-01-16T10:00:00Z" },
@@ -60,7 +59,6 @@ describe("DashboardContent", () => {
         rams: [{ id: "r1", title: "RAMS Doc", status: "APPROVED" }],
         users: [{ id: "u1", display_name: "Alice" }],
         tasks: [{ id: "t1", title: "Task 1" }],
-        notices: [],
       };
       return Promise.resolve({ data: dataMap[table] ?? [], error: null });
     });
@@ -118,7 +116,6 @@ describe("DashboardContent", () => {
         totalSites={0}
         totalUsers={0}
         totalTasks={0}
-        totalNotices={0}
         activeRAMS={0}
       />
     );
@@ -149,7 +146,6 @@ describe("DashboardContent", () => {
     expect(screen.getByText("Active RAMS")).toBeInTheDocument();
     expect(screen.getByText("Users")).toBeInTheDocument();
     expect(screen.getByText("Tasks")).toBeInTheDocument();
-    expect(screen.getByText("Notices")).toBeInTheDocument();
     expect(screen.getByText("Quick Actions")).toBeInTheDocument();
     expect(screen.getByText("Add Site")).toBeInTheDocument();
     expect(screen.getByText("Upload RAMS")).toBeInTheDocument();

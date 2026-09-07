@@ -17,4 +17,5 @@ CREATE TABLE IF NOT EXISTS attendance_archive (
 CREATE INDEX IF NOT EXISTS idx_attendance_archive_company_date ON attendance_archive(company_id, archive_date DESC);
 CREATE INDEX IF NOT EXISTS idx_attendance_archive_site ON attendance_archive(site_id) WHERE site_id IS NOT NULL;
 CREATE INDEX IF NOT EXISTS idx_attendance_archive_timestamp ON attendance_archive(timestamp DESC);
+-- No RLS policies: same backend-only model as public.attendance (service_role / server-side).
 ALTER TABLE attendance_archive ENABLE ROW LEVEL SECURITY;

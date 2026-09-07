@@ -1,23 +1,16 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess";
 
-/** GET /api/assets/mine - Assets assigned to the logged-in operative */
-export async function GET() {
+/** GET /api/assets/mine - Assets assigned to the logged-in operative (cookies or Bearer). */
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const uid = cookieStore.get("uid")?.value?.trim();
-    const userEmail = cookieStore.get("user_email")?.value?.trim();
-    if (!uid && !userEmail) {
+    const auth = await resolveMobileApiAuth(req);
+    const userId = await resolveUserIdFromAuth(auth);
+    if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
-
-    let userId = uid ?? null;
-    if (!userId && userEmail) {
-      const { data } = await supabaseAdmin.from("users").select("id").eq("email", userEmail).maybeSingle();
-      userId = (data as { id?: string } | null)?.id ?? null;
-    }
-    if (!userId) return NextResponse.json({ error: "User not found" }, { status: 401 });
 
     // asset_assignments may not exist if migrations not run – return [] gracefully
     let assetIds: string[] = [];

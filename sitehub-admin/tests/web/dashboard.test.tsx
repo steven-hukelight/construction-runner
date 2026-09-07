@@ -7,7 +7,7 @@ describe('Web Dashboard', () => {
   function renderWithSession(role: string) {
     const session: Session = {
       user: {
-        email: `${role}@sitehub.com`,
+        email: `${role}@construction-runner.com`,
         name: role.charAt(0).toUpperCase() + role.slice(1),
         role,
       },

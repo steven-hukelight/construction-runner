@@ -15,20 +15,46 @@ export async function POST(req: Request) {
     }
 
     const cookieStore = await cookies();
-    const userEmail = cookieStore.get("user_email")?.value;
-    if (!userEmail) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const uidCookie = cookieStore.get("uid")?.value?.trim();
+    const userEmail = cookieStore.get("user_email")?.value?.trim();
+
+    let userId: string | null = null;
+    if (uidCookie) {
+      const { data: byId } = await supabaseAdmin.from("users").select("id").eq("id", uidCookie).maybeSingle();
+      if (byId) userId = byId.id;
+    }
+    if (!userId && userEmail) {
+      const { data: byEmail } = await supabaseAdmin.from("users").select("id").eq("email", userEmail).maybeSingle();
+      if (byEmail) userId = byEmail.id;
     }
 
-    const { data: userRow } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("email", userEmail.trim())
-      .maybeSingle();
-    if (!userRow) {
-      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    // Bearer token fallback for mobile when cookies are not sent
+    if (!userId) {
+      const authHeader = req.headers.get("authorization");
+      if (authHeader?.toLowerCase().startsWith("bearer ")) {
+        const token = authHeader.slice(7).trim();
+        if (token) {
+          try {
+            const { data: { user }, error } = await supabaseAdmin.auth.getUser(token);
+            if (!error && user?.id) {
+              const { data: dbUser } = await supabaseAdmin
+                .from("users")
+                .select("id")
+                .eq("id", user.id)
+                .maybeSingle();
+              if (dbUser) userId = (dbUser as { id: string }).id;
+              else userId = user.id; // auth user id when users row uses same id
+            }
+          } catch {
+            // ignore
+          }
+        }
+      }
     }
-    const userId = userRow.id;
+
+    if (!userId) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    }
 
     const effectiveType = (contentType ?? "image/jpeg").toLowerCase();
     if (!ALLOWED_TYPES.includes(effectiveType)) {

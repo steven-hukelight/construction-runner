@@ -1,6 +1,6 @@
 "use server";
 
-import { getBaseUrl } from "@/lib/url";
+import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
 import { headers } from "next/headers";
 
 async function getCookieHeader(): Promise<string | undefined> {
@@ -12,19 +12,24 @@ async function getCookieHeader(): Promise<string | undefined> {
 }
 
 export async function fetchRAMS(companyId?: string, cookieHeader?: string) {
-  const base = getBaseUrl();
-  let url = `${base}/api/rams`;
-  if (companyId) url += `?companyId=${encodeURIComponent(companyId)}`;
-  const headersInit: HeadersInit = { "Cache-Control": "no-store" };
-  const cookie = cookieHeader ?? (await getCookieHeader());
-  if (cookie) headersInit.Cookie = cookie;
-  const res = await fetch(url, { cache: "no-store", headers: headersInit });
-  if (!res.ok) return [];
-  return res.json();
+  try {
+    const base = await getServerRequestBaseUrl();
+    let url = `${base}/api/rams`;
+    if (companyId) url += `?companyId=${encodeURIComponent(companyId)}`;
+    const headersInit: HeadersInit = { "Cache-Control": "no-store" };
+    const cookie = cookieHeader ?? (await getCookieHeader());
+    if (cookie) headersInit.Cookie = cookie;
+    const res = await fetch(url, { cache: "no-store", headers: headersInit });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) {
+    console.error("fetchRAMS:", e);
+    return [];
+  }
 }
 
 export async function updateRAMSStatus(id: string, status: string) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/rams/${id}`;
   const cookie = await getCookieHeader();
   const headersInit: HeadersInit = { "Content-Type": "application/json" };
@@ -33,7 +38,7 @@ export async function updateRAMSStatus(id: string, status: string) {
 }
 
 export async function deleteRAMS(id: string) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/rams/${id}`;
   const cookie = await getCookieHeader();
   const headersInit: HeadersInit = {};

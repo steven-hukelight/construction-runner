@@ -1,7 +1,9 @@
+import { randomUUID } from "node:crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { sendPushToUsers } from "@/lib/onesignal";
 
 function toTime(a: unknown): number {
   if (!a) return 0;
@@ -27,22 +29,40 @@ export async function GET(req: Request) {
     if (role === "superuser") {
       companyId = searchParams.get("companyId") || companyId || undefined;
       if (companyId) {
-        const { data } = await supabaseAdmin
+        const { data, error } = await supabaseAdmin
           .from("rams")
           .select("*")
           .eq("company_id", companyId)
-          .order("created_at", { ascending: false });
+          .order("created_at", { ascending: false })
+          .limit(500);
+        if (error) {
+          console.error("GET /api/rams (superuser scoped):", error.message);
+          return NextResponse.json({ error: error.message }, { status: 500 });
+        }
         return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
       }
-      const { data } = await supabaseAdmin.from("rams").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabaseAdmin
+        .from("rams")
+        .select("*")
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (error) {
+        console.error("GET /api/rams (superuser all):", error.message);
+        return NextResponse.json({ error: error.message }, { status: 500 });
+      }
       return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
     }
     if (companyId) {
-      const { data: ownRams } = await supabaseAdmin
+      const { data: ownRams, error: ownErr } = await supabaseAdmin
         .from("rams")
         .select("*")
         .eq("company_id", companyId)
-        .order("created_at", { ascending: false });
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (ownErr) {
+        console.error("GET /api/rams (own company):", ownErr.message);
+        return NextResponse.json({ error: ownErr.message }, { status: 500 });
+      }
       const own = (ownRams ?? []).map((d) => ({ id: d.id, ...d }));
       const { data: mainSites } = await supabaseAdmin
         .from("sites")
@@ -52,18 +72,21 @@ export async function GET(req: Request) {
       if (mainSiteIds.length === 0) return NextResponse.json(own);
 
       const seen = new Set(own.map((r: { id: string }) => r.id));
+      const { data: bySite, error: siteErr } = await supabaseAdmin
+        .from("rams")
+        .select("*")
+        .in("site_id", mainSiteIds)
+        .order("created_at", { ascending: false })
+        .limit(500);
+      if (siteErr) {
+        console.error("GET /api/rams (by site):", siteErr.message);
+        return NextResponse.json({ error: siteErr.message }, { status: 500 });
+      }
       const rams: Record<string, unknown>[] = [...own];
-      for (const siteId of mainSiteIds) {
-        const { data: bySite } = await supabaseAdmin
-          .from("rams")
-          .select("*")
-          .eq("site_id", siteId)
-          .order("created_at", { ascending: false });
-        for (const doc of bySite ?? []) {
-          if (seen.has(doc.id)) continue;
-          seen.add(doc.id);
-          rams.push({ id: doc.id, ...doc });
-        }
+      for (const doc of bySite ?? []) {
+        if (seen.has(doc.id)) continue;
+        seen.add(doc.id);
+        rams.push({ id: doc.id, ...doc });
       }
       rams.sort((a, b) => toTime(b.created_at ?? b.createdAt) - toTime(a.created_at ?? a.createdAt));
       return NextResponse.json(rams);
@@ -93,6 +116,7 @@ export async function POST(req: Request) {
   if (!assignedCompanyId) return NextResponse.json({ error: "companyId required" }, { status: 400 });
 
   const { data, error } = await supabaseAdmin.from("rams").insert({
+    id: randomUUID(),
     title: body.title,
     site_id: body.siteId ?? null,
     status: "PENDING",
@@ -104,5 +128,19 @@ export async function POST(req: Request) {
     console.error("POST /api/rams failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
+
+  const { data: companyUsers } = await supabaseAdmin
+    .from("users")
+    .select("id")
+    .eq("company_id", assignedCompanyId);
+  const pushIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean) as string[];
+  if (pushIds.length > 0) {
+    const t = (body.title as string)?.trim() || "New RAMS";
+    sendPushToUsers(pushIds, `New RAMS: ${t}`, "A new RAMS document was added", {
+      type: "rams",
+      screen: "rams",
+    }).catch((e) => console.error("RAMS push failed:", e));
+  }
+
   return NextResponse.json({ id: data?.id }, { status: 201 });
 }

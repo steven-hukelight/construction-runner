@@ -61,6 +61,8 @@ CREATE TABLE IF NOT EXISTS attendance (
 );
 CREATE INDEX IF NOT EXISTS idx_attendance_user_id ON attendance(user_id);
 CREATE INDEX IF NOT EXISTS idx_attendance_timestamp ON attendance(timestamp DESC);
+-- No RLS policies on attendance: rows are accessed only via service_role (Next.js API) and
+-- SECURITY DEFINER functions (e.g. perform_attendance_fallback). JWT clients are denied.
 ALTER TABLE attendance ENABLE ROW LEVEL SECURITY;
 
 -- Deliveries

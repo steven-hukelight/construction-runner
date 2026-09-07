@@ -1,28 +1,93 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
 }
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const companyId = cookieStore.get("companyId")?.value;
+    const auth = await resolveMobileApiAuth(req);
+    const url = new URL(req.url);
+    const companyId = auth.companyId;
+    const category = url.searchParams.get("category")?.trim();
+    const search = url.searchParams.get("search")?.trim().toLowerCase();
+    const favouriteOnly = url.searchParams.get("favouriteOnly") === "true";
+    const sort = url.searchParams.get("sort") || "category";
+
     if (!companyId) return NextResponse.json({ rules: [] }, { status: 200 });
 
-    const { data } = await supabaseAdmin
+    let query = supabaseAdmin
       .from("site_rules")
       .select("*")
       .eq("company_id", companyId);
+    if (category) query = query.eq("category", category);
 
-    const rules = (data ?? []).map((r) => ({
+    const { data } = await query;
+
+    const rulesRaw = (data ?? []).filter((rule) => {
+      if (!search) return true;
+      const haystack = [
+        (rule as Record<string, unknown>).category ?? "",
+        (rule as Record<string, unknown>).title ?? "",
+        (rule as Record<string, unknown>).body ?? "",
+      ]
+        .join(" ")
+        .toLowerCase();
+      return haystack.includes(search);
+    });
+
+    const ruleIds = rulesRaw.map((rule) => rule.id);
+    let favouriteIds = new Set<string>();
+    if (auth.uid && ruleIds.length > 0) {
+      const { data: favourites } = await supabaseAdmin
+        .from("site_rule_favourites")
+        .select("site_rule_id")
+        .eq("user_id", auth.uid)
+        .in("site_rule_id", ruleIds);
+      favouriteIds = new Set(
+        (favourites ?? [])
+          .map((row) => row.site_rule_id?.toString() ?? "")
+          .filter(Boolean),
+      );
+    }
+
+    let rules = rulesRaw.map((r) => ({
       id: r.id,
       category: (r as Record<string, unknown>).category ?? "",
       title: (r as Record<string, unknown>).title ?? "",
       description: (r as Record<string, unknown>).body ?? "",
+      file_url: (r as Record<string, unknown>).file_url ?? "",
+      updated_at: (r as Record<string, unknown>).updated_at ?? null,
+      is_favourite: auth.uid ? favouriteIds.has(r.id) : false,
     }));
+
+    if (favouriteOnly) {
+      rules = rules.filter((rule) => rule.is_favourite);
+    }
+
+    rules.sort((a, b) => {
+      if (sort === "title") {
+        return String(a.title).localeCompare(String(b.title));
+      }
+      if (sort === "updated") {
+        return String(b.updated_at ?? "").localeCompare(
+          String(a.updated_at ?? ""),
+        );
+      }
+      if (sort === "favourites") {
+        if (a.is_favourite === b.is_favourite) {
+          return String(a.title).localeCompare(String(b.title));
+        }
+        return a.is_favourite ? -1 : 1;
+      }
+      const categoryCompare = String(a.category).localeCompare(
+        String(b.category),
+      );
+      if (categoryCompare !== 0) return categoryCompare;
+      return String(a.title).localeCompare(String(b.title));
+    });
     return NextResponse.json({ rules });
   } catch (e) {
     console.error("GET /api/site-rules:", e);
@@ -32,8 +97,8 @@ export async function GET() {
 
 export async function POST(req: Request) {
   const body = await req.json();
-  const cookieStore = await cookies();
-  const companyId = cookieStore.get("companyId")?.value;
+  const auth = await resolveMobileApiAuth(req);
+  const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
   const { category, title, description } = body;
@@ -56,8 +121,8 @@ export async function POST(req: Request) {
 
 export async function PATCH(req: Request) {
   const body = await req.json();
-  const cookieStore = await cookies();
-  const companyId = cookieStore.get("companyId")?.value;
+  const auth = await resolveMobileApiAuth(req);
+  const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
   const { id, category, title, description } = body;
@@ -78,8 +143,8 @@ export async function PATCH(req: Request) {
 
 export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
-  const cookieStore = await cookies();
-  const companyId = cookieStore.get("companyId")?.value;
+  const auth = await resolveMobileApiAuth(req);
+  const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 

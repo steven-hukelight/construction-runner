@@ -1,7 +1,9 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
+import { PortalOverlay } from "../components/PortalOverlay";
 import Table from "../components/ui/Table";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
@@ -22,7 +24,10 @@ export default function CompaniesPage() {
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
   const [createOpen, setCreateOpen] = useState(false);
+  const [createRequesteeName, setCreateRequesteeName] = useState("");
   const [createName, setCreateName] = useState("");
+  const [createContactEmail, setCreateContactEmail] = useState("");
+  const [createAddress, setCreateAddress] = useState("");
   const [creating, setCreating] = useState(false);
   const [regeneratingId, setRegeneratingId] = useState<string | null>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
@@ -166,28 +171,53 @@ export default function CompaniesPage() {
     }
   }
 
+  function resetCreateForm() {
+    setCreateRequesteeName("");
+    setCreateName("");
+    setCreateContactEmail("");
+    setCreateAddress("");
+  }
+
   async function handleCreateCompany(e: React.FormEvent) {
     e.preventDefault();
-    if (!createName.trim()) return;
+    const requesteeName = createRequesteeName.trim();
+    const name = createName.trim();
+    const contactEmail = createContactEmail.trim();
+    const address = createAddress.trim();
+    if (!requesteeName || !name || !contactEmail || !address) return;
     setCreating(true);
     try {
       const res = await fetch("/api/companies", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: createName.trim() }),
+        body: JSON.stringify({
+          requesteeName,
+          name,
+          contactEmail,
+          address,
+        }),
       });
+      const data = await res.json().catch(() => ({}));
       if (res.ok) {
-        setCreateName("");
+        resetCreateForm();
         setCreateOpen(false);
         loadCompanies();
+        if (typeof data?.message === "string") {
+          alert(data.message);
+        }
       } else {
-        const err = await res.json();
-        alert(err.error || "Failed to create company");
+        alert(typeof data?.error === "string" ? data.error : "Failed to create company");
       }
     } finally {
       setCreating(false);
     }
   }
+
+  const createFormValid =
+    !!createRequesteeName.trim() &&
+    !!createName.trim() &&
+    !!createContactEmail.trim() &&
+    !!createAddress.trim();
 
   const columns = [
     { header: "Name", accessor: "name", render: (row: Company) => row.name || "—" },
@@ -215,7 +245,7 @@ export default function CompaniesPage() {
       header: "Created",
       accessor: "createdAt",
       render: (row: Company) =>
-        row.createdAt ? new Date(row.createdAt).toLocaleDateString() : "—",
+        row.createdAt ? formatDate(row.createdAt) : "—",
     },
     {
       header: "Status",
@@ -343,69 +373,132 @@ export default function CompaniesPage() {
       </div>
 
       {createOpen && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => !creating && setCreateOpen(false)}
-        >
+        <PortalOverlay>
           <div
-            className="card max-w-md w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => !creating && setCreateOpen(false)}
           >
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Create company</h3>
-            <form onSubmit={handleCreateCompany}>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company name</label>
-              <input
-                type="text"
-                value={createName}
-                onChange={(e) => setCreateName(e.target.value)}
-                className="input w-full mb-6"
-                placeholder="Acme Ltd"
-                autoFocus
-              />
-              <div className="flex gap-3 justify-end">
-                <Button type="button" variant="secondary" onClick={() => setCreateOpen(false)} disabled={creating}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={creating || !createName.trim()}>
-                  {creating ? "Creating…" : "Create"}
-                </Button>
-              </div>
-            </form>
+            <div
+              className="card max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-1">Create company</h3>
+              <p className="text-sm text-gray-600 mb-4">
+                Creates the tenant, adds the contact as company admin, and emails them a temporary password to sign in
+                (if outbound email is configured).
+              </p>
+              <form onSubmit={handleCreateCompany} className="space-y-4">
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Requestee name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={createRequesteeName}
+                    onChange={(e) => setCreateRequesteeName(e.target.value)}
+                    className="input w-full"
+                    placeholder="Person responsible for onboarding"
+                    autoFocus
+                    autoComplete="name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company name <span className="text-red-600">*</span>
+                  </label>
+                  <input
+                    type="text"
+                    value={createName}
+                    onChange={(e) => setCreateName(e.target.value)}
+                    className="input w-full"
+                    placeholder="Acme Ltd"
+                    autoComplete="organization"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Access email <span className="text-red-600">*</span>
+                  </label>
+                  <p className="text-xs text-gray-500 mb-1">
+                    This person receives the login email with a temporary password. They must use this address to sign in.
+                  </p>
+                  <input
+                    type="email"
+                    value={createContactEmail}
+                    onChange={(e) => setCreateContactEmail(e.target.value)}
+                    className="input w-full"
+                    placeholder="admin@company.com"
+                    autoComplete="email"
+                  />
+                </div>
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">
+                    Company address <span className="text-red-600">*</span>
+                  </label>
+                  <textarea
+                    value={createAddress}
+                    onChange={(e) => setCreateAddress(e.target.value)}
+                    className="input w-full min-h-[88px] py-2.5 resize-y"
+                    placeholder="Registered or principal address — building, street, town, postcode, country"
+                    rows={3}
+                    autoComplete="street-address"
+                  />
+                </div>
+                <div className="flex gap-3 justify-end pt-2">
+                  <Button
+                    type="button"
+                    variant="secondary"
+                    onClick={() => {
+                      resetCreateForm();
+                      setCreateOpen(false);
+                    }}
+                    disabled={creating}
+                  >
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={creating || !createFormValid}>
+                    {creating ? "Creating…" : "Create company"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </PortalOverlay>
       )}
 
       {editModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => !updating && setEditModal(null)}
-        >
+        <PortalOverlay>
           <div
-            className="card max-w-md w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
+            className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
+            onClick={() => !updating && setEditModal(null)}
           >
-            <h3 className="text-xl font-semibold text-gray-900 mb-4">Edit company</h3>
-            <form onSubmit={handleUpdateCompany}>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Company name</label>
-              <input
-                type="text"
-                value={editName}
-                onChange={(e) => setEditName(e.target.value)}
-                className="input w-full mb-6"
-                placeholder="Company name"
-                autoFocus
-              />
-              <div className="flex gap-3 justify-end">
-                <Button type="button" variant="secondary" onClick={() => setEditModal(null)} disabled={updating}>
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={updating || !editName.trim()}>
-                  {updating ? "Saving…" : "Save"}
-                </Button>
-              </div>
-            </form>
+            <div
+              className="card max-w-md w-full shadow-2xl"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <h3 className="text-xl font-semibold text-gray-900 mb-4">Edit company</h3>
+              <form onSubmit={handleUpdateCompany}>
+                <label className="block text-sm font-medium text-gray-700 mb-2">Company name</label>
+                <input
+                  type="text"
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  className="input w-full mb-6"
+                  placeholder="Company name"
+                  autoFocus
+                />
+                <div className="flex gap-3 justify-end">
+                  <Button type="button" variant="secondary" onClick={() => setEditModal(null)} disabled={updating}>
+                    Cancel
+                  </Button>
+                  <Button type="submit" disabled={updating || !editName.trim()}>
+                    {updating ? "Saving…" : "Save"}
+                  </Button>
+                </div>
+              </form>
+            </div>
           </div>
-        </div>
+        </PortalOverlay>
       )}
     </div>
   );

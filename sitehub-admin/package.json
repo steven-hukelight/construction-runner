@@ -12,7 +12,7 @@
     "test": "jest",
     "test:unit": "jest",
     "test:e2e": "jest --testPathPattern=e2e",
-    "test:rls": "jest --runInBand tests/rls/users.rls.test.ts tests/rls/sites.rls.test.ts tests/rls/tasks.rls.test.ts tests/rls/notices.rls.test.ts tests/rls/deliveries.rls.test.ts",
+    "test:rls": "jest --runInBand tests/rls/users.rls.test.ts tests/rls/sites.rls.test.ts tests/rls/tasks.rls.test.ts tests/rls/deliveries.rls.test.ts",
     "test:regression": "jest -c jest.regression.config.js",
     "test:integration": "jest -c jest.integration.config.js",
     "test:performance": "jest -c jest.performance.config.js",
@@ -26,6 +26,8 @@
   "dependencies": {
     "@supabase/supabase-js": "^2.0.0",
     "@tailwindcss/postcss": "^4.1.18",
+    "@upstash/ratelimit": "^2.0.8",
+    "@upstash/redis": "^1.36.4",
     "autoprefixer": "^10.4.24",
     "clsx": "^2.1.1",
     "framer-motion": "^12.34.0",
@@ -39,6 +41,7 @@
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-hot-toast": "^2.6.0",
+    "react-onesignal": "^3.5.1",
     "recharts": "^3.7.0",
     "swr": "^2.3.0",
     "tailwind-merge": "^3.4.0",
@@ -48,7 +51,6 @@
     "next": "16.1.6"
   },
   "devDependencies": {
-    "undici": "^7.0.0",
     "@playwright/test": "^1.58.2",
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
@@ -63,6 +65,7 @@
     "pg": "^8.18.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.0.0",
+    "undici": "^7.0.0",
     "zod": "^4.3.6"
   }
 }

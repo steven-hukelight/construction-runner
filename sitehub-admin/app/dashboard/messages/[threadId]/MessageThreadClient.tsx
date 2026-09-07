@@ -2,6 +2,8 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { Check, CheckCheck } from "lucide-react";
 import Button from "../../components/ui/Button";
 
 interface Message {
@@ -11,6 +13,7 @@ interface Message {
   body: string;
   attachmentUrl?: string | null;
   createdAt: string;
+  read?: boolean;
 }
 
 export default function MessageThreadClient({ threadId, companyId, canDelete = false }: { threadId: string; companyId: string; canDelete?: boolean }) {
@@ -99,6 +102,12 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
     void load();
   }, [load]);
 
+  const MESSAGE_REFRESH_SEC = 3;
+  useEffect(() => {
+    const id = setInterval(() => void load(), MESSAGE_REFRESH_SEC * 1000);
+    return () => clearInterval(id);
+  }, [load]);
+
   async function sendMessage() {
     if (!newMessage.trim()) return;
     setSending(true);
@@ -151,7 +160,13 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
               <div className="flex justify-between items-center gap-3 mb-2">
                 <span className="font-medium text-[#1A1A1A] text-sm">{m.sender_name ?? "Unknown"}</span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-[#6E6E6E]">{new Date(m.createdAt).toLocaleString()}</span>
+                  <span className="text-xs text-[#6E6E6E]">{formatDateTime(m.createdAt)}</span>
+                  {m.read === true && (
+                    <CheckCheck className="w-4 h-4 text-blue-600" aria-label="Read" />
+                  )}
+                  {m.read === false && (
+                    <Check className="w-4 h-4 text-slate-400" aria-label="Sent" />
+                  )}
                   {canDelete && (
                     <button
                       type="button"

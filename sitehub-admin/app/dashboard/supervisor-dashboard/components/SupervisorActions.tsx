@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { FileQuestion, FileText, Flag, ExternalLink, ClipboardList } from "lucide-react";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 type Props = {
   operativeId: string;
@@ -48,13 +49,15 @@ export default function SupervisorActions({
           Flag Operative
         </button>
       )}
-      <Link
-        href={`/dashboard/users/${operativeId}/pre-induction`}
-        className={btnClass}
-      >
-        <ExternalLink className="h-4 w-4" />
-        Open Full Pre-Induction Profile
-      </Link>
+      {preInductionUiEnabled && (
+        <Link
+          href={`/dashboard/users/${operativeId}/pre-induction`}
+          className={btnClass}
+        >
+          <ExternalLink className="h-4 w-4" />
+          Open Full Pre-Induction Profile
+        </Link>
+      )}
     </div>
   );
 }

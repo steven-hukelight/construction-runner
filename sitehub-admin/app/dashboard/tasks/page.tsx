@@ -1,8 +1,8 @@
-import TasksTable from "./TasksTable";
-import TasksHeader from "./TasksHeader";
+import TasksSection from "./TasksSection";
 import { fetchTasks } from "./actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function TasksPage() {
   const cookieStore = await cookies();
@@ -31,14 +31,5 @@ export default async function TasksPage() {
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   const tasks = await fetchTasks(companyId ?? undefined, cookieHeader);
 
-  return (
-    <div className="relative space-y-8">
-      {/* Decorative background */}
-      <div className="absolute top-24 left-40 w-64 h-64 bg-gradient-to-br from-cyan-400/10 to-teal-400/10 rounded-full blur-3xl -z-10" />
-
-      <TasksHeader />
-
-      <TasksTable data={tasks} />
-    </div>
-  );
+  return <TasksSection data={deepSerializeForClient(tasks)} />;
 }

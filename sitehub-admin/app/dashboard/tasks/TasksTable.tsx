@@ -2,50 +2,49 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
+import { createPortal } from "react-dom";
 import { ListTodo } from "lucide-react";
 import Table from "../components/ui/Table";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
+import { TaskStatusPill } from "../components/ui/TaskStatusPill";
+import TaskDetailModal from "./TaskDetailModal";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { updateTaskStatus, deleteTask } from "./actions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
-import { supabase } from "@/supabase/auth/client";
 
-export default function TasksTable({ data }: any) {
+export default function TasksTable({ data, refreshTrigger }: { data?: any; refreshTrigger?: number }) {
   const [rows, setRows] = useState<any[]>(data || []);
   const [users, setUsers] = useState<any[]>([]);
+  const [detailTask, setDetailTask] = useState<any | null>(null);
 
   useEffect(() => {
     setRows(data || []);
   }, [data]);
 
-  // Fetch tasks from Supabase, filtered by company_id (UUID from cookie)
-  useEffect(() => {
-    const fetchTasks = async () => {
-      const companyId = getCompanyIdFromClient(); // UUID from cookie
-      if (!companyId) return;
-      const { data, error } = await supabase
-        .from("tasks")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-        .limit(150);
-      if (!error && Array.isArray(data)) setRows(data);
-      else setRows([]);
-    };
-    fetchTasks();
+  const refetchTasks = React.useCallback(async () => {
+    const companyId = getCompanyIdFromClient();
+    if (!companyId) return;
+    const url = `/api/tasks?companyId=${encodeURIComponent(companyId)}&_t=${Date.now()}`;
+    const res = await fetch(url, { cache: "no-store", credentials: "include" });
+    if (!res.ok) return;
+    const json = await res.json();
+    setRows(Array.isArray(json) ? json : []);
   }, []);
 
-  // Fetch users for name resolution from Supabase
+  useEffect(() => {
+    refetchTasks();
+  }, [refetchTasks, refreshTrigger]);
+
+  // Fallback: fetch users for name resolution (if API lacks assigned_to_names)
   useEffect(() => {
     const fetchUsers = async () => {
-      const companyId = getCompanyIdFromClient(); // UUID from cookie
+      const companyId = getCompanyIdFromClient();
       if (!companyId) return;
-      const { data, error } = await supabase
-        .from("users")
-        .select("id, display_name, email")
-        .eq("company_id", companyId);
-      if (!error && Array.isArray(data)) setUsers(data);
-      else setUsers([]);
+      const res = await fetch(`/api/users?companyId=${companyId}`, { credentials: "include" });
+      if (!res.ok) return;
+      const json = await res.json();
+      setUsers(Array.isArray(json) ? json : []);
     };
     fetchUsers();
   }, []);
@@ -83,11 +82,14 @@ export default function TasksTable({ data }: any) {
     const body = rows
       .map((r) => {
         const title = (r.title || "").toString().replace(/"/g, '""');
-        const site = (r.site_id ?? r.siteId ?? "").toString().replace(/"/g, '""');
-        const assigned = (r.assigned_to ?? r.assignedTo ?? "").toString().replace(/"/g, '""');
+        const site = (r.site_name ?? r.site_id ?? r.siteId ?? "").toString().replace(/"/g, '""');
+        const assigned = Array.isArray(r.assigned_to_names)
+          ? r.assigned_to_names.join(", ")
+          : (r.assigned_to ?? r.assignedTo ?? "").toString();
+        const assignedEsc = assigned.replace(/"/g, '""');
         const due = (r.due_date ?? r.dueDate ?? "").toString().replace(/"/g, '""');
         const status = (r.status || "").toString().replace(/"/g, '""');
-        return `"${title}","${site}","${assigned}","${due}","${status}"`;
+        return `"${title}","${site}","${assignedEsc}","${due}","${status}"`;
       })
       .join("\n");
 
@@ -126,9 +128,11 @@ export default function TasksTable({ data }: any) {
         doc.addPage();
         y = 20;
       }
-      const line = `${index + 1}. ${r.title || "(no title)"}  •  ${
-        r.assigned_to ?? r.assignedTo ?? "-"
-      }  •  ${r.due_date ?? r.dueDate ?? ""}  •  ${r.status || ""}`;
+      const assigned = Array.isArray(r.assigned_to_names)
+        ? r.assigned_to_names.join(", ")
+        : (r.assigned_to ?? r.assignedTo ?? "-");
+      const site = r.site_name ?? r.site_id ?? r.siteId ?? "-";
+      const line = `${index + 1}. ${r.title || "(no title)"}  •  ${site}  •  ${assigned}  •  ${r.due_date ?? r.dueDate ?? ""}  •  ${r.status || ""}`;
       doc.text(line, 14, y);
       y += lineHeight;
     });
@@ -137,26 +141,67 @@ export default function TasksTable({ data }: any) {
   }
 
   const columns = [
-    { header: "Title", accessor: "title" },
-    { header: "Site", accessor: "site_id", render: (row: any) => row.site_id ?? row.siteId ?? "—" },
+    {
+      header: "Title",
+      accessor: "title",
+      render: (row: any) => (
+        <button
+          type="button"
+          onClick={() => setDetailTask(row)}
+          className="text-left font-medium text-blue-600 hover:text-blue-700 hover:underline"
+        >
+          {row.title || "Untitled"}
+        </button>
+      ),
+    },
+    {
+      header: "Site",
+      accessor: "site_name",
+      render: (row: any) => row.site_name ?? row.site_id ?? row.siteId ?? "—",
+    },
     {
       header: "Assigned To",
       accessor: "assigned_to",
       render: (row: any) => {
+        if (Array.isArray(row.assigned_to_names) && row.assigned_to_names.length > 0) {
+          return row.assigned_to_names.join(", ");
+        }
         const ids = row.assigned_to_ids ?? (row.assigned_to ? [row.assigned_to] : row.assignedTo ? [row.assignedTo] : []);
         if (!ids.length) return "—";
         return ids.map((id: string) => resolveUser(id)).join(", ");
       },
     },
-    { header: "Due Date", accessor: "due_date", render: (row: any) => row.due_date ?? row.dueDate ?? "—" },
+    {
+      header: "Due Date",
+      accessor: "due_date",
+      type: "date",
+      render: (row: any) => {
+        const v = row.due_date ?? row.dueDate;
+        if (!v) return "—";
+        // Supabase DATE often arrives as "YYYY-MM-DD" (no timezone). Using new Date("YYYY-MM-DD")
+        // can shift by a day in some timezones, so parse date-only values explicitly.
+        let d: Date | null = null;
+        if (typeof v === "string") {
+          const m = v.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+          if (m) {
+            const year = Number(m[1]);
+            const month = Number(m[2]);
+            const day = Number(m[3]);
+            d = new Date(year, month - 1, day);
+          } else {
+            const parsed = new Date(v);
+            d = Number.isNaN(parsed.getTime()) ? null : parsed;
+          }
+        } else if (v instanceof Date) {
+          d = v;
+        }
+        return d ? formatDate(d) : "—";
+      },
+    },
     {
       header: "Status",
       accessor: "status",
-      render: (row: any) => (
-        <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded bg-gray-100 text-gray-800">
-          {row.status || "—"}
-        </span>
-      ),
+      render: (row: any) => <TaskStatusPill status={row.status} />,
     },
     {
       header: "Actions",
@@ -202,7 +247,28 @@ export default function TasksTable({ data }: any) {
           </div>
         )}
       </div>
-      <Table columns={columns} data={rows} />
+      <Table
+        columns={columns}
+        data={rows}
+        emptyMessage="No tasks yet. Use Add Task above to create one."
+      />
+      {typeof document !== "undefined" &&
+        detailTask &&
+        createPortal(
+          <TaskDetailModal
+            task={detailTask}
+            onClose={() => setDetailTask(null)}
+            onStatusChange={(id, status) => {
+              handleStatus(id, status);
+              setDetailTask((t) => (t?.id === id ? { ...t, status } : t));
+            }}
+            onDelete={(id) => {
+              handleDelete(id);
+              setDetailTask(null);
+            }}
+          />,
+          document.body
+        )}
     </div>
   );
 }

@@ -19,7 +19,7 @@ export function AuthErrorHandler() {
       didClear = true;
       await supabase.auth.signOut({ scope: "local" });
       try {
-        ["role", "user_email", "companyId", "impersonating"].forEach(
+        ["role", "user_email", "companyId", "impersonating", "session_id", "session_started_at"].forEach(
           (name) => (document.cookie = `${name}=; path=/; max-age=0`)
         );
       } catch {
@@ -30,18 +30,31 @@ export function AuthErrorHandler() {
           .filter((k) => k.startsWith("sb-") || k === "sb_token" || k === "remembered_email")
           .forEach((k) => window.localStorage.removeItem(k));
       }
-      if (!pathname?.startsWith("/login") && !pathname?.startsWith("/register")) {
-        router.replace("/login");
+      const isAuthPage =
+        pathname?.startsWith("/admin/login") ||
+        pathname?.startsWith("/login") ||
+        pathname?.startsWith("/register");
+      // Marketing / public pages: clear stale Supabase data but stay on the page (logo + landing must work on /).
+      const isPublicSurface =
+        pathname === "/" ||
+        pathname?.startsWith("/contact") ||
+        pathname?.startsWith("/forgot-password") ||
+        pathname?.startsWith("/reset-password") ||
+        pathname?.startsWith("/join") ||
+        pathname?.startsWith("/legal");
+      if (!isAuthPage && !isPublicSurface) {
+        router.replace("/admin/login");
       }
     };
 
     const handleAuthError = (err: unknown) => {
       const msg = err instanceof Error ? err.message : String(err);
-      if (
+      const isRefreshTokenError =
         msg?.includes("Refresh Token") ||
         msg?.includes("refresh_token") ||
-        msg?.includes("Invalid Refresh Token")
-      ) {
+        msg?.includes("Invalid Refresh Token") ||
+        msg?.includes("Refresh Token Not Found");
+      if (isRefreshTokenError) {
         clearSessionAndRedirect();
       }
     };

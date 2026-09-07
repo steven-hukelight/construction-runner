@@ -4,11 +4,12 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
-import { Palette, ToggleLeft, Megaphone, Shield, Clock, Key, ShieldCheck, History, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink } from "lucide-react";
+import { Palette, ToggleLeft, Megaphone, Shield, Clock, Key, ShieldCheck, History, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink, Mail } from "lucide-react";
 
 export default function GlobalSettingsPage() {
   const [branding, setBranding] = useState({ appName: "Construction Runner", supportEmail: "" });
   const [featureToggles, setFeatureToggles] = useState({ registrationsOpen: true, maintenanceMode: false });
+  const [emailNotifications, setEmailNotifications] = useState({ operativePendingApproval: true });
   const [announcement, setAnnouncement] = useState("");
   const [security, setSecurity] = useState({
     sessionTimeoutMinutes: 60,
@@ -36,6 +37,10 @@ export default function GlobalSettingsPage() {
         setFeatureToggles({
           registrationsOpen: ft.registrationsOpen ?? data.registrationsOpen ?? data.featureA ?? true,
           maintenanceMode: ft.maintenanceMode ?? data.maintenanceMode ?? data.maintenance ?? false,
+        });
+        const en = data.emailNotifications ?? {};
+        setEmailNotifications({
+          operativePendingApproval: en.operativePendingApproval !== false,
         });
         setAnnouncement(data.announcement ?? data.announcements?.message ?? "");
         const sec = data.security ?? {};
@@ -70,6 +75,14 @@ export default function GlobalSettingsPage() {
         });
       } else if (section === "toggles") {
         body = { section: "featureToggles", config: featureToggles };
+        res = await fetch("/api/settings/global", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          credentials: "include",
+          body: JSON.stringify(body),
+        });
+      } else if (section === "emailNotifications") {
+        body = { section: "emailNotifications", config: emailNotifications };
         res = await fetch("/api/settings/global", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -204,11 +217,41 @@ export default function GlobalSettingsPage() {
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
+              <Mail className="w-5 h-5 text-blue-600" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-gray-900">Email notifications</h3>
+              <p className="text-sm text-gray-600">Requires RESEND_API_KEY, SENDGRID_API_KEY, or SMTP in production</p>
+            </div>
+          </div>
+          <div className="space-y-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <input
+                type="checkbox"
+                checked={emailNotifications.operativePendingApproval}
+                onChange={(e) =>
+                  setEmailNotifications((p) => ({ ...p, operativePendingApproval: e.target.checked }))
+                }
+                className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              />
+              <span className="text-sm font-medium text-gray-900">
+                Send email when a new operative registers (pending approval) — company admins/supervisors and info@construction-runner.com
+              </span>
+            </label>
+            <Button size="sm" onClick={() => handleSave("emailNotifications")} disabled={saving === "emailNotifications"}>
+              {saving === "emailNotifications" ? "Saving…" : "Save"}
+            </Button>
+          </div>
+        </div>
+
+        <div className="card">
+          <div className="flex items-center gap-3 mb-6">
+            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
               <Megaphone className="w-5 h-5 text-blue-600" />
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">System-wide announcements</h3>
-              <p className="text-sm text-gray-600">Banner or notice for all users</p>
+              <p className="text-sm text-gray-600">Banner message for all users</p>
             </div>
           </div>
           <div className="space-y-4">

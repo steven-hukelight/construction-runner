@@ -1,9 +1,11 @@
 "use client";
 
-import React, { useEffect, useState, useMemo } from "react";
+import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
+import { Trash2 } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
+import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 
 interface Asset {
   id: string;
@@ -14,6 +16,7 @@ interface Asset {
   status?: string;
   condition?: string;
   site_id?: string;
+  assigned_to?: string | null;
 }
 
 interface User {
@@ -35,27 +38,28 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
 
-  useEffect(() => {
-    async function load() {
-      setLoading(true);
-      try {
-        const [aRes, uRes] = await Promise.all([
-          fetch("/api/assets"),
-          fetch(`/api/companies/${companyId}/operatives`).catch(() => ({ json: () => [] })),
-        ]);
-        const a = await aRes.json();
-        const u = await uRes.json?.() ?? [];
-        setAssets(Array.isArray(a) ? a : []);
-        setUsers(Array.isArray(u) ? u : []);
-      } catch {
-        setAssets([]);
-        setUsers([]);
-      } finally {
-        setLoading(false);
-      }
+  const load = useCallback(async () => {
+    setLoading(true);
+    try {
+      const [aRes, uRes] = await Promise.all([
+        fetch("/api/assets"),
+        fetch(`/api/companies/${companyId}/operatives`).catch(() => ({ json: () => [] })),
+      ]);
+      const a = await aRes.json();
+      const u = await uRes.json?.() ?? [];
+      setAssets(Array.isArray(a) ? a : []);
+      setUsers(Array.isArray(u) ? u : []);
+    } catch {
+      setAssets([]);
+      setUsers([]);
+    } finally {
+      setLoading(false);
     }
-    load();
   }, [companyId]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
 
   async function addAsset() {
     if (!newAsset.name.trim()) return;
@@ -80,14 +84,31 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     }
   }
 
+  async function removeAsset(assetId: string, assetName: string) {
+    if (!confirm(`Remove asset "${assetName}"? This cannot be undone.`)) return;
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
+      if (!res.ok) {
+        const err = await res.json();
+        alert(err?.error ?? "Failed to remove");
+        return;
+      }
+      setAssets((prev) => prev.filter((a) => a.id !== assetId));
+    } catch (e) {
+      console.error(e);
+      alert("Failed to remove asset");
+    }
+  }
+
   async function assignAsset() {
     if (!assignModal || !selectedUserId) return;
     try {
-      await fetch("/api/assets/assign", {
+      const res = await fetch("/api/assets/assign", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ asset_id: assignModal.assetId, user_id: selectedUserId }),
       });
+      if (res.ok) load();
       setAssignModal(null);
       setSelectedUserId("");
     } catch (e) {
@@ -112,6 +133,52 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     } finally {
       setUploading(false);
     }
+  }
+
+  function exportAssetsCsv(rows: Asset[]) {
+    const esc = (v: unknown) => {
+      const s = String(v ?? "");
+      const needsQuotes = /[",\n\r]/.test(s);
+      const out = s.replaceAll('"', '""');
+      return needsQuotes ? `"${out}"` : out;
+    };
+
+    const headers = [
+      "id",
+      "name",
+      "type",
+      "status",
+      "serial_number",
+      "site_id",
+      "assigned_to",
+    ];
+
+    const lines = [
+      headers.join(","),
+      ...rows.map((a) =>
+        [
+          a.id,
+          a.name,
+          a.type ?? a.category ?? "",
+          a.status ?? a.condition ?? "",
+          a.serial_number ?? "",
+          a.site_id ?? "",
+          a.assigned_to ?? "",
+        ]
+          .map(esc)
+          .join(",")
+      ),
+    ];
+
+    const blob = new Blob([lines.join("\n")], { type: "text/csv;charset=utf-8" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `assets-${companyId}-${new Date().toISOString().slice(0, 10)}.csv`;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
   }
 
   const filteredAssets = useMemo(() => {
@@ -184,6 +251,15 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
         <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
           <h3 className="text-lg font-semibold">Asset List</h3>
           <div className="flex flex-wrap gap-2 items-center">
+            <Button
+              variant="secondary"
+              size="sm"
+              onClick={() => exportAssetsCsv(filteredAssets)}
+              disabled={filteredAssets.length === 0}
+              title="Export current list to CSV"
+            >
+              Export CSV
+            </Button>
             <select
               className="input w-32 text-sm py-2"
               value={filterType}
@@ -230,6 +306,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
                 <th className={`${density.th} text-left font-medium`}>Type</th>
                 <th className={`${density.th} text-left font-medium`}>Serial</th>
                 <th className={`${density.th} text-left font-medium`}>Status</th>
+                <th className={`${density.th} text-left font-medium`}>Assigned to</th>
                 <th className={`${density.th} text-left font-medium`}>Actions</th>
               </tr>
             </thead>
@@ -243,15 +320,25 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
                   </td>
                   <td className={density.td}>{a.type ?? a.category ?? "—"}</td>
                   <td className={density.td}>{a.serial_number ?? "—"}</td>
-                  <td className={density.td}>{a.status ?? a.condition ?? "—"}</td>
+                  <td className={density.td}><TaskStatusPill status={a.status ?? a.condition} /></td>
+                  <td className={density.td}>{a.assigned_to ?? "—"}</td>
                   <td className={density.td}>
-                    <div className="flex gap-2">
+                    <div className="flex gap-2 items-center">
                       <Button
                         size="sm"
                         variant="secondary"
                         onClick={() => setAssignModal({ assetId: a.id, assetName: a.name })}
                       >
                         Assign
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => removeAsset(a.id, a.name)}
+                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
+                        title="Remove asset"
+                      >
+                        <Trash2 size={16} />
                       </Button>
                       <label className="inline-flex">
                         <input

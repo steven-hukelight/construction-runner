@@ -3,6 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { X, ExternalLink } from "lucide-react";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import ComplianceDrawerSection from "./ComplianceDrawerSection";
 import ComplianceDocumentPreview from "./ComplianceDocumentPreview";
 import ComplianceAdminActions from "./ComplianceAdminActions";
@@ -348,7 +349,7 @@ export default function ComplianceDrawer({
                       </span>
                       {h.completedAt && (
                         <span className="text-gray-500 dark:text-slate-400">
-                          {new Date(h.completedAt).toLocaleDateString()}
+                          {formatDateTime(h.completedAt)}
                         </span>
                       )}
                     </li>

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import Link from "next/link";
 import Image from "next/image";
@@ -29,14 +29,29 @@ import {
   ClipboardCheck,
   Building2,
   ClipboardList,
+  UserCheck,
 } from "lucide-react";
 
-// Admin/Supervisor: Sites, Subcontractors, Induction, Users, Operatives, Attendance
+import { preInductionUiEnabled } from "@/lib/featureFlags";
+
+// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance], Users, pending signups, Operatives, Attendance
 const adminNavItems = [
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
   { name: "Subcontractors", href: "/dashboard/subcontractors", icon: Building2 },
-  { name: "Induction Compliance", href: "/dashboard/induction-compliance", icon: ClipboardCheck },
+  // "Induction Compliance" is hidden when the pre-induction UI is disabled —
+  // the page itself is largely a pre-induction dashboard. Re-enable via the
+  // preInductionUiEnabled flag.
+  ...(preInductionUiEnabled
+    ? [
+        {
+          name: "Induction Compliance",
+          href: "/dashboard/induction-compliance",
+          icon: ClipboardCheck,
+        },
+      ]
+    : []),
   { name: "Users", href: "/dashboard/users", icon: Users },
+  { name: "Pending approvals", href: "/dashboard/pending-approvals", icon: UserCheck },
   { name: "Operatives", href: "/dashboard/operatives", icon: UserCog },
   { name: "Attendance", href: "/dashboard/attendance", icon: ClipboardList },
 ];
@@ -71,28 +86,58 @@ const subAdminNavItem = { name: "Operative Onboarding", href: "/dashboard/subcon
 export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const [impersonating] = useState(() => {
-    try {
-      return typeof document !== "undefined" && document.cookie.includes("impersonating=true");
-    } catch {
-      return false;
-    }
-  });
+  // Must not read document.cookie during the initial render: SSR has no document, so the
+  // server and client would disagree and React hydration would fail. Resolve after mount.
+  const [impersonating, setImpersonating] = useState(false);
+  useEffect(() => {
+    queueMicrotask(() => {
+      try {
+        setImpersonating(document.cookie.includes("impersonating=true"));
+      } catch {
+        setImpersonating(false);
+      }
+    });
+  }, []);
   const [nearMissBadge, setNearMissBadge] = useState(0);
+  const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
   const [safetyExpanded, setSafetyExpanded] = useState(
     () => pathname?.startsWith("/dashboard/health-and-safety") || pathname === "/dashboard/system-logs"
   );
 
-  useEffect(() => {
-    const role = getRoleFromClient();
+  const fetchNearMissBadge = useCallback(() => {
+    const r = getRoleFromClient();
     const companyId = getCompanyIdFromClient();
-    if (!role || role === "operative") return;
+    if (!r || r === "operative") return;
     const qs = `/api/near-miss${companyId ? `?companyId=${encodeURIComponent(companyId)}` : ""}${companyId ? "&" : "?"}count=unreviewed`;
     fetch(qs, { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
+      .then((res) => res.json())
       .then((d) => setNearMissBadge(typeof d?.count === "number" ? d.count : 0))
       .catch(() => {});
   }, []);
+
+  const fetchPendingApprovalsBadge = useCallback(() => {
+    const r = (getRoleFromClient() ?? "").toLowerCase();
+    if (!r || r === "operative") return;
+    if (!["admin", "supervisor", "sub_admin", "superuser"].includes(r)) return;
+    fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" })
+      .then((res) => res.json())
+      .then((d) => setPendingApprovalsBadge(Array.isArray(d) ? d.length : 0))
+      .catch(() => setPendingApprovalsBadge(0));
+  }, []);
+
+  useEffect(() => {
+    fetchNearMissBadge();
+    fetchPendingApprovalsBadge();
+  }, [pathname, fetchNearMissBadge, fetchPendingApprovalsBadge]);
+
+  useEffect(() => {
+    window.addEventListener("near-miss-reviewed", fetchNearMissBadge);
+    window.addEventListener("pending-approvals-changed", fetchPendingApprovalsBadge);
+    return () => {
+      window.removeEventListener("near-miss-reviewed", fetchNearMissBadge);
+      window.removeEventListener("pending-approvals-changed", fetchPendingApprovalsBadge);
+    };
+  }, [fetchNearMissBadge, fetchPendingApprovalsBadge]);
 
   return (
     <>
@@ -125,8 +170,8 @@ export default function Sidebar({ role }: SidebarProps) {
         <div className="shrink-0">
           {/* Logo with gradient background */}
           <div className="logo flex items-center gap-3 mb-8 pb-6 border-b border-gray-200/50">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
-              <Image src="/icon.png" alt="Construction Runner logo" width={24} height={24} />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 p-1 flex items-center justify-center shadow-lg overflow-hidden">
+              <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="object-contain" unoptimized />
             </div>
             <span>Construction Runner</span>
           </div>
@@ -165,7 +210,29 @@ export default function Sidebar({ role }: SidebarProps) {
             <LayoutDashboard size={20} strokeWidth={2.5} />
             <span>Dashboard</span>
           </Link>
-          {role === "sub_admin" && (
+          {(role === "superuser" || role === "SUPERUSER") && (
+            <Link
+              href="/dashboard/pending-approvals"
+              className={
+                pathname === "/dashboard/pending-approvals" || pathname?.startsWith("/dashboard/pending-approvals/")
+                  ? "active"
+                  : ""
+              }
+              onClick={() => setMobileMenuOpen(false)}
+            >
+              <UserCheck size={20} strokeWidth={2.5} />
+              <span className="flex-1 min-w-0">Pending approvals</span>
+              {pendingApprovalsBadge > 0 && (
+                <span
+                  className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                  aria-label={`${pendingApprovalsBadge} pending approvals`}
+                >
+                  {pendingApprovalsBadge > 99 ? "99+" : pendingApprovalsBadge}
+                </span>
+              )}
+            </Link>
+          )}
+          {role === "sub_admin" && preInductionUiEnabled && (
             <Link
               href={subAdminNavItem.href}
               className={pathname === subAdminNavItem.href ? "active" : ""}
@@ -179,10 +246,25 @@ export default function Sidebar({ role }: SidebarProps) {
             adminNavItems.map((item) => {
               const active = pathname === item.href || pathname?.startsWith(item.href + "/");
               const Icon = item.icon;
+              const showPendingBadge =
+                item.href === "/dashboard/pending-approvals" && pendingApprovalsBadge > 0;
               return (
-                <Link key={item.href} href={item.href} className={active ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
+                <Link
+                  key={item.href}
+                  href={item.href}
+                  className={`${active ? "active" : ""} ${showPendingBadge ? "!pr-2" : ""}`}
+                  onClick={() => setMobileMenuOpen(false)}
+                >
                   <Icon size={20} strokeWidth={2.5} />
-                  <span>{item.name}</span>
+                  <span className="flex-1 min-w-0">{item.name}</span>
+                  {showPendingBadge && (
+                    <span
+                      className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                      aria-label={`${pendingApprovalsBadge} pending approvals`}
+                    >
+                      {pendingApprovalsBadge > 99 ? "99+" : pendingApprovalsBadge}
+                    </span>
+                  )}
                 </Link>
               );
             })}
@@ -192,10 +274,12 @@ export default function Sidebar({ role }: SidebarProps) {
                 <ClipboardList size={20} strokeWidth={2.5} />
                 <span>Attendance</span>
               </Link>
-              <Link href="/dashboard/induction-compliance" className={pathname === "/dashboard/induction-compliance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
-                <ClipboardCheck size={20} strokeWidth={2.5} />
-                <span>Induction Compliance</span>
-              </Link>
+              {preInductionUiEnabled && (
+                <Link href="/dashboard/induction-compliance" className={pathname === "/dashboard/induction-compliance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
+                  <ClipboardCheck size={20} strokeWidth={2.5} />
+                  <span>Induction Compliance</span>
+                </Link>
+              )}
             </>
           ) : null}
           {topLevelItems.slice(1, 5).map((item) => {

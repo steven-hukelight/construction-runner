@@ -9,7 +9,11 @@ import SessionTimeoutHandler from "./components/SessionTimeoutHandler";
 import GlobalBanner from "./components/GlobalBanner";
 import OneSignalProvider from "./components/OneSignalProvider";
 import { DashboardMainShell } from "./components/DashboardMainShell";
-import { validateSession, updateSessionActivity } from "@/lib/sessions";
+import {
+  validateSession,
+  updateSessionActivity,
+  SESSION_ACTIVITY_WRITE_THROTTLE_MS,
+} from "@/lib/sessions";
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
   let cookieStore: Awaited<ReturnType<typeof cookies>> | null = null;
@@ -49,10 +53,20 @@ export default async function DashboardLayout({ children }: { children: React.Re
         `/admin/login?${reason === "absolute_timeout" ? "expired=1" : "timeout=1"}`,
       );
     }
-    try {
-      await updateSessionActivity(sessionId);
-    } catch (e) {
-      console.error("[DashboardLayout] updateSessionActivity failed:", e);
+    // Skip the DB write on rapid intra-session navigation. Previously every
+    // dashboard page render triggered a `user_sessions` UPDATE, which added
+    // meaningful load on top of realtime + polling. Idle timeout is measured
+    // in tens of minutes so refreshing every ~5 minutes is enough.
+    const lastActiveAtMs = validation.lastActiveAtMs ?? 0;
+    const activityIsFresh =
+      lastActiveAtMs > 0 &&
+      Date.now() - lastActiveAtMs < SESSION_ACTIVITY_WRITE_THROTTLE_MS;
+    if (!activityIsFresh) {
+      try {
+        await updateSessionActivity(sessionId);
+      } catch (e) {
+        console.error("[DashboardLayout] updateSessionActivity failed:", e);
+      }
     }
   }
 

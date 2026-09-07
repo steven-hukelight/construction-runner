@@ -1,15 +1,18 @@
 "use client";
 
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Table from "../../components/ui/Table";
 import TableActions from "../../components/ui/TableActions";
+import BriefingDetailModal from "./BriefingDetailModal";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import useSWR from "swr";
 
 export default function BriefingsTable({
   data,
+  canViewAcknowledgements,
+  companyId: companyIdFromServer,
 }: {
   data: Array<{
     id: string;
@@ -19,8 +22,14 @@ export default function BriefingsTable({
     fileUrl?: string;
     createdAt?: unknown;
   }>;
+  /** From server cookies — must match SSR so table columns hydrate without mismatch. */
+  canViewAcknowledgements: boolean;
+  companyId?: string | null;
 }) {
-  const companyId = useMemo(() => getCompanyIdFromClient(), []);
+  const companyId = useMemo(
+    () => companyIdFromServer ?? getCompanyIdFromClient(),
+    [companyIdFromServer]
+  );
 
   const { data: companies = [] } = useSWR(
     "/api/companies",
@@ -38,6 +47,44 @@ export default function BriefingsTable({
     });
     return m;
   }, [companies]);
+
+  const sitesUrl =
+    companyId != null && companyId !== ""
+      ? `/api/sites?companyId=${encodeURIComponent(companyId)}`
+      : "/api/sites";
+
+  const { data: sitesList = [] } = useSWR(
+    companyId ? sitesUrl : null,
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      const list = await res.json();
+      return Array.isArray(list) ? list : [];
+    },
+    { revalidateOnFocus: false }
+  );
+
+  const siteMap = useMemo(() => {
+    const m: Record<string, string> = {};
+    sitesList.forEach((s: { id?: string; name?: string }) => {
+      if (s?.id) m[String(s.id)] = String(s.name ?? "").trim() || String(s.id);
+    });
+    return m;
+  }, [sitesList]);
+
+  const [detailBriefing, setDetailBriefing] = useState<typeof data[0] | null>(null);
+
+  const { data: ackCountsPayload } = useSWR(
+    companyId && canViewAcknowledgements
+      ? `/api/briefings/ack-counts?companyId=${encodeURIComponent(companyId)}`
+      : null,
+    async (url: string) => {
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      if (!res.ok) return { counts: {} as Record<string, number> };
+      return res.json() as Promise<{ counts?: Record<string, number> }>;
+    },
+    { revalidateOnFocus: false }
+  );
+  const ackCounts = ackCountsPayload?.counts ?? {};
 
   const { data: rows = [], mutate } = useSWR(
     companyId ? `/api/briefings?companyId=${encodeURIComponent(companyId)}` : null,
@@ -62,31 +109,65 @@ export default function BriefingsTable({
   }
 
   const columns = [
-    { header: "Title", accessor: "title" },
+    {
+      header: "Title",
+      accessor: "title",
+      render: (row: { id: string; title?: string }) => (
+        <button
+          type="button"
+          onClick={() => setDetailBriefing(row)}
+          className="text-left font-medium text-blue-600 hover:text-blue-700 hover:underline"
+        >
+          {row.title || "Untitled"}
+        </button>
+      ),
+    },
     {
       header: "Site",
       accessor: "siteId",
-      render: (row: { siteId?: string | null }) => row.siteId || "All sites",
+      render: (row: { siteId?: string | null; site_id?: string | null }) => {
+        const sid = (row.siteId ?? row.site_id ?? "").trim();
+        if (!sid) return "All sites";
+        return siteMap[sid] ?? sid;
+      },
     },
+    ...(canViewAcknowledgements
+      ? [
+          {
+            header: "Acknowledged",
+            accessor: "ackCount",
+            render: (row: { id: string }) => (
+              <span className="tabular-nums text-slate-700 dark:text-slate-300">
+                {ackCounts[row.id] ?? 0}
+              </span>
+            ),
+          },
+        ]
+      : []),
     {
       header: "Company",
       accessor: "companyId",
-      render: (row: { companyId?: string }) =>
-        row.companyId ? (companyMap[row.companyId] ?? "—") : "—",
+      render: (row: { companyId?: string; company_id?: string }) => {
+        const cid = row.companyId ?? row.company_id;
+        return cid ? (companyMap[String(cid)] ?? "—") : "—";
+      },
     },
     {
       header: "Actions",
       accessor: "actions",
-      render: (row: { id: string; fileUrl?: string }) => (
+      render: (row: { id: string; fileUrl?: string; file_url?: string }) => {
+        const pdf = row.fileUrl ?? row.file_url;
+        return (
         <TableActions
           items={[
-            ...(row.fileUrl
-              ? [{ label: "View PDF", onClick: () => openDocumentUrl(row.fileUrl!) }]
+            ...(pdf
+              ? [{ label: "View PDF", onClick: () => openDocumentUrl(pdf) }]
               : []),
             { label: "Delete", onClick: () => handleDelete(row.id), variant: "danger" as const },
           ]}
         />
-      ),
+        );
+      },
     },
   ];
 
@@ -104,6 +185,14 @@ export default function BriefingsTable({
         </div>
       </div>
       <Table columns={columns} data={rows} />
+      {detailBriefing && (
+        <BriefingDetailModal
+          briefing={detailBriefing}
+          companyId={companyId}
+          canViewAcknowledgements={canViewAcknowledgements}
+          onClose={() => setDetailBriefing(null)}
+        />
+      )}
     </div>
   );
 }

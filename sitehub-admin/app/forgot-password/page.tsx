@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { supabase } from "@/lib/supabaseClient";
+import { getAuthRedirectOrigin } from "@/lib/url";
 import { motion } from "framer-motion";
 import { Mail } from "lucide-react";
 
@@ -21,7 +22,7 @@ export default function ForgotPasswordPage() {
       const { error: err } = await supabase.auth.resetPasswordForEmail(
         email.trim(),
         {
-          redirectTo: `${typeof window !== "undefined" ? window.location.origin : ""}/reset-password`,
+          redirectTo: `${getAuthRedirectOrigin()}/reset-password`,
         }
       );
 
@@ -65,7 +66,7 @@ export default function ForgotPasswordPage() {
               Check your email for a link to reset your password. If it doesn&apos;t appear, check your spam folder.
             </div>
             <Link
-              href="/login"
+              href="/admin/login"
               className="block w-full text-center text-blue-600 hover:text-blue-700 font-medium py-2"
             >
               ← Back to sign in
@@ -98,7 +99,7 @@ export default function ForgotPasswordPage() {
               {loading ? "Sending..." : "Send reset link"}
             </motion.button>
             <Link
-              href="/login"
+              href="/admin/login"
               className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2"
             >
               ← Back to sign in

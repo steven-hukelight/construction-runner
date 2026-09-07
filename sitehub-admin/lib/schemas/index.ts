@@ -18,7 +18,7 @@ export const companiesSchema = z.object({
 
 export const usersSchema = z.object({
   id: z.string().uuid(),
-  /** @deprecated Legacy Firebase migration; no longer used in queries */
+  /** @deprecated Legacy auth bridge field; no longer used in queries */
   firebase_uid: optional(z.string()),
   company_id: optional(z.string()),
   email: optional(z.string()),
@@ -58,14 +58,6 @@ export const tasksSchema = z.object({
   updated_at: optional(ts),
 });
 
-export const noticesSchema = z.object({
-  id: z.string(),
-  company_id: optional(z.string()),
-  title: z.string(),
-  body: optional(z.string()),
-  created_at: optional(ts),
-});
-
 export const deliveriesSchema = z.object({
   id: z.string(),
   company_id: optional(z.string()),
@@ -87,6 +79,5 @@ export const TABLE_SCHEMAS: Record<string, z.ZodObject<z.ZodRawShape>> = {
   users: usersSchema,
   sites: sitesSchema,
   tasks: tasksSchema,
-  notices: noticesSchema,
   deliveries: deliveriesSchema,
 };

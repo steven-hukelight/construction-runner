@@ -2,29 +2,13 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { createSignedUrl } from "@/supabase/storage/storageClient";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { extractBucketAndPath } from "@/lib/storage/signedUrl";
 
 /** Allowed buckets for signed URL access (documents, briefings, RAMS, medical, pre-induction, etc.) */
 const ALLOWED_BUCKETS = new Set([
   "briefings", "rams", "rams_documents", "uploads", "asset_documents", "asset_photos",
   "near_miss_reports", "company_documents", "assets", "medical", "pre-induction",
 ]);
-
-/** Extract bucket and path from a Supabase storage URL. */
-function extractBucketAndPath(fullUrl: string): { bucket: string; path: string } | null {
-  try {
-    const decoded = decodeURIComponent(fullUrl.trim());
-    const u = new URL(decoded);
-    const pathname = u.pathname;
-    // Match /storage/v1/object/<type>/<bucket>/<path> (type: public, sign, authenticated, etc.)
-    const match = pathname.match(/\/storage\/v1\/object\/[^/]+\/([^/]+)\/(.+)$/);
-    if (!match) return null;
-    const [, bucket, path] = match;
-    if (!bucket || !path) return null;
-    return { bucket: decodeURIComponent(bucket), path: decodeURIComponent(path) };
-  } catch {
-    return null;
-  }
-}
 
 /**
  * Ensure user is authenticated. Supports:

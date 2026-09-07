@@ -5,7 +5,7 @@ import { supabaseAdmin } from "./supabaseAdmin";
 export const authOptions = {
   secret: process.env.NEXTAUTH_SECRET,
   pages: {
-    signIn: "/login",
+    signIn: "/admin/login",
   },
   providers: [
     Credentials({
@@ -19,13 +19,13 @@ export const authOptions = {
         if (!credentials?.email || !credentials.password) return null;
 
         if (
-          credentials.email === "admin@sitehub.local" &&
+          credentials.email === "admin@construction-runner.local" &&
           credentials.password === "password123"
         ) {
           return {
             id: "1",
             name: "Steven",
-            email: "admin@sitehub.local",
+            email: "admin@construction-runner.local",
             role: "admin",
           };
         }

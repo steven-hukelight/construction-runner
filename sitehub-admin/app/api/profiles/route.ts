@@ -102,27 +102,37 @@ export async function GET(req: Request) {
     let query = supabaseAdmin.from("users").select("*");
     if (role !== "superuser" && companyId) query = query.eq("company_id", companyId);
     const { data: users } = await query;
+    if (!users?.length) return NextResponse.json([]);
+    const userIds = users.map((u) => u.id);
+    const [profilesRes, personalRes] = await Promise.all([
+      supabaseAdmin.from("profiles").select("*").in("user_id", userIds),
+      supabaseAdmin.from("pre_induction_personal").select("*").in("user_id", userIds),
+    ]);
+    const profileByUser = new Map<string, Record<string, unknown>>();
+    for (const p of profilesRes.data ?? []) {
+      const uid = (p as { user_id: string }).user_id;
+      profileByUser.set(uid, p as unknown as Record<string, unknown>);
+    }
+    const personalByUser = new Map<string, Record<string, unknown>>();
+    for (const p of personalRes.data ?? []) {
+      const uid = (p as { user_id: string }).user_id;
+      personalByUser.set(uid, p as unknown as Record<string, unknown>);
+    }
     const out: Record<string, unknown>[] = [];
-    for (const u of users ?? []) {
+    for (const u of users) {
       const uid = u.id;
-      const [profileRes, personalRes] = await Promise.all([
-        supabaseAdmin.from("profiles").select("*").eq("user_id", uid).limit(1),
-        supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", uid).maybeSingle(),
-      ]);
-      const profile = profileRes.data?.[0] ?? {};
-      const personalRow = personalRes.data as { full_name?: string; phone?: string; address?: string; emergency_contact_name?: string; emergency_contact_phone?: string; national_insurance?: string; utr?: string; date_of_birth?: string } | null;
-      const merged: Record<string, unknown> = { id: uid, ...serializeRow(u as Record<string, unknown>), ...serializeRow(profile as Record<string, unknown>) };
+      const profile = profileByUser.get(uid) ?? {};
+      const personalRow = personalByUser.get(uid) as { full_name?: string; phone?: string; address?: string; emergency_contact_name?: string; emergency_contact_phone?: string; national_insurance?: string; utr?: string; date_of_birth?: string } | undefined;
+      const merged: Record<string, unknown> = { id: uid, ...serializeRow(u as Record<string, unknown>), ...serializeRow(profile) };
       if (personalRow) {
         merged.name = personalRow.full_name ?? merged.name ?? merged.display_name;
-      }
-      if (personalRow) {
         if (!merged.address_line1 && !merged.address) merged.address_line1 = personalRow.address;
         if (!merged.phone) merged.phone = personalRow.phone;
-        if (!merged.emergency_contact_name) merged.emergency_contact_name = personalRow.emergency_contact_name;
-        if (!merged.emergency_contact_phone) merged.emergency_contact_phone = personalRow.emergency_contact_phone;
-        if (!merged.ni_number) merged.ni_number = personalRow.national_insurance;
-        if (!merged.utr_number) merged.utr_number = personalRow.utr;
-        if (!merged.date_of_birth) merged.date_of_birth = personalRow.date_of_birth;
+        merged.emergency_contact_name = personalRow.emergency_contact_name ?? merged.emergency_contact_name;
+        merged.emergency_contact_phone = personalRow.emergency_contact_phone ?? merged.emergency_contact_phone;
+        merged.ni_number = personalRow.national_insurance ?? merged.ni_number;
+        merged.utr_number = personalRow.utr ?? merged.utr_number;
+        merged.date_of_birth = personalRow.date_of_birth ?? merged.date_of_birth;
       }
       mapProfileToResponse(merged);
       out.push(merged);
@@ -149,13 +159,14 @@ function mapProfileToResponse(obj: Record<string, unknown>) {
 
 const PROFILE_FIELDS = [
   "addressLine1", "town", "postcode", "jobTitle", "emergencyContactName", "emergencyContactPhone",
-  "nationalInsurance", "utr", "dateOfBirth",
+  "nationalInsurance", "niNumber", "utr", "utrNumber", "dateOfBirth",
 ];
 
 const PROFILE_DB_MAP: Record<string, string> = {
   addressLine1: "address_line1", town: "town", postcode: "postcode", jobTitle: "job_title",
   emergencyContactName: "emergency_contact_name", emergencyContactPhone: "emergency_contact_phone",
-  nationalInsurance: "ni_number", utr: "utr_number", dateOfBirth: "date_of_birth",
+  nationalInsurance: "ni_number", niNumber: "ni_number", utr: "utr_number", utrNumber: "utr_number",
+  dateOfBirth: "date_of_birth",
 };
 
 export async function PATCH(req: Request) {
@@ -179,6 +190,8 @@ export async function PATCH(req: Request) {
     if (body.name !== undefined) userUpdate.display_name = body.name;
     if (body.email !== undefined) userUpdate.email = body.email;
     if (body.phone !== undefined) userUpdate.phone = body.phone;
+    if (body.bio !== undefined) userUpdate.bio = body.bio;
+    if (body.avatar !== undefined) userUpdate.avatar = body.avatar;
     if (body.role !== undefined) userUpdate.role = body.role;
     if (body.status !== undefined) userUpdate.status = body.status;
     if (body.notes !== undefined) userUpdate.notes = body.notes;
@@ -223,8 +236,9 @@ export async function PATCH(req: Request) {
             address: addressParts.join(", ") || null,
             emergency_contact_name: body.emergencyContactName ?? profileUpdate.emergency_contact_name ?? "",
             emergency_contact_phone: body.emergencyContactPhone ?? profileUpdate.emergency_contact_phone ?? "",
-            national_insurance: body.nationalInsurance ?? profileUpdate.ni_number ?? "",
-            utr: body.utr ?? profileUpdate.utr_number ?? "",
+            national_insurance:
+              body.nationalInsurance ?? body.niNumber ?? profileUpdate.ni_number ?? profileUpdate.national_insurance ?? "",
+            utr: body.utr ?? body.utrNumber ?? profileUpdate.utr_number ?? profileUpdate.utr ?? "",
             date_of_birth: body.dateOfBirth ?? profileUpdate.date_of_birth ?? null,
             updated_at: new Date().toISOString(),
           };
@@ -235,6 +249,21 @@ export async function PATCH(req: Request) {
             personalPayload.phone = body.phone;
           }
           await supabaseAdmin.from("pre_induction_personal").upsert(personalPayload, { onConflict: "user_id" });
+          // Sync job_title into pre_induction_personal.data so /api/me returns it on session restore
+          const jobTitleVal = body.jobTitle ?? profileUpdate.job_title;
+          if (jobTitleVal != null && String(jobTitleVal).trim()) {
+            const { data: existingRow } = await supabaseAdmin
+              .from("pre_induction_personal")
+              .select("data")
+              .eq("user_id", userId)
+              .maybeSingle();
+            const existingData = (existingRow as { data?: Record<string, unknown> } | null)?.data ?? {};
+            const merged = { ...existingData, job_title: jobTitleVal, jobTitle: jobTitleVal };
+            await supabaseAdmin
+              .from("pre_induction_personal")
+              .update({ data: merged, updated_at: new Date().toISOString() })
+              .eq("user_id", userId);
+          }
         } else {
           // Name/phone only: update without overwriting other personal fields
           const namePhoneUpdate: Record<string, unknown> = { updated_at: new Date().toISOString() };

@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { resolveCompanyId } from "@/lib/auth/companyId";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertInspectionAssetAccess } from "@/app/api/assets/_utils/inspectionAccess";
 
 export async function POST(
   req: Request,
@@ -16,29 +16,17 @@ export async function POST(
       return NextResponse.json({ error: "assetId and at least one file required" }, { status: 400 });
     }
 
-    const cookieStore = await cookies();
-    const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
-    let companyId = cookieStore.get("companyId")?.value?.trim();
-    if (!companyId && role !== "superuser") {
-      companyId =
-        (await resolveCompanyId({
-          cookieCompanyId: cookieStore.get("companyId")?.value,
-          userEmail: cookieStore.get("user_email")?.value,
-          role,
-        })) || "";
+    const auth = await resolveMobileApiAuth(req);
+    const access = await assertInspectionAssetAccess(auth, assetId);
+    if (!access.ok) {
+      return NextResponse.json({ error: access.error }, { status: access.status });
     }
-
-    const { data: asset } = await supabaseAdmin
-      .from("assets")
-      .select("company_id")
-      .eq("id", assetId)
-      .single();
-    if (!asset || (companyId && (asset as { company_id?: string }).company_id !== companyId)) {
-      return NextResponse.json({ error: "Asset not found or forbidden" }, { status: 403 });
-    }
+    const userId = access.userId;
 
     const bucket = "assets";
     const urls: string[] = [];
+    const failures: string[] = [];
+    const nonEmptyFiles = files.filter((f) => f instanceof File && f.size > 0);
 
     for (const file of files) {
       if (!(file instanceof File) || file.size === 0) continue;
@@ -53,16 +41,37 @@ export async function POST(
 
       if (uploadError) {
         console.error("asset image upload error:", uploadError);
+        failures.push(uploadError.message);
         continue;
       }
 
       const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);
-      urls.push(urlData.publicUrl);
+      const publicUrl = urlData.publicUrl;
 
-      await supabaseAdmin.from("asset_documents").insert({
+      const { error: insertError } = await supabaseAdmin.from("asset_documents").insert({
         asset_id: assetId,
-        file_url: urlData.publicUrl,
+        file_url: publicUrl,
+        uploaded_by: userId,
       });
+
+      if (insertError) {
+        console.error("asset_documents insert error:", insertError);
+        failures.push(insertError.message);
+        continue;
+      }
+
+      urls.push(publicUrl);
+    }
+
+    if (nonEmptyFiles.length > 0 && urls.length === 0) {
+      return NextResponse.json(
+        {
+          error: "Upload failed",
+          hint: "Ensure the Supabase storage bucket named \"assets\" exists (see migration 20260322120000_assets_storage_bucket.sql).",
+          details: failures,
+        },
+        { status: 500 }
+      );
     }
 
     return NextResponse.json({ urls }, { status: 201 });

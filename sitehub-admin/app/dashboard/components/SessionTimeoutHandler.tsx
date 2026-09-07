@@ -3,8 +3,8 @@
 import { useSessionTimeout } from "@/lib/hooks/useSessionTimeout";
 
 /**
- * Wrapper that enables 12-hour inactivity session timeout.
- * Redirects to login when user has been inactive for 12 hours.
+ * Enables idle (30 min) and absolute (24h) session timeout.
+ * Redirects to /admin/login?timeout=1 or ?expired=1 when session ends.
  */
 export default function SessionTimeoutHandler() {
   useSessionTimeout();

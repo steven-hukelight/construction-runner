@@ -31,7 +31,7 @@ function AuthCallbackContent() {
             if (next === "/reset-password") {
               router.replace("/reset-password" + (hash || ""));
             } else {
-              router.replace(`/login?error=${encodeURIComponent(errorParam || "Authentication failed")}`);
+              router.replace(`/admin/login?error=${encodeURIComponent(errorParam || "Authentication failed")}`);
             }
           }
           return;
@@ -44,7 +44,7 @@ function AuthCallbackContent() {
 
           if (error) {
             setStatus("error");
-            router.replace(`/login?error=${encodeURIComponent(error.message)}`);
+            router.replace(`/admin/login?error=${encodeURIComponent(error.message)}`);
             return;
           }
 
@@ -57,7 +57,7 @@ function AuthCallbackContent() {
           const email = data?.session?.user?.email;
           if (!email) {
             setStatus("error");
-            router.replace("/login?error=No+email+in+session");
+            router.replace("/admin/login?error=No+email+in+session");
             return;
           }
 
@@ -65,10 +65,14 @@ function AuthCallbackContent() {
           if (!result?.role) {
             setStatus("error");
             await supabase.auth.signOut({ scope: "local" });
+            const pendingMsg =
+              "Your account is pending approval. An administrator must approve it before you can sign in.";
             router.replace(
               result?.restricted === "operative"
-                ? "/login?blocked=operative"
-                : "/login?error=Account+not+found.+Contact+administrator."
+                ? "/admin/login?blocked=operative"
+                : result && "pendingApproval" in result && result.pendingApproval
+                  ? `/admin/login?error=${encodeURIComponent(pendingMsg)}`
+                  : "/admin/login?error=Account+not+found.+Contact+administrator."
             );
             return;
           }
@@ -89,7 +93,7 @@ function AuthCallbackContent() {
 
         if (sessionError || !session?.user?.email) {
           setStatus("error");
-          router.replace("/login?error=No+session+after+sign-in");
+          router.replace("/admin/login?error=No+session+after+sign-in");
           return;
         }
 
@@ -97,10 +101,14 @@ function AuthCallbackContent() {
         if (!result?.role) {
           setStatus("error");
           await supabase.auth.signOut({ scope: "local" });
+          const pendingMsg =
+            "Your account is pending approval. An administrator must approve it before you can sign in.";
           router.replace(
             result?.restricted === "operative"
-              ? "/login?blocked=operative"
-              : "/login?error=Account+not+found.+Contact+administrator."
+              ? "/admin/login?blocked=operative"
+              : result && "pendingApproval" in result && result.pendingApproval
+                ? `/admin/login?error=${encodeURIComponent(pendingMsg)}`
+                : "/admin/login?error=Account+not+found.+Contact+administrator."
           );
           return;
         }
@@ -109,7 +117,7 @@ function AuthCallbackContent() {
         if (!cancelled) {
           setStatus("error");
           router.replace(
-            `/login?error=${encodeURIComponent(
+            `/admin/login?error=${encodeURIComponent(
               err instanceof Error ? err.message : "Callback failed"
             )}`
           );

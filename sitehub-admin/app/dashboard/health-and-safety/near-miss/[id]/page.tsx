@@ -3,6 +3,8 @@ import { redirect, notFound } from "next/navigation";
 import NearMissDetailClient from "./NearMissDetailClient";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveSignedUrl } from "@/lib/storage/signedUrl";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export const dynamic = "force-dynamic";
 
@@ -14,7 +16,16 @@ async function fetchNearMiss(id: string) {
     const { data: site } = await supabaseAdmin.from("sites").select("name").eq("id", data.site_id).maybeSingle();
     site_name = site?.name ?? null;
   }
-  return { ...data, site_name };
+  const attachments = Array.isArray(data.attachments) ? data.attachments : [];
+  const resolved = await Promise.all(
+    attachments.map(async (att: { url?: string; path?: string; name?: string }) => {
+      const raw = (att?.url ?? att?.path ?? "").trim();
+      if (!raw) return { ...att, signedUrl: null };
+      const signed = await resolveSignedUrl(raw);
+      return { ...att, signedUrl: signed ?? raw };
+    })
+  );
+  return { ...data, site_name, attachmentsWithSignedUrls: resolved };
 }
 
 export default async function NearMissDetailPage({
@@ -41,9 +52,14 @@ export default async function NearMissDetailPage({
     redirect("/dashboard/health-and-safety/near-miss");
   }
 
+  const safeItem = deepSerializeForClient(item);
+  const attachmentsWithSignedUrls = (
+    safeItem as { attachmentsWithSignedUrls?: { url?: string; name?: string; signedUrl?: string | null }[] }
+  ).attachmentsWithSignedUrls;
+
   return (
     <div className="relative space-y-8">
-      <NearMissDetailClient item={item} />
+      <NearMissDetailClient item={safeItem} attachmentsWithSignedUrls={attachmentsWithSignedUrls} />
     </div>
   );
 }

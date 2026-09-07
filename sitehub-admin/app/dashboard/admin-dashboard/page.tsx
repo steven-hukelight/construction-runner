@@ -2,12 +2,13 @@ import { fetchSites } from "../sites/actions";
 import { fetchRAMS } from "../rams/actions";
 import { fetchUsers } from "../users/actions";
 import { fetchTasks } from "../tasks/actions";
-import { fetchNotices } from "../notices/actions";
 import WelcomeBanner from "../components/WelcomeBanner";
 import { DashboardContent } from "../components/DashboardContent";
 import SuperuserSelfOverrideSection from "../induction-compliance/components/SuperuserSelfOverrideSection";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { isSiteAttendanceRole } from "@/lib/auth/siteAttendanceUi";
+import { deepSerializeForClient } from "@/lib/rscSerialize";
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
@@ -25,19 +26,17 @@ export default async function AdminDashboardPage() {
 
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
-  const [sites, rams, users, tasks, notices] = await Promise.all([
+  const [sites, rams, users, tasks] = await Promise.all([
     fetchSites(companyId ?? undefined, cookieHeader),
     fetchRAMS(companyId ?? undefined, cookieHeader),
     fetchUsers(companyId ?? undefined, role, cookieHeader),
     fetchTasks(companyId ?? undefined, cookieHeader),
-    fetchNotices(companyId ?? undefined, cookieHeader),
   ]);
 
   const totalSites = sites?.length || 0;
   const activeRAMS = (rams || []).filter((r) => r?.status === "APPROVED").length || 0;
   const totalUsers = users?.length || 0;
   const totalTasks = tasks?.length || 0;
-  const totalNotices = notices?.length || 0;
 
   const serializeData = (data: unknown) => {
     if (!Array.isArray(data)) return [];
@@ -88,7 +87,7 @@ export default async function AdminDashboardPage() {
       </div>
 
       <div className="space-y-8 pb-12 relative z-10">
-        <WelcomeBanner />
+        <WelcomeBanner showSiteAttendance={isSiteAttendanceRole(role)} />
         <SuperuserSelfOverrideSection role={role ?? null} />
 
         <DashboardContent
@@ -96,11 +95,10 @@ export default async function AdminDashboardPage() {
           activeRAMS={activeRAMS}
           totalUsers={totalUsers}
           totalTasks={totalTasks}
-          totalNotices={totalNotices}
-          sites={serializedSites}
-          rams={serializedRAMS}
-          users={serializedUsers}
-          tasks={serializedTasks}
+          sites={deepSerializeForClient(serializedSites)}
+          rams={deepSerializeForClient(serializedRAMS)}
+          users={deepSerializeForClient(serializedUsers)}
+          tasks={deepSerializeForClient(serializedTasks)}
         />
       </div>
     </div>

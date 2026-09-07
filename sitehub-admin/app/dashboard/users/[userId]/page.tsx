@@ -5,6 +5,7 @@ import PageHeader from "@/app/dashboard/components/PageHeader";
 import RoleBadge from "@/app/dashboard/components/RoleBadge";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import PreInductionOverrideToggle from "./pre-induction/components/PreInductionOverrideToggle";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 function cid(data: Record<string, unknown> | undefined): string {
   return String(data?.company_id ?? data?.companyid ?? "").trim();
@@ -122,13 +123,15 @@ export default async function UserProfilePage({
         description={email}
         action={
           <div className="flex flex-wrap items-center gap-3">
-          <Link
-            href={`/dashboard/users/${userRow.id}/pre-induction`}
-            className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
-            style={{ backgroundColor: "#2563EB" }}
-          >
-            Pre-Induction
-          </Link>
+          {preInductionUiEnabled && (
+            <Link
+              href={`/dashboard/users/${userRow.id}/pre-induction`}
+              className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
+              style={{ backgroundColor: "#2563EB" }}
+            >
+              Pre-Induction
+            </Link>
+          )}
           <Link
             href={`/dashboard/users/${userRow.id}/induction`}
             className="inline-flex items-center justify-center rounded-xl border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
@@ -144,8 +147,10 @@ export default async function UserProfilePage({
           </div>
         }
       />
-      {/* Pre-Induction Override - superuser/admin can override when requested */}
-      {(role === "superuser" || role === "admin" || role === "ADMIN" || role === "sub_admin") && (
+      {/* Pre-Induction Override - superuser/admin can override when requested.
+          Hidden entirely when the pre-induction UI is disabled. */}
+      {preInductionUiEnabled &&
+        (role === "superuser" || role === "admin" || role === "ADMIN" || role === "sub_admin") && (
         <PreInductionOverrideToggle
           userId={userRow.id}
           adminPreInductionOverride={!!(data?.admin_pre_induction_override ?? data?.adminPreInductionOverride)}

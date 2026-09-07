@@ -1,7 +1,5 @@
 /**
- * Pre-Induction Profile data model types.
- * Firestore: users/{uid}/preInductionProfile/{sectionId}
- * See DATA_MODEL.md for full schema.
+ * Pre-Induction Profile data model types (stored in Supabase; paths in DATA_MODEL.md are historical).
  */
 
 export type PreInductionStatus = "not_started" | "in_progress" | "complete";
@@ -22,14 +20,14 @@ export type PreInductionSectionId =
   | "training"
   | "declarations";
 
-/** Firestore Timestamp type (server); Date on client */
-export type FirestoreTimestamp = { toDate: () => Date } | Date | null;
+/** Date, ISO-ish string, or SDK object with `toDate()` (e.g. from mobile clients). */
+export type FlexibleTimestamp = { toDate: () => Date } | Date | null;
 
 // --- Section documents ---
 
 export interface PreInductionPersonal {
   fullName: string;
-  dateOfBirth: string | FirestoreTimestamp;
+  dateOfBirth: string | FlexibleTimestamp;
   nationalInsuranceNumber: string;
   phone: string;
   email: string;
@@ -43,21 +41,21 @@ export interface PreInductionPersonal {
   jobRole: string;
   utrNumber?: string;
   payrollNumber?: string;
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 export interface PreInductionRightToWork {
   passportUrl: string | null;
-  passportExpiry: FirestoreTimestamp;
+  passportExpiry: FlexibleTimestamp;
   visaUrl: string | null;
-  visaExpiry: FirestoreTimestamp;
+  visaExpiry: FlexibleTimestamp;
   shareCode: string | null;
   proofOfAddressUrl: string | null;
   rightToWorkVerified: boolean;
   rightToWorkVerifiedBy: string | null; // admin uid
-  rightToWorkVerifiedAt: FirestoreTimestamp;
+  rightToWorkVerifiedAt: FlexibleTimestamp;
   notes: string | null;
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 export type CertificationType =
@@ -78,16 +76,16 @@ export interface PreInductionCertificationItem {
   type: CertificationType;
   cardNumber: string | null;
   fileUrl: string | null;
-  expiry: FirestoreTimestamp;
+  expiry: FlexibleTimestamp;
   verified: boolean;
   verifiedBy: string | null;
-  verifiedAt: FirestoreTimestamp;
+  verifiedAt: FlexibleTimestamp;
   notes: string | null;
 }
 
 export interface PreInductionCertifications {
   certifications: PreInductionCertificationItem[];
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 export interface PreInductionMedical {
@@ -98,38 +96,38 @@ export interface PreInductionMedical {
   medicalCertificateUrl: string | null;
   medicalVerified: boolean;
   medicalVerifiedBy: string | null;
-  medicalVerifiedAt: FirestoreTimestamp;
+  medicalVerifiedAt: FlexibleTimestamp;
   notes: string | null;
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 export interface PreInductionTrainingRecord {
   type: string;
-  completedAt: FirestoreTimestamp;
-  expiry: FirestoreTimestamp;
+  completedAt: FlexibleTimestamp;
+  expiry: FlexibleTimestamp;
   fileUrl: string | null;
   verified: boolean;
   verifiedBy: string | null;
-  verifiedAt: FirestoreTimestamp;
+  verifiedAt: FlexibleTimestamp;
   notes: string | null;
 }
 
 export interface PreInductionTraining {
   trainingRecords: PreInductionTrainingRecord[];
   ramsAccepted: boolean;
-  ramsAcceptedAt: FirestoreTimestamp;
+  ramsAcceptedAt: FlexibleTimestamp;
   ramsVersion: string | null;
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 export interface PreInductionDeclarations {
   operativeDeclarationAccepted: boolean;
-  operativeDeclarationAcceptedAt: FirestoreTimestamp;
+  operativeDeclarationAcceptedAt: FlexibleTimestamp;
   operativeSignatureUrl: string | null;
   supervisorDeclarationAccepted: boolean | null;
-  supervisorDeclarationAcceptedAt: FirestoreTimestamp;
+  supervisorDeclarationAcceptedAt: FlexibleTimestamp;
   notes: string | null;
-  updatedAt: FirestoreTimestamp;
+  updatedAt: FlexibleTimestamp;
 }
 
 /** Union of all section document types */
@@ -146,5 +144,5 @@ export type PreInductionSectionDoc =
 /** Additional fields for users/{uid}/siteInductions/{siteId} */
 export interface SiteInductionGrandfatherFields {
   grandfathered?: boolean;
-  preInductionRequiredAt?: FirestoreTimestamp;
+  preInductionRequiredAt?: FlexibleTimestamp;
 }

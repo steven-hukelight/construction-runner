@@ -34,10 +34,19 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
   let data;
   if (isMain) {
-    const res = await supabaseAdmin.from("rams").select("*").eq("site_id", siteId).order("created_at", { ascending: false });
+    const res = await supabaseAdmin
+      .from("rams")
+      .select("*")
+      .eq("site_id", siteId)
+      .order("created_at", { ascending: false });
     data = res.data;
   } else {
-    const res = await supabaseAdmin.from("rams").select("*").eq("site_id", siteId).eq("company_id", companyId).order("created_at", { ascending: false });
+    const res = await supabaseAdmin
+      .from("rams")
+      .select("*")
+      .eq("site_id", siteId)
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false });
     data = res.data;
   }
   const rams = (data ?? []).map((d) => ({ id: d.id, ...d }));

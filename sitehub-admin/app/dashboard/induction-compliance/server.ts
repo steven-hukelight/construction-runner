@@ -50,13 +50,14 @@ export type ComplianceRow = {
   siteId: string;
   siteName: string;
   status: ComplianceFilterStatus;
-  completedAt: Date | null;
+  /** ISO — serializable from RSC → client */
+  completedAt: string | null;
   adminPreInductionOverride: boolean;
   missingItems: string[];
-  expiryWarnings: { type: string; label: string; expiry: Date }[];
+  expiryWarnings: { type: string; label: string; expiry: string }[];
   ramsStatus: RamsStatus;
   ramsVersion?: string | null;
-  ramsAcceptedAt?: Date | null;
+  ramsAcceptedAt?: string | null;
 };
 
 export type ComplianceData = {
@@ -75,6 +76,11 @@ function toDate(v: unknown): Date | null {
   if (typeof (v as { toDate?: () => Date }).toDate === "function") return (v as { toDate: () => Date }).toDate();
   const d = new Date(v as string);
   return isNaN(d.getTime()) ? null : d;
+}
+
+function toIso(d: Date | null | undefined): string | null {
+  if (!d || isNaN(d.getTime())) return null;
+  return d.toISOString();
 }
 
 function cid(u: { company_id?: string | null }): string {
@@ -178,11 +184,11 @@ export async function getComplianceData(
     // Profile (job_title, cscsNumber)
     const { data: profileRow } = await supabaseAdmin
       .from("user_profile_data")
-      .select("job_title, jobtitle")
+      .select("job_title")
       .or(`user_id.eq.${userId},userid.eq.${userId}`)
       .limit(1)
       .maybeSingle();
-    const trade = (profileRow?.job_title ?? profileRow?.jobtitle ?? "") as string;
+    const trade = (profileRow?.job_title ?? "") as string;
     let cscsNumber = "";
     if (profileRow && typeof profileRow === "object" && "cscsNumber" in profileRow) {
       cscsNumber = (profileRow as Record<string, unknown>).cscsNumber as string;
@@ -353,13 +359,23 @@ export async function getComplianceData(
         siteId,
         siteName,
         status,
-        completedAt,
+        completedAt: toIso(completedAt),
         adminPreInductionOverride: adminOverride,
         missingItems: rowMissingItems,
-        expiryWarnings: rowExpiryWarnings,
+        expiryWarnings: rowExpiryWarnings.map((w) => ({
+          type: w.type,
+          label: w.label,
+          expiry: w.expiry.toISOString(),
+        })),
         ramsStatus,
         ramsVersion: siteRamsVersion,
-        ramsAcceptedAt: trainingData?.ramsAcceptedAt ? toDate(trainingData.ramsAcceptedAt) : trainingData?.rams_accepted_at ? toDate(trainingData.rams_accepted_at) : null,
+        ramsAcceptedAt: toIso(
+          trainingData?.ramsAcceptedAt
+            ? toDate(trainingData.ramsAcceptedAt)
+            : trainingData?.rams_accepted_at
+              ? toDate(trainingData.rams_accepted_at)
+              : null
+        ),
       });
     }
   }
@@ -501,11 +517,11 @@ export async function getComplianceDrawerData(
       const status = getRamsStatusForSite(training, siteId, siteRamsVersion);
       const { data: ramsRows } = await supabaseAdmin
         .from("rams")
-        .select("id, file_url, fileurl, created_at, createdat")
+        .select("*")
         .or(`site_id.eq.${siteId},siteid.eq.${siteId}`)
         .order("created_at", { ascending: false })
         .limit(1);
-      const latest = ramsRows?.[0];
+      const latest = ramsRows?.[0] as Record<string, unknown> | undefined;
       const rawAcceptedAt = training?.ramsAcceptedAt ?? training?.rams_accepted_at;
       const acceptedAt = toDate(rawAcceptedAt);
       ramsBySite.push({
@@ -515,8 +531,8 @@ export async function getComplianceDrawerData(
         currentVersion: siteRamsVersion,
         acceptedVersion: (training?.ramsVersion ?? training?.rams_version ?? null) as string | null,
         acceptedAt,
-        fileUrl: (latest?.file_url ?? latest?.fileurl ?? null) as string | null,
-        title: null,
+        fileUrl: (latest?.url ?? latest?.file_url ?? latest?.fileurl ?? null) as string | null,
+        title: (latest?.title ?? null) as string | null,
       });
     }
   }

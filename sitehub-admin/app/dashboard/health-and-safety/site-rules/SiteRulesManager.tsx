@@ -1,17 +1,17 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { ScrollText, Plus, Pencil, Trash2 } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { ScrollText, Plus, Pencil, Trash2, HardHat, AlertTriangle, Users, Paperclip } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 
 const CATEGORIES = [
-  { id: "PPE", label: "PPE" },
-  { id: "emergency", label: "Emergency Procedures" },
-  { id: "conduct", label: "Conduct" },
+  { id: "PPE", label: "PPE", icon: HardHat, desc: "Personal protective equipment requirements" },
+  { id: "emergency", label: "Emergency Procedures", icon: AlertTriangle, desc: "Evacuation, first aid, incident reporting" },
+  { id: "conduct", label: "Conduct", icon: Users, desc: "Site behaviour and general conduct rules" },
 ] as const;
 
-type Rule = { id: string; category: string; title: string; description: string };
+type Rule = { id: string; category: string; title: string; description: string; file_url?: string };
 
 export default function SiteRulesManager() {
   const [rules, setRules] = useState<Rule[]>([]);
@@ -19,6 +19,9 @@ export default function SiteRulesManager() {
   const [editing, setEditing] = useState<Rule | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ category: "PPE", title: "", description: "" });
+  const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     fetch("/api/site-rules", { cache: "no-store", credentials: "include" })
@@ -37,9 +40,28 @@ export default function SiteRulesManager() {
     });
     const data = await res.json();
     if (data.rule) {
-      setRules((prev) => [...prev, data.rule]);
+      let rule = data.rule;
+      if (form.category === "emergency" && uploadFile) {
+        setUploading(true);
+        try {
+          const fd = new FormData();
+          fd.append("ruleId", rule.id);
+          fd.append("file", uploadFile);
+          const upRes = await fetch("/api/site-rules/upload", {
+            method: "POST",
+            body: fd,
+            credentials: "include",
+          });
+          const upData = await upRes.json();
+          if (upData.file_url) rule = { ...rule, file_url: upData.file_url };
+        } finally {
+          setUploading(false);
+        }
+      }
+      setRules((prev) => [...prev, rule]);
       setAdding(false);
       setForm({ category: "PPE", title: "", description: "" });
+      setUploadFile(null);
     }
   }
 
@@ -51,15 +73,57 @@ export default function SiteRulesManager() {
       body: JSON.stringify({ id: editing.id, ...form }),
       credentials: "include",
     });
-    setRules((prev) =>
-      prev.map((r) =>
-        r.id === editing.id
-          ? { ...r, category: form.category, title: form.title, description: form.description }
-          : r
-      )
-    );
+    let updated = { ...editing, category: form.category, title: form.title, description: form.description };
+    if (form.category === "emergency" && uploadFile) {
+      setUploading(true);
+      try {
+        const fd = new FormData();
+        fd.append("ruleId", editing.id);
+        fd.append("file", uploadFile);
+        const upRes = await fetch("/api/site-rules/upload", {
+          method: "POST",
+          body: fd,
+          credentials: "include",
+        });
+        const upData = await upRes.json();
+        if (upData.file_url) updated = { ...updated, file_url: upData.file_url };
+      } finally {
+        setUploading(false);
+      }
+    }
+    setRules((prev) => prev.map((r) => (r.id === editing.id ? updated : r)));
     setEditing(null);
     setForm({ category: "PPE", title: "", description: "" });
+    setUploadFile(null);
+  }
+
+  async function uploadForRule(ruleId: string, file: File) {
+    setUploading(true);
+    try {
+      const fd = new FormData();
+      fd.append("ruleId", ruleId);
+      fd.append("file", file);
+      const res = await fetch("/api/site-rules/upload", {
+        method: "POST",
+        body: fd,
+        credentials: "include",
+      });
+      const data = await res.json();
+      if (data.file_url) {
+        setRules((prev) =>
+          prev.map((r) => (r.id === ruleId ? { ...r, file_url: data.file_url } : r))
+        );
+      } else {
+        alert(data.error || "Upload failed");
+      }
+    } catch {
+      alert("Upload failed");
+    } finally {
+      setUploading(false);
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+    }
   }
 
   async function remove(id: string) {
@@ -132,8 +196,19 @@ export default function SiteRulesManager() {
             }
             placeholder="Optional details"
           />
+          {form.category === "emergency" && (
+            <div>
+              <label className="block text-sm font-semibold text-gray-700 mb-1">Attach document (PDF)</label>
+              <input
+                type="file"
+                accept=".pdf,application/pdf"
+                onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                className="block w-full text-sm text-gray-900 border border-gray-200 rounded-xl px-4 py-2"
+              />
+            </div>
+          )}
           <div className="flex gap-2">
-            <Button onClick={saveAdd}>Save</Button>
+            <Button onClick={saveAdd} disabled={uploading}>{uploading ? "Saving…" : "Save"}</Button>
             <Button variant="secondary" onClick={() => setAdding(false)}>
               Cancel
             </Button>
@@ -141,13 +216,28 @@ export default function SiteRulesManager() {
         </div>
       )}
 
-      <div className="space-y-6">
-        {byCategory.map(({ id, label, rules: catRules }) => (
-          <div key={id}>
-            <h4 className="text-sm font-semibold text-slate-700 mb-3">{label}</h4>
+      <p className="text-sm text-slate-600 mb-6">
+        Define site rules that operatives will see in the app. Add rules by category and optionally attach documents for emergency procedures.
+      </p>
+
+      <div className="space-y-8">
+        {byCategory.map(({ id, label, icon: Icon, desc, rules: catRules }) => (
+          <div key={id} className="rounded-xl border border-slate-200 bg-slate-50/50 p-6">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2 rounded-lg bg-white border border-slate-200">
+                <Icon className="w-5 h-5 text-amber-600" />
+              </div>
+              <div>
+                <h4 className="text-base font-semibold text-slate-900">{label}</h4>
+                <p className="text-xs text-slate-500">{desc}</p>
+              </div>
+            </div>
             <div className="space-y-2">
               {catRules.length === 0 ? (
-                <p className="text-sm text-slate-500 py-2">No rules yet.</p>
+                <div className="rounded-lg border border-dashed border-slate-300 bg-white/80 p-6 text-center">
+                  <p className="text-sm text-slate-500">No rules in this category yet.</p>
+                  <p className="text-xs text-slate-400 mt-1">Click &quot;Add Rule&quot; and select {label} to add one.</p>
+                </div>
               ) : (
                 catRules.map((rule) =>
                   editing?.id === rule.id ? (
@@ -176,8 +266,19 @@ export default function SiteRulesManager() {
                         className="block w-full px-4 py-2 border border-gray-200 rounded-lg text-sm"
                         placeholder="Description"
                       />
+                      {form.category === "emergency" && (
+                        <div>
+                          <label className="block text-xs font-medium text-gray-600 mb-1">Attach/Replace document</label>
+                          <input
+                            type="file"
+                            accept=".pdf,application/pdf"
+                            onChange={(e) => setUploadFile(e.target.files?.[0] ?? null)}
+                            className="block w-full text-sm"
+                          />
+                        </div>
+                      )}
                       <div className="flex gap-2">
-                        <Button size="sm" onClick={saveEdit}>Save</Button>
+                        <Button size="sm" onClick={saveEdit} disabled={uploading}>{uploading ? "Saving…" : "Save"}</Button>
                         <Button size="sm" variant="secondary" onClick={() => setEditing(null)}>
                           Cancel
                         </Button>
@@ -188,10 +289,43 @@ export default function SiteRulesManager() {
                       key={rule.id}
                       className="flex items-start justify-between gap-4 p-4 rounded-xl border border-gray-200 bg-white hover:bg-gray-50"
                     >
-                      <div>
+                      <div className="flex-1 min-w-0">
                         <p className="font-medium text-slate-900">{rule.title}</p>
                         {rule.description && (
                           <p className="text-sm text-slate-600 mt-1">{rule.description}</p>
+                        )}
+                        {rule.file_url && (
+                          <a
+                            href={rule.file_url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 mt-2 text-sm text-blue-600 hover:underline"
+                          >
+                            View attached document
+                          </a>
+                        )}
+                        {rule.category === "emergency" && (
+                          <div className="mt-2">
+                            <input
+                              ref={fileInputRef}
+                              type="file"
+                              accept=".pdf,application/pdf"
+                              className="hidden"
+                              onChange={(e) => {
+                                const f = e.target.files?.[0];
+                                if (f) uploadForRule(rule.id, f);
+                              }}
+                            />
+                            <button
+                              type="button"
+                              disabled={uploading}
+                              onClick={() => fileInputRef.current?.click()}
+                              className="inline-flex items-center gap-1 text-xs text-slate-600 hover:text-blue-600"
+                            >
+                              <Paperclip className="w-3.5 h-3.5" />
+                              {rule.file_url ? "Replace document" : "Upload document"}
+                            </button>
+                          </div>
                         )}
                       </div>
                       <div className="flex gap-1 shrink-0">

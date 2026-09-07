@@ -4,6 +4,7 @@ import React, { useState, useSyncExternalStore } from "react";
 import { Users, CheckCircle, AlertTriangle, XCircle, Shield, Calendar, FileWarning } from "lucide-react";
 import SupervisorOperativeCard from "./SupervisorOperativeCard";
 import SupervisorOperativeDrawer from "./SupervisorOperativeDrawer";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 import type {
   SupervisorOperativeRow,
   SupervisorComplianceSummary,
@@ -104,7 +105,9 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
             >
               <option value="all">All statuses</option>
               <option value="compliant">Compliant</option>
-              <option value="missing_pre_induction">Missing Pre-Induction</option>
+              {preInductionUiEnabled && (
+                <option value="missing_pre_induction">Missing Pre-Induction</option>
+              )}
               <option value="missing_induction">Missing Induction</option>
               <option value="expired">Expired</option>
               <option value="override_applied">Override Applied</option>

@@ -1,12 +1,26 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PlusCircle, FileText, MapPin, Users, ListTodo, Megaphone, TrendingUp, Clock, CheckCircle, AlertCircle, type LucideIcon } from "lucide-react";
+import { PlusCircle, FileText, MapPin, Users, ListTodo, TrendingUp, Clock, CheckCircle, AlertCircle, type LucideIcon } from "lucide-react";
 import { StatCard } from "./ui/stat-card";
 import { EnhancedCard } from "./ui/enhanced-card";
-import { DashboardCharts } from "./DashboardCharts";
+
+const DashboardCharts = dynamic(
+  () => import("./DashboardCharts").then((mod) => ({ default: mod.DashboardCharts })),
+  {
+    ssr: false,
+    loading: () => (
+      <div
+        className="animate-pulse rounded-2xl border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 h-80 my-6"
+        aria-hidden
+      />
+    ),
+  }
+);
 import { supabase } from "@/supabase/auth/client";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import type { DashboardDataSite, DashboardDataRams, DashboardDataUser, DashboardDataTask } from "./dashboardTypes";
 
@@ -30,7 +44,7 @@ function getRelativeTime(timestamp: unknown): string {
   if (diffMins < 60) return `${diffMins} minute${diffMins === 1 ? '' : 's'} ago`;
   if (diffHours < 24) return `${diffHours} hour${diffHours === 1 ? '' : 's'} ago`;
   if (diffDays < 7) return `${diffDays} day${diffDays === 1 ? '' : 's'} ago`;
-  return date.toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' });
+  return formatDate(date);
 }
 
 interface DashboardContentProps {
@@ -38,7 +52,6 @@ interface DashboardContentProps {
   activeRAMS: number;
   totalUsers: number;
   totalTasks: number;
-  totalNotices: number;
   sites: DashboardDataSite[];
   rams: DashboardDataRams[];
   users: DashboardDataUser[];
@@ -50,7 +63,6 @@ export function DashboardContent({
   activeRAMS,
   totalUsers,
   totalTasks,
-  totalNotices,
   sites,
   rams,
   users,
@@ -60,7 +72,6 @@ export function DashboardContent({
   const [liveRAMS, setLiveRAMS] = useState<DashboardDataRams[] | null>(null);
   const [liveUsers, setLiveUsers] = useState<DashboardDataUser[] | null>(null);
   const [liveTasks, setLiveTasks] = useState<DashboardDataTask[] | null>(null);
-  const [liveNotices, setLiveNotices] = useState<unknown[] | null>(null);
   const [pendingRegistrations, setPendingRegistrations] = useState<unknown[] | null>(null);
   const [unreviewedNearMiss, setUnreviewedNearMiss] = useState<number>(0);
 
@@ -77,12 +88,11 @@ export function DashboardContent({
 
     const fetchAll = async () => {
       try {
-        const [sitesRes, ramsRes, usersRes, tasksRes, noticesRes, regsRes, nearMissRes] = await Promise.all([
+        const [sitesRes, ramsRes, usersRes, tasksRes, regsRes, nearMissRes] = await Promise.all([
           fetch(qs("/api/sites"), { cache: "no-store", credentials: "include" }),
           fetch(qs("/api/rams"), { cache: "no-store", credentials: "include" }),
           fetch(qs("/api/users"), { cache: "no-store", credentials: "include" }),
           fetch(qs("/api/tasks"), { cache: "no-store", credentials: "include" }),
-          fetch(qs("/api/notices"), { cache: "no-store", credentials: "include" }),
           fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
           fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, { cache: "no-store", credentials: "include" }),
         ]);
@@ -90,13 +100,11 @@ export function DashboardContent({
         const ramsData = ramsRes.ok ? await ramsRes.json() : null;
         const usersData = usersRes.ok ? await usersRes.json() : null;
         const tasksData = tasksRes.ok ? await tasksRes.json() : null;
-        const noticesData = noticesRes.ok ? await noticesRes.json() : null;
         const regsData = regsRes.ok ? await regsRes.json() : null;
         if (Array.isArray(sitesData)) setLiveSites(sitesData);
         if (Array.isArray(ramsData)) setLiveRAMS(ramsData);
         if (Array.isArray(usersData)) setLiveUsers(usersData);
         if (Array.isArray(tasksData)) setLiveTasks(tasksData);
-        if (Array.isArray(noticesData)) setLiveNotices(noticesData);
         if (Array.isArray(regsData)) setPendingRegistrations(regsData);
         if (nearMissRes?.ok) {
           const nm = await nearMissRes.json();
@@ -119,7 +127,6 @@ export function DashboardContent({
       .on("postgres_changes", { event: "*", schema: "public", table: "rams", filter: realtimeFilter }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "users", filter: realtimeFilter }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: realtimeFilter }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "notices", filter: realtimeFilter }, () => fetchAll())
       .on("postgres_changes", { event: "*", schema: "public", table: "near_miss", filter: realtimeFilter }, () => fetchAll())
       .subscribe();
 
@@ -132,13 +139,11 @@ export function DashboardContent({
   const effRAMS = liveRAMS ?? rams;
   const effUsers = liveUsers ?? users;
   const effTasks = liveTasks ?? tasks;
-  const effNotices = liveNotices ?? [];
 
   const effTotalSites = Array.isArray(effSites) ? effSites.length : totalSites;
   const effActiveRAMS = Array.isArray(effRAMS) ? effRAMS.filter((r) => r.status === "APPROVED").length : activeRAMS;
   const effTotalUsers = Array.isArray(effUsers) ? effUsers.length : totalUsers;
   const effTotalTasks = Array.isArray(effTasks) ? effTasks.length : totalTasks;
-  const effTotalNotices = Array.isArray(effNotices) ? effNotices.length : totalNotices;
 
   return (
     <div className="space-y-10">
@@ -164,7 +169,7 @@ export function DashboardContent({
         </Link>
       )}
       {/* Enhanced Stats Grid with breathing room */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 items-stretch">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
         <StatCard 
           title="Total Sites" 
           value={effTotalSites} 
@@ -196,14 +201,6 @@ export function DashboardContent({
           color="orange"
           trend={{ value: 3, isPositive: false }}
           delay={0.3}
-        />
-        <StatCard 
-          title="Notices" 
-          value={effTotalNotices} 
-          icon={Megaphone} 
-          color="sky"
-          trend={{ value: 15, isPositive: true }}
-          delay={0.4}
         />
       </div>
 

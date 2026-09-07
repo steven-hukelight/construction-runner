@@ -596,7 +596,7 @@ export default function SuperuserToolsPage() {
             </div>
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Provision all legacy users</h3>
-              <p className="text-sm text-gray-600">Create auth accounts for users migrated from Firebase/legacy</p>
+              <p className="text-sm text-gray-600">Create auth accounts for users from a legacy import</p>
             </div>
           </div>
           <Button
@@ -832,7 +832,6 @@ export default function SuperuserToolsPage() {
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>Sites</th>
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>Users</th>
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>Tasks</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Notices</th>
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>RAMS</th>
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>Deliveries</th>
                   <th className={`text-left ${density.th} font-medium text-gray-700`}>Attendance</th>
@@ -845,7 +844,6 @@ export default function SuperuserToolsPage() {
                     <td className={density.td}>{counts.sites ?? 0}</td>
                     <td className={density.td}>{counts.users ?? 0}</td>
                     <td className={density.td}>{counts.tasks ?? 0}</td>
-                    <td className={density.td}>{counts.notices ?? 0}</td>
                     <td className={density.td}>{counts.rams ?? 0}</td>
                     <td className={density.td}>{counts.deliveries ?? 0}</td>
                     <td className={density.td}>{counts.attendance ?? 0}</td>

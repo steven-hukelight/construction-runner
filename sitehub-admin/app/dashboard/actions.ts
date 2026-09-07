@@ -2,9 +2,10 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
 import { headers } from "next/headers";
+import { getBaseUrl } from "@/lib/url";
 
 export async function fetchDashboardMetrics() {
-  const base = process.env.NEXT_PUBLIC_BASE_URL;
+  const base = getBaseUrl();
   const cookieHeader = (await headers()).get("cookie") ?? "";
   const fetchHeaders: HeadersInit = cookieHeader ? { Cookie: cookieHeader } : {};
 

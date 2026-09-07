@@ -6,6 +6,7 @@ import SupervisorInductionStatusBadge from "./SupervisorInductionStatusBadge";
 import SupervisorMissingItems from "./SupervisorMissingItems";
 import SupervisorExpiryWarnings from "./SupervisorExpiryWarnings";
 import RAMSStatusBadge from "../../components/RAMSStatusBadge";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 type Props = {
   operative: SupervisorOperativeRow;
@@ -49,9 +50,11 @@ export default function SupervisorOperativeCard({ operative, onClick }: Props) {
             Override
           </span>
         )}
-        <span className="text-xs text-gray-500">
-          Pre-Induction: {operative.preInductionStatus.replace("_", " ")}
-        </span>
+        {preInductionUiEnabled && (
+          <span className="text-xs text-gray-500">
+            Pre-Induction: {operative.preInductionStatus.replace("_", " ")}
+          </span>
+        )}
       </div>
     </div>
   );

@@ -4,6 +4,7 @@ import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
+import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { updateDeliveryStatus } from "../actions";
 
 interface Delivery {
@@ -11,13 +12,19 @@ interface Delivery {
   reference?: string;
   wholesaler?: string;
   siteId?: string;
+  site_id?: string;
   site?: string;
   status?: string;
   scheduledAt?: string;
+  scheduled_at?: string;
   createdAt?: string;
+  created_at?: string;
   notes?: string;
   podUrl?: string;
+  pod_url?: string;
   loadUrl?: string;
+  load_url?: string;
+  load_photos?: string[];
   proof_photos?: string[];
   delivered_by?: string;
 }
@@ -51,8 +58,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
   }
 
   function formatDate(val?: string) {
-    if (!val) return "—";
-    return new Date(val).toLocaleString();
+    return formatDateTime(val ?? null);
   }
 
   if (loading && !delivery) {
@@ -70,9 +76,9 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
     );
   }
 
-  const photos = delivery.proof_photos ?? [];
-  const podUrl = delivery.podUrl ?? photos[0];
-  const loadUrl = delivery.loadUrl ?? photos[1];
+  const photos = delivery.proof_photos ?? delivery.load_photos ?? [];
+  const podUrl = delivery.podUrl ?? delivery.pod_url ?? photos[0];
+  const loadUrl = delivery.loadUrl ?? delivery.load_url ?? photos[1];
 
   return (
     <div className="space-y-6">
@@ -96,11 +102,11 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
         <dl className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
             <dt className="text-sm text-slate-500">Site</dt>
-            <dd>{delivery.site || delivery.siteId || "—"}</dd>
+            <dd>{delivery.site || delivery.siteId || delivery.site_id || "—"}</dd>
           </div>
           <div>
             <dt className="text-sm text-slate-500">Scheduled</dt>
-            <dd>{formatDate(delivery.scheduledAt || delivery.createdAt)}</dd>
+            <dd>{formatDate(delivery.scheduledAt || delivery.scheduled_at || delivery.createdAt || delivery.created_at)}</dd>
           </div>
           {delivery.notes && (
             <div className="md:col-span-2">
@@ -118,7 +124,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <div>
               <p className="text-sm text-slate-500 mb-2">POD</p>
               <a href={podUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <Image src={podUrl} alt="POD" width={600} height={400} className="rounded-lg max-h-48 object-cover border" />
+                <Image src={podUrl} alt="POD" width={600} height={400} className="rounded-lg max-h-48 object-cover border" unoptimized />
               </a>
             </div>
           )}
@@ -126,7 +132,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <div>
               <p className="text-sm text-slate-500 mb-2">Load Photo</p>
               <a href={loadUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <Image src={loadUrl} alt="Load" width={600} height={400} className="rounded-lg max-h-48 object-cover border" />
+                <Image src={loadUrl} alt="Load" width={600} height={400} className="rounded-lg max-h-48 object-cover border" unoptimized />
               </a>
             </div>
           )}

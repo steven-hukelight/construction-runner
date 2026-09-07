@@ -14,13 +14,28 @@ import {
   Menu,
   X,
   LayoutGrid,
+  MapPin,
+  ClipboardCheck,
 } from "lucide-react";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 /* OPTION A: Single sidebar — Modules removed; use CompanySwitcher then regular Sidebar for Messaging, Assets, Offline */
 const navItems = [
   { name: "Superuser Dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
   { name: "Multi-company Admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
+  { name: "Sites", href: "/dashboard/sites", icon: MapPin },
+  // Induction Compliance is primarily a pre-induction dashboard; hide when the
+  // pre-induction UI is disabled. Backend + data remain intact.
+  ...(preInductionUiEnabled
+    ? [
+        {
+          name: "Induction Compliance",
+          href: "/dashboard/induction-compliance",
+          icon: ClipboardCheck,
+        },
+      ]
+    : []),
   { name: "All Users", href: "/dashboard/all-users", icon: Users },
   { name: "System Logs", href: "/dashboard/system-logs", icon: FileText },
   { name: "Global Settings", href: "/dashboard/global-settings", icon: Settings },
@@ -54,8 +69,8 @@ export default function SuperuserSidebar() {
       >
         <div className="shrink-0">
           <div className="logo flex items-center gap-3 mb-8 pb-6 border-b border-gray-200/50">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 shadow-lg">
-              <Image src="/icon.png" alt="Construction Runner logo" width={24} height={24} />
+            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 p-1 flex items-center justify-center shadow-lg overflow-hidden">
+              <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="object-contain" unoptimized />
             </div>
             <span>Construction Runner Superuser</span>
           </div>

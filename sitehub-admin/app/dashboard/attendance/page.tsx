@@ -6,7 +6,7 @@ export default function AttendancePage() {
     <div className="space-y-6">
       <PageHeader
         title="Attendance"
-        description="Live sign-in logs, role call and approvals."
+        description="Live sign-in logs and role call."
       />
 
       <AttendanceTabs />

@@ -1,12 +1,18 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import WelcomeBanner from "@/app/dashboard/components/WelcomeBanner";
 import SupervisorComplianceSection from "./components/SupervisorComplianceSection";
+import { isSiteAttendanceRole } from "@/lib/auth/siteAttendanceUi";
 
-export default function SupervisorDashboardPage() {
+export default async function SupervisorDashboardPage() {
+  const role = (await cookies()).get("role")?.value;
   return (
     <div className="space-y-6">
-      <WelcomeBanner subtitle="Here's an overview of your sites, attendance, and induction status." />
+      <WelcomeBanner
+        showSiteAttendance={isSiteAttendanceRole(role)}
+        subtitle="Here's an overview of your sites, attendance, and induction status."
+      />
       <PageHeader
         title="Supervisor Dashboard"
         description="Quick access to attendance, induction, and compliance tools."

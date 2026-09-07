@@ -1,29 +1,34 @@
 "use server";
 
-import { getBaseUrl } from "@/lib/url";
+import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 
 export async function fetchUsers(companyId?: string, role?: string, cookieHeader?: string) {
-  const base = getBaseUrl();
-  let url = `${base}/api/users`;
-  if (companyId) {
-    url += `?companyId=${encodeURIComponent(companyId)}`;
-  } else if (role === "superuser") {
-    url += `?all=true`;
+  try {
+    const base = await getServerRequestBaseUrl();
+    let url = `${base}/api/users`;
+    if (companyId) {
+      url += `?companyId=${encodeURIComponent(companyId)}`;
+    } else if (role === "superuser") {
+      url += `?all=true`;
+    }
+    const headers: HeadersInit = {};
+    const effectiveCookie = cookieHeader ?? (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+    if (effectiveCookie) headers.Cookie = effectiveCookie;
+    const res = await fetch(url, { cache: "no-store", headers });
+    if (!res.ok) return [];
+    return res.json();
+  } catch (e) {
+    console.error("fetchUsers:", e);
+    return [];
   }
-  const headers: HeadersInit = {};
-  const effectiveCookie = cookieHeader ?? (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  if (effectiveCookie) headers.Cookie = effectiveCookie;
-  const res = await fetch(url, { cache: "no-store", headers });
-  if (!res.ok) return [];
-  return res.json();
 }
 
 export async function inviteUser(data: { name: string; email: string; role: string }) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/users`;
   const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   const res = await fetch(url, {
@@ -81,7 +86,7 @@ export async function updateUserRole(id: string, role: string): Promise<{ succes
 }
 
 export async function deleteUser(id: string) {
-  const base = getBaseUrl();
+  const base = await getServerRequestBaseUrl();
   const url = `${base}/api/users/${id}`;
   const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   await fetch(url, {

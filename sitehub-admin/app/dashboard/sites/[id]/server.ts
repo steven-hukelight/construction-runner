@@ -1,24 +1,40 @@
-"use server";
-
+import { cache } from "react";
 import { cookies } from "next/headers";
 import { getBaseUrl } from "@/lib/url";
+import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
-export async function fetchSite(id: string): Promise<any> {
-  const base = getBaseUrl();
-  const cookieStore = await cookies();
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
+async function fetchSiteImpl(id: string): Promise<any> {
+  try {
+    const cookieStore = await cookies();
+    const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
-  const res = await fetch(`${base}/api/sites/${encodeURIComponent(id)}`, {
-    cache: "no-store",
-    headers: cookieHeader ? { cookie: cookieHeader } : undefined,
-  });
+    const primary = await getServerRequestBaseUrl();
+    const bases = [primary, getBaseUrl()].filter(
+      (b, i, a) => b && a.indexOf(b) === i
+    );
 
-  if (!res.ok) {
-    const text = await res.text();
-    const msg = text ? `${res.status}: ${text}` : `HTTP ${res.status}`;
-    throw new Error(`Failed to load site (${msg})`);
+    for (const base of bases) {
+      try {
+        const res = await fetch(`${base}/api/sites/${encodeURIComponent(id)}`, {
+          cache: "no-store",
+          headers: cookieHeader ? { cookie: cookieHeader } : undefined,
+        });
+        if (!res.ok) continue;
+
+        const data = (await res.json()) as Record<string, unknown>;
+        if (!data || typeof data !== "object") continue;
+        if ("error" in data && data.error) continue;
+        return data;
+      } catch {
+        continue;
+      }
+    }
+  } catch (e) {
+    console.error("fetchSite:", e);
   }
-
-  return res.json();
+  return null;
 }
+
+/** One HTTP load per request (layout + page both call this). Never throws — avoids production RSC digest crashes. */
+export const fetchSite = cache(fetchSiteImpl);

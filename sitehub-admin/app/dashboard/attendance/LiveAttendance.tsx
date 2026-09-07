@@ -1,46 +1,32 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
-import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
+import AttendanceFilters from "./live/AttendanceFilters";
+import AttendanceTable from "./live/AttendanceTable";
+import SessionDetailsDrawer from "./live/SessionDetailsDrawer";
+import type { AttendanceLog } from "./live/attendanceSessionTypes";
+import type { AttendanceSession } from "./live/attendanceSessionTypes";
+import {
+  buildAttendanceSessions,
+  getPrimaryAttendanceLog,
+  isActiveWorkSession,
+} from "./live/attendanceSessionUtils";
 
 function todayStr() {
   const d = new Date();
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-function getRelativeTime(date: Date) {
-  const now = new Date();
-  const diff = Math.floor((now.getTime() - date.getTime()) / 1000);
-  if (diff < 10) return "just now";
-  if (diff < 60) return `${diff} sec ago`;
-  if (diff < 3600) return `${Math.floor(diff / 60)} min ago`;
-  if (diff < 86400) return `${Math.floor(diff / 3600)} hr ago`;
-  return date.toLocaleString();
-}
-
-type TimestampLike = { toDate?: () => Date } | string | number | Date;
-type AttendanceLog = {
+type User = {
   id: string;
-  timestamp?: TimestampLike;
   name?: string;
+  display_name?: string;
+  email?: string;
   displayName?: string;
-  userName?: string;
-  operativeName?: string;
-  operativeId?: string;
-  userId?: string;
-  user_id?: string;
-  uid?: string;
-  companyId?: string;
   company_id?: string;
-  siteName?: string;
-  siteId?: string;
-  site_id?: string;
-  site?: { id?: string; name?: string } | null;
-  action?: string;
-  notes?: string;
+  companyId?: string;
 };
-
-type User = { id: string; name?: string; display_name?: string; email?: string; displayName?: string };
 type Profile = { id?: string; userId?: string; displayName?: string };
 type Site = { id: string; name?: string };
 
@@ -61,6 +47,8 @@ const normalizeUser = (value: unknown): User | null => {
     display_name: asString(obj.display_name),
     displayName: asString(obj.displayName),
     email: asString(obj.email),
+    company_id: asString(obj.company_id),
+    companyId: asString(obj.companyId),
   };
 };
 
@@ -87,36 +75,69 @@ const normalizeSite = (value: unknown): Site | null => {
   };
 };
 
-const parseTimestamp = (value: TimestampLike | undefined): Date | null => {
-  if (!value) return null;
-  if (typeof value === "string" || typeof value === "number") {
-    const parsed = new Date(value);
-    return isNaN(parsed.getTime()) ? null : parsed;
+function resolveOperativeFromLog(
+  log: AttendanceLog | null,
+  profileByUserId: Map<string, Profile>,
+  userMap: Map<string, User>
+): string {
+  if (!log) return "—";
+  const directPreferred = [log.name, log.displayName, log.operativeName];
+  const direct = directPreferred.find((n) => n && String(n).trim());
+  if (direct) return String(direct);
+  const idHints = [log.operativeId, log.userId, log.uid, log.user_id];
+  const id = idHints.find((x) => x && String(x).trim());
+  if (id) {
+    const p = profileByUserId.get(String(id));
+    if (p?.displayName) return String(p.displayName);
+    const u = userMap.get(String(id));
+    if (u?.name) return String(u.name);
+    if (u?.email) return String(u.email).split("@")[0];
+    return "—";
   }
-  if (value instanceof Date) return value;
-  if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
-    try {
-      return value.toDate();
-    } catch {
-      return null;
-    }
+  if (log.userName && String(log.userName).trim()) return String(log.userName);
+  return "—";
+}
+
+function resolveSiteFromLog(log: AttendanceLog | null, siteMap: Map<string, Site>): string {
+  if (!log) return "—";
+  const siteNameHints = [log.siteName, log.site?.name];
+  const siteIdHints = [log.siteId, log.site_id, log.site?.id];
+  const sname = siteNameHints.find((n) => n && String(n).trim());
+  if (sname) return String(sname);
+  const sid = siteIdHints.find((x) => x && String(x).trim());
+  if (sid) {
+    const s = siteMap.get(String(sid));
+    if (s?.name) return String(s.name);
+    return "—";
   }
-  return null;
-};
+  return "—";
+}
 
-
-export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?: number }) {
+export default function LiveAttendance({
+  refreshTrigger = 0,
+  selectedDate: selectedDateProp,
+}: { refreshTrigger?: number; selectedDate?: string }) {
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
-  const [selectedDate, setSelectedDate] = useState<string>(() => todayStr());
-
+  const [localDate, setLocalDate] = useState<string>(() => todayStr());
+  const selectedDate = selectedDateProp ?? localDate;
   const isToday = selectedDate === todayStr();
 
-  const displayedLogs = useMemo(() => {
+  const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+  const [activeSessionsOnly, setActiveSessionsOnly] = useState(false);
+  const [drawerSession, setDrawerSession] = useState<AttendanceSession | null>(null);
+  const [now, setNow] = useState(() => new Date());
+
+  useEffect(() => {
+    const id = setInterval(() => setNow(new Date()), 30000);
+    return () => clearInterval(id);
+  }, []);
+
+  const logsForGrouping = useMemo(() => {
     if (isToday) return logs;
     return logs.filter((l) => {
       if (selectedSiteId !== "all") {
@@ -131,12 +152,26 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
     });
   }, [logs, isToday, selectedSiteId, selectedUserId]);
 
+  const sessions = useMemo(() => buildAttendanceSessions(logsForGrouping), [logsForGrouping]);
+
+  const displayedSessions = useMemo(() => {
+    if (!activeSessionsOnly) return sessions;
+    return sessions.filter(isActiveWorkSession);
+  }, [sessions, activeSessionsOnly]);
+
   useEffect(() => {
     const fetchFromApi = async () => {
       try {
         let json: AttendanceLog[] = [];
         if (isToday) {
-          const params = new URLSearchParams({ limit: "500", date: selectedDate });
+          const params = new URLSearchParams({ limit: "500" });
+          const bounds = localCalendarDayToUtcIsoBounds(selectedDate);
+          if (bounds) {
+            params.set("windowStart", bounds.start);
+            params.set("windowEnd", bounds.end);
+          } else {
+            params.set("date", selectedDate);
+          }
           if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
           if (selectedUserId !== "all") params.set("userId", selectedUserId);
           const res = await fetch(`/api/attendance?${params}`, {
@@ -168,28 +203,29 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
 
     fetchFromApi();
     const interval = isToday ? setInterval(fetchFromApi, 15000) : undefined;
-    return () => { if (interval) clearInterval(interval); };
+    return () => {
+      if (interval) clearInterval(interval);
+    };
   }, [refreshTrigger, selectedDate, selectedSiteId, selectedUserId, isToday]);
 
-  const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
-
-  // Load users/sites/profiles/companies via API (companyMap avoids per-row fetches)
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       try {
-        const [usersRes, sitesRes, profilesRes, companiesRes] = await Promise.all([
+        const [usersRes, sitesRes, profilesRes, companiesRes, meRes] = await Promise.all([
           fetch("/api/users", { cache: "no-store", credentials: "include" }),
           fetch("/api/sites", { cache: "no-store", credentials: "include" }),
           fetch("/api/profiles", { cache: "no-store", credentials: "include" }),
           fetch("/api/companies", { cache: "no-store", credentials: "include" }),
+          fetch("/api/me", { cache: "no-store", credentials: "include" }),
         ]);
         if (!cancelled) {
-          const [usersJson, sitesJson, profilesJson, companiesJson] = await Promise.all([
+          const [usersJson, sitesJson, profilesJson, companiesJson, meJson] = await Promise.all([
             usersRes.json(),
             sitesRes.json(),
             profilesRes.json(),
             companiesRes.json(),
+            meRes.json().catch(() => ({})),
           ]);
           setUsers(Array.isArray(usersJson) ? usersJson.map(normalizeUser).filter(Boolean) as User[] : []);
           setSites(Array.isArray(sitesJson) ? sitesJson.map(normalizeSite).filter(Boolean) as Site[] : []);
@@ -199,6 +235,11 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
             companiesJson.forEach((c: { id?: string; name?: string }) => {
               if (c?.id && c?.name) cm[String(c.id)] = String(c.name);
             });
+          }
+          const meCid = meJson?.companyId ?? meJson?.company_id;
+          const meName = meJson?.companyName;
+          if (meCid && meName && String(meName).trim()) {
+            cm[String(meCid)] = String(meName).trim();
           }
           setCompanyMap(cm);
         }
@@ -242,140 +283,96 @@ export default function LiveAttendance({ refreshTrigger = 0 }: { refreshTrigger?
     return m;
   }, [profiles]);
 
-  // Re-render every minute to update relative time ("5 min ago" -> "6 min ago") without mutating logs
-  const [, setTimeTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTimeTick((t) => t + 1), 60000);
-    return () => clearInterval(id);
-  }, []);
+  const userIdToCompanyId = useMemo(() => {
+    const m = new Map<string, string>();
+    users.forEach((u) => {
+      const cid = u.company_id ?? u.companyId;
+      if (u.id && cid && String(cid).trim()) m.set(String(u.id), String(cid).trim());
+    });
+    return m;
+  }, [users]);
 
-  const formatTime = (d: Date | null) => {
-    if (!d) return "";
-    return isToday ? getRelativeTime(d) : d.toLocaleString("en-GB");
-  };
+  const resolveOperativeLabel = useCallback(
+    (session: AttendanceSession) => {
+      const log = getPrimaryAttendanceLog(session);
+      return resolveOperativeFromLog(log, profileByUserId, userMap);
+    },
+    [profileByUserId, userMap]
+  );
 
-  const density = useTableDensityClasses();
+  const resolveSiteLabel = useCallback(
+    (session: AttendanceSession) => {
+      const log = getPrimaryAttendanceLog(session);
+      return resolveSiteFromLog(log, siteMap);
+    },
+    [siteMap]
+  );
+
+  const resolveCompanyLabel = useCallback(
+    (session: AttendanceSession): string | null => {
+      const log = getPrimaryAttendanceLog(session);
+      if (!log) return null;
+      const idHints = [log.operativeId, log.userId, log.uid, log.user_id];
+      const uid = idHints.find((x) => x && String(x).trim());
+      const cidRaw =
+        log.companyId ||
+        log.company_id ||
+        (uid ? userIdToCompanyId.get(String(uid)) : undefined);
+      const cid = cidRaw && String(cidRaw).trim() ? String(cidRaw).trim() : "";
+      if (!cid) return null;
+      const name = companyMap[cid];
+      if (name && String(name).trim()) return String(name).trim();
+      return null;
+    },
+    [companyMap, userIdToCompanyId]
+  );
+
+  const drawerCompany = drawerSession ? resolveCompanyLabel(drawerSession) : null;
 
   return (
     <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600">Date</label>
-          <input
-            type="date"
-            className="input text-sm py-1.5"
-            value={selectedDate}
-            onChange={(e) => setSelectedDate(e.target.value || todayStr())}
-          />
-        </div>
-        {!isToday && (
-          <button
-            type="button"
-            onClick={() => setSelectedDate(todayStr())}
-            className="text-sm font-medium text-blue-600 hover:text-blue-700"
-          >
-            Today
-          </button>
-        )}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600">Site</label>
-          <select
-            className="input text-sm py-1.5"
-            value={selectedSiteId}
-            onChange={(e) => setSelectedSiteId(e.target.value)}
-          >
-            <option value="all">All sites</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>{s.name || s.id}</option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600">User</label>
-          <select
-            className="input text-sm py-1.5"
-            value={selectedUserId}
-            onChange={(e) => setSelectedUserId(e.target.value)}
-          >
-            <option value="all">All users</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.display_name || u.displayName || u.name || (u.email ? String(u.email).split("@")[0] : u.id)}
-              </option>
-            ))}
-          </select>
-        </div>
-      </div>
-      <div className="overflow-auto">
-        <table className={`table w-full ${density.table}`}>
-          <thead>
-            <tr className="text-left text-xs font-semibold uppercase tracking-wide">
-              <th className={density.th}>Time</th>
-              <th className={density.th}>Operative</th>
-              <th className={density.th}>Company</th>
-              <th className={density.th}>Site</th>
-              <th className={density.th}>Action</th>
-              <th className={density.th}>Notes</th>
-            </tr>
-          </thead>
-          <tbody>
-            {displayedLogs.map((l) => (
-              <tr key={l.id} className="hover:bg-slate-50 transition">
-                <td className={density.td}>
-                  {(formatTime(parseTimestamp(l.timestamp)) || l.timestamp?.toString()) ?? ""}
-                </td>
-                <td className={density.td}>
-                  {(() => {
-                    const directPreferred = [l.name, l.displayName, l.operativeName];
-                    const direct = directPreferred.find((n) => n && String(n).trim());
-                    if (direct) return String(direct);
-                    const idHints = [l.operativeId, l.userId, l.uid, l.user_id];
-                    const id = idHints.find((x) => x && String(x).trim());
-                    if (id) {
-                      const p = profileByUserId.get(String(id));
-                      if (p?.displayName) return String(p.displayName);
-                      const u = userMap.get(String(id));
-                      if (u?.name) return String(u.name);
-                      if (u?.email) return String(u.email).split("@")[0];
-                      return "—";
-                    }
-                    if (l.userName && String(l.userName).trim()) return String(l.userName);
-                    return "—";
-                  })()}
-                </td>
-                <td className={`${density.td} text-gray-600`}>
-                  {l.companyId || l.company_id
-                    ? (companyMap[String(l.companyId || l.company_id)] ?? "—")
-                    : "—"}
-                </td>
-                <td className={density.td}>
-                  {(() => {
-                    const siteNameHints = [l.siteName, l.site?.name];
-                    const siteIdHints = [l.siteId, l.site_id, l.site?.id];
-                    const sname = siteNameHints.find((n) => n && String(n).trim());
-                    if (sname) return String(sname);
-                    const sid = siteIdHints.find((x) => x && String(x).trim());
-                    if (sid) {
-                      const s = siteMap.get(String(sid));
-                      if (s?.name) return String(s.name);
-                      return "—";
-                    }
-                    return "—";
-                  })()}
-                </td>
-                <td className={density.td}>{l.action}</td>
-                <td className={`${density.td} text-slate-500`}>{l.notes || ""}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      <AttendanceFilters
+        sites={sites}
+        users={users}
+        selectedSiteId={selectedSiteId}
+        selectedUserId={selectedUserId}
+        onSiteChange={setSelectedSiteId}
+        onUserChange={setSelectedUserId}
+        showDatePicker={selectedDateProp == null}
+        selectedDate={selectedDate}
+        onDateChange={(v) => setLocalDate(v || todayStr())}
+        onTodayClick={() => setLocalDate(todayStr())}
+        isToday={isToday}
+        activeSessionsOnly={activeSessionsOnly}
+        onActiveSessionsOnlyChange={setActiveSessionsOnly}
+      />
 
-      {displayedLogs.length === 0 && (
-        <div className="text-sm text-slate-400">
-          {isToday ? "No attendance events yet." : `No attendance events for ${selectedDate}.`}
+      {displayedSessions.length > 0 ? (
+        <AttendanceTable
+          sessions={displayedSessions}
+          resolveOperativeLabel={resolveOperativeLabel}
+          resolveSiteLabel={resolveSiteLabel}
+          now={now}
+          onOpenSession={setDrawerSession}
+        />
+      ) : null}
+
+      {displayedSessions.length === 0 && (
+        <div className="text-sm text-slate-500 dark:text-slate-400">
+          {activeSessionsOnly && sessions.length > 0
+            ? "No active entries match this filter."
+            : isToday
+              ? "No entries to show."
+              : `No entries for ${selectedDate}.`}
         </div>
       )}
+
+      <SessionDetailsDrawer
+        session={drawerSession}
+        companyLabel={drawerCompany}
+        open={drawerSession != null}
+        onClose={() => setDrawerSession(null)}
+      />
     </div>
   );
 }

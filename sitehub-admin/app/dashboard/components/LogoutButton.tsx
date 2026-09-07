@@ -26,7 +26,7 @@ export default function LogoutButton() {
           .forEach((k) => window.localStorage.removeItem(k));
       }
       
-      router.push("/login");
+      router.push("/admin/login");
     } catch (error) {
       console.error("Logout error:", error);
     }

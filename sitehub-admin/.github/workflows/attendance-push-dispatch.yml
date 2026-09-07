@@ -1,0 +1,34 @@
+# Drains the Supabase `notifications` queue and sends OneSignal pushes for
+# `attendance_auto_sign_out` rows (see lib/dispatchAttendancePushQueue.ts).
+#
+# Vercel Hobby only allows at-most-daily crons in vercel.json, so this workflow
+# replaces a */5 Vercel cron for push delivery.
+#
+# Required repository secrets (Settings → Secrets → Actions):
+#   ATTENDANCE_DISPATCH_URL — full URL, e.g.
+#     https://your-deployment.vercel.app/api/maintenance/dispatch-attendance-push-queue
+#   CRON_SECRET — same value as CRON_SECRET on Vercel (must match Bearer token check)
+
+name: Attendance push dispatch
+
+on:
+  schedule:
+    - cron: "*/5 * * * *"
+  workflow_dispatch: {}
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    # Skip cleanly until secrets are configured (avoids failing every 5 minutes on forks).
+    if: ${{ secrets.ATTENDANCE_DISPATCH_URL != '' && secrets.CRON_SECRET != '' }}
+    steps:
+      - name: POST dispatch-attendance-push-queue
+        env:
+          URL: ${{ secrets.ATTENDANCE_DISPATCH_URL }}
+          TOKEN: ${{ secrets.CRON_SECRET }}
+        run: |
+          curl -sfS -X POST "$URL" \
+            -H "Authorization: Bearer $TOKEN" \
+            -H "Content-Type: application/json" \
+            -d '{}'
+          echo "Dispatch OK"

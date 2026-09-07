@@ -29,7 +29,13 @@ export async function GET(_req: Request, { params }: { params: Promise<{ company
   try {
     const { data, error } = await supabaseAdmin.from("companies").select("*").eq("id", companyId).maybeSingle();
     if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-    return NextResponse.json({ id: data.id, ...data });
+    const row = data as Record<string, unknown>;
+    const logoUrl = (row.logo_url ?? row.logoUrl) as string | null | undefined;
+    return NextResponse.json({
+      id: data.id,
+      ...data,
+      logoUrl: logoUrl ?? null,
+    });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Unknown error";
     return NextResponse.json({ error: message }, { status: 500 });
@@ -59,7 +65,42 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ compan
   const body = await req.json().catch(() => ({}));
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
 
-  if (body.name !== undefined) updates.name = String(body.name).trim();
+  const { data: currentRow, error: curErr } = await supabaseAdmin
+    .from("companies")
+    .select("name, address")
+    .eq("id", companyId)
+    .maybeSingle();
+  if (curErr || !currentRow) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const cur = currentRow as { name?: string | null; address?: string | null };
+
+  if (body.name !== undefined) {
+    const n = String(body.name).trim();
+    if (!n) return NextResponse.json({ error: "Company name cannot be empty" }, { status: 400 });
+    updates.name = n;
+  }
+
+  if (body.address !== undefined) {
+    const a = String(body.address).trim();
+    if (!a) return NextResponse.json({ error: "Company address is required" }, { status: 400 });
+    updates.address = a;
+  }
+
+  const mergedName =
+    body.name !== undefined ? String(body.name).trim() : String(cur.name ?? "").trim();
+  const mergedAddress =
+    body.address !== undefined ? String(body.address).trim() : String(cur.address ?? "").trim();
+
+  if (body.name !== undefined || body.address !== undefined) {
+    if (!mergedName) return NextResponse.json({ error: "Company name cannot be empty" }, { status: 400 });
+    if (!mergedAddress) {
+      return NextResponse.json(
+        { error: "Company address is required. Enter the full registered or principal address." },
+        { status: 400 }
+      );
+    }
+  }
 
   if (Object.keys(updates).length <= 1) return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
 

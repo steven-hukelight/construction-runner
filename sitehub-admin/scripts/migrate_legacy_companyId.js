@@ -16,7 +16,6 @@ const tables = [
   'attendance',
   'deliveries',
   'tasks',
-  'notices',
   'certifications',
   'settings',
 ];

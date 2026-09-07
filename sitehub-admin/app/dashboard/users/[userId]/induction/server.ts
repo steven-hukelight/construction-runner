@@ -6,7 +6,8 @@ export type InductionRow = {
   siteId: string;
   siteName: string;
   status: "completed" | "not_started" | "expired";
-  completedAt: Date | null;
+  /** ISO string — safe to pass from Server Component → client */
+  completedAt: string | null;
 };
 
 export type InductionData = {
@@ -21,7 +22,7 @@ export type InductionData = {
   rows: InductionRow[];
   summary: {
     totalSitesInducted: number;
-    lastInductionDate: Date | null;
+    lastInductionDate: string | null;
     activeCount: number;
     expiredCount: number;
   };
@@ -66,18 +67,32 @@ export async function getInductionData(
   let expiredCount = 0;
 
   for (const ind of inductions ?? []) {
-    const completedAt = ind.completed_at ? new Date(ind.completed_at) : null;
+    const completedAtDate = ind.completed_at ? new Date(ind.completed_at) : null;
     const statusVal = (ind.status ?? "completed") as string;
-    const isExpired = completedAt && now.getTime() - completedAt.getTime() > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
-    const status: InductionRow["status"] = isExpired ? "expired" : statusVal === "completed" ? "completed" : "not_started";
+    const isExpired =
+      completedAtDate &&
+      now.getTime() - completedAtDate.getTime() > EXPIRY_DAYS * 24 * 60 * 60 * 1000;
+    const status: InductionRow["status"] = isExpired
+      ? "expired"
+      : statusVal === "completed"
+        ? "completed"
+        : "not_started";
     if (status === "expired") expiredCount++;
     else if (status === "completed") activeCount++;
-    if (completedAt && (!lastInductionDate || completedAt > lastInductionDate)) lastInductionDate = completedAt;
+    if (
+      completedAtDate &&
+      (!lastInductionDate || completedAtDate > lastInductionDate)
+    ) {
+      lastInductionDate = completedAtDate;
+    }
     rows.push({
       siteId: ind.site_id,
       siteName: siteNames[ind.site_id] ?? ind.site_id,
       status,
-      completedAt,
+      completedAt:
+        completedAtDate && !isNaN(completedAtDate.getTime())
+          ? completedAtDate.toISOString()
+          : null,
     });
   }
 
@@ -93,7 +108,10 @@ export async function getInductionData(
     rows,
     summary: {
       totalSitesInducted: rows.filter((r) => r.status === "completed" || r.status === "expired").length,
-      lastInductionDate,
+      lastInductionDate:
+        lastInductionDate && !isNaN(lastInductionDate.getTime())
+          ? lastInductionDate.toISOString()
+          : null,
       activeCount,
       expiredCount,
     },

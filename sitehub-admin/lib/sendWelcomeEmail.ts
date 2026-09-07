@@ -1,4 +1,5 @@
 import nodemailer from "nodemailer";
+import { getServerPublicOrigin } from "@/lib/url";
 
 async function sendWelcomeEmail(email: string, name: string, companyName: string) {
   const transporter = nodemailer.createTransport({
@@ -9,7 +10,7 @@ async function sendWelcomeEmail(email: string, name: string, companyName: string
     },
   });
 
-  const setupLink = `${process.env.NEXT_PUBLIC_BASE_URL}/setup-password?email=${encodeURIComponent(email)}`;
+  const setupLink = `${getServerPublicOrigin()}/setup-password?email=${encodeURIComponent(email)}`;
 
   const mailOptions = {
     from: process.env.SMTP_USER,

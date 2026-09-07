@@ -38,7 +38,7 @@ export default function JoinWithCodePage() {
         setError(data?.error ?? "Failed to redeem code");
         return;
       }
-      router.push(`/login?email=${encodeURIComponent(email.trim())}&from=invite`);
+      router.push(`/admin/login?email=${encodeURIComponent(email.trim())}&from=invite`);
     } catch {
       setError("Something went wrong.");
     } finally {
@@ -124,7 +124,7 @@ export default function JoinWithCodePage() {
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{" "}
-          <Link href="/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
+          <Link href="/admin/login" className="text-blue-600 font-medium hover:underline">Sign in</Link>
         </p>
       </div>
     </div>

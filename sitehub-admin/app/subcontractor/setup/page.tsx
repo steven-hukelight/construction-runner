@@ -28,7 +28,7 @@ export default function SubcontractorSetupPage() {
     fetch("/api/me", { credentials: "include" })
       .then((r) => {
         if (r.status === 401) {
-          window.location.href = "/login";
+          window.location.href = "/admin/login";
           return null;
         }
         return r.json();
@@ -137,13 +137,18 @@ export default function SubcontractorSetupPage() {
     const form = new FormData();
     form.append("file", ramsFile);
     form.append("siteId", ramsSiteId);
-    form.append("uploadedBy", "subcontractor");
+    form.append(
+      "title",
+      ramsFile.name.replace(/\.pdf$/i, "").trim() || ramsFile.name
+    );
+    if (companyId) form.append("companyId", companyId);
     const res = await fetch("/api/rams/upload", { method: "POST", body: form, credentials: "include" });
     if (res.ok) {
       setRamsFile(null);
       alert("RAMS uploaded. It will be reviewed by the main contractor.");
     } else {
-      alert("Upload failed.");
+      const data = await res.json().catch(() => ({}));
+      alert(typeof data?.error === "string" ? data.error : "Upload failed.");
     }
   }
 
@@ -159,7 +164,7 @@ export default function SubcontractorSetupPage() {
     return (
       <div className="max-w-2xl mx-auto px-4 py-12 text-center">
         <p className="text-gray-600 mb-4">You need to be signed in as a subcontractor.</p>
-        <Link href="/login" className="text-blue-600 font-medium hover:underline">Go to login</Link>
+        <Link href="/admin/login" className="text-blue-600 font-medium hover:underline">Go to login</Link>
       </div>
     );
   }

@@ -1,11 +1,13 @@
 "use client";
 
-import React, { useState, useEffect, useMemo, useCallback } from "react";
+import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
 import SuperuserSelfOverrideSection from "../induction-compliance/components/SuperuserSelfOverrideSection";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 import Link from "next/link";
+import { formatDate, formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { getRoleFromClient } from "@/lib/utils/cookies";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 
@@ -62,6 +64,8 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [userId, setUserId] = useState("");
+  const [isDirty, setIsDirty] = useState(false);
+  const isDirtyRef = useRef(false);
   const [extra, setExtra] = useState({
     jobTitle: "",
     emergencyContactName: "",
@@ -142,13 +146,9 @@ export default function ProfilePage() {
     return { d: "", m: "", y: "" };
   }, []);
 
-  const loadCertifications = useCallback(async () => {
+  const loadCertifications = useCallback(async (profileUserId?: string) => {
     try {
-      const r = await fetch("/api/profiles/me", { credentials: "include" }).catch(() => null);
-      if (!r) return;
-      const json = await r.json().catch(() => null);
-      const me = json && (Array.isArray(json) && json.length ? json[0] : json);
-      const uid = (me?.id as string) || userId;
+      const uid = profileUserId || userId;
       if (!uid) return;
       const certRes = await fetch(`/api/certifications?userId=${encodeURIComponent(uid)}`, { credentials: "include" }).catch(() => null);
       if (!certRes) return;
@@ -171,13 +171,9 @@ export default function ProfilePage() {
     }
   }, [userId]);
 
-  const loadMedicalRecords = useCallback(async () => {
+  const loadMedicalRecords = useCallback(async (profileUserId?: string) => {
     try {
-      const r = await fetch("/api/profiles/me", { credentials: "include" }).catch(() => null);
-      if (!r) return;
-      const json = await r.json().catch(() => null);
-      const me = json && (Array.isArray(json) && json.length ? json[0] : json);
-      const uid = (me?.id as string) || userId;
+      const uid = profileUserId || userId;
       if (!uid) return;
       const medRes = await fetch(`/api/users/${encodeURIComponent(uid)}/medical`, { credentials: "include" }).catch(() => null);
       if (!medRes) return;
@@ -195,88 +191,101 @@ export default function ProfilePage() {
     }
   }, [userId]);
 
-  const loadProfileViaApi = useCallback(async () => {
-    try {
-      const r = await fetch("/api/profiles/me", { cache: "no-store", credentials: "include" }).catch(() => null);
-      if (!r || !r.ok) {
-        const fallbackId = await loadProfile();
-        if (fallbackId) await loadProfileData(fallbackId);
-        return;
-      }
-      const json = await r.json().catch(() => null);
-      if (!json) {
-        const fallbackId = await loadProfile();
-        if (fallbackId) await loadProfileData(fallbackId);
-        return;
-      }
-      const data = Array.isArray(json) && json.length ? json[0] : json && typeof json === "object" ? json : null;
-      if (!data || typeof data !== "object") {
+  const loadProfileViaApi = useCallback(
+    async (force = false) => {
+      // Avoid overwriting in-progress edits unless explicitly forced
+      if (!force && isDirtyRef.current) return;
+      try {
+        const r = await fetch("/api/profiles/me", { cache: "no-store", credentials: "include" }).catch(() => null);
+        if (!r || !r.ok) {
+          const fallbackId = await loadProfile();
+          if (fallbackId) await loadProfileData(fallbackId);
+          return;
+        }
+        const json = await r.json().catch(() => null);
+        if (!json) {
+          const fallbackId = await loadProfile();
+          if (fallbackId) await loadProfileData(fallbackId);
+          return;
+        }
+        const data = Array.isArray(json) && json.length ? json[0] : json && typeof json === "object" ? json : null;
+        if (!data || typeof data !== "object") {
+          setLoading(false);
+          const fallbackId = await loadProfile();
+          if (fallbackId) await loadProfileData(fallbackId);
+          return;
+        }
+        const profileUserId = (data.id as string) || "";
+        if (!profileUserId) {
+          const fallbackId = await loadProfile();
+          if (fallbackId) await loadProfileData(fallbackId);
+          setLoading(false);
+          return;
+        }
+        setUserId(profileUserId);
+        const created = (data.createdAt as string) || (data.joinedDate as string) || "";
+        setProfile({
+          name: String(data.displayName || data.name || "").trim(),
+          email: String(data.email || "").trim(),
+          phone: String(data.phone || "").trim(),
+          location: String(data.addressLine1 || data.location || "").trim(),
+          bio: String(data.bio || ""),
+          avatar: String(data.avatar || ""),
+          role: String(data.role || "ADMIN"),
+          status: String(data.status || "Active"),
+          joinedDate: created,
+          updatedAt: String(data.updatedAt || ""),
+        });
+        setNotes(String(data.notes || ""));
+        const { d, m, y } = getDobParts(data.dateOfBirth || data.dob);
+        setExtra({
+          jobTitle: String(data.jobTitle || "").trim(),
+          emergencyContactName: String(data.emergencyContactName || "").trim(),
+          emergencyContactPhone: String(
+            data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || ""
+          ).trim(),
+          niNumber: String(data.niNumber || data.nationalInsurance || "").trim(),
+          utrNumber: String(data.utrNumber || data.utr || "").trim(),
+          dobDay: d,
+          dobMonth: m,
+          dobYear: y,
+          restrictNonEssentialProcessing: !!(data.restrictNonEssentialProcessing === true),
+        });
+      } catch (e) {
+        console.error("Error loading profile via /api/profiles/me:", e);
+      } finally {
         setLoading(false);
-        const fallbackId = await loadProfile();
-        if (fallbackId) await loadProfileData(fallbackId);
-        return;
       }
-      const profileUserId = (data.id as string) || "";
-      if (!profileUserId) {
-        const fallbackId = await loadProfile();
-        if (fallbackId) await loadProfileData(fallbackId);
-        setLoading(false);
-        return;
-      }
-      setUserId(profileUserId);
-      const created = (data.createdAt as string) || (data.joinedDate as string) || "";
-      setProfile({
-        name: String(data.displayName || data.name || "").trim(),
-        email: String(data.email || "").trim(),
-        phone: String(data.phone || "").trim(),
-        location: String(data.addressLine1 || data.location || "").trim(),
-        bio: String(data.bio || ""),
-        avatar: String(data.avatar || ""),
-        role: String(data.role || "ADMIN"),
-        status: String(data.status || "Active"),
-        joinedDate: created,
-        updatedAt: String(data.updatedAt || ""),
-      });
-      setNotes(String(data.notes || ""));
-      const { d, m, y } = getDobParts(data.dateOfBirth || data.dob);
-      setExtra({
-        jobTitle: String(data.jobTitle || "").trim(),
-        emergencyContactName: String(data.emergencyContactName || "").trim(),
-        emergencyContactPhone: String(data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || "").trim(),
-        niNumber: String(data.niNumber || data.nationalInsurance || "").trim(),
-        utrNumber: String(data.utrNumber || data.utr || "").trim(),
-        dobDay: d,
-        dobMonth: m,
-        dobYear: y,
-        restrictNonEssentialProcessing: !!(data.restrictNonEssentialProcessing === true),
-      });
-    } catch (e) {
-      console.error("Error loading profile via /api/profiles/me:", e);
-    } finally {
-      setLoading(false);
-    }
-  }, [getDobParts, loadProfileData]);
+    },
+    // loadProfile / loadProfileData are defined below; they are stable (empty / [getDobParts] deps).
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- intentional ordering; avoids hook reorder refactor
+    [getDobParts]
+  );
 
   useEffect(() => {
-    const initializeProfile = async () => {
-      await loadProfileViaApi();
-      await loadCertifications();
-      await loadMedicalRecords();
-    };
-    void initializeProfile();
-  }, [loadCertifications, loadMedicalRecords, loadProfileViaApi]);
+    void loadProfileViaApi();
+  }, [loadProfileViaApi]);
 
   useEffect(() => {
     if (!userId) return;
-    const unsub = subscribeExtraProfile();
-    return () => {
-      if (typeof unsub === 'function') unsub();
-    };
+    void loadCertifications(userId);
+    void loadMedicalRecords(userId);
+  }, [userId, loadCertifications, loadMedicalRecords]);
+
+  useEffect(() => {
+    // Realtime profile updates are disabled for now to avoid
+    // constant refetches while the user is editing this form.
+    if (!userId) return;
+    return () => {};
   }, [userId]);
+
+  useEffect(() => {
+    isDirtyRef.current = isDirty;
+  }, [isDirty]);
 
 
   /** Resolves userId from email. Used as fallback. */
-  async function loadProfile(): Promise<string | undefined> {
+  const loadProfile = useCallback(async (): Promise<string | undefined> => {
     try {
       const r = await fetch("/api/me", { credentials: "include" });
       const me = await r.json();
@@ -299,64 +308,79 @@ export default function ProfilePage() {
     } finally {
       setLoading(false);
     }
-  }
+  }, []);
 
   /** Load personal info from profiles/users. Tries API first, then direct Supabase. */
-  async function loadProfileData(profileUserId: string) {
-    const applyData = (data: Record<string, unknown>) => {
-      const displayName = String(data.displayName || data.name || "").trim();
-      const phone = String(data.phone || "").trim();
-      const address = String(data.addressLine1 || data.location || "").trim();
-      setProfile((prev) => ({
-        ...prev,
-        name: displayName || prev.name,
-        phone: phone || prev.phone,
-        location: address || prev.location,
-        bio: (data.bio as string) || prev.bio,
-        avatar: (data.avatar as string) || prev.avatar,
-      }));
-      const { d, m, y } = getDobParts(data.dateOfBirth || data.dob);
-      const ni = String(data.niNumber || data.nationalInsurance || "").trim();
-      const utr = String(data.utrNumber || data.utr || "").trim();
-      const emergPhone = String(data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || "").trim();
-      setExtra({
-        jobTitle: String(data.jobTitle || "").trim(),
-        emergencyContactName: String(data.emergencyContactName || "").trim(),
-        emergencyContactPhone: emergPhone,
-        niNumber: ni,
-        utrNumber: utr,
-        dobDay: d,
-        dobMonth: m,
-        dobYear: y,
-        restrictNonEssentialProcessing: !!(data.restrictNonEssentialProcessing === true),
-      });
-    };
+  const loadProfileData = useCallback(
+    async (profileUserId: string) => {
+      const applyData = (data: Record<string, unknown>) => {
+        const displayName = String(data.displayName || data.name || "").trim();
+        const phone = String(data.phone || "").trim();
+        const address = String(data.addressLine1 || data.location || "").trim();
+        setProfile((prev) => ({
+          ...prev,
+          name: displayName || prev.name,
+          phone: phone || prev.phone,
+          location: address || prev.location,
+          bio: (data.bio as string) || prev.bio,
+          avatar: (data.avatar as string) || prev.avatar,
+        }));
+        const { d, m, y } = getDobParts(data.dateOfBirth || data.dob);
+        const ni = String(data.niNumber || data.nationalInsurance || "").trim();
+        const utr = String(data.utrNumber || data.utr || "").trim();
+        const emergPhone = String(data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || "").trim();
+        setExtra({
+          jobTitle: String(data.jobTitle || "").trim(),
+          emergencyContactName: String(data.emergencyContactName || "").trim(),
+          emergencyContactPhone: emergPhone,
+          niNumber: ni,
+          utrNumber: utr,
+          dobDay: d,
+          dobMonth: m,
+          dobYear: y,
+          restrictNonEssentialProcessing: !!(data.restrictNonEssentialProcessing === true),
+        });
+      };
 
-    try {
-      // 1. Try API first (server-side)
-      const r = await fetch(`/api/profiles?userId=${encodeURIComponent(profileUserId)}`, { cache: "no-store", credentials: "include" });
-      const json = await r.json();
-      const apiData = Array.isArray(json) && json.length ? json[0] : null;
-      if (apiData && typeof apiData === "object") {
-        applyData(apiData as Record<string, unknown>);
-        return;
+      try {
+        const r = await fetch(`/api/profiles?userId=${encodeURIComponent(profileUserId)}`, {
+          cache: "no-store",
+          credentials: "include",
+        });
+        const json = await r.json();
+        const apiData = Array.isArray(json) && json.length ? json[0] : null;
+        if (apiData && typeof apiData === "object") {
+          applyData(apiData as Record<string, unknown>);
+          return;
+        }
+      } catch (apiErr) {
+        console.warn("Profile API fetch failed, trying Supabase:", apiErr);
       }
-    } catch (apiErr) {
-      console.warn("Profile API fetch failed, trying Supabase:", apiErr);
-    }
 
-    try {
-      const [userRes, profileRes] = await Promise.all([
-        supabase.from("users").select("*").eq("id", profileUserId).single(),
-        supabase.from("profiles").select("*").eq("user_id", profileUserId).maybeSingle(),
-      ]);
-      const userData = (userRes.data || {}) as Record<string, unknown>;
-      const profileData = (profileRes.data || {}) as Record<string, unknown>;
-      applyData({ ...userData, ...profileData });
-    } catch (e) {
-      console.error("Error loading profile data:", e);
-    }
-  }
+      try {
+        const [userRes, profileRes] = await Promise.all([
+          supabase.from("users").select("*").eq("id", profileUserId).single(),
+          supabase.from("profiles").select("*").eq("user_id", profileUserId).maybeSingle(),
+        ]);
+        const userData = (userRes.data || {}) as Record<string, unknown>;
+        const profileData = (profileRes.data || {}) as Record<string, unknown>;
+        applyData({ ...userData, ...profileData });
+      } catch (e) {
+        console.error("Error loading profile data:", e);
+      }
+    },
+    [getDobParts]
+  );
+
+  const updateProfile = (update: Partial<typeof profile>) => {
+    setIsDirty(true);
+    setProfile((prev) => ({ ...prev, ...update }));
+  };
+
+  const updateExtra = (update: Partial<typeof extra>) => {
+    setIsDirty(true);
+    setExtra((prev) => ({ ...prev, ...update }));
+  };
 
   async function handleSave() {
     let effectiveUserId = userId;
@@ -392,6 +416,7 @@ export default function ProfilePage() {
       // 1. Write ALL personal info to users/{userId}/profile/data via API
       const profileRes = await fetch("/api/profiles", {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId: effectiveUserId,
@@ -413,12 +438,14 @@ export default function ProfilePage() {
       // 2. Update user via API
       await fetch("/api/profiles", {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ userId: effectiveUserId, email: profile.email, role: profile.role, status: profile.status, notes }),
       });
 
       alert("Profile saved successfully!");
-      await loadProfileViaApi();
+      setIsDirty(false);
+      await loadProfileViaApi(true);
     } catch (error: unknown) {
       console.error("Error saving profile:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
@@ -438,6 +465,7 @@ export default function ProfilePage() {
       const dobIso = day && month && year ? `${year}-${month}-${day}` : "";
       const res = await fetch("/api/profiles", {
         method: "PATCH",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           userId,
@@ -454,24 +482,12 @@ export default function ProfilePage() {
         }),
       });
       if (!res.ok) throw new Error("Failed to save");
-      await loadProfileViaApi();
+      setIsDirty(false);
+      await loadProfileViaApi(true);
       alert("Personal info saved.");
     } catch (e) {
       console.error("Error saving extra profile:", e);
     }
-  }
-
-  function subscribeExtraProfile() {
-    if (!userId) return () => {};
-    const channel = supabase
-      .channel(`profile-${userId}`)
-      .on(
-        "postgres_changes",
-        { event: "*", schema: "public", table: "profiles", filter: `user_id=eq.${userId}` },
-        () => void loadProfileViaApi()
-      )
-      .subscribe();
-    return () => supabase.removeChannel(channel);
   }
 
   async function addCertification() {
@@ -696,17 +712,19 @@ export default function ProfilePage() {
           <FileText size={16} />
           Medical History
         </button>
-        <button
-          onClick={() => setActiveTab("induction")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-            activeTab === "induction" 
-              ? "bg-blue-600 text-white shadow-sm" 
-              : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
-          }`}
-        >
-          <ClipboardCheck size={16} />
-          Induction
-        </button>
+        {preInductionUiEnabled && (
+          <button
+            onClick={() => setActiveTab("induction")}
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+              activeTab === "induction"
+                ? "bg-blue-600 text-white shadow-sm"
+                : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
+            }`}
+          >
+            <ClipboardCheck size={16} />
+            Induction
+          </button>
+        )}
         <button
           onClick={() => setActiveTab("privacy")}
           className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
@@ -753,7 +771,7 @@ export default function ProfilePage() {
                   <span className="text-slate-500">Added Date</span>
                   <span className="text-slate-900 font-medium">
                     {profile.joinedDate && !isNaN(Date.parse(profile.joinedDate))
-                      ? new Date(profile.joinedDate).toLocaleString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit' })
+                      ? formatDateTime(profile.joinedDate)
                       : <span className="text-slate-400">Not set</span>}
                   </span>
                 </div>
@@ -845,7 +863,7 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       value={profile.name}
-                      onChange={(e) => setProfile({ ...profile, name: e.target.value })}
+                      onChange={(e) => updateProfile({ name: e.target.value })}
                       className="input w-full"
                       placeholder="Enter full name"
                     />
@@ -856,7 +874,7 @@ export default function ProfilePage() {
                     <input
                       type="email"
                       value={profile.email}
-                      onChange={(e) => setProfile({ ...profile, email: e.target.value })}
+                      onChange={(e) => updateProfile({ email: e.target.value })}
                       className="input w-full"
                       placeholder="Enter email"
                     />
@@ -867,7 +885,7 @@ export default function ProfilePage() {
                     <input
                       type="tel"
                       value={profile.phone}
-                      onChange={(e) => setProfile({ ...profile, phone: e.target.value })}
+                      onChange={(e) => updateProfile({ phone: e.target.value })}
                       className="input w-full"
                       placeholder="Enter phone number"
                     />
@@ -878,7 +896,7 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       value={profile.location}
-                      onChange={(e) => setProfile({ ...profile, location: e.target.value })}
+                      onChange={(e) => updateProfile({ location: e.target.value })}
                       className="input w-full"
                       placeholder="Enter location"
                     />
@@ -888,7 +906,7 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
                     <select
                       value={profile.role}
-                      onChange={(e) => setProfile({ ...profile, role: e.target.value })}
+                      onChange={(e) => updateProfile({ role: e.target.value })}
                       className="input w-full"
                     >
                       <option value="ADMIN">Admin</option>
@@ -901,7 +919,7 @@ export default function ProfilePage() {
                     <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
                     <select
                       value={profile.status}
-                      onChange={(e) => setProfile({ ...profile, status: e.target.value })}
+                      onChange={(e) => updateProfile({ status: e.target.value })}
                       className="input w-full"
                     >
                       <option value="Active">Active</option>
@@ -922,7 +940,7 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       value={extra.jobTitle}
-                      onChange={(e) => setExtra({ ...extra, jobTitle: e.target.value })}
+                      onChange={(e) => updateExtra({ jobTitle: e.target.value })}
                       className="input w-full"
                       placeholder="e.g., Site Operative"
                     />
@@ -932,7 +950,7 @@ export default function ProfilePage() {
                     <input
                       type="text"
                       value={extra.emergencyContactName}
-                      onChange={(e) => setExtra({ ...extra, emergencyContactName: e.target.value })}
+                      onChange={(e) => updateExtra({ emergencyContactName: e.target.value })}
                       className="input w-full"
                       placeholder="Full name"
                     />
@@ -942,7 +960,7 @@ export default function ProfilePage() {
                     <input
                       type="tel"
                       value={extra.emergencyContactPhone}
-                      onChange={(e) => setExtra({ ...extra, emergencyContactPhone: e.target.value })}
+                      onChange={(e) => updateExtra({ emergencyContactPhone: e.target.value })}
                       className="input w-full"
                       placeholder="e.g., 07xxxxxxxxx"
                     />
@@ -955,7 +973,7 @@ export default function ProfilePage() {
                     <input
                       type={showNi ? "text" : "password"}
                       value={extra.niNumber}
-                      onChange={(e) => setExtra({ ...extra, niNumber: e.target.value.toUpperCase() })}
+                      onChange={(e) => updateExtra({ niNumber: e.target.value.toUpperCase() })}
                       className="input w-full"
                       placeholder="e.g., QQ123456C"
                       autoComplete="off"
@@ -983,7 +1001,7 @@ export default function ProfilePage() {
                     <input
                       type={showUtr ? "text" : "password"}
                       value={extra.utrNumber}
-                      onChange={(e) => setExtra({ ...extra, utrNumber: e.target.value })}
+                      onChange={(e) => updateExtra({ utrNumber: e.target.value })}
                       className="input w-full"
                       placeholder="10-digit UTR"
                       autoComplete="off"
@@ -1012,7 +1030,7 @@ export default function ProfilePage() {
                       <select
                         className="input w-20"
                         value={extra.dobDay}
-                        onChange={(e)=>setExtra({...extra, dobDay: e.target.value})}
+                        onChange={(e)=>updateExtra({ dobDay: e.target.value })}
                       >
                         <option value="">DD</option>
                         {DAYS.map(d=>(<option key={d} value={d}>{d}</option>))}
@@ -1020,7 +1038,7 @@ export default function ProfilePage() {
                       <select
                         className="input w-28"
                         value={extra.dobMonth}
-                        onChange={(e)=>setExtra({...extra, dobMonth: e.target.value})}
+                        onChange={(e)=>updateExtra({ dobMonth: e.target.value })}
                       >
                         <option value="">MM</option>
                         {MONTHS.map(m=>(<option key={m.v} value={m.v}>{m.n}</option>))}
@@ -1028,7 +1046,7 @@ export default function ProfilePage() {
                       <select
                         className="input w-28"
                         value={extra.dobYear}
-                        onChange={(e)=>setExtra({...extra, dobYear: e.target.value})}
+                        onChange={(e)=>updateExtra({ dobYear: e.target.value })}
                       >
                         <option value="">YYYY</option>
                         {YEARS.map(y=>(<option key={y} value={y}>{y}</option>))}
@@ -1055,7 +1073,10 @@ export default function ProfilePage() {
                 <h3 className="font-semibold text-slate-900 mb-4">Notes</h3>
                 <textarea
                   value={notes}
-                  onChange={(e) => setNotes(e.target.value)}
+                  onChange={(e) => {
+                    setIsDirty(true);
+                    setNotes(e.target.value);
+                  }}
                   className="input w-full rounded-xl"
                   rows={4}
                   placeholder="Internal notes regarding this user. No notes added for this user yet."
@@ -1083,7 +1104,7 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <div className="text-slate-500 mb-1">Profile Updates</div>
-                    <div className="font-medium text-slate-900">{profile.updatedAt ? new Date(profile.updatedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' }) : "Never"}</div>
+                    <div className="font-medium text-slate-900">{profile.updatedAt ? formatDate(profile.updatedAt) : "Never"}</div>
                   </div>
                 </div>
               </div>
@@ -1166,7 +1187,7 @@ export default function ProfilePage() {
                               <div>
                                 <div className="text-slate-500">Issued</div>
                                 <div className="font-medium text-slate-900">
-                                  {new Date(cert.issuedDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                  {formatDate(cert.issuedDate)}
                                 </div>
                               </div>
                             )}
@@ -1177,7 +1198,7 @@ export default function ProfilePage() {
                                 cert.status === 'expiring' ? 'text-amber-700' :
                                 'text-slate-900'
                               }`}>
-                                {new Date(cert.expiryDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                {formatDate(cert.expiryDate)}
                               </div>
                             </div>
                           </div>
@@ -1212,7 +1233,7 @@ export default function ProfilePage() {
                             )}
                             {cert.uploadedAt && (
                               <div className="text-xs text-slate-400 mt-1">
-                                Uploaded {new Date(cert.uploadedAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                Uploaded {formatDate(cert.uploadedAt)}
                               </div>
                             )}
                           </div>
@@ -1231,7 +1252,7 @@ export default function ProfilePage() {
             </>
           )}
 
-          {activeTab === "induction" && (
+          {activeTab === "induction" && preInductionUiEnabled && (
             <div className="card space-y-6">
               <h3 className="font-semibold text-slate-900">Pre-Induction &amp; Site Induction</h3>
               <p className="text-sm text-slate-600">
@@ -1349,7 +1370,7 @@ export default function ProfilePage() {
                         const data = await r.json().catch(() => ({}));
                         if (!r.ok) throw new Error(data.error || "Failed");
                         alert(data.message || "Account deleted.");
-                        window.location.href = "/login";
+                        window.location.href = "/admin/login";
                       } catch (e) {
                         alert("Failed: " + (e instanceof Error ? e.message : "Unknown error"));
                       }
@@ -1392,13 +1413,7 @@ export default function ProfilePage() {
                               <div className="font-medium text-slate-900">{record.title || 'Medical Record'}</div>
                               {record.createdAt && (
                                 <div className="text-xs text-slate-500">
-                                  {new Date(record.createdAt).toLocaleDateString('en-GB', { 
-                                    day: 'numeric', 
-                                    month: 'short', 
-                                    year: 'numeric',
-                                    hour: '2-digit',
-                                    minute: '2-digit'
-                                  })}
+                                  {formatDateTime(record.createdAt)}
                                 </div>
                               )}
                             </div>

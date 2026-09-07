@@ -4,7 +4,6 @@ import Link from "next/link";
 import { Database } from "lucide-react";
 import Table from "../components/ui/Table";
 import TableActions from "../components/ui/TableActions";
-import { deleteSite, updateSite } from "./actions";
 import useSWR from "swr";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
@@ -17,34 +16,102 @@ export default function SitesTable({ data }: any) {
   const { data: rows, mutate } = useSWR<any[]>("/api/sites", fetcher, {
     fallbackData: Array.isArray(data) ? data : [],
     refreshInterval: 30000,
+    revalidateOnMount: true,
   });
 
   const rowsSafe = rows ?? [];
 
   async function handleDelete(id: string) {
     if (!window.confirm("Are you sure you want to delete this site?")) return;
-    await deleteSite(id);
-    mutate((prev) => (prev ?? []).filter((row) => row.id !== id), false);
+    try {
+      // Client-side DELETE avoids Next.js re-running Server Components after a Server Action
+      // (which can surface a generic production digest if RSC re-render fails).
+      const res = await fetch(`/api/sites?id=${encodeURIComponent(id)}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!res.ok) {
+        let message = "Failed to delete site";
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (typeof j?.error === "string" && j.error) message = j.error;
+        } catch {
+          /* ignore */
+        }
+        window.alert(message);
+        await mutate();
+        return;
+      }
+      mutate((prev) => (prev ?? []).filter((row) => row.id !== id), false);
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : "Could not delete site";
+      window.alert(msg);
+      await mutate();
+    }
   }
 
   async function toggleVisible(row: any) {
     const next = !(row.showOnMap ?? true);
-    await updateSite(row.id, { showOnMap: next });
-    mutate(
-      (prev) =>
-        (prev ?? []).map((r) => (r.id === row.id ? { ...r, showOnMap: next } : r)),
-      false
-    );
+    try {
+      const res = await fetch(`/api/sites/${encodeURIComponent(row.id)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ showOnMap: next }),
+      });
+      if (!res.ok) {
+        let message = "Could not update site";
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (typeof j?.error === "string" && j.error) message = j.error;
+        } catch {
+          /* ignore */
+        }
+        window.alert(message);
+        await mutate();
+        return;
+      }
+      mutate(
+        (prev) =>
+          (prev ?? []).map((r) => (r.id === row.id ? { ...r, showOnMap: next } : r)),
+        false
+      );
+    } catch {
+      window.alert("Network error while saving.");
+      await mutate();
+    }
   }
 
   async function toggleActive(row: any) {
     const next = !(row.active ?? true);
-    await updateSite(row.id, { active: next });
-    mutate(
-      (prev) =>
-        (prev ?? []).map((r) => (r.id === row.id ? { ...r, active: next } : r)),
-      false
-    );
+    try {
+      const res = await fetch(`/api/sites/${encodeURIComponent(row.id)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ active: next }),
+      });
+      if (!res.ok) {
+        let message = "Could not update site";
+        try {
+          const j = (await res.json()) as { error?: string };
+          if (typeof j?.error === "string" && j.error) message = j.error;
+        } catch {
+          /* ignore */
+        }
+        window.alert(message);
+        await mutate();
+        return;
+      }
+      mutate(
+        (prev) =>
+          (prev ?? []).map((r) => (r.id === row.id ? { ...r, active: next } : r)),
+        false
+      );
+    } catch {
+      window.alert("Network error while saving.");
+      await mutate();
+    }
   }
 
   const columns = [
@@ -111,7 +178,7 @@ export default function SitesTable({ data }: any) {
             href={`/dashboard/sites/${row.id}`}
             className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200"
           >
-            Edit
+            Manage
           </Link>
           <TableActions
             items={[

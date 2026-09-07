@@ -6,7 +6,7 @@ import { getRoleFromClient } from "@/lib/utils/cookies";
 
 const CAN_ADD_TASK_ROLES = ["superuser", "admin", "supervisor", "ADMIN", "SUPERVISOR"];
 
-export default function TasksHeader() {
+export default function TasksHeader({ onTaskCreated }: { onTaskCreated?: () => void }) {
   const role = getRoleFromClient();
   const canAddTask = role && CAN_ADD_TASK_ROLES.includes(role);
 
@@ -14,7 +14,8 @@ export default function TasksHeader() {
     <PageHeader
       title="Tasks"
       description="Assign and track tasks across sites."
-      action={canAddTask ? <AddTaskModal /> : undefined}
+      compact
+      action={canAddTask ? <AddTaskModal onSuccess={onTaskCreated} /> : undefined}
     />
   );
 }

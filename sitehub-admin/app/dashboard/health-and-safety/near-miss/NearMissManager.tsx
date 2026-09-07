@@ -1,8 +1,10 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, FileDown } from "lucide-react";
+import { AlertTriangle, FileDown, Trash2, Eye } from "lucide-react";
 import Table from "../../components/ui/Table";
+import { TaskStatusPill } from "../../components/ui/TaskStatusPill";
+import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import Link from "next/link";
 
@@ -22,16 +24,29 @@ export default function NearMissManager() {
   const [items, setItems] = useState<NearMissItem[]>([]);
   const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
+  function fetchItems(showLoading = true) {
     const companyId = getCompanyIdFromClient();
     if (!companyId) {
       setLoading(false);
       return;
     }
+    if (showLoading) setLoading(true);
     fetch("/api/near-miss?unreviewed=false", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then((data) => setItems(Array.isArray(data) ? data : []))
-      .finally(() => setLoading(false));
+      .finally(() => { if (showLoading) setLoading(false); });
+  }
+
+  useEffect(() => {
+    fetchItems();
+  }, []);
+
+  useEffect(() => {
+    const onVisibilityChange = () => {
+      if (document.visibilityState === "visible") fetchItems(false);
+    };
+    document.addEventListener("visibilitychange", onVisibilityChange);
+    return () => document.removeEventListener("visibilitychange", onVisibilityChange);
   }, []);
 
   async function exportReport(id: string) {
@@ -59,12 +74,20 @@ export default function NearMissManager() {
       credentials: "include",
     });
     if (res.ok) {
+      window.dispatchEvent(new Event("near-miss-reviewed"));
       setItems((prev) =>
         prev.map((i) =>
           i.id === id ? { ...i, reviewed_at: new Date().toISOString(), status: "reviewed" } : i
         )
       );
     }
+  }
+
+  async function handleDelete(id: string) {
+    if (!window.confirm("Delete this near miss report? This cannot be undone.")) return;
+    const res = await fetch(`/api/near-miss/${id}`, { method: "DELETE", credentials: "include" });
+    if (res.ok) setItems((prev) => prev.filter((i) => i.id !== id));
+    else alert("Delete failed. Please try again.");
   }
 
   const columns = [
@@ -74,20 +97,15 @@ export default function NearMissManager() {
       header: "Status",
       accessor: "status",
       render: (row: NearMissItem) => (
-        <span
-          className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${
-            row.reviewed_at ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"
-          }`}
-        >
-          {row.reviewed_at ? "Reviewed" : "Pending"}
-        </span>
+        <TaskStatusPill status={row.reviewed_at ? "reviewed" : "pending"} />
       ),
     },
     {
       header: "Date",
       accessor: "created_at",
+      type: "date" as const,
       render: (row: NearMissItem) =>
-        row.created_at ? new Date(row.created_at).toLocaleDateString("en-GB") : "—",
+        row.created_at ? formatDate(row.created_at) : "—",
     },
     {
       header: "Actions",
@@ -95,8 +113,9 @@ export default function NearMissManager() {
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/dashboard/health-and-safety/near-miss/${row.id}`}
-            className="text-blue-600 hover:underline text-sm inline-flex items-center gap-1"
+            className="btn-ghost inline-flex items-center gap-1.5 no-underline"
           >
+            <Eye size={14} />
             View
           </Link>
           <button
@@ -115,6 +134,14 @@ export default function NearMissManager() {
               Mark reviewed
             </button>
           )}
+          <button
+            onClick={() => handleDelete(row.id)}
+            className="text-red-600 hover:underline text-sm inline-flex items-center gap-1"
+            title="Delete report"
+          >
+            <Trash2 size={14} />
+            Delete
+          </button>
         </div>
       ),
     },

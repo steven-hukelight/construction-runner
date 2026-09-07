@@ -1,4 +1,7 @@
 import { jsPDF } from "jspdf";
+import { formatPdfDateTime } from "@/lib/pdf/formatPdfDateTime";
+import { drawLogoOnPdf } from "@/lib/pdf/drawLogoOnPdf";
+import type { LogoForPdf } from "@/lib/pdf/fetchCompanyLogoForPdf";
 import type { ComplianceExportRow } from "./buildComplianceDataset";
 
 const ROW_HEIGHT = 8;
@@ -6,12 +9,19 @@ const HEADER_HEIGHT = 10;
 const MARGIN = 20;
 const FOOTER_HEIGHT = 20;
 
-export function buildPdfDocument(dataset: ComplianceExportRow[]): Buffer {
+export function buildPdfDocument(
+  dataset: ComplianceExportRow[],
+  options?: { logo?: LogoForPdf | null }
+): Buffer {
   const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
 
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   const contentWidth = pageWidth - MARGIN * 2;
+
+  if (options?.logo) {
+    drawLogoOnPdf(doc, options.logo, pageWidth, MARGIN);
+  }
 
   doc.setFontSize(18);
   doc.setFont("helvetica", "bold");
@@ -19,7 +29,7 @@ export function buildPdfDocument(dataset: ComplianceExportRow[]): Buffer {
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
-  doc.text(`Generated: ${new Date().toLocaleString()}`, MARGIN, MARGIN + 16);
+  doc.text(`Generated: ${formatPdfDateTime(new Date())}`, MARGIN, MARGIN + 16);
 
   const tableTop = MARGIN + 22;
   const colWidths = [

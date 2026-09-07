@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /**
  * Provisions an auth.users record for a legacy user who exists in public.users
- * but not in auth.users (e.g. migrated from Firebase).
+ * but not in auth.users (e.g. legacy import).
  * Creates the auth user and merges so the existing public.users row is preserved
  * with the new auth id. Call this before send-password-reset for legacy users.
  */
@@ -87,7 +87,6 @@ export async function POST(req: Request) {
       { table: "tasks", column: "assigned_to" },
       { table: "deliveries", column: "delivered_by" },
       { table: "profiles", column: "user_id" },
-      { table: "notices_read", column: "user_id" },
       { table: "upload_logs", column: "user_id" },
       { table: "near_miss", column: "operative_id" },
       { table: "offline_queue", column: "user_id" },
@@ -109,6 +108,7 @@ export async function POST(req: Request) {
       { table: "assigned_operatives", column: "user_id" },
       { table: "user_site_inductions", column: "user_id" },
       { table: "briefing_acknowledgements", column: "user_id" },
+      { table: "rams_acknowledgements", column: "user_id" },
       { table: "user_pre_induction_profile", column: "user_id" },
     ];
 

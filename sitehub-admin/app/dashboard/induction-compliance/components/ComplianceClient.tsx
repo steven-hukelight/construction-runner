@@ -44,18 +44,21 @@ function filterRows(rows: ComplianceRow[], filters: FilterState): ComplianceRow[
     out = out.filter((r) => {
       const warnings = r.expiryWarnings ?? [];
       if (filters.expiry === "expired") {
-        return warnings.some((w) => w.expiry.getTime() < now);
+        return warnings.some((w) => {
+          const t = new Date(w.expiry).getTime();
+          return !isNaN(t) && t < now;
+        });
       }
       if (filters.expiry === "expiring_30") {
         return warnings.some((w) => {
-          const t = w.expiry.getTime();
-          return t >= now && t - now <= 30 * day;
+          const t = new Date(w.expiry).getTime();
+          return !isNaN(t) && t >= now && t - now <= 30 * day;
         });
       }
       if (filters.expiry === "expiring_60") {
         return warnings.some((w) => {
-          const t = w.expiry.getTime();
-          return t >= now && t - now <= 60 * day;
+          const t = new Date(w.expiry).getTime();
+          return !isNaN(t) && t >= now && t - now <= 60 * day;
         });
       }
       return true;
@@ -124,8 +127,35 @@ export default function ComplianceClient({
     setDrawerOpen(true);
   }, []);
 
-  const handleAssignToSite = useCallback((userId: string, siteId: string) => {
-    router.push(`/dashboard/sites/${siteId}?assign=${userId}`);
+  const handleMarkInducted = useCallback(async (userId: string, siteId: string) => {
+    const res = await fetch("/api/induction/complete", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId, siteId }),
+      credentials: "include",
+    });
+    const data = await res.json();
+    if (res.ok) router.refresh();
+    else alert(data?.message ?? data?.error ?? "Failed to mark as inducted");
+  }, [router]);
+
+  const handleAssignToSite = useCallback(async (userId: string, siteId: string, companyId?: string) => {
+    if (!companyId) {
+      router.push(`/dashboard/sites/${siteId}/induction`);
+      return;
+    }
+    const res = await fetch(`/api/sites/${siteId}/assigned-operatives`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ operativeId: userId, companyId }),
+      credentials: "include",
+    });
+    const data = await res.json();
+    if (res.ok) {
+      router.refresh();
+    } else {
+      alert(data?.message ?? data?.error ?? "Failed to assign operative to site");
+    }
   }, [router]);
 
   const handleResetInduction = useCallback(async (userId: string, siteId: string) => {
@@ -206,6 +236,7 @@ export default function ComplianceClient({
             onRowClick={handleRowClick}
             onViewDetails={handleViewDetails}
             onAssignToSite={!isSubcontractorAdmin ? handleAssignToSite : undefined}
+            onMarkInducted={!isSubcontractorAdmin ? handleMarkInducted : undefined}
             onResetInduction={!isSubcontractorAdmin ? handleResetInduction : undefined}
           />
         ) : (
@@ -215,6 +246,7 @@ export default function ComplianceClient({
             onRowClick={handleRowClick}
             onViewDetails={handleViewDetails}
             onAssignToSite={!isSubcontractorAdmin ? handleAssignToSite : undefined}
+            onMarkInducted={!isSubcontractorAdmin ? handleMarkInducted : undefined}
             onResetInduction={!isSubcontractorAdmin ? handleResetInduction : undefined}
           />
         )}

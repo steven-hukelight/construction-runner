@@ -1,0 +1,11 @@
+---
+description: Flutter worker mobile app lives in sitehub_worker_Ready — scan and edit there for mobile tasks
+alwaysApply: true
+---
+
+# Mobile Flutter app scope
+
+- **Worker / Construction Runner mobile (Flutter)** is rooted at **`sitehub_worker_Ready/`** (on-disk casing: capital **R** in `Ready`). Docs sometimes write `sitehub_worker_ready`; treat them as the same app.
+- When the task mentions **mobile app**, **Flutter**, **iOS/Android client**, **worker app**, **operative app**, **device/offline**, **Supabase auth on mobile**, or similar, **search, read, and change code under `sitehub_worker_Ready/` first**. Do not assume this repo has no Flutter app.
+- **If `pubspec.yaml` / `lib/` seem missing:** Some clones or sparse checkouts only contain partial artifacts under `sitehub_worker_Ready/`; verify on disk before concluding the Flutter app is absent.
+- **Web admin** is **`sitehub-admin/`**; keep mobile vs admin boundaries clear when changing APIs or auth.

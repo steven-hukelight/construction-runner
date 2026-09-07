@@ -14,7 +14,8 @@ type Props = {
   isSubcontractorAdmin: boolean;
   onRowClick: (userId: string) => void;
   onViewDetails: (userId: string) => void;
-  onAssignToSite?: (userId: string, siteId: string) => void;
+  onAssignToSite?: (userId: string, siteId: string, companyId?: string) => void;
+  onMarkInducted?: (userId: string, siteId: string) => void;
   onResetInduction?: (userId: string, siteId: string) => void;
   onRequestDocuments?: (userId: string) => void;
   onApplyOverride?: (userId: string) => void;
@@ -27,6 +28,7 @@ export default function ComplianceCards({
   onRowClick,
   onViewDetails,
   onAssignToSite,
+  onMarkInducted,
   onResetInduction,
   onRequestDocuments,
   onApplyOverride,
@@ -62,6 +64,7 @@ export default function ComplianceCards({
                 isSubcontractorAdmin={isSubcontractorAdmin}
                 onViewDetails={onViewDetails}
                 onAssignToSite={onAssignToSite}
+                onMarkInducted={onMarkInducted}
                 onResetInduction={onResetInduction}
                 onRequestDocuments={onRequestDocuments}
                 onApplyOverride={onApplyOverride}
@@ -70,7 +73,7 @@ export default function ComplianceCards({
             </div>
           </div>
           <div className="mt-3 flex flex-wrap items-center gap-2">
-            <ComplianceStatusBadge status={row.status} />
+            <ComplianceStatusBadge status={row.status} siteId={row.siteId} />
             <RAMSStatusBadge status={row.ramsStatus} />
             {row.adminPreInductionOverride && (
               <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 text-purple-800">

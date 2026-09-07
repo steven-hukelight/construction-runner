@@ -24,8 +24,12 @@ async function ensureRAMAccess(id: string): Promise<NextResponse | null> {
   if (role === "superuser") return null;
   if (!companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 
-  const { data: ram } = await supabaseAdmin.from("rams").select("*").eq("id", id).single();
-  if (!ram) return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const { data: ram, error: ramFetchErr } = await supabaseAdmin
+    .from("rams")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (ramFetchErr || !ram) return NextResponse.json({ error: "Not found" }, { status: 404 });
   const ramCompanyId = cid(ram);
   if (ramCompanyId === companyId) return null;
 
@@ -45,6 +49,45 @@ async function ensureRAMAccess(id: string): Promise<NextResponse | null> {
     if (sub) return null;
   }
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+}
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const forbid = await ensureRAMAccess(id);
+  if (forbid) return forbid;
+
+  const { data: ram, error } = await supabaseAdmin
+    .from("rams")
+    .select("*")
+    .eq("id", id)
+    .single();
+  if (error || !ram) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+
+  let siteName: string | null = null;
+  const sid = ram.site_id as string | null | undefined;
+  if (sid) {
+    const { data: site } = await supabaseAdmin.from("sites").select("name").eq("id", sid).maybeSingle();
+    siteName = (site?.name as string | undefined) ?? null;
+  }
+
+  const fileUrl = (ram.url ?? ram.file_url ?? null) as string | null;
+
+  return NextResponse.json({
+    id: ram.id,
+    title: ram.title ?? null,
+    description: (ram as { description?: string | null }).description ?? null,
+    status: ram.status ?? null,
+    version: ram.version ?? null,
+    url: fileUrl,
+    fileUrl,
+    siteId: sid ?? null,
+    siteName,
+    companyId: ram.company_id ?? null,
+    createdAt: ram.created_at ?? null,
+    updatedAt: ram.updated_at ?? null,
+  });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
