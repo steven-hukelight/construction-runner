@@ -12,20 +12,30 @@ function formatCompletedAt(completedAt: Date | null): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
+// Neutral status labels — the "Pre-Induction Required" / "Pre-Induction Override"
+// legacy labels are mapped to plain "Induction Required" / "Override Applied" so
+// pre-induction language never leaks to supervisors after the My Info reflow.
 const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
   Inducted: { bg: "bg-emerald-100", text: "text-emerald-800" },
   Grandfathered: { bg: "bg-blue-100", text: "text-blue-800" },
-  "Pre-Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-  "Pre-Induction Override": { bg: "bg-purple-100", text: "text-purple-800" },
-  "Induction Required": { bg: "bg-gray-100", text: "text-gray-700" },
+  "Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
+  "Override Applied": { bg: "bg-purple-100", text: "text-purple-800" },
   Expired: { bg: "bg-red-100", text: "text-red-800" },
 };
 
+/** Rewrite legacy pre-induction labels to their neutral equivalents. */
+function displayStatus(status: string): string {
+  if (status === "Pre-Induction Required") return "Induction Required";
+  if (status === "Pre-Induction Override") return "Override Applied";
+  return status;
+}
+
 function StatusBadge({ status }: { status: string }) {
-  const s = STATUS_STYLES[status] ?? { bg: "bg-gray-100", text: "text-gray-700" };
+  const label = displayStatus(status);
+  const s = STATUS_STYLES[label] ?? { bg: "bg-gray-100", text: "text-gray-700" };
   return (
     <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md ${s.bg} ${s.text}`}>
-      {status}
+      {label}
     </span>
   );
 }

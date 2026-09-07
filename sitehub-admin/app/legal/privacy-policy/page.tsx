@@ -60,9 +60,9 @@ export default function PrivacyPolicyPage() {
               3. Why we collect it
             </h2>
             <p className="text-sm leading-relaxed">
-              Data is used solely for site access management, safety compliance, pre-induction and
-              site induction, RAMS acceptance tracking, and legal health & safety obligations. We do
-              not use your data for marketing or profiling.
+              Data is used solely for site access management, safety compliance, site induction,
+              RAMS acceptance tracking, and legal health & safety obligations. We do not use your
+              data for marketing or profiling.
             </p>
           </section>
 
@@ -87,7 +87,7 @@ export default function PrivacyPolicyPage() {
               <li>RAMS acceptance: 6 years</li>
               <li>Training records: 3 years</li>
               <li>Accident/incident records: 6 years</li>
-              <li>Pre-Induction Profile: 3 years after last activity</li>
+              <li>Personal safety info stored in "My Info" (emergency contact, medical, competency card): 3 years after last activity</li>
               <li>Deleted user accounts: purged after 90 days</li>
             </ul>
           </section>
