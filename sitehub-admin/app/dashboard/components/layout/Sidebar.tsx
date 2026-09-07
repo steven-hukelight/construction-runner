@@ -34,13 +34,12 @@ import {
 
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 
-// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance], Users, pending signups, Operatives, Attendance
+// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance | Missing Info], Users, pending signups, Operatives, Attendance
 const adminNavItems = [
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
   { name: "Subcontractors", href: "/dashboard/subcontractors", icon: Building2 },
-  // "Induction Compliance" is hidden when the pre-induction UI is disabled —
-  // the page itself is largely a pre-induction dashboard. Re-enable via the
-  // preInductionUiEnabled flag.
+  // When the pre-induction UI is disabled, "Induction Compliance" is replaced by
+  // the slim "Missing Info" report (emergency contact + medical info completeness).
   ...(preInductionUiEnabled
     ? [
         {
@@ -49,7 +48,13 @@ const adminNavItems = [
           icon: ClipboardCheck,
         },
       ]
-    : []),
+    : [
+        {
+          name: "Missing Info",
+          href: "/dashboard/missing-info",
+          icon: ClipboardCheck,
+        },
+      ]),
   { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Pending approvals", href: "/dashboard/pending-approvals", icon: UserCheck },
   { name: "Operatives", href: "/dashboard/operatives", icon: UserCog },
@@ -274,10 +279,15 @@ export default function Sidebar({ role }: SidebarProps) {
                 <ClipboardList size={20} strokeWidth={2.5} />
                 <span>Attendance</span>
               </Link>
-              {preInductionUiEnabled && (
+              {preInductionUiEnabled ? (
                 <Link href="/dashboard/induction-compliance" className={pathname === "/dashboard/induction-compliance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                   <ClipboardCheck size={20} strokeWidth={2.5} />
                   <span>Induction Compliance</span>
+                </Link>
+              ) : (
+                <Link href="/dashboard/missing-info" className={pathname === "/dashboard/missing-info" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
+                  <ClipboardCheck size={20} strokeWidth={2.5} />
+                  <span>Missing Info</span>
                 </Link>
               )}
             </>

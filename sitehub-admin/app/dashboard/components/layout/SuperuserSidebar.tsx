@@ -25,8 +25,8 @@ const navItems = [
   { name: "Multi-company Admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
-  // Induction Compliance is primarily a pre-induction dashboard; hide when the
-  // pre-induction UI is disabled. Backend + data remain intact.
+  // Induction Compliance is primarily a pre-induction dashboard. When pre-induction
+  // UI is disabled it is replaced by the slim Missing Info report.
   ...(preInductionUiEnabled
     ? [
         {
@@ -35,7 +35,13 @@ const navItems = [
           icon: ClipboardCheck,
         },
       ]
-    : []),
+    : [
+        {
+          name: "Missing Info",
+          href: "/dashboard/missing-info",
+          icon: ClipboardCheck,
+        },
+      ]),
   { name: "All Users", href: "/dashboard/all-users", icon: Users },
   { name: "System Logs", href: "/dashboard/system-logs", icon: FileText },
   { name: "Global Settings", href: "/dashboard/global-settings", icon: Settings },
