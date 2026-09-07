@@ -36,7 +36,8 @@ export type AuditAction =
   | "rams_version_update"
   | "briefing_upload"
   | "clear_system_logs"
-  | "rams_upload_failed";
+  | "rams_upload_failed"
+  | "my_info_edited_on_behalf";
 
 export interface AuditLogEntry {
   userId: string;
