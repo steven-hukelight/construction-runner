@@ -40,7 +40,7 @@ export const metadata = {
 export default function RootLayout({ children }: any) {
   // No longer sync companyId from localStorage; always use cookies
   return (
-    <html lang="en" suppressHydrationWarning>
+    <html lang="en-GB" suppressHydrationWarning>
       <head>
         <script
           dangerouslySetInnerHTML={{
@@ -53,12 +53,12 @@ export default function RootLayout({ children }: any) {
       <body className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-300 min-h-screen flex flex-col font-sf">
         <div className="flex-1 flex flex-col">
           <Providers>
-          <AuthErrorHandler />
-          {children}
-        </Providers>
-          <Toaster />
+            <AuthErrorHandler />
+            {children}
+            <Toaster />
+            <Footer />
+          </Providers>
         </div>
-        <Footer />
       </body>
     </html>
   );

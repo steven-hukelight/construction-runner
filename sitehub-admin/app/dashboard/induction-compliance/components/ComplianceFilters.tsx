@@ -1,6 +1,9 @@
 "use client";
 
 import React from "react";
+import { Briefcase, Calendar, Filter, Shield } from "lucide-react";
+import { CardSelect } from "../../components/ui/CardSelect";
+import { CompanyPicker, SitePicker } from "../../components/ui/SitePicker";
 import type { ComplianceSite } from "../server";
 
 export type StatusFilter =
@@ -45,11 +48,8 @@ export default function ComplianceFilters({
     onFiltersChange({ ...filters, ...partial });
   };
 
-  const selectClass =
-    "rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-
   return (
-    <div className="flex flex-wrap items-center gap-4">
+    <div className="flex flex-wrap items-end gap-3">
       <div className="flex items-center gap-2">
         <label htmlFor="compliance-search" className="text-sm font-medium text-gray-700 dark:text-slate-300">
           Search
@@ -60,126 +60,98 @@ export default function ComplianceFilters({
           placeholder="Name, company, CSCS..."
           value={filters.search}
           onChange={(e) => update({ search: e.target.value })}
-          className={`${selectClass} min-w-[180px]`}
+          className="min-w-[180px] rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
         />
       </div>
 
-      <div className="flex items-center gap-2">
-        <label htmlFor="compliance-status" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-          Status
-        </label>
-        <select
-          id="compliance-status"
-          value={filters.status}
-          onChange={(e) => update({ status: e.target.value as StatusFilter })}
-          className={selectClass}
-        >
-          <option value="all">All</option>
-          <option value="compliant">Compliant</option>
-          <option value="missing_pre_induction">Pre-Induction Required</option>
-          <option value="missing_induction">Induction Required</option>
-          <option value="expired">Expired</option>
-          <option value="override_applied">Override Applied</option>
-          <option value="grandfathered">Grandfathered</option>
-        </select>
-      </div>
+      <CardSelect
+        items={[
+          { id: "compliant", name: "Compliant" },
+          { id: "missing_pre_induction", name: "Pre-Induction Required" },
+          { id: "missing_induction", name: "Induction Required" },
+          { id: "expired", name: "Expired" },
+          { id: "override_applied", name: "Override Applied" },
+          { id: "grandfathered", name: "Grandfathered" },
+        ]}
+        value={filters.status}
+        onChange={(id) => update({ status: id as StatusFilter })}
+        icon={Shield}
+        fieldLabel="Status"
+        variant="compact"
+        allowNone
+        noneValue="all"
+        noneLabel="All"
+        className="w-52"
+      />
 
-      <div className="flex items-center gap-2">
-        <label htmlFor="compliance-company" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-          Company
-        </label>
-        <select
-          id="compliance-company"
-          value={filters.companyId}
-          onChange={(e) => update({ companyId: e.target.value })}
-          className={selectClass}
-        >
-          <option value="all">All companies</option>
-          {companyOptions.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <CompanyPicker
+        companies={companyOptions}
+        value={filters.companyId}
+        onChange={(id) => update({ companyId: id })}
+        variant="compact"
+        allowNone
+        noneValue="all"
+        noneLabel="All companies"
+        className="w-52"
+      />
 
-      {tradeOptions.length > 0 && (
-        <div className="flex items-center gap-2">
-          <label htmlFor="compliance-trade" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-            Trade
-          </label>
-          <select
-            id="compliance-trade"
-            value={filters.trade}
-            onChange={(e) => update({ trade: e.target.value })}
-            className={selectClass}
-          >
-            <option value="all">All trades</option>
-            {tradeOptions.map((t) => (
-              <option key={t} value={t}>
-                {t}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {tradeOptions.length > 0 ? (
+        <CardSelect
+          items={tradeOptions.map((t) => ({ id: t, name: t }))}
+          value={filters.trade}
+          onChange={(id) => update({ trade: id })}
+          icon={Briefcase}
+          fieldLabel="Trade"
+          variant="compact"
+          allowNone
+          noneValue="all"
+          noneLabel="All trades"
+          className="w-48"
+        />
+      ) : null}
 
-      {roleOptions.length > 0 && (
-        <div className="flex items-center gap-2">
-          <label htmlFor="compliance-role" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-            Role
-          </label>
-          <select
-            id="compliance-role"
-            value={filters.role}
-            onChange={(e) => update({ role: e.target.value })}
-            className={selectClass}
-          >
-            <option value="all">All roles</option>
-            {roleOptions.map((r) => (
-              <option key={r} value={r}>
-                {r}
-              </option>
-            ))}
-          </select>
-        </div>
-      )}
+      {roleOptions.length > 0 ? (
+        <CardSelect
+          items={roleOptions.map((r) => ({ id: r, name: r }))}
+          value={filters.role}
+          onChange={(id) => update({ role: id })}
+          icon={Filter}
+          fieldLabel="Role"
+          variant="compact"
+          allowNone
+          noneValue="all"
+          noneLabel="All roles"
+          className="w-44"
+        />
+      ) : null}
 
-      <div className="flex items-center gap-2">
-        <label htmlFor="compliance-site" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-          Site
-        </label>
-        <select
-          id="compliance-site"
-          value={filters.siteId}
-          onChange={(e) => update({ siteId: e.target.value })}
-          className={selectClass}
-        >
-          <option value="all">All sites</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name}
-            </option>
-          ))}
-        </select>
-      </div>
+      <SitePicker
+        sites={sites}
+        value={filters.siteId}
+        onChange={(id) => update({ siteId: id })}
+        variant="compact"
+        allowNone
+        noneValue="all"
+        noneLabel="All sites"
+        className="w-52"
+      />
 
-      <div className="flex items-center gap-2">
-        <label htmlFor="compliance-expiry" className="text-sm font-medium text-gray-700 dark:text-slate-300">
-          Expiry
-        </label>
-        <select
-          id="compliance-expiry"
-          value={filters.expiry}
-          onChange={(e) => update({ expiry: e.target.value as ExpiryFilter })}
-          className={selectClass}
-        >
-          <option value="all">All</option>
-          <option value="expiring_30">Expiring in 30 days</option>
-          <option value="expiring_60">Expiring in 60 days</option>
-          <option value="expired">Expired</option>
-        </select>
-      </div>
+      <CardSelect
+        items={[
+          { id: "expiring_30", name: "Expiring in 30 days" },
+          { id: "expiring_60", name: "Expiring in 60 days" },
+          { id: "expired", name: "Expired" },
+        ]}
+        value={filters.expiry}
+        onChange={(id) => update({ expiry: id as ExpiryFilter })}
+        icon={Calendar}
+        fieldLabel="Expiry"
+        variant="compact"
+        allowNone
+        noneValue="all"
+        noneLabel="All"
+        className="w-52"
+      />
     </div>
   );
 }

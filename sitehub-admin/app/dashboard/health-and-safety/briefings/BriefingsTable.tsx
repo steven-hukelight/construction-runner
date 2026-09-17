@@ -5,8 +5,9 @@ import { MessageSquare } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Table from "../../components/ui/Table";
 import TableActions from "../../components/ui/TableActions";
+import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import BriefingDetailModal from "./BriefingDetailModal";
-import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useClientSession } from "../../components/ClientSessionProvider";
 import useSWR from "swr";
 
 export default function BriefingsTable({
@@ -26,9 +27,10 @@ export default function BriefingsTable({
   canViewAcknowledgements: boolean;
   companyId?: string | null;
 }) {
+  const { companyId: sessionCompanyId } = useClientSession();
   const companyId = useMemo(
-    () => companyIdFromServer ?? getCompanyIdFromClient(),
-    [companyIdFromServer]
+    () => companyIdFromServer ?? sessionCompanyId,
+    [companyIdFromServer, sessionCompanyId]
   );
 
   const { data: companies = [] } = useSWR(
@@ -184,7 +186,54 @@ export default function BriefingsTable({
           </p>
         </div>
       </div>
-      <Table columns={columns} data={rows} />
+      <div className="space-y-3 md:hidden">
+        {rows.map((row) => {
+          const sid = String(row.siteId ?? "").trim();
+          const pdf = row.fileUrl;
+          return (
+            <SafetyRecordCard
+              key={row.id}
+              icon={MessageSquare}
+              accent="blue"
+              title={row.title || "Untitled"}
+              subtitle={sid ? siteMap[sid] ?? sid : "All sites"}
+              meta={[
+                canViewAcknowledgements ? `${ackCounts[row.id] ?? 0} acknowledged` : "",
+              ].filter(Boolean)}
+              actions={
+                <>
+                  <button
+                    type="button"
+                    onClick={() => setDetailBriefing(row)}
+                    className="text-sm font-medium text-blue-600 hover:underline"
+                  >
+                    View
+                  </button>
+                  {pdf ? (
+                    <button
+                      type="button"
+                      onClick={() => openDocumentUrl(pdf)}
+                      className="text-sm font-medium text-blue-600 hover:underline"
+                    >
+                      View PDF
+                    </button>
+                  ) : null}
+                  <button
+                    type="button"
+                    onClick={() => handleDelete(row.id)}
+                    className="text-sm text-red-600 hover:underline"
+                  >
+                    Delete
+                  </button>
+                </>
+              }
+            />
+          );
+        })}
+      </div>
+      <div className="hidden md:block">
+        <Table columns={columns} data={rows} />
+      </div>
       {detailBriefing && (
         <BriefingDetailModal
           briefing={detailBriefing}

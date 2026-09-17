@@ -1143,3 +1143,8 @@ a {
 @keyframes ripple-effect {
   to { transform: scale(4); opacity: 0; }
 }
+
+/* Mask sensitive non-password fields without triggering password managers. */
+.sensitive-disc {
+  -webkit-text-security: disc;
+}

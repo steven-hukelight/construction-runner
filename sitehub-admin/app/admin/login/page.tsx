@@ -8,13 +8,18 @@ import Image from "next/image";
 import { setUserCookies } from "@/app/login/actions";
 import FeedbackLink from "@/app/components/FeedbackLink";
 import { getAuthRedirectOrigin } from "@/lib/url";
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
+import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
+import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 
 function LoginPageContent() {
+  const { t } = useDisplayPreferences();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [error, setError] = useState("");
+  const [inviteHint, setInviteHint] = useState(false);
   const [loading, setLoading] = useState(false);
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -24,6 +29,9 @@ function LoginPageContent() {
     const err = searchParams.get("error");
     const timeout = searchParams.get("timeout");
     const expired = searchParams.get("expired");
+    const emailParam = searchParams.get("email")?.trim();
+    if (emailParam) setEmail(emailParam);
+    setInviteHint(searchParams.get("from") === "invite");
     if (blocked === "operative") {
       setError("Operative web login is a future feature. Please use the mobile app.");
     } else if (expired === "1") {
@@ -38,26 +46,11 @@ function LoginPageContent() {
   useEffect(() => {
     let cancelled = false;
     supabase.auth.getSession()
-      .then(({ data: { session }, error }) => {
+      .then(({ error }) => {
         if (cancelled) return;
         if (error) {
           // Invalid refresh token etc – clear stale session
           supabase.auth.signOut({ scope: "local" }).catch(() => {});
-          try {
-            ["role", "user_email", "companyId", "impersonating", "session_id", "session_started_at"].forEach(
-              (name) => (document.cookie = `${name}=; path=/; max-age=0`)
-            );
-          } catch { /* ignore */ }
-          return;
-        }
-        if (!session) {
-          try {
-            ["role", "user_email", "companyId", "impersonating", "session_id", "session_started_at"].forEach(
-              (name) => (document.cookie = `${name}=; path=/; max-age=0`)
-            );
-          } catch {
-            // document.cookie access denied
-          }
         }
       })
       .catch(() => {
@@ -148,10 +141,17 @@ function LoginPageContent() {
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center">
               <Image src="/icon.png" alt="Construction Runner" width={112} height={112} className="object-contain" priority />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">Sign In</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{t("Sign In")}</h1>
             <p className="text-sm text-slate-500 mt-1">Construction Runner Admin</p>
               </div>
 
+              {inviteHint && !error && (
+                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
+                  <p className="text-sm text-blue-800">
+                    If you just joined, set your password from the email we sent (or Forgot password), then sign in.
+                  </p>
+                </div>
+              )}
               {error && (
                 <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
                   <p className="text-sm text-red-600" data-testid="login-error">{error}</p>
@@ -161,7 +161,7 @@ function LoginPageContent() {
               <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
-                Email
+                {t("Email")}
               </label>
               <input
                 id="email"
@@ -176,7 +176,7 @@ function LoginPageContent() {
             </div>
             <div>
               <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
-                Password
+                {t("Password")}
               </label>
               <input
                 id="password"
@@ -197,7 +197,7 @@ function LoginPageContent() {
                   onChange={(e) => setShowPassword(e.target.checked)}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
                 />
-                Show password
+                {t("Show password")}
               </label>
               <label className="flex items-center gap-2 text-sm text-slate-600">
                 <input
@@ -206,12 +206,12 @@ function LoginPageContent() {
                   onChange={(e) => setRememberMe(e.target.checked)}
                   className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
                 />
-                Remember me
+                {t("Remember me")}
               </label>
             </div>
             <div className="flex items-center justify-between text-sm">
               <Link href="/forgot-password" className="text-slate-600 hover:text-slate-900">
-                Forgot password?
+                {t("Forgot password?")}
               </Link>
             </div>
             <button
@@ -219,7 +219,7 @@ function LoginPageContent() {
               disabled={loading}
               className="w-full rounded-xl bg-[#2563eb] py-2.5 font-medium text-white shadow-md shadow-blue-900/25 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
-              {loading ? "Signing in..." : "Sign in"}
+              {loading ? t("Signing in...") : t("Sign in")}
             </button>
               </form>
 
@@ -236,16 +236,20 @@ function LoginPageContent() {
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
                 <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
               </svg>
-              Sign in with Google
+              {t("Sign in with Google")}
             </button>
               </div>
 
               <p className="mt-6 text-center text-sm text-slate-500">
-                Don&apos;t have an account?{" "}
+                {t("Don't have an account?")}{" "}
                 <Link href="/register" className="text-slate-900 font-medium hover:underline">
-                  Create account
+                  {t("Create account")}
                 </Link>
               </p>
+              <LegalConsentLinks className="mt-4 text-center text-xs text-slate-500" />
+              <div className="mt-4 flex justify-center">
+                <LanguageSwitcher compact />
+              </div>
               <p className="mt-4 flex justify-center">
                 <FeedbackLink variant="login" />
               </p>

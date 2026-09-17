@@ -1,96 +1,68 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
+import { useClientSession } from "./ClientSessionProvider";
 import { X } from "lucide-react";
-
-const COOKIE_OPTIONS = `path=/; max-age=2592000; SameSite=Lax${typeof window !== "undefined" && window.location?.protocol === "https:" ? "; Secure" : ""}`;
-
-function clearCompanyCookies() {
-  try {
-    document.cookie = "companyId=; path=/; max-age=0";
-    document.cookie = "impersonating=; path=/; max-age=0";
-  } catch {
-    /* document.cookie access denied */
-  }
-}
+import { CompanyPicker } from "./ui/SitePicker";
 
 export default function CompanySwitcher() {
+  const { role, companyId } = useClientSession();
   const [companies, setCompanies] = useState<{ id: string; name?: string }[]>([]);
-  const [selected, setSelected] = useState<string | null>(() => getCompanyIdFromClient());
+  const [selected, setSelected] = useState<string | null>(companyId);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (getRoleFromClient()?.toLowerCase() !== "superuser") return;
+    if (role?.toLowerCase() !== "superuser") return;
     fetch("/api/companies")
       .then((res) => res.json())
       .then((data) => setCompanies(Array.isArray(data) ? data : []));
-  }, []);
+  }, [role]);
 
-  const isSuperuser = getRoleFromClient()?.toLowerCase() === "superuser";
+  const isSuperuser = role?.toLowerCase() === "superuser";
   const impersonating = Boolean(isSuperuser && selected);
 
   if (!isSuperuser) return null;
 
   function navigate() {
-    // Full reload with cache-bust ensures new company data is fetched (not cached from previous company)
     const url = new URL(window.location.href);
     url.searchParams.set("_t", String(Date.now()));
     window.location.href = url.toString();
   }
 
-  async function handleChange(e: React.ChangeEvent<HTMLSelectElement>) {
-    const val = e.target.value;
+  async function handleChange(val: string) {
+    setError("");
     setSelected(val || null);
 
     if (!val) {
-      clearCompanyCookies();
+      const res = await fetch("/api/stop-impersonate", { method: "POST", credentials: "include" });
+      if (!res.ok) {
+        setError("Could not leave company view.");
+        return;
+      }
       navigate();
       return;
     }
 
-    try {
-      const res = await fetch("/api/impersonate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ company_id: val }),
-        credentials: "include",
-      });
-      if (res.ok && val) {
-        try {
-          document.cookie = `impersonating=true; ${COOKIE_OPTIONS}`;
-          document.cookie = `companyId=${encodeURIComponent(val)}; ${COOKIE_OPTIONS}`;
-        } catch {
-          /* document.cookie access denied */
-        }
-      } else if (val) {
-        try {
-          document.cookie = `impersonating=true; ${COOKIE_OPTIONS}`;
-          document.cookie = `companyId=${encodeURIComponent(val)}; ${COOKIE_OPTIONS}`;
-        } catch {
-          /* document.cookie access denied */
-        }
-      }
-      navigate();
-    } catch {
-      if (val) {
-        try {
-          document.cookie = `impersonating=true; ${COOKIE_OPTIONS}`;
-          document.cookie = `companyId=${encodeURIComponent(val)}; ${COOKIE_OPTIONS}`;
-        } catch {
-          /* document.cookie access denied */
-        }
-      }
-      navigate();
+    const res = await fetch("/api/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: val }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      setError("Could not switch company.");
+      return;
     }
+    navigate();
   }
 
   async function handleClear() {
-    try {
-      await fetch("/api/stop-impersonate", { method: "POST", credentials: "include" });
-    } catch {
-      /* fallback: clear locally */
+    setError("");
+    const res = await fetch("/api/stop-impersonate", { method: "POST", credentials: "include" });
+    if (!res.ok) {
+      setError("Could not leave company view.");
+      return;
     }
-    clearCompanyCookies();
     setSelected(null);
     navigate();
   }
@@ -106,30 +78,18 @@ export default function CompanySwitcher() {
       }`}
       style={impersonating ? { boxShadow: "0 2px 12px 0 rgba(251,191,36,0.2)" } : { boxShadow: "0 2px 12px 0 rgba(59,130,246,0.07)" }}
     >
-      <div className="relative flex-1 min-w-[140px]">
-        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-500 pointer-events-none">
-          <svg width="20" height="20" fill="none" viewBox="0 0 24 24"><path d="M4 6h16M4 12h16M4 18h16" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-        </span>
-        <select
-          className={`appearance-none w-full pl-11 pr-8 py-2.5 bg-transparent text-base font-semibold cursor-pointer outline-none focus:ring-0 ${
-            impersonating ? "text-amber-900" : "text-blue-900"
-          }`}
+      <div className="relative flex-1 min-w-[180px]">
+        <CompanyPicker
+          companies={companies}
           value={selected || ""}
           onChange={handleChange}
-          title={impersonating ? "Impersonating — switch or clear" : "Switch company"}
-        >
-          <option value="" className="text-gray-500 font-medium">
-            — No company —
-          </option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id} className="text-blue-900 font-medium bg-white hover:bg-blue-50">
-              {c.name || c.id}
-            </option>
-          ))}
-        </select>
-        <span className="absolute right-2 top-1/2 -translate-y-1/2 text-blue-400 pointer-events-none">
-          <svg width="18" height="18" fill="none" viewBox="0 0 24 24"><path d="M7 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round"/></svg>
-        </span>
+          variant="compact"
+          allowNone
+          noneLabel="— No company —"
+          noneValue=""
+          fieldLabel={impersonating ? "Impersonating" : "Company"}
+          placeholder="Switch company"
+        />
       </div>
       {impersonating && (
         <button
@@ -142,6 +102,7 @@ export default function CompanySwitcher() {
           <X className="w-5 h-5" />
         </button>
       )}
+      {error ? <span className="text-xs text-red-600 pr-2">{error}</span> : null}
     </div>
   );
 }

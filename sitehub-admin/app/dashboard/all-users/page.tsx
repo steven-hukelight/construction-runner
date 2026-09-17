@@ -9,6 +9,8 @@ import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 import Link from "next/link";
 import { Users, UserCog, Building2, Trash2, KeyRound, MoreHorizontal, CheckCircle, Circle, User } from "lucide-react";
+import { CardSelect } from "../components/ui/CardSelect";
+import { CompanyPicker } from "../components/ui/SitePicker";
 
 const ROLES = ["ADMIN", "SUPERVISOR", "VIEWER", "OPERATIVE"] as const;
 
@@ -353,20 +355,17 @@ export default function AllUsersPage() {
         description="View and manage users across all companies."
       />
 
-      <div className="flex flex-wrap items-center gap-3 mb-6">
-        <label className="text-sm font-medium text-gray-700">Filter by company</label>
-        <select
+      <div className="w-64 mb-6">
+        <CompanyPicker
+          companies={companies}
           value={companyFilter}
-          onChange={(e) => setCompanyFilter(e.target.value)}
-          className="input max-w-[220px]"
-        >
-          <option value="">All companies</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name || c.id}
-            </option>
-          ))}
-        </select>
+          onChange={setCompanyFilter}
+          variant="compact"
+          allowNone
+          noneValue=""
+          noneLabel="All companies"
+          placeholder="All companies"
+        />
       </div>
 
       <div className="card">
@@ -407,18 +406,14 @@ export default function AllUsersPage() {
           >
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Change role</h3>
             <p className="text-sm text-gray-600 mb-4">{roleModal.user.email}</p>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Role</label>
-            <select
+            <CardSelect
+              items={ROLES.map((r) => ({ id: r, name: r }))}
               value={newRole}
-              onChange={(e) => setNewRole(e.target.value)}
-              className="input w-full mb-6"
-            >
-              {ROLES.map((r) => (
-                <option key={r} value={r}>
-                  {r}
-                </option>
-              ))}
-            </select>
+              onChange={setNewRole}
+              icon={UserCog}
+              fieldLabel="Role"
+              className="mb-6"
+            />
             <div className="flex gap-3 justify-end">
               <Button type="button" variant="secondary" onClick={() => setRoleModal(null)} disabled={saving}>
                 Cancel
@@ -442,19 +437,15 @@ export default function AllUsersPage() {
           >
             <h3 className="text-xl font-semibold text-gray-900 mb-2">Move to company</h3>
             <p className="text-sm text-gray-600 mb-4">{companyModal.user.email}</p>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Company</label>
-            <select
+            <CompanyPicker
+              companies={companies}
               value={newCompanyId}
-              onChange={(e) => setNewCompanyId(e.target.value)}
-              className="input w-full mb-6"
-            >
-              <option value="">— No company —</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name || c.id}
-                </option>
-              ))}
-            </select>
+              onChange={setNewCompanyId}
+              allowNone
+              noneValue=""
+              noneLabel="— No company —"
+              className="mb-6"
+            />
             <div className="flex gap-3 justify-end">
               <Button type="button" variant="secondary" onClick={() => setCompanyModal(null)} disabled={saving}>
                 Cancel

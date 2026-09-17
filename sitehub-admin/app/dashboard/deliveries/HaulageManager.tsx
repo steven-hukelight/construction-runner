@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect, useCallback } from "react";
-import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useClientSession } from "../components/ClientSessionProvider";
 import { Truck, Plus, Trash2 } from "lucide-react";
 
 export default function HaulageManager() {
@@ -11,7 +11,7 @@ export default function HaulageManager() {
   const [adding, setAdding] = useState(false);
   const [open, setOpen] = useState(false);
 
-  const companyId = getCompanyIdFromClient();
+  const { companyId } = useClientSession();
 
   const load = useCallback(async () => {
     if (!companyId) return;

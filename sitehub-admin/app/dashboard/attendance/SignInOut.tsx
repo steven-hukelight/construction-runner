@@ -3,6 +3,7 @@
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import { PersonPicker, SitePicker } from "../components/ui/SitePicker";
 
 type User = { id: string; name?: string; email?: string };
 type Site = { id: string; name?: string };
@@ -29,12 +30,35 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
       .then((r) => r.json())
       .then((json) => setUsers(json || []))
       .catch(() => setUsers([]));
-
-    fetch("/api/sites")
-      .then((r) => r.json())
-      .then((json) => setSites(json || []))
-      .catch(() => setSites([]));
   }, []);
+
+  useEffect(() => {
+    if (!selected) {
+      setSites([]);
+      setSiteId("");
+      return;
+    }
+    let cancelled = false;
+    fetch(`/api/users/${encodeURIComponent(selected)}/inducted-sites`)
+      .then((r) => r.json())
+      .then((json) => {
+        if (cancelled) return;
+        const list = Array.isArray(json) ? json : [];
+        setSites(list);
+        setSiteId((current) =>
+          list.some((s: Site) => s.id === current) ? current : "",
+        );
+      })
+      .catch(() => {
+        if (!cancelled) {
+          setSites([]);
+          setSiteId("");
+        }
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [selected]);
 
   async function submit() {
     if (!selected) return alert("Select an operative");
@@ -82,36 +106,30 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
       
       <div className="space-y-4">
         <div>
-          <label className="block text-sm font-medium text-gray-700 mb-2">Operative</label>
-          <select
+          <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Operative</label>
+          <PersonPicker
+            people={users}
             value={selected}
-            onChange={(e) => setSelected(e.target.value)}
-            className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-          >
-            <option value="">Select operative</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.name} — {u.email}
-              </option>
-            ))}
-          </select>
+            onChange={setSelected}
+            placeholder="Select operative…"
+          />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Site</label>
-            <select
+            <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">Site</label>
+            <SitePicker
+              sites={sites}
               value={siteId}
-              onChange={(e) => setSiteId(e.target.value)}
-              className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all"
-            >
-              <option value="">Select site (optional)</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name || s.id}
-                </option>
-              ))}
-            </select>
+              onChange={setSiteId}
+              allowNone
+              noneLabel="No site selected"
+              placeholder={
+                selected
+                  ? "Select an inducted site…"
+                  : "Select an operative first"
+              }
+            />
           </div>
 
           <Input

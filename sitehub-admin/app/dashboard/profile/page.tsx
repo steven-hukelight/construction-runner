@@ -1,14 +1,15 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
+import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink, CircleUser, Activity } from "lucide-react";
+import { CardSelect } from "../components/ui/CardSelect";
 import PageHeader from "../components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
 import SuperuserSelfOverrideSection from "../induction-compliance/components/SuperuserSelfOverrideSection";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import Link from "next/link";
 import { formatDate, formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { getRoleFromClient } from "@/lib/utils/cookies";
+import { useClientSession } from "../components/ClientSessionProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 
 type TabType = "personal" | "activity" | "certifications" | "medical" | "induction" | "privacy";
@@ -36,15 +37,8 @@ type MedicalRecord = {
   createdAt?: string;
 };
 
-// Constants - extracted to prevent recreation on every render
-const DAYS = Array.from({length:31}, (_,i)=>String(i+1).padStart(2,'0'));
-const MONTHS = [
-  {v:'01',n:'Jan'},{v:'02',n:'Feb'},{v:'03',n:'Mar'},{v:'04',n:'Apr'},{v:'05',n:'May'},{v:'06',n:'Jun'},
-  {v:'07',n:'Jul'},{v:'08',n:'Aug'},{v:'09',n:'Sep'},{v:'10',n:'Oct'},{v:'11',n:'Nov'},{v:'12',n:'Dec'},
-];
-const YEARS = Array.from({length: 90}, (_,i)=>String(new Date().getFullYear()-i));
-
 export default function ProfilePage() {
+  const { role: sessionRole } = useClientSession();
   const [activeTab, setActiveTab] = useState<TabType>("personal");
   const [certifications, setCertifications] = useState<Certification[]>([]);
   const [medical, setMedical] = useState<MedicalRecord[]>([]);
@@ -81,6 +75,8 @@ export default function ProfilePage() {
   const [showUtr, setShowUtr] = useState(false);
   const [showNiSummary, setShowNiSummary] = useState(false);
   const [showUtrSummary, setShowUtrSummary] = useState(false);
+  const [niAutofillWarning, setNiAutofillWarning] = useState(false);
+  const [utrAutofillWarning, setUtrAutofillWarning] = useState(false);
 
   const [showCertModal, setShowCertModal] = useState(false);
   const [certForm, setCertForm] = useState({
@@ -244,8 +240,18 @@ export default function ProfilePage() {
           emergencyContactPhone: String(
             data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || ""
           ).trim(),
-          niNumber: String(data.niNumber || data.nationalInsurance || "").trim(),
-          utrNumber: String(data.utrNumber || data.utr || "").trim(),
+          niNumber: (() => {
+            const ni = String(data.niNumber || data.nationalInsurance || "").trim();
+            const ok = isValidNi(ni);
+            setNiAutofillWarning(!!ni && !ok);
+            return ok ? ni : "";
+          })(),
+          utrNumber: (() => {
+            const utr = String(data.utrNumber || data.utr || "").trim();
+            const ok = isValidUtr(utr);
+            setUtrAutofillWarning(!!utr && !ok);
+            return ok ? utr : "";
+          })(),
           dobDay: d,
           dobMonth: m,
           dobYear: y,
@@ -329,12 +335,16 @@ export default function ProfilePage() {
         const ni = String(data.niNumber || data.nationalInsurance || "").trim();
         const utr = String(data.utrNumber || data.utr || "").trim();
         const emergPhone = String(data.emergencyContactPhone || data.emergencyPhone || data.emergencyContactNumber || "").trim();
+        const niOk = isValidNi(ni);
+        const utrOk = isValidUtr(utr);
+        setNiAutofillWarning(!!ni && !niOk);
+        setUtrAutofillWarning(!!utr && !utrOk);
         setExtra({
           jobTitle: String(data.jobTitle || "").trim(),
           emergencyContactName: String(data.emergencyContactName || "").trim(),
           emergencyContactPhone: emergPhone,
-          niNumber: ni,
-          utrNumber: utr,
+          niNumber: niOk ? ni : "",
+          utrNumber: utrOk ? utr : "",
           dobDay: d,
           dobMonth: m,
           dobYear: y,
@@ -903,29 +913,31 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
-                    <select
+                    <CardSelect
+                      items={[
+                        { id: "ADMIN", name: "Admin" },
+                        { id: "SUPERVISOR", name: "Supervisor" },
+                        { id: "OPERATIVE", name: "Operative" },
+                      ]}
                       value={profile.role}
-                      onChange={(e) => updateProfile({ role: e.target.value })}
-                      className="input w-full"
-                    >
-                      <option value="ADMIN">Admin</option>
-                      <option value="SUPERVISOR">Supervisor</option>
-                      <option value="OPERATIVE">Operative</option>
-                    </select>
+                      onChange={(id) => updateProfile({ role: id })}
+                      icon={CircleUser}
+                      fieldLabel="Role"
+                    />
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
-                    <select
+                    <CardSelect
+                      items={[
+                        { id: "Active", name: "Active" },
+                        { id: "Inactive", name: "Inactive" },
+                        { id: "Pending", name: "Pending" },
+                      ]}
                       value={profile.status}
-                      onChange={(e) => updateProfile({ status: e.target.value })}
-                      className="input w-full"
-                    >
-                      <option value="Active">Active</option>
-                      <option value="Inactive">Inactive</option>
-                      <option value="Pending">Pending</option>
-                    </select>
+                      onChange={(id) => updateProfile({ status: id })}
+                      icon={Activity}
+                      fieldLabel="Status"
+                    />
                   </div>
                 </div>
               </div>
@@ -971,13 +983,25 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">NI Number</label>
                     <input
-                      type={showNi ? "text" : "password"}
+                      type="text"
+                      inputMode="text"
                       value={extra.niNumber}
                       onChange={(e) => updateExtra({ niNumber: e.target.value.toUpperCase() })}
-                      className="input w-full"
+                      className={`input w-full ${showNi ? "" : "sensitive-disc"}`}
                       placeholder="e.g., QQ123456C"
                       autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      name="national-insurance-number"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                     />
+                    {niAutofillWarning && (
+                      <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                        The saved NI number was not a valid NI (often caused by a password manager filling this field). Please enter it again.
+                      </div>
+                    )}
                     {!isValidNi(extra.niNumber) && extra.niNumber && (
                       <div className="mt-1 text-xs text-red-600">Format should be two letters, six digits, and A–D (e.g., QQ123456C)</div>
                     )}
@@ -999,13 +1023,25 @@ export default function ProfilePage() {
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">UTR Number</label>
                     <input
-                      type={showUtr ? "text" : "password"}
+                      type="text"
+                      inputMode="numeric"
                       value={extra.utrNumber}
                       onChange={(e) => updateExtra({ utrNumber: e.target.value })}
-                      className="input w-full"
+                      className={`input w-full ${showUtr ? "" : "sensitive-disc"}`}
                       placeholder="10-digit UTR"
                       autoComplete="off"
+                      autoCorrect="off"
+                      spellCheck={false}
+                      name="unique-taxpayer-reference"
+                      data-lpignore="true"
+                      data-1p-ignore="true"
+                      data-form-type="other"
                     />
+                    {utrAutofillWarning && (
+                      <div className="mt-1 text-xs text-amber-700 dark:text-amber-400">
+                        The saved UTR was not a valid 10-digit number. Please enter it again.
+                      </div>
+                    )}
                     {!isValidUtr(extra.utrNumber) && extra.utrNumber && (
                       <div className="mt-1 text-xs text-red-600">UTR must be exactly 10 digits</div>
                     )}
@@ -1026,32 +1062,19 @@ export default function ProfilePage() {
                   </div>
                   <div>
                     <label className="block text-sm font-medium text-slate-700 mb-2">Date of Birth</label>
-                    <div className="flex gap-2">
-                      <select
-                        className="input w-20"
-                        value={extra.dobDay}
-                        onChange={(e)=>updateExtra({ dobDay: e.target.value })}
-                      >
-                        <option value="">DD</option>
-                        {DAYS.map(d=>(<option key={d} value={d}>{d}</option>))}
-                      </select>
-                      <select
-                        className="input w-28"
-                        value={extra.dobMonth}
-                        onChange={(e)=>updateExtra({ dobMonth: e.target.value })}
-                      >
-                        <option value="">MM</option>
-                        {MONTHS.map(m=>(<option key={m.v} value={m.v}>{m.n}</option>))}
-                      </select>
-                      <select
-                        className="input w-28"
-                        value={extra.dobYear}
-                        onChange={(e)=>updateExtra({ dobYear: e.target.value })}
-                      >
-                        <option value="">YYYY</option>
-                        {YEARS.map(y=>(<option key={y} value={y}>{y}</option>))}
-                      </select>
-                    </div>
+                    <input
+                      type="date"
+                      className="input w-full"
+                      value={
+                        extra.dobYear && extra.dobMonth && extra.dobDay
+                          ? `${extra.dobYear}-${extra.dobMonth}-${extra.dobDay}`
+                          : ""
+                      }
+                      onChange={(e) => {
+                        const [year = "", month = "", day = ""] = e.target.value.split("-");
+                        updateExtra({ dobYear: year, dobMonth: month, dobDay: day });
+                      }}
+                    />
                   </div>
                 </div>
                 <div className="mt-4">
@@ -1091,19 +1114,7 @@ export default function ProfilePage() {
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4 text-sm">
                   <div>
-                    <div className="text-slate-500 mb-1">Last Activities/Log in</div>
-                    <div className="font-medium text-slate-900">2 days ago</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500 mb-1">Update Billing Information</div>
-                    <div className="font-medium text-slate-900">1 week ago</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500 mb-1">View Recent Record</div>
-                    <div className="font-medium text-slate-900">1 day ago</div>
-                  </div>
-                  <div>
-                    <div className="text-slate-500 mb-1">Profile Updates</div>
+                    <div className="text-slate-500 mb-1">Profile last updated</div>
                     <div className="font-medium text-slate-900">{profile.updatedAt ? formatDate(profile.updatedAt) : "Never"}</div>
                   </div>
                 </div>
@@ -1258,7 +1269,7 @@ export default function ProfilePage() {
               <p className="text-sm text-slate-600">
                 Complete your pre-induction profile to meet site access requirements. This includes personal details, right to work documents, CSCS certifications, medical verification, training records, and declarations. Admins need to be inducted like operatives before accessing sites.
               </p>
-              <SuperuserSelfOverrideSection role={getRoleFromClient()} />
+              <SuperuserSelfOverrideSection role={sessionRole} />
               <div className="p-6 rounded-xl border-2 border-dashed border-blue-200 bg-blue-50/50">
                 <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
                   <div className="flex items-center gap-3">
@@ -1294,6 +1305,8 @@ export default function ProfilePage() {
                 Your data is collected solely for the purposes of site access, safety compliance, induction, RAMS acceptance, and legal health &amp; safety obligations. It is not used for marketing or profiling.
               </p>
               <p className="text-xs text-slate-500">
+                <a href="/legal/terms" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Terms of Service</a>
+                {" · "}
                 <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">Full Privacy & Security Policy</a>
               </p>
               <div className="p-4 rounded-xl border border-gray-200 bg-gray-50">

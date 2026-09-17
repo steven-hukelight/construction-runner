@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { findUserByIdOrEmail } from "@/lib/auth/findUser";
 
 export const dynamic = "force-dynamic";
 
@@ -13,28 +14,31 @@ export async function GET() {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
 
-    const { data: users } = await supabaseAdmin
-      .from("users")
-      .select("*")
-      .eq("email", email)
-      .limit(1);
+    const userData = await findUserByIdOrEmail({
+      id: cookieStore.get("uid")?.value,
+      email,
+    });
 
-    if (!users || users.length === 0) {
-      return NextResponse.json({ email, company_id: null, companyId: null, companyName: null });
+    if (!userData) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
     }
-
-    const userData = users[0];
     const roleLower = (role ?? "").toLowerCase();
     // Superuser impersonating: use companyId from cookie (web) or mobile sends selected company via X-Company-Id header
     const impersonating = cookieStore.get("impersonating")?.value === "true";
     const cookieCompanyId = cookieStore.get("companyId")?.value?.trim();
-    let companyId = userData.company_id ?? userData.companyId ?? null;
+    let companyId =
+      (userData.company_id as string | null | undefined) ??
+      (userData.companyId as string | null | undefined) ??
+      null;
     if (roleLower === "superuser") {
       if (impersonating && cookieCompanyId) companyId = cookieCompanyId;
       // Mobile superuser: no company until they select one; backend allows null for superuser
     }
-    const userId = userData.id;
-    const preInductionStatus = (userData.pre_induction_status ?? "not_started") as string;
+    const userId = String(userData.id ?? "");
+    if (!userId) {
+      return NextResponse.json({ error: "User not found" }, { status: 404 });
+    }
+    const preInductionStatus = String(userData.pre_induction_status ?? "not_started");
     const adminPreInductionOverride = userData.admin_pre_induction_override === true;
 
     const { data: personal } = await supabaseAdmin
@@ -44,7 +48,14 @@ export async function GET() {
       .maybeSingle();
     const pr = personal as { full_name?: string | null; data?: Record<string, unknown> } | null;
     const d = pr?.data ?? {};
-    const resolvedName = (pr?.full_name ?? d?.full_name ?? d?.fullName ?? userData.display_name ?? userData.name ?? userData.displayName ?? email?.split("@")[0] ?? null) as string | null;
+    const resolvedName = (pr?.full_name ??
+      d?.full_name ??
+      d?.fullName ??
+      userData.display_name ??
+      userData.name ??
+      userData.displayName ??
+      email?.split("@")[0] ??
+      null) as string | null;
     const jobTitle = (d?.job_title ?? d?.jobTitle ?? d?.jobRole ?? null) as string | null;
 
     let companyName: string | null = null;
@@ -60,6 +71,9 @@ export async function GET() {
     } catch {
       // profiles may not exist
     }
+
+    const sessionStartedRaw = cookieStore.get("session_started_at")?.value;
+    const sessionStartedAt = sessionStartedRaw ? parseInt(sessionStartedRaw, 10) : NaN;
 
     const approved = userData.approved !== false;
 
@@ -89,6 +103,8 @@ export async function GET() {
       companyName,
       preInductionStatus,
       adminPreInductionOverride,
+      impersonating,
+      sessionStartedAt: Number.isFinite(sessionStartedAt) ? sessionStartedAt : null,
     });
   } catch (e) {
     console.error("GET /api/me failed:", e);

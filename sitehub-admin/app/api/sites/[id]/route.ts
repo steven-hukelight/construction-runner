@@ -1,4 +1,5 @@
 import { ensureSiteAccess } from "@/app/api/sites/_utils/siteAccess";
+import { serializeSite } from "@/app/api/sites/_utils/serializeSite";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 
@@ -21,7 +22,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     updateData.longitude = lng ?? null;
     updateData.radius_meters = radiusMeters ?? null;
   }
-  if (Object.prototype.hasOwnProperty.call(body, "showOnMap")) updateData.show_on_map = body.showOnMap ?? true;
+  if (Object.prototype.hasOwnProperty.call(body, "showOnMap") ||
+      Object.prototype.hasOwnProperty.call(body, "show_on_map")) {
+    updateData.show_on_map = body.showOnMap ?? body.show_on_map ?? true;
+  }
   if (Object.prototype.hasOwnProperty.call(body, "active")) updateData.active = body.active ?? true;
   if (Object.prototype.hasOwnProperty.call(body, "managerId")) updateData.manager_id = body.managerId ?? null;
   if (Object.prototype.hasOwnProperty.call(body, "inductionRequired")) updateData.induction_required = !!body.inductionRequired;
@@ -29,12 +33,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
 
   if (Object.keys(updateData).length === 0) return NextResponse.json({ error: "No valid fields to update" }, { status: 400 });
 
-  const { error } = await supabaseAdmin.from("sites").update(updateData).eq("id", id);
+  const { data, error } = await supabaseAdmin
+    .from("sites")
+    .update(updateData)
+    .eq("id", id)
+    .select("*")
+    .single();
   if (error) {
     console.error("PATCH /api/sites/[id] update failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, site: serializeSite(data ?? undefined) });
 }
 
 export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
@@ -44,5 +53,5 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 
   const { data, error } = await supabaseAdmin.from("sites").select("*").eq("id", id).single();
   if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json({ id: data.id, ...data });
+  return NextResponse.json(serializeSite(data as Record<string, unknown>));
 }

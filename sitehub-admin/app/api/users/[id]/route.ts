@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { canAssignSuperAdminRole, isCompanySuperAdmin, normalizeRole, usesAssignedSites } from "@/lib/auth/roles";
 
 function cid(u: { company_id?: string | null }): string {
   return String(u.company_id ?? "").trim();
@@ -141,7 +142,17 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
 
     const updates: Record<string, unknown> = {};
-    if (body.role !== undefined) updates.role = body.role;
+    if (body.role !== undefined) {
+      const nextRole = normalizeRole(String(body.role));
+      const targetIsSuperAdmin = isCompanySuperAdmin((userRow as { role?: string }).role);
+      if ((nextRole === "admin" || targetIsSuperAdmin) && !canAssignSuperAdminRole(role)) {
+        return NextResponse.json(
+          { error: "Only a Super Admin can assign or change Super Admin" },
+          { status: 403 }
+        );
+      }
+      updates.role = nextRole;
+    }
     const newCompanyId = body.company_id ?? body.companyId;
     if (newCompanyId !== undefined) {
       if (!isSuperuser) {
@@ -170,6 +181,9 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     }
     if (!updated?.length) {
       return NextResponse.json({ error: "User not found or update affected no rows" }, { status: 404 });
+    }
+    if (typeof updates.role === "string" && !usesAssignedSites(updates.role)) {
+      await supabaseAdmin.from("user_sites").delete().eq("user_id", id);
     }
     return NextResponse.json({ success: true, ...updates });
   } catch (error: unknown) {

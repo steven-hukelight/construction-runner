@@ -3,18 +3,27 @@ import { useEffect, useState } from "react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 import EditRegistrationModal, { type Registration } from "./EditRegistrationModal";
+import ApprovalRowActions from "../pending-approvals/ApprovalRowActions";
+import { useClientSession } from "../components/ClientSessionProvider";
+import { usesAssignedSites } from "@/lib/auth/roles";
+
+type Site = { id: string; name: string };
 
 export default function ApprovalsSection() {
   const density = useTableDensityClasses();
   const [pending, setPending] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Registration | null>(null);
+  const [sites, setSites] = useState<Site[]>([]);
+  const { role: approverRole } = useClientSession();
 
   useEffect(() => {
     setLoading(true);
-    fetch("/api/registrations")
-      .then((res) => res.json())
-      .then((data) => {
+    Promise.all([
+      fetch("/api/registrations").then((res) => res.json()),
+      fetch("/api/sites", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
+    ])
+      .then(([data, sitesJson]) => {
         const filtered = Array.isArray(data)
           ? data
               .filter((row: { data?: { status?: string } }) => {
@@ -27,12 +36,22 @@ export default function ApprovalsSection() {
               }))
           : [];
         setPending(filtered as Registration[]);
+        setSites(
+          Array.isArray(sitesJson)
+            ? sitesJson
+                .map((s: { id?: string; name?: string }) => ({
+                  id: String(s.id ?? ""),
+                  name: String(s.name ?? s.id ?? ""),
+                }))
+                .filter((s: Site) => s.id)
+            : []
+        );
       })
       .catch(() => setPending([]))
       .finally(() => setLoading(false));
   }, []);
 
-  async function handleApprove(reg: { id: string; role?: string }) {
+  async function handleApprove(id: string, assignRole: string, siteIds: string[]) {
     setLoading(true);
     try {
       const res = await fetch("/api/auth/registrations", {
@@ -40,12 +59,13 @@ export default function ApprovalsSection() {
         headers: { "Content-Type": "application/json" },
         credentials: "include",
         body: JSON.stringify({
-          id: reg.id,
-          role: (reg.role || "OPERATIVE").toString().toUpperCase(),
+          id,
+          role: assignRole.toUpperCase(),
+          siteIds: usesAssignedSites(assignRole) ? siteIds : [],
         }),
       });
       if (res.ok) {
-        setPending((prev) => prev.filter((r) => r.id !== reg.id));
+        setPending((prev) => prev.filter((r) => r.id !== id));
       } else {
         const err = await res.json().catch(() => ({}));
         alert(err.error || "Approval failed");
@@ -58,7 +78,7 @@ export default function ApprovalsSection() {
   async function handleReject(id: string) {
     setLoading(true);
     await fetch(`/api/registrations/${id}/reject`, { method: "POST" });
-    setPending((prev) => prev.filter(r => r.id !== id));
+    setPending((prev) => prev.filter((r) => r.id !== id));
     setLoading(false);
   }
 
@@ -80,15 +100,25 @@ export default function ApprovalsSection() {
             </tr>
           </thead>
           <tbody>
-            {pending.map(reg => (
+            {pending.map((reg) => (
               <tr key={reg.id}>
                 <td className={density.td}>{reg.name}</td>
                 <td className={density.td}>{reg.email}</td>
                 <td className={density.td}>{reg.companyName}</td>
                 <td className={density.td}>
-                  <Button onClick={() => handleApprove(reg)} className="mr-2" size="sm" variant="primary">Approve</Button>
-                  <Button onClick={() => handleReject(reg.id)} className="mr-2" size="sm" variant="danger">Reject</Button>
-                  <Button onClick={() => setEditing(reg)} size="sm" variant="secondary">Edit</Button>
+                  <div className="flex flex-col items-end gap-2">
+                    <ApprovalRowActions
+                      regId={reg.id}
+                      defaultRole={(reg.role || "OPERATIVE").toString().toUpperCase()}
+                      approverRole={approverRole}
+                      sites={sites}
+                      onApprove={handleApprove}
+                      onReject={handleReject}
+                    />
+                    <Button onClick={() => setEditing(reg)} size="sm" variant="secondary">
+                      Edit
+                    </Button>
+                  </div>
                 </td>
               </tr>
             ))}
@@ -100,7 +130,7 @@ export default function ApprovalsSection() {
           registration={editing}
           onClose={() => setEditing(null)}
           onSave={(updated: Partial<Registration>) => {
-            setPending(prev => prev.map(r => r.id === editing.id ? { ...r, ...updated } : r));
+            setPending((prev) => prev.map((r) => (r.id === editing.id ? { ...r, ...updated } : r)));
             setEditing(null);
           }}
         />

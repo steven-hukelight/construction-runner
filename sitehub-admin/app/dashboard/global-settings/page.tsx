@@ -4,23 +4,13 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
-import { Palette, ToggleLeft, Megaphone, Shield, Clock, Key, ShieldCheck, History, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink, Mail } from "lucide-react";
+import { Palette, ToggleLeft, Megaphone, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink, Mail } from "lucide-react";
 
 export default function GlobalSettingsPage() {
   const [branding, setBranding] = useState({ appName: "Construction Runner", supportEmail: "" });
   const [featureToggles, setFeatureToggles] = useState({ registrationsOpen: true, maintenanceMode: false });
   const [emailNotifications, setEmailNotifications] = useState({ operativePendingApproval: true });
   const [announcement, setAnnouncement] = useState("");
-  const [security, setSecurity] = useState({
-    sessionTimeoutMinutes: 60,
-    passwordMinLength: 8,
-    requirePasswordExpiry: false,
-    passwordExpiryDays: 90,
-    twoFactorEnabled: false,
-    maxLoginAttempts: 5,
-    lockoutMinutes: 15,
-    auditLogRetentionDays: 90,
-  });
   const [saving, setSaving] = useState<string | null>(null);
   const [saveError, setSaveError] = useState<string | null>(null);
 
@@ -43,18 +33,6 @@ export default function GlobalSettingsPage() {
           operativePendingApproval: en.operativePendingApproval !== false,
         });
         setAnnouncement(data.announcement ?? data.announcements?.message ?? "");
-        const sec = data.security ?? {};
-        setSecurity((s) => ({
-          ...s,
-          ...(typeof sec.sessionTimeoutMinutes === "number" && { sessionTimeoutMinutes: sec.sessionTimeoutMinutes }),
-          ...(typeof sec.passwordMinLength === "number" && { passwordMinLength: sec.passwordMinLength }),
-          ...(typeof sec.requirePasswordExpiry === "boolean" && { requirePasswordExpiry: sec.requirePasswordExpiry }),
-          ...(typeof sec.passwordExpiryDays === "number" && { passwordExpiryDays: sec.passwordExpiryDays }),
-          ...(typeof sec.twoFactorEnabled === "boolean" && { twoFactorEnabled: sec.twoFactorEnabled }),
-          ...(typeof sec.maxLoginAttempts === "number" && { maxLoginAttempts: sec.maxLoginAttempts }),
-          ...(typeof sec.lockoutMinutes === "number" && { lockoutMinutes: sec.lockoutMinutes }),
-          ...(typeof sec.auditLogRetentionDays === "number" && { auditLogRetentionDays: sec.auditLogRetentionDays }),
-        }));
       })
       .catch(() => {});
   }, []);
@@ -91,14 +69,6 @@ export default function GlobalSettingsPage() {
         });
       } else if (section === "announcements") {
         body = { section: "announcements", config: { message: announcement } };
-        res = await fetch("/api/settings/global", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify(body),
-        });
-      } else if (section === "security") {
-        body = { section: "security", config: security };
         res = await fetch("/api/settings/global", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
@@ -268,161 +238,13 @@ export default function GlobalSettingsPage() {
         </div>
 
         <div className="card lg:col-span-2">
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Shield className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Security & access</h3>
-              <p className="text-sm text-gray-600">Session, password policy, 2FA, and audit settings</p>
-            </div>
-          </div>
-          <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
-            <div className="space-y-4 p-4 rounded-xl bg-gray-50/60 border border-gray-200/40">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <Clock className="w-4 h-4 text-blue-600" />
-                Session
-              </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Session timeout (minutes)</label>
-                <input
-                  type="number"
-                  min={5}
-                  max={1440}
-                  value={security.sessionTimeoutMinutes}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, sessionTimeoutMinutes: parseInt(e.target.value, 10) || 60 }))
-                  }
-                  className="input w-full"
-                />
-                <p className="text-xs text-gray-500 mt-1">Auto logout after inactivity. Supabase Auth handles token expiry.</p>
-              </div>
-            </div>
-            <div className="space-y-4 p-4 rounded-xl bg-gray-50/60 border border-gray-200/40">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <Key className="w-4 h-4 text-blue-600" />
-                Password policy
-              </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Minimum length</label>
-                <input
-                  type="number"
-                  min={6}
-                  max={32}
-                  value={security.passwordMinLength}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, passwordMinLength: parseInt(e.target.value, 10) || 8 }))
-                  }
-                  className="input w-full"
-                />
-              </div>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={security.requirePasswordExpiry}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, requirePasswordExpiry: e.target.checked }))
-                  }
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-900">Require password change every N days</span>
-              </label>
-              {security.requirePasswordExpiry && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Expiry (days)</label>
-                  <input
-                    type="number"
-                    min={30}
-                    max={365}
-                    value={security.passwordExpiryDays}
-                    onChange={(e) =>
-                      setSecurity((p) => ({ ...p, passwordExpiryDays: parseInt(e.target.value, 10) || 90 }))
-                    }
-                    className="input w-full"
-                  />
-                </div>
-              )}
-            </div>
-            <div className="space-y-4 p-4 rounded-xl bg-gray-50/60 border border-gray-200/40">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                Login protection
-              </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Max failed attempts before lockout</label>
-                <input
-                  type="number"
-                  min={3}
-                  max={20}
-                  value={security.maxLoginAttempts}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, maxLoginAttempts: parseInt(e.target.value, 10) || 5 }))
-                  }
-                  className="input w-full"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Lockout duration (minutes)</label>
-                <input
-                  type="number"
-                  min={5}
-                  max={120}
-                  value={security.lockoutMinutes}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, lockoutMinutes: parseInt(e.target.value, 10) || 15 }))
-                  }
-                  className="input w-full"
-                />
-              </div>
-              <p className="text-xs text-gray-500">Enforce via Supabase Auth or your login flow.</p>
-            </div>
-            <div className="space-y-4 p-4 rounded-xl bg-gray-50/60 border border-gray-200/40">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <ShieldCheck className="w-4 h-4 text-blue-600" />
-                Two-factor authentication (2FA)
-              </h4>
-              <label className="flex items-center gap-3 cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={security.twoFactorEnabled}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, twoFactorEnabled: e.target.checked }))
-                  }
-                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
-                />
-                <span className="text-sm font-medium text-gray-900">Allow 2FA for admin users</span>
-              </label>
-              <p className="text-xs text-gray-500">Enable in Supabase Auth (Phone or Authenticator app) and surface in profile.</p>
-            </div>
-            <div className="space-y-4 p-4 rounded-xl bg-gray-50/60 border border-gray-200/40 md:col-span-2">
-              <h4 className="font-medium text-gray-900 flex items-center gap-2">
-                <History className="w-4 h-4 text-blue-600" />
-                Audit & compliance
-              </h4>
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Audit log retention (days)</label>
-                <input
-                  type="number"
-                  min={30}
-                  max={365}
-                  value={security.auditLogRetentionDays}
-                  onChange={(e) =>
-                    setSecurity((p) => ({ ...p, auditLogRetentionDays: parseInt(e.target.value, 10) || 90 }))
-                  }
-                  className="input w-full max-w-xs"
-                />
-                <p className="text-xs text-gray-500 mt-1">How long to keep activity logs. System Logs page shows recent events.</p>
-              </div>
-            </div>
-          </div>
-          <div className="mt-6">
-            <Button size="sm" onClick={() => handleSave("security")} disabled={saving === "security"}>
-              {saving === "security" ? "Saving…" : "Save security settings"}
-            </Button>
-            <p className="text-xs text-gray-500 mt-2">
-              These set defaults; implement enforcement in login flow and Supabase Auth where needed.
-            </p>
-          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Security (beta)</h3>
+          <p className="text-sm text-gray-600">
+            Login is limited to 10 attempts per minute per IP. Web idle logout is 30 minutes. Password
+            reset and first-time setup links expire after 1 hour. Two-factor authentication, password
+            expiry, and account lockout are not available in beta — those toggles were removed so they
+            cannot be saved as if they were live.
+          </p>
         </div>
       </div>
 

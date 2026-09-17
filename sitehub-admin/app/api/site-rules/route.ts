@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
@@ -22,6 +23,10 @@ export async function GET(req: Request) {
       .from("site_rules")
       .select("*")
       .eq("company_id", companyId);
+    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
+    const siteScope = siteIdsForFilter(restricted, url.searchParams.get("siteId"));
+    if (siteScope === "none") return NextResponse.json({ rules: [] }, { status: 200 });
+    if (siteScope !== "all") query = query.in("site_id", siteScope);
     if (category) query = query.eq("category", category);
 
     const { data } = await query;
@@ -59,6 +64,7 @@ export async function GET(req: Request) {
       title: (r as Record<string, unknown>).title ?? "",
       description: (r as Record<string, unknown>).body ?? "",
       file_url: (r as Record<string, unknown>).file_url ?? "",
+      site_id: (r as Record<string, unknown>).site_id ?? null,
       updated_at: (r as Record<string, unknown>).updated_at ?? null,
       is_favourite: auth.uid ? favouriteIds.has(r.id) : false,
     }));
@@ -101,21 +107,24 @@ export async function POST(req: Request) {
   const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
-  const { category, title, description } = body;
+  const { category, title, description, siteId } = body;
   if (!category || !title) return NextResponse.json({ error: "category and title required" }, { status: 400 });
+  const siteForbid = await assertWritableSiteId(auth.role, siteId, auth.uid);
+  if (siteForbid) return siteForbid;
 
   const { data, error } = await supabaseAdmin.from("site_rules").insert({
     company_id: companyId,
     category,
     title: String(title),
     body: String(description ?? ""),
-  }).select("id, category, title, body").single();
+    site_id: String(siteId).trim(),
+  }).select("id, category, title, body, site_id").single();
 
   if (error) {
     console.error("POST /api/site-rules failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  const rule = { id: data?.id, category: data?.category, title: data?.title, description: data?.body };
+  const rule = { id: data?.id, category: data?.category, title: data?.title, description: data?.body, site_id: data?.site_id };
   return NextResponse.json({ rule });
 }
 

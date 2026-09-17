@@ -6,6 +6,8 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
 import TableActions from "../../components/ui/TableActions";
+import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
+import { SitePicker } from "../../components/ui/SitePicker";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
 const SEVERITIES = [
@@ -20,12 +22,14 @@ type AlertItem = {
   description?: string;
   severity?: string;
   createdAt?: unknown;
+  site_id?: string | null;
 };
 
 export default function SafetyAlertsManager() {
   const [items, setItems] = useState<AlertItem[]>([]);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", severity: "info" });
+  const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "" });
+  const [sites, setSites] = useState<{ id: string; name?: string }[]>([]);
 
   useEffect(() => {
     const companyId = getCompanyIdFromClient();
@@ -33,9 +37,21 @@ export default function SafetyAlertsManager() {
     fetch("/api/safety-alerts", { cache: "no-store", credentials: "include" })
       .then((r) => r.json())
       .then(setItems);
+    fetch("/api/sites", { credentials: "include" })
+      .then((r) => (r.ok ? r.json() : []))
+      .then((arr) => {
+        const list = Array.isArray(arr) ? arr : [];
+        setSites(list);
+        if (list.length === 1) setForm((f) => (f.siteId ? f : { ...f, siteId: list[0].id }));
+      })
+      .catch(() => setSites([]));
   }, []);
 
   async function save() {
+    if (!form.siteId) {
+      alert("Select a site. This alert will only appear for that site.");
+      return;
+    }
     const res = await fetch("/api/safety-alerts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -46,7 +62,7 @@ export default function SafetyAlertsManager() {
     if (data.id) {
       setItems((prev) => [{ id: data.id, ...form }, ...prev]);
       setAdding(false);
-      setForm({ title: "", description: "", severity: "info" });
+      setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "" });
     }
   }
 
@@ -125,6 +141,12 @@ export default function SafetyAlertsManager() {
             placeholder="Details"
           />
           <div>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Site <span className="text-red-600">*</span>
+            </label>
+            <SitePicker sites={sites} value={form.siteId} onChange={(siteId) => setForm((f) => ({ ...f, siteId }))} />
+          </div>
+          <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Severity</label>
             <select
               value={form.severity}
@@ -137,7 +159,7 @@ export default function SafetyAlertsManager() {
             </select>
           </div>
           <div className="flex gap-2">
-            <Button onClick={save}>Save</Button>
+            <Button onClick={save} disabled={!form.siteId}>Save</Button>
             <Button variant="secondary" onClick={() => setAdding(false)}>
               Cancel
             </Button>
@@ -145,7 +167,26 @@ export default function SafetyAlertsManager() {
         </div>
       )}
 
-      <Table columns={columns} data={items} />
+      <div className="space-y-3 md:hidden">
+        {items.map((row) => (
+          <SafetyRecordCard
+            key={row.id}
+            icon={AlertTriangle}
+            accent={row.severity === "critical" ? "red" : row.severity === "warning" ? "amber" : "blue"}
+            title={row.title || "Untitled"}
+            subtitle={row.description}
+            badges={severityBadge(row.severity || "info")}
+            actions={
+              <button type="button" onClick={() => remove(row.id)} className="text-sm text-red-600 hover:underline">
+                Delete
+              </button>
+            }
+          />
+        ))}
+      </div>
+      <div className="hidden md:block">
+        <Table columns={columns} data={items} />
+      </div>
     </div>
   );
 }

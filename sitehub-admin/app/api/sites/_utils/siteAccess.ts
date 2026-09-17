@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { usesAssignedSites } from "@/lib/auth/roles";
+import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
 
 function cid(x: { company_id?: string | null; main_contractor_id?: string | null }): string | null {
   return (x.main_contractor_id ?? x.company_id ?? null) as string | null;
@@ -22,6 +24,14 @@ export async function ensureSiteAccess(siteId: string): Promise<NextResponse | n
   }
   if (role === "superuser") return null;
   if (!companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+
+  if (usesAssignedSites(role)) {
+    const allowed = await getRestrictedSiteIds(role);
+    if (!allowed || !allowed.includes(siteId)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+    return null;
+  }
 
   const { data: site } = await supabaseAdmin.from("sites").select("*").eq("id", siteId).single();
   if (!site) return NextResponse.json({ error: "Not found" }, { status: 404 });

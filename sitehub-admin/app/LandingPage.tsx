@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { ArrowRight, CheckCircle } from "lucide-react";
@@ -12,69 +12,8 @@ import FloatingShapes from "@/app/components/marketing/effects/FloatingShapes";
 import DemoModal from "@/app/components/marketing/modals/DemoModal";
 import FeedbackLink from "@/app/components/FeedbackLink";
 import FloatingParticles from "@/app/components/marketing/effects/FloatingParticles";
-
-const LAUNCH_DATE = new Date("2026-05-16T09:00:00");
-const FAKE_SIGNUPS = 247;
-
-function useCountdown(target: Date) {
-  const [timeLeft, setTimeLeft] = useState({
-    days: 0,
-    hours: 0,
-    minutes: 0,
-    seconds: 0,
-  });
-  useEffect(() => {
-    const tick = () => {
-      const diff = Math.max(0, target.getTime() - Date.now());
-      setTimeLeft({
-        days: Math.floor(diff / (1000 * 60 * 60 * 24)),
-        hours: Math.floor((diff / (1000 * 60 * 60)) % 24),
-        minutes: Math.floor((diff / 1000 / 60) % 60),
-        seconds: Math.floor((diff / 1000) % 60),
-      });
-    };
-    tick();
-    const id = setInterval(tick, 1000);
-    return () => clearInterval(id);
-  }, [target]);
-  return timeLeft;
-}
-
-function CountdownUnit({ value, label }: { value: number; label: string }) {
-  const prev = useRef(value);
-  const [flip, setFlip] = useState(false);
-  useEffect(() => {
-    if (prev.current === value) return;
-    prev.current = value;
-    let endTimer: ReturnType<typeof setTimeout> | undefined;
-    queueMicrotask(() => {
-      setFlip(true);
-      endTimer = setTimeout(() => setFlip(false), 300);
-    });
-    return () => {
-      if (endTimer !== undefined) clearTimeout(endTimer);
-    };
-  }, [value]);
-  return (
-    <div className="flex flex-col items-center gap-1.5 md:gap-2">
-      <div className="relative">
-        <div className="absolute inset-0 rounded-2xl bg-blue-500/20 blur-xl" />
-        <div
-          className={`relative min-w-[64px] sm:min-w-[72px] md:min-w-[96px] rounded-2xl border border-white/15 bg-white/5 backdrop-blur-sm px-2.5 sm:px-3 py-3 sm:py-4 text-center transition-transform duration-300 ${
-            flip ? "scale-95 opacity-70" : "scale-100 opacity-100"
-          }`}
-        >
-          <span className="text-3xl sm:text-4xl md:text-6xl font-extrabold tabular-nums bg-gradient-to-b from-white to-slate-400 bg-clip-text text-transparent">
-            {String(value).padStart(2, "0")}
-          </span>
-        </div>
-      </div>
-      <span className="text-[10px] md:text-xs font-medium tracking-widest uppercase text-slate-500">
-        {label}
-      </span>
-    </div>
-  );
-}
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
+import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 
 const TEASERS = [
   "Geo-verified attendance",
@@ -85,11 +24,13 @@ const TEASERS = [
 ];
 
 export default function LandingPage() {
+  const { t: tr } = useDisplayPreferences();
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
   const [email, setEmail] = useState("");
   const [submitted, setSubmitted] = useState(false);
   const [notifyError, setNotifyError] = useState("");
-  const { days, hours, minutes, seconds } = useCountdown(LAUNCH_DATE);
+
+  const [honeypot, setHoneypot] = useState("");
 
   const handleNotify = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -98,12 +39,13 @@ export default function LandingPage() {
       const res = await fetch("/api/notify", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: email.trim() }),
+        body: JSON.stringify({ email: email.trim(), website: honeypot }),
       });
-      if (!res.ok) throw new Error("Request failed");
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error((json as { error?: string }).error || "Request failed");
       setSubmitted(true);
-    } catch {
-      setNotifyError("Something went wrong — please try again.");
+    } catch (err) {
+      setNotifyError(err instanceof Error ? err.message : "Something went wrong — please try again.");
     }
   };
 
@@ -120,7 +62,7 @@ export default function LandingPage() {
         href="/admin/login"
         className="absolute right-5 top-5 z-[100] rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:text-white"
       >
-        Member Login
+        {tr("Member Login")}
       </Link>
 
       <div className="relative z-10 flex flex-col items-center gap-6 md:gap-8 text-center px-4 sm:px-6 py-20 sm:py-24 max-w-3xl mx-auto fade-in-up">
@@ -145,56 +87,45 @@ export default function LandingPage() {
 
         <div className="flex items-center gap-2 rounded-full border border-cyan-400/30 bg-cyan-400/10 px-4 sm:px-5 py-2 text-cyan-300 text-xs sm:text-sm font-medium tracking-wider uppercase backdrop-blur-sm">
           <span className="inline-block h-2 w-2 rounded-full bg-cyan-400 animate-pulse" />
-          Launching soon
+          {tr("Launching soon")}
         </div>
 
         <p className="text-base sm:text-lg md:text-2xl text-slate-300 max-w-xl font-light leading-relaxed">
-          The modern platform for construction site management is almost
-          ready.{" "}
+          {tr("The modern platform for construction site management is almost ready.")}{" "}
           <span className="text-slate-400 text-base md:text-lg">
-            Smarter compliance. Real-time attendance. Full site control.
+            {tr("Smarter compliance. Real-time attendance. Full site control.")}
           </span>
         </p>
 
         <div className="flex flex-wrap justify-center gap-2">
-          {TEASERS.map((t) => (
+          {TEASERS.map((teaser) => (
             <span
-              key={t}
+              key={teaser}
               className="rounded-full border border-white/10 bg-white/5 px-4 py-1.5 text-xs md:text-sm text-slate-400 backdrop-blur-sm"
             >
-              {t}
+              {tr(teaser)}
             </span>
           ))}
         </div>
-
-        <div className="w-full max-w-sm sm:max-w-none grid grid-cols-2 sm:flex sm:items-start gap-3 sm:gap-4 md:gap-5 my-2 justify-items-center">
-          <CountdownUnit value={days} label="Days" />
-          <span className="hidden sm:inline text-3xl md:text-5xl font-bold text-slate-700 mt-3 select-none">
-            :
-          </span>
-          <CountdownUnit value={hours} label="Hours" />
-          <span className="hidden sm:inline text-3xl md:text-5xl font-bold text-slate-700 mt-3 select-none">
-            :
-          </span>
-          <CountdownUnit value={minutes} label="Minutes" />
-          <span className="hidden sm:inline text-3xl md:text-5xl font-bold text-slate-700 mt-3 select-none">
-            :
-          </span>
-          <CountdownUnit value={seconds} label="Seconds" />
-        </div>
-
-        <p className="text-slate-500 text-sm -mt-2">
-          <span className="text-slate-300 font-semibold">
-            {FAKE_SIGNUPS.toLocaleString()}
-          </span>{" "}
-          people already on the early-access list
-        </p>
 
         {!submitted ? (
           <form
             onSubmit={handleNotify}
             className="w-full max-w-md flex flex-col gap-2 mt-2"
           >
+            <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden>
+              <label>
+                Website
+                <input
+                  type="text"
+                  name="website"
+                  tabIndex={-1}
+                  autoComplete="off"
+                  value={honeypot}
+                  onChange={(e) => setHoneypot(e.target.value)}
+                />
+              </label>
+            </div>
             <div className="flex flex-col sm:flex-row gap-3">
               <input
                 type="email"
@@ -208,7 +139,7 @@ export default function LandingPage() {
                 type="submit"
                 className="flex items-center justify-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-6 py-3 font-semibold text-white shadow-lg hover:shadow-blue-500/40 hover:scale-105 transition-all duration-300 whitespace-nowrap"
               >
-                Notify me <ArrowRight className="h-4 w-4" />
+                {tr("Notify me")} <ArrowRight className="h-4 w-4" />
               </button>
             </div>
             {notifyError && (
@@ -223,13 +154,13 @@ export default function LandingPage() {
         )}
 
         <p className="text-slate-500 text-sm">
-          Want a head start?{" "}
+          {tr("Want a head start?")}{" "}
           <button
             type="button"
             onClick={() => setIsDemoModalOpen(true)}
             className="text-blue-400 hover:text-cyan-400 transition-colors underline underline-offset-4"
           >
-            Request an early demo
+            {tr("Request an early demo")}
           </button>
         </p>
       </div>
@@ -237,12 +168,25 @@ export default function LandingPage() {
       <div className="absolute bottom-6 left-0 right-0 z-10 flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-slate-700 text-xs select-none px-4">
         <span>© 2026 Construction Runner</span>
         <Link
+          href="/legal/terms"
+          className="text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {tr("Terms of Service")}
+        </Link>
+        <Link
+          href="/legal/privacy-and-security"
+          className="text-slate-500 hover:text-slate-300 transition-colors"
+        >
+          {tr("Privacy & Security")}
+        </Link>
+        <Link
           href="/contact"
           className="text-slate-500 hover:text-slate-300 transition-colors"
         >
-          Contact
+          {tr("Contact")}
         </Link>
         <FeedbackLink variant="landing" />
+        <LanguageSwitcher compact className="min-w-[12rem]" />
       </div>
 
       <DemoModal

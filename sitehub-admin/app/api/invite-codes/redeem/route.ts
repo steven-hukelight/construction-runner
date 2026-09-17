@@ -1,5 +1,11 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import {
+  deliverPasswordResetEmail,
+  generateRecoveryLink,
+  setupPasswordPageUrl,
+} from "@/lib/sendPasswordReset";
+import { getServerPublicOrigin } from "@/lib/url";
 
 /** Redeem subcontractor invite code. Creates partner company, sub_admin user, links to site. */
 export async function POST(req: Request) {
@@ -27,6 +33,7 @@ export async function POST(req: Request) {
 
     let authUser: { id: string } | null = null;
     const { data: existing } = await supabaseAdmin.from("users").select("id").eq("email", email).maybeSingle();
+    const createdNewUser = !existing;
     if (existing) {
       authUser = { id: existing.id };
     } else {
@@ -47,7 +54,8 @@ export async function POST(req: Request) {
         email,
         display_name: name || email.split("@")[0],
         company_id: newCompanyId,
-        role: "admin",
+        role: "sub_admin",
+        approved: true,
       },
       { onConflict: "id" }
     );
@@ -61,13 +69,25 @@ export async function POST(req: Request) {
       { onConflict: "site_id,company_id" }
     );
 
+    let setupEmailSent = false;
+    if (createdNewUser) {
+      try {
+        const link = await generateRecoveryLink(email, setupPasswordPageUrl(getServerPublicOrigin()));
+        setupEmailSent = await deliverPasswordResetEmail(email, link, "setup");
+      } catch (mailErr) {
+        console.error("POST /api/invite-codes/redeem setup email failed:", mailErr);
+      }
+    }
+
     return NextResponse.json({
       company_id: newCompanyId,
       companyId: newCompanyId,
       site_id: siteId,
       siteId,
       userId: authUser.id,
-      redirect: "/subcontractor/setup",
+      existingUser: !createdNewUser,
+      setupEmailSent,
+      redirect: createdNewUser ? "/setup-password" : "/subcontractor/setup",
     });
   } catch (e: unknown) {
     const message = e instanceof Error ? e.message : "Unknown error";

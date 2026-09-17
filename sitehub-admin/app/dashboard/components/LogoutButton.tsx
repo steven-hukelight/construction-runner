@@ -2,6 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { supabase } from "@/supabase/auth/client";
+import { clearServerAuthCookies } from "@/lib/clientLogout";
 
 export default function LogoutButton() {
   const router = useRouter();
@@ -9,23 +10,14 @@ export default function LogoutButton() {
   async function handleLogout() {
     try {
       await supabase.auth.signOut({ scope: "local" });
-      
-      // Clear cookies
-      try {
-        ["role", "user_email", "companyId", "impersonating"].forEach(
-          (name) => (document.cookie = `${name}=; path=/; max-age=0`)
-        );
-      } catch {
-        /* document.cookie access denied */
-      }
-      
-      // Clear localStorage (Supabase tokens + app state)
+      await clearServerAuthCookies();
+
       if (typeof window !== "undefined") {
         Object.keys(window.localStorage)
           .filter((k) => k.startsWith("sb-") || k === "sb_token" || k === "remembered_email")
           .forEach((k) => window.localStorage.removeItem(k));
       }
-      
+
       router.push("/admin/login");
     } catch (error) {
       console.error("Logout error:", error);

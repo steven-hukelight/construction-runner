@@ -1,5 +1,6 @@
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { parseAbsentForDate, parseYmd } from "@/lib/attendanceAbsent";
+import { ATTENDANCE_FALLBACK_STALE_MINUTES } from "@/lib/attendanceFallbackConstants";
 
 export type AutoSignOutNoteMeta = {
   auto_sign_out: true;
@@ -55,11 +56,33 @@ function formatFenceLoggedDisplay(meta: AutoSignOutNoteMeta): string | null {
   return `${dd}/${mm}/${yyyy} : ${hh}:${mi}`;
 }
 
+/**
+ * Parenthetical after "Left site: HH:mm" — same wording as the Flutter
+ * live / role-call cards so supervisors see one vocabulary on both surfaces.
+ */
+export function leftSiteAutoSignOutReasonSuffix(reason: string | undefined): string {
+  const key = (reason ?? "").trim().toLowerCase();
+  if (!key || key === "fallback") return "";
+  const labels: Record<string, string> = {
+    fallback_stale_outside: "auto sign-out",
+    fallback_max_shift: "shift limit",
+    native_geofence: "left site",
+    geofence_exit: "left site",
+    geofence_exit_immediate: "left site",
+    location_fallback: "auto sign-out",
+  };
+  const label = labels[key];
+  return label ? ` (${label})` : ` (${key})`;
+}
+
 /** Shared copy for Notes panel + attendance record card */
 export function describeAttendanceAutoSignOutReason(reason: string | undefined): string {
   const r = (reason ?? "").toLowerCase().trim();
   if (r === "fallback_stale_outside") {
-    return "Server fallback — no recent ping for ~25s while last known position was outside the site boundary.";
+    return `Server fallback — no recent ping for ${ATTENDANCE_FALLBACK_STALE_MINUTES} minutes while last known position was outside the site boundary.`;
+  }
+  if (r === "fallback_max_shift") {
+    return "Server fallback — open shift exceeded 12 hours with no confirmed site exit (last GPS was still on-site or the phone went silent).";
   }
   if (r === "geofence_exit_immediate") {
     return "Trusted geofence exit ping — server confirmed coordinates beyond the outside threshold and closed the session immediately.";
@@ -126,6 +149,7 @@ function splitNotesAndAutoMeta(raw: string): { userText: string; meta: ReturnTyp
 function autoSignOutNotesLabel(meta: AutoSignOutNoteMeta): string {
   const r = meta.auto_sign_out_reason;
   if (r === "fallback_stale_outside") return "Automatic sign-out (server fallback)";
+  if (r === "fallback_max_shift") return "Automatic sign-out (12-hour shift limit)";
   if (r === "geofence_exit_immediate") return "Automatic sign-out (geofence, immediate)";
   if (r === "fallback") return "Automatic sign-out (server check)";
   if (r === "native_geofence") return "Automatic sign-out (geofence)";

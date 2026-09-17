@@ -2,6 +2,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { sendPushToUsers } from "@/lib/onesignal";
+import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 function severityBucket(raw: string | null | undefined): string {
   const value = (raw ?? "info").toLowerCase();
@@ -22,6 +24,13 @@ export async function GET(req: Request) {
 
     let query = supabaseAdmin.from("safety_alerts").select("*");
     if (auth.companyId) query = query.eq("company_id", auth.companyId);
+    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
+    const siteScope = siteIdsForFilter(restricted, url.searchParams.get("siteId"));
+    if (siteScope === "none") {
+      if (countOnly === "unread") return NextResponse.json({ count: 0 });
+      return NextResponse.json([]);
+    }
+    if (siteScope !== "all") query = query.in("site_id", siteScope);
     if (severity) query = query.in("severity", severity === "critical" ? ["critical", "high"] : severity === "warning" ? ["warning", "medium"] : ["info", "low"]);
     if (dateFrom) query = query.gte("created_at", dateFrom);
     if (dateTo) query = query.lte("created_at", dateTo);
@@ -103,6 +112,9 @@ export async function POST(req: Request) {
   if (!companyId)
     return NextResponse.json({ error: "Company required" }, { status: 400 });
 
+  const siteForbid = await assertWritableSiteId(auth.role, body.siteId, auth.uid);
+  if (siteForbid) return siteForbid;
+
   const { title, description, severity } = body;
   const { data, error } = await supabaseAdmin
     .from("safety_alerts")
@@ -111,7 +123,7 @@ export async function POST(req: Request) {
       description: description || "",
       severity: severity || "info",
       company_id: companyId,
-      site_id: body.siteId || null,
+      site_id: body.siteId,
       expires_at: body.expiresAt ? new Date(body.expiresAt).toISOString() : null,
     })
     .select("id, severity, title, company_id")
@@ -122,13 +134,7 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (data && severityBucket(data.severity) == "critical") {
-    const { data: users } = await supabaseAdmin
-      .from("users")
-      .select("id")
-      .eq("company_id", data.company_id);
-    const userIds = (users ?? [])
-      .map((user) => user.id?.toString() ?? "")
-      .filter(Boolean);
+    const userIds = await userIdsForSiteContent(data.company_id, String(body.siteId));
     if (userIds.length > 0) {
       sendPushToUsers(userIds, "Critical safety alert", data.title ?? "Alert", {
         type: "safety_alert",

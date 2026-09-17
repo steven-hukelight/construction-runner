@@ -153,6 +153,12 @@ export default function PrivacyAndSecurityPage() {
 
         <div className="mt-12 pt-8 border-t border-gray-200 flex flex-wrap gap-4">
           <Link
+            href="/legal/terms"
+            className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
+          >
+            Terms of Service
+          </Link>
+          <Link
             href="/dashboard/profile"
             className="inline-flex items-center gap-2 text-blue-600 hover:text-blue-700 font-medium"
           >

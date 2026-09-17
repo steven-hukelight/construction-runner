@@ -1,15 +1,16 @@
 "use client";
-import Link from 'next/link';
+import Link from "next/link";
 import { useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import Button from "../dashboard/components/ui/Button";
 import Input from "../dashboard/components/ui/Input";
 import { Eye, EyeOff } from "lucide-react";
+import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 
 function SetupPasswordInner() {
   const searchParams = useSearchParams();
-  const email = searchParams.get("email") || "";
+  const tokenHash = (searchParams.get("token_hash") || searchParams.get("tokenHash") || "").trim();
   const [password, setPassword] = useState("");
   const [confirm, setConfirm] = useState("");
   const [loading, setLoading] = useState(false);
@@ -21,6 +22,10 @@ function SetupPasswordInner() {
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError("");
+    if (!tokenHash) {
+      setError("Invalid or expired link.");
+      return;
+    }
     if (!password || password.length < 8) {
       setError("Password must be at least 8 characters.");
       return;
@@ -34,7 +39,7 @@ function SetupPasswordInner() {
       const res = await fetch("/api/auth/setup-password", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ token_hash: tokenHash, password }),
       });
       if (res.ok) {
         setSuccess(true);
@@ -61,11 +66,24 @@ function SetupPasswordInner() {
     );
   }
 
+  if (!tokenHash) {
+    return (
+      <div className="card w-full max-w-md mx-auto mt-12 p-6">
+        <h2 className="text-2xl font-bold mb-4 text-blue-600">Invalid or expired link</h2>
+        <p className="text-gray-700 mb-6">
+          This password setup link is missing or no longer valid. Request a new one from forgot password.
+        </p>
+        <Link href="/forgot-password">
+          <Button variant="primary">Forgot password</Button>
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <div className="card w-full max-w-md mx-auto mt-12 p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-600">Set Your Password</h2>
       <form onSubmit={handleSubmit} className="space-y-4">
-        <Input label="Email" value={email} disabled />
         <div className="relative">
           <Input
             label="Password"
@@ -107,13 +125,7 @@ function SetupPasswordInner() {
         <Button type="submit" disabled={loading} className="w-full mt-2">
           {loading ? "Setting..." : "Set Password"}
         </Button>
-        <p className="text-center text-xs text-gray-500 mt-3">
-          By continuing, you agree to our{" "}
-          <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-            Privacy & Security Policy
-          </a>
-          .
-        </p>
+        <LegalConsentLinks className="text-center text-xs text-gray-500 mt-3" />
       </form>
     </div>
   );

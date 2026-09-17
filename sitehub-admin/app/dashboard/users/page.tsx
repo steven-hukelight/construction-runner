@@ -40,7 +40,7 @@ export default async function UsersPage() {
     <div className="space-y-8">
       <PageHeader
         title="Users"
-        description="Manage user accounts and roles."
+        description="Company accounts, roles, and medical records."
         action={
           <div className="flex items-center gap-3">
             <InviteUserModal />

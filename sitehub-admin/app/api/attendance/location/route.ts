@@ -3,6 +3,10 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolvePreInductionAuth } from "@/app/api/pre-induction/_utils/mobileAuth";
 import { sendAttendanceAutoSignOutPush } from "@/lib/attendanceAutoSignOutPush";
+import {
+  MAX_FALLBACK_ACCURACY_M,
+  shouldSkipCoarseFallbackOutsideEval,
+} from "@/lib/attendanceCoarseFallback";
 
 export const dynamic = "force-dynamic";
 
@@ -105,38 +109,34 @@ export async function POST(req: Request) {
       body.outside_fence === true;
 
     const fallbackPing = body.fallbackPing === true || body.fallback_ping === true;
-    const maxFallbackAccuracyM = 120;
     const maxFallbackAgeMs = 15 * 60 * 1000;
     const clientTsRaw = body.timestampMillis ?? body.timestamp_millis;
     const clientTs = clientTsRaw != null && clientTsRaw !== "" ? Number(clientTsRaw) : NaN;
     const clientAgeOk =
       !Number.isFinite(clientTs) || Math.abs(Date.now() - clientTs) <= maxFallbackAgeMs;
 
-    if (fallbackPing && (pAcc > maxFallbackAccuracyM || !clientAgeOk)) {
-      const serverNow = new Date().toISOString();
-      const patch: Record<string, unknown> = {
-        last_location_lat: Number(lat),
-        last_location_lng: Number(lng),
-        last_location_timestamp: serverNow,
-      };
-      if (acc != null && Number.isFinite(acc)) patch.last_location_accuracy = acc;
-      const { error: updErr } = await supabaseAdmin.from("attendance").update(patch).eq("id", row.id);
-      if (updErr) {
-        console.error("[attendance/location] fallback ping location-only update:", updErr);
-        return NextResponse.json({ error: updErr.message }, { status: 500 });
-      }
-      console.log("[attendance/location] fallback ping stored (skipped outside eval)", {
+    if (
+      shouldSkipCoarseFallbackOutsideEval({
+        fallbackPing,
+        accuracyM: pAcc,
+        clientAgeOk,
+      })
+    ) {
+      // Do not refresh last_location_timestamp. A coarse heartbeat used to
+      // keep the row "fresh" while last_location_outside_fence stayed false
+      // from the last on-site GPS, so pg_cron never closed the session.
+      console.log("[attendance/location] fallback ping skipped outside eval (no timestamp bump)", {
         attendanceId: String(row.id),
         accuracy: pAcc,
         clientAgeOk,
-        reason: pAcc > maxFallbackAccuracyM ? "accuracy" : "stale_timestamp",
+        reason: pAcc > MAX_FALLBACK_ACCURACY_M ? "accuracy" : "stale_timestamp",
       });
       return NextResponse.json({
         ok: true,
-        lastLocationTimestamp: serverNow,
         fallbackPing: true,
         skippedOutsideEval: true,
         skipped_outside_eval: true,
+        skippedTimestampBump: true,
       });
     }
 

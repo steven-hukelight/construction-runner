@@ -1,65 +1,76 @@
 import { NextRequest, NextResponse } from "next/server";
+import { FEEDBACK_EMAIL } from "@/lib/feedback";
+import {
+  LEAD_INBOX,
+  checkPublicLeadRateLimit,
+  clipLeadField,
+  publicLeadHoneypotTripped,
+} from "@/lib/publicLeadGuard";
+import { hasEmailTransportConfigured, sendPlainEmail } from "@/lib/sendPlainEmail";
 
-interface DemoFormData {
-  fullName: string;
-  company: string;
-  email: string;
-  role: string;
-  sites: string;
-  message?: string;
-}
-
-async function sendEmailNotification(data: DemoFormData, recipientEmail: string) {
-  console.log("📧 Demo Request Received:", {
-    timestamp: new Date().toISOString(),
-    recipientEmail,
-    ...data,
-  });
-  // Optional: integrate Resend/SendGrid etc. using RESEND_API_KEY and DEMO_RECIPIENT_EMAIL
-}
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 export async function POST(request: NextRequest) {
   try {
-    const body = (await request.json()) as DemoFormData;
+    const body = (await request.json().catch(() => ({}))) as Record<string, unknown>;
 
-    if (
-      !body.fullName ||
-      !body.company ||
-      !body.email ||
-      !body.role ||
-      !body.sites
-    ) {
+    if (publicLeadHoneypotTripped(body)) {
+      return NextResponse.json({ success: true });
+    }
+
+    const limited = checkPublicLeadRateLimit(request);
+    if (!limited.ok) {
       return NextResponse.json(
-        { error: "Missing required fields" },
-        { status: 400 }
+        { error: "Too many requests. Try again later." },
+        { status: 429, headers: { "Retry-After": String(limited.retryAfter) } }
       );
     }
 
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    if (!emailRegex.test(body.email)) {
+    const fullName = clipLeadField(body.fullName, 120);
+    const company = clipLeadField(body.company, 160);
+    const email = clipLeadField(body.email, 320);
+    const role = clipLeadField(body.role, 80);
+    const sites = clipLeadField(body.sites, 40);
+    const message = clipLeadField(body.message, 2000);
+
+    if (!fullName || !company || !email || !role || !sites) {
+      return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
+    }
+    if (!EMAIL_RE.test(email)) {
+      return NextResponse.json({ error: "Invalid email format" }, { status: 400 });
+    }
+
+    if (!hasEmailTransportConfigured()) {
+      console.error("POST /api/demo: no email transport configured");
       return NextResponse.json(
-        { error: "Invalid email format" },
-        { status: 400 }
+        { error: "Demo requests are not configured on the server." },
+        { status: 503 }
       );
     }
 
-    const recipientEmail =
-      process.env.DEMO_RECIPIENT_EMAIL ?? "demo@example.com";
-    await sendEmailNotification(body, recipientEmail);
+    const to = LEAD_INBOX || FEEDBACK_EMAIL;
+    const text = [
+      "Demo request",
+      "",
+      `Name: ${fullName}`,
+      `Company: ${company}`,
+      `Email: ${email}`,
+      `Role: ${role}`,
+      `Sites: ${sites}`,
+      message ? `Message:\n${message}` : null,
+    ]
+      .filter(Boolean)
+      .join("\n");
 
-    return NextResponse.json(
-      {
-        success: true,
-        message: "Demo request received successfully",
-        data: body,
-      },
-      { status: 200 }
-    );
+    const sent = await sendPlainEmail(to, `Demo request — ${company}`, text);
+    if (!sent.ok) {
+      console.error("POST /api/demo: send failed", sent.error);
+      return NextResponse.json({ error: "Could not send request. Try again later." }, { status: 502 });
+    }
+
+    return NextResponse.json({ success: true });
   } catch (error) {
     console.error("Error processing demo request:", error);
-    return NextResponse.json(
-      { error: "Failed to process demo request" },
-      { status: 500 }
-    );
+    return NextResponse.json({ error: "Failed to process demo request" }, { status: 500 });
   }
 }

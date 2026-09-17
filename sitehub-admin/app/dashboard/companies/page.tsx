@@ -9,6 +9,7 @@ import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
 import { Building2, Plus, Copy, Check } from "lucide-react";
+import { CompanyPicker } from "../components/ui/SitePicker";
 
 type Company = {
   id: string;
@@ -52,7 +53,6 @@ export default function CompaniesPage() {
   async function handleEnterDashboard(companyId: string) {
     if (typeof window === "undefined") return;
     const role = getRoleFromClient();
-    const opts = `path=/; max-age=2592000; SameSite=Lax${window.location?.protocol === "https:" ? "; Secure" : ""}`;
     if (role === "superuser") {
       const res = await fetch("/api/impersonate", {
         method: "POST",
@@ -60,29 +60,7 @@ export default function CompaniesPage() {
         body: JSON.stringify({ companyId }),
         credentials: "include",
       });
-      if (res.ok) {
-        // Belt-and-suspenders: API sets cookies via Set-Cookie, but also set client-side
-        // so they're definitely available before redirect (avoids "no company" / empty data)
-        try {
-          document.cookie = `companyId=${encodeURIComponent(companyId)}; ${opts}`;
-          document.cookie = `impersonating=true; ${opts}`;
-        } catch {
-          /* document.cookie access denied */
-        }
-      } else {
-        try {
-          document.cookie = `companyId=${encodeURIComponent(companyId)}; ${opts}`;
-          document.cookie = `impersonating=true; ${opts}`;
-        } catch {
-          /* document.cookie access denied */
-        }
-      }
-    } else {
-      try {
-        document.cookie = `companyId=${encodeURIComponent(companyId)}; ${opts}`;
-      } catch {
-        /* document.cookie access denied */
-      }
+      if (!res.ok) return;
     }
     window.location.href = "/dashboard";
   }
@@ -326,20 +304,17 @@ export default function CompaniesPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-3 mb-4">
-        <label className="text-sm font-medium text-gray-700">Filter company</label>
-        <select
+      <div className="w-64 mb-4">
+        <CompanyPicker
+          companies={companies}
           value={companyFilter}
-          onChange={(e) => setCompanyFilter(e.target.value)}
-          className="input max-w-[220px]"
-        >
-          <option value="">All companies</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name || c.id}
-            </option>
-          ))}
-        </select>
+          onChange={setCompanyFilter}
+          variant="compact"
+          allowNone
+          noneValue=""
+          noneLabel="All companies"
+          placeholder="All companies"
+        />
       </div>
 
       <div className="card">

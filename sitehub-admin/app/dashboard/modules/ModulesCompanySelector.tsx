@@ -3,14 +3,14 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Button from "../components/ui/Button";
-
-const COOKIE_OPTIONS = `path=/; max-age=2592000; SameSite=Lax${typeof window !== "undefined" && window.location?.protocol === "https:" ? "; Secure" : ""}`;
+import { CompanyPicker } from "../components/ui/SitePicker";
 
 export default function ModulesCompanySelector() {
   const router = useRouter();
   const [companies, setCompanies] = useState<{ id: string; name?: string }[]>([]);
   const [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
 
   useEffect(() => {
     fetch("/api/companies")
@@ -21,18 +21,17 @@ export default function ModulesCompanySelector() {
   async function handleSelect() {
     if (!selected.trim()) return;
     setLoading(true);
+    setError("");
     try {
-      await fetch("/api/impersonate", {
+      const res = await fetch("/api/impersonate", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ company_id: selected }),
         credentials: "include",
       });
-      try {
-        document.cookie = `impersonating=true; ${COOKIE_OPTIONS}`;
-        document.cookie = `companyId=${encodeURIComponent(selected)}; ${COOKIE_OPTIONS}`;
-      } catch {
-        /* document.cookie access denied */
+      if (!res.ok) {
+        setError("Could not switch company.");
+        return;
       }
       router.refresh();
     } finally {
@@ -48,19 +47,15 @@ export default function ModulesCompanySelector() {
       <p className="text-sm text-gray-600 mb-4">
         Choose a company to use Messaging, Asset Management, and Offline Working.
       </p>
-      <div className="flex gap-2 flex-wrap">
-        <select
-          className="input flex-1 min-w-[200px]"
-          value={selected}
-          onChange={(e) => setSelected(e.target.value)}
-        >
-          <option value="">— Select company —</option>
-          {companies.map((c) => (
-            <option key={c.id} value={c.id}>
-              {c.name || c.id}
-            </option>
-          ))}
-        </select>
+      <div className="flex gap-2 flex-wrap items-end">
+        <div className="flex-1 min-w-[200px]">
+          <CompanyPicker
+            companies={companies}
+            value={selected}
+            onChange={setSelected}
+            placeholder="— Select company —"
+          />
+        </div>
         <Button
           onClick={handleSelect}
           disabled={loading || !selected.trim()}
@@ -68,6 +63,7 @@ export default function ModulesCompanySelector() {
           {loading ? "Loading…" : "Use this company"}
         </Button>
       </div>
+      {error ? <p className="text-sm text-red-500 mt-2">{error}</p> : null}
       <p className="text-xs text-gray-500 mt-4">
         You can also use the company switcher in the top bar.
       </p>

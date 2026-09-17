@@ -4,6 +4,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
+import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 
 export default function JoinWithCodePage() {
   const router = useRouter();
@@ -13,6 +14,7 @@ export default function JoinWithCodePage() {
   const [companyName, setCompanyName] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [created, setCreated] = useState(false);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -38,7 +40,11 @@ export default function JoinWithCodePage() {
         setError(data?.error ?? "Failed to redeem code");
         return;
       }
-      router.push(`/admin/login?email=${encodeURIComponent(email.trim())}&from=invite`);
+      if (data?.existingUser) {
+        router.push(`/admin/login?email=${encodeURIComponent(email.trim())}&from=invite`);
+        return;
+      }
+      setCreated(true);
     } catch {
       setError("Something went wrong.");
     } finally {
@@ -62,6 +68,27 @@ export default function JoinWithCodePage() {
         <p className="text-sm text-gray-600 mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
           Your data is collected solely for the purposes of site access, safety compliance, induction, RAMS acceptance, and legal health &amp; safety obligations. It is not used for marketing or profiling.
         </p>
+        {created ? (
+          <div className="space-y-4 text-sm text-gray-700">
+            <p className="p-3 rounded-lg bg-green-50 border border-green-100">
+              Account created. Check <span className="font-medium">{email}</span> for a link to set your
+              password (expires in 1 hour).
+            </p>
+            <p>
+              If the email does not arrive, use{" "}
+              <Link href="/forgot-password" className="text-blue-600 font-medium hover:underline">
+                Forgot password
+              </Link>
+              , then sign in.
+            </p>
+            <Link
+              href={`/admin/login?email=${encodeURIComponent(email.trim())}&from=invite`}
+              className="block w-full py-3 rounded-xl bg-blue-600 text-white font-semibold text-center hover:bg-blue-700"
+            >
+              Go to sign in
+            </Link>
+          </div>
+        ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-1">Invite code</label>
@@ -113,14 +140,9 @@ export default function JoinWithCodePage() {
           >
             {loading ? "Creating account…" : "Continue"}
           </button>
-          <p className="text-center text-xs text-gray-500 mt-3">
-            By continuing, you agree to our{" "}
-            <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-              Privacy & Security Policy
-            </a>
-            .
-          </p>
+          <LegalConsentLinks className="text-center text-xs text-gray-500 mt-3" />
         </form>
+        )}
 
         <p className="mt-6 text-center text-sm text-gray-500">
           Already have an account?{" "}

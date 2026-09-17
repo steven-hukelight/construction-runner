@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { AlertTriangle, FileDown, Trash2, Eye } from "lucide-react";
 import Table from "../../components/ui/Table";
 import { TaskStatusPill } from "../../components/ui/TaskStatusPill";
+import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import Link from "next/link";
@@ -164,7 +165,47 @@ export default function NearMissManager() {
       ) : items.length === 0 ? (
         <div className="p-6 text-sm text-gray-500">No near miss reports yet.</div>
       ) : (
-        <Table columns={columns} data={items} />
+        <>
+          <div className="space-y-3 md:hidden">
+            {items.map((row) => (
+              <SafetyRecordCard
+                key={row.id}
+                icon={AlertTriangle}
+                accent={row.reviewed_at ? "emerald" : "amber"}
+                title={(row.description || "Untitled").slice(0, 90)}
+                badges={<TaskStatusPill status={row.reviewed_at ? "reviewed" : "pending"} />}
+                meta={[
+                  row.site_name ?? row.site_id ?? "No site",
+                  row.created_at ? formatDate(row.created_at) : "",
+                ].filter(Boolean)}
+                actions={
+                  <>
+                    <Link
+                      href={`/dashboard/health-and-safety/near-miss/${row.id}`}
+                      className="text-sm font-medium text-blue-600 hover:underline"
+                    >
+                      View
+                    </Link>
+                    <button type="button" onClick={() => exportReport(row.id)} className="text-sm text-slate-600 hover:underline">
+                      Export
+                    </button>
+                    {!row.reviewed_at ? (
+                      <button type="button" onClick={() => markReviewed(row.id)} className="text-sm text-amber-700 hover:underline">
+                        Mark reviewed
+                      </button>
+                    ) : null}
+                    <button type="button" onClick={() => handleDelete(row.id)} className="text-sm text-red-600 hover:underline">
+                      Delete
+                    </button>
+                  </>
+                }
+              />
+            ))}
+          </div>
+          <div className="hidden md:block">
+            <Table columns={columns} data={items} />
+          </div>
+        </>
       )}
     </div>
   );

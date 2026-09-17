@@ -20,39 +20,48 @@ function ResetPasswordPage() {
     let mounted = true;
 
     async function run() {
+      if (window.location.hostname === "construction-runner.com") {
+        window.location.replace(
+          `https://www.construction-runner.com${window.location.pathname}${window.location.search}${window.location.hash}`
+        );
+        return;
+      }
+
       const params = new URLSearchParams(window.location.search);
       const hash = window.location.hash || "";
       const hashParams = new URLSearchParams(hash.replace(/^#/, ""));
       const code = params.get("code");
-      const tokenHash = params.get("token_hash");
+      const tokenHash = params.get("token_hash") || hashParams.get("token_hash");
       const errorCode = hashParams.get("error_code");
       const hasRecoveryHash = hash.includes("type=recovery") || hash.includes("access_token");
 
-      // Supabase error in hash (e.g. otp_expired)
-      if (errorCode || hashParams.get("error")) {
-        setError("Reset link expired or invalid. Request a new one.");
-        setReady(true);
-        return;
-      }
-
-      // PKCE: exchange code for session (same-browser only)
-      if (code) {
-        const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+      const markValid = () => {
         if (!mounted) return;
-        if (exchangeErr) {
-          setError("Reset link expired or invalid. Request a new one.");
-          setReady(true);
-          return;
-        }
-        if (data?.session) {
-          window.history.replaceState({}, "", window.location.pathname);
-          setHasValidLink(true);
-          setReady(true);
-          return;
+        window.history.replaceState({}, "", window.location.pathname);
+        setHasValidLink(true);
+        setError("");
+        setReady(true);
+      };
+
+      const consumeKey = tokenHash || code;
+      if (consumeKey) {
+        try {
+          if (sessionStorage.getItem(`cr-recovery:${consumeKey}`) === "1") {
+            const {
+              data: { session },
+            } = await supabase.auth.getSession();
+            if (session) {
+              markValid();
+              return;
+            }
+          }
+        } catch {
+          /* sessionStorage blocked */
         }
       }
 
-      // token_hash: verify OTP directly (admin-generated links)
+      // token_hash first: works from any device / mail client (no PKCE verifier).
+      // Try this even if the hash also has an error (scanner may have hit verify first).
       if (tokenHash) {
         const { data, error: verifyErr } = await supabase.auth.verifyOtp({
           token_hash: tokenHash,
@@ -60,11 +69,40 @@ function ResetPasswordPage() {
         });
         if (!mounted) return;
         if (verifyErr) {
+          console.warn("reset-password verifyOtp failed", verifyErr.message);
           setError("Reset link expired or invalid. Request a new one.");
           setReady(true);
           return;
         }
         if (data?.session) {
+          try {
+            sessionStorage.setItem(`cr-recovery:${tokenHash}`, "1");
+          } catch {
+            /* ignore */
+          }
+          markValid();
+          return;
+        }
+      }
+
+      // Supabase error in hash (e.g. otp_expired) — only if we had no token_hash to try.
+      if (errorCode || hashParams.get("error")) {
+        setError("Reset link expired or invalid. Request a new one.");
+        setReady(true);
+        return;
+      }
+
+      // PKCE: exchange code for session (same-browser only). Fail over to
+      // implicit-hash / existing session rather than immediately calling it expired.
+      if (code) {
+        const { data, error: exchangeErr } = await supabase.auth.exchangeCodeForSession(code);
+        if (!mounted) return;
+        if (!exchangeErr && data?.session) {
+          try {
+            sessionStorage.setItem(`cr-recovery:${code}`, "1");
+          } catch {
+            /* ignore */
+          }
           window.history.replaceState({}, "", window.location.pathname);
           setHasValidLink(true);
           setReady(true);

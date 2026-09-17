@@ -3,7 +3,8 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Loader2, Download } from "lucide-react";
+import { Loader2, Download, HeartPulse } from "lucide-react";
+import { CardSelect } from "../components/ui/CardSelect";
 
 type Row = {
   userId: string;
@@ -59,16 +60,22 @@ export default function MissingInfoTable() {
             onChange={(e) => setSearch(e.target.value)}
             className="w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
           />
-          <select
+          <CardSelect
+            items={[
+              { id: "emergency", name: "Missing emergency contact only" },
+              { id: "medical", name: "Missing medical info only" },
+              { id: "both", name: "Missing both" },
+            ]}
             value={filter}
-            onChange={(e) => setFilter(e.target.value as typeof filter)}
-            className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
-          >
-            <option value="all">All missing info</option>
-            <option value="emergency">Missing emergency contact only</option>
-            <option value="medical">Missing medical info only</option>
-            <option value="both">Missing both</option>
-          </select>
+            onChange={(id) => setFilter(id as typeof filter)}
+            icon={HeartPulse}
+            fieldLabel="Filter"
+            variant="compact"
+            allowNone
+            noneValue="all"
+            noneLabel="All missing info"
+            className="w-64"
+          />
         </div>
         <a
           href="/api/admin/missing-info?format=csv"

@@ -9,6 +9,8 @@ import SessionTimeoutHandler from "./components/SessionTimeoutHandler";
 import GlobalBanner from "./components/GlobalBanner";
 import OneSignalProvider from "./components/OneSignalProvider";
 import { DashboardMainShell } from "./components/DashboardMainShell";
+import { ClientSessionProvider } from "./components/ClientSessionProvider";
+import type { ClientSessionSnapshot } from "@/lib/utils/cookies";
 import {
   validateSession,
   updateSessionActivity,
@@ -83,16 +85,29 @@ export default async function DashboardLayout({ children }: { children: React.Re
       ? <SuperuserSidebar />
       : <Sidebar role={effectiveRole} />;
 
+  const startedRaw = cookieStore.get("session_started_at")?.value;
+  const startedNum = startedRaw ? parseInt(startedRaw, 10) : NaN;
+  const clientSession: ClientSessionSnapshot = {
+    role: role ?? null,
+    companyId: companyId ?? null,
+    email: cookieStore.get("user_email")?.value ?? "",
+    uid: cookieStore.get("uid")?.value ?? "",
+    impersonating,
+    sessionStartedAt: Number.isFinite(startedNum) ? startedNum : null,
+  };
+
   return (
-    <div className="app-root">
-      <OneSignalProvider />
-      <SessionTimeoutHandler />
-      {showSidebar}
-      <DashboardMainShell>
-        <GlobalBanner />
-        <Topbar />
-        {children}
-      </DashboardMainShell>
-    </div>
+    <ClientSessionProvider initial={clientSession}>
+      <div className="app-root">
+        <OneSignalProvider />
+        <SessionTimeoutHandler />
+        {showSidebar}
+        <DashboardMainShell>
+          <GlobalBanner />
+          <Topbar />
+          {children}
+        </DashboardMainShell>
+      </div>
+    </ClientSessionProvider>
   );
 }

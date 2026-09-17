@@ -1,14 +1,15 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Users, CheckCircle, Circle } from "lucide-react";
+import { Users, CheckCircle, Circle, Filter } from "lucide-react";
 import Table from "../components/ui/Table";
 import TableActions from "../components/ui/TableActions";
 import RoleBadge from "../components/RoleBadge";
+import { CardSelect } from "../components/ui/CardSelect";
 import { updateUserRole, deleteUser } from "./actions";
-import UserProfileModal from "./UserProfileModal";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { canAssignSuperAdminRole, usesAssignedSites } from "@/lib/auth/roles";
 
 type UserRow = {
   id: string;
@@ -45,8 +46,12 @@ type MeResponse = {
 
 export default function UsersTable({ data, profiles, currentUserRole }: UsersTableProps) {
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
-  const [selectedProfile, setSelectedProfile] = useState<Profile | null>(null);
+  const [roleFilter, setRoleFilter] = useState("all");
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
+  const [assignSitesFor, setAssignSitesFor] = useState<UserRow | null>(null);
+  const [companySites, setCompanySites] = useState<{ id: string; name: string }[]>([]);
+  const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
+  const [savingSites, setSavingSites] = useState(false);
   const [currentCompanyName, setCurrentCompanyName] = useState<string | null>(null);
   const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
 
@@ -160,14 +165,72 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
     return map;
   }, [profiles]);
 
-  async function handleRoleChange(id: string, role: string) {
+  async function handleRoleChange(id: string, role: string, row?: UserRow) {
     const result = await updateUserRole(id, role);
     if (result.success) {
       setRows((prev) =>
-        prev.map((row) => (row.id === id ? { ...row, role } : row))
+        prev.map((r) => (r.id === id ? { ...r, role } : r))
       );
+      if (usesAssignedSites(role)) {
+        await openAssignSites(row ?? { id });
+      }
     } else {
       alert(result.error ?? "Failed to update role. Please try again.");
+    }
+  }
+
+  async function openAssignSites(row: UserRow) {
+    setAssignSitesFor(row);
+    try {
+      const [sitesRes, assignedRes] = await Promise.all([
+        fetch("/api/sites", { cache: "no-store", credentials: "include" }),
+        fetch(`/api/users/${encodeURIComponent(row.id)}/sites`, {
+          cache: "no-store",
+          credentials: "include",
+        }),
+      ]);
+      const sitesJson = await sitesRes.json().catch(() => []);
+      const assignedJson = await assignedRes.json().catch(() => ({ siteIds: [] }));
+      const sites = Array.isArray(sitesJson)
+        ? sitesJson
+            .map((s: { id?: string; name?: string }) => ({
+              id: String(s.id ?? ""),
+              name: String(s.name ?? s.id ?? ""),
+            }))
+            .filter((s: { id: string }) => s.id)
+        : [];
+      setCompanySites(sites);
+      setSelectedSiteIds(Array.isArray(assignedJson?.siteIds) ? assignedJson.siteIds.map(String) : []);
+    } catch {
+      setCompanySites([]);
+      setSelectedSiteIds([]);
+    }
+  }
+
+  async function saveAssignedSites() {
+    if (!assignSitesFor) return;
+    if (selectedSiteIds.length === 0) {
+      alert("Tick at least one site. They can be assigned to more than one.");
+      return;
+    }
+    setSavingSites(true);
+    try {
+      const res = await fetch(`/api/users/${encodeURIComponent(assignSitesFor.id)}/sites`, {
+        method: "PUT",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ siteIds: selectedSiteIds }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(data.error || "Could not save site access");
+        return;
+      }
+      setAssignSitesFor(null);
+    } catch {
+      alert("Could not save site access");
+    } finally {
+      setSavingSites(false);
     }
   }
 
@@ -241,15 +304,6 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
             >
               View profile
             </Link>
-            {profile && (
-              <button
-                type="button"
-                onClick={() => setSelectedProfile(profile)}
-                className="text-gray-500 hover:text-gray-700 text-sm"
-              >
-                Edit
-              </button>
-            )}
           </div>
         );
       },
@@ -262,16 +316,20 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
         const canChangeRole = roleLower === "admin" || roleLower === "superuser" || roleLower === "sub_admin";
         const items: { label: string; onClick: () => void; variant?: "default" | "danger" }[] = [
           { label: "View profile", onClick: () => window.location.assign(`/dashboard/users/${row.id}`) },
+          { label: "Medical records", onClick: () => window.location.assign(`/dashboard/operatives/${row.id}`) },
         ];
-        if (profileMap.get(row.id)) {
-          items.push({ label: "Edit profile", onClick: () => setSelectedProfile(profileMap.get(row.id) ?? null) });
-        }
         if (canChangeRole) {
+          if (canAssignSuperAdminRole(currentUserRole)) {
+            items.push({ label: "Set role → Super Admin", onClick: () => handleRoleChange(row.id, "admin", row) });
+          }
           items.push(
-            { label: "Set role → Admin", onClick: () => handleRoleChange(row.id, "ADMIN") },
-            { label: "Set role → Supervisor", onClick: () => handleRoleChange(row.id, "SUPERVISOR") },
-            { label: "Set role → Operative", onClick: () => handleRoleChange(row.id, "OPERATIVE") }
+            { label: "Set role → Site Admin", onClick: () => handleRoleChange(row.id, "site_admin", row) },
+            { label: "Set role → Supervisor", onClick: () => handleRoleChange(row.id, "supervisor", row) },
+            { label: "Set role → Operative", onClick: () => handleRoleChange(row.id, "operative", row) }
           );
+          if (usesAssignedSites(row.role)) {
+            items.push({ label: "Assign sites…", onClick: () => { void openAssignSites(row); } });
+          }
           items.push({ label: "Send reset email", onClick: () => handleSendPasswordReset(row) });
         }
         items.push({ label: "Delete user", onClick: () => handleDelete(row.id), variant: "danger" });
@@ -280,28 +338,118 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
     },
   ];
 
+  const displayedRows = useMemo(() => {
+    if (roleFilter === "all") return rows;
+    return rows.filter((row) => String(row.role ?? "").toUpperCase().replace(/-/g, "_") === roleFilter);
+  }, [rows, roleFilter]);
+
   return (
     <>
       <div className="card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-            <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
+          <div className="flex items-center gap-3">
+            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
+              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
+            </div>
+            <div>
+              <h3 className="text-lg font-semibold text-slate-900">All Users</h3>
+              <p className="text-sm text-slate-600">
+                {displayedRows.length}
+                {roleFilter === "all" ? ` of ${rows.length}` : ""} people
+              </p>
+            </div>
           </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">All Users</h3>
-            <p className="text-sm text-slate-600">{rows.length} users registered</p>
+          <CardSelect
+            items={[
+              { id: "OPERATIVE", name: "Operative" },
+              { id: "SUPERVISOR", name: "Supervisor" },
+              { id: "SITE_ADMIN", name: "Site Admin" },
+              { id: "ADMIN", name: "Super Admin" },
+              { id: "SUB_ADMIN", name: "Subcontractor admin" },
+            ]}
+            value={roleFilter}
+            onChange={setRoleFilter}
+            icon={Filter}
+            fieldLabel="Role"
+            variant="compact"
+            allowNone
+            noneValue="all"
+            noneLabel="All roles"
+            className="w-52"
+          />
+        </div>
+        <Table columns={columns} data={displayedRows} />
+      </div>
+      {assignSitesFor && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+          <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">
+            <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
+              Assign sites
+            </h3>
+            <p className="mt-1 text-sm text-slate-600 dark:text-slate-400">
+              {assignSitesFor.email || assignSitesFor.name || "This person"} will only see the sites you tick. Tick as many as they work on.
+            </p>
+            {companySites.length > 0 && (
+              <div className="mt-3 flex gap-3">
+                <button
+                  type="button"
+                  className="text-xs font-medium text-blue-600 hover:underline dark:text-blue-400"
+                  onClick={() => setSelectedSiteIds(companySites.map((s) => s.id))}
+                >
+                  Select all
+                </button>
+                <button
+                  type="button"
+                  className="text-xs font-medium text-slate-500 hover:underline"
+                  onClick={() => setSelectedSiteIds([])}
+                >
+                  Clear
+                </button>
+              </div>
+            )}
+            <div className="mt-4 max-h-64 space-y-2 overflow-y-auto">
+              {companySites.length === 0 && (
+                <p className="text-sm text-slate-500">No sites found for this company yet.</p>
+              )}
+              {companySites.map((site) => {
+                const checked = selectedSiteIds.includes(site.id);
+                return (
+                  <label key={site.id} className="flex items-center gap-2 text-sm text-slate-800 dark:text-slate-200">
+                    <input
+                      type="checkbox"
+                      checked={checked}
+                      onChange={(e) => {
+                        setSelectedSiteIds((prev) =>
+                          e.target.checked
+                            ? [...prev, site.id]
+                            : prev.filter((id) => id !== site.id)
+                        );
+                      }}
+                    />
+                    {site.name}
+                  </label>
+                );
+              })}
+            </div>
+            <div className="mt-6 flex justify-end gap-2">
+              <button
+                type="button"
+                className="rounded-lg px-3 py-2 text-sm text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-700"
+                onClick={() => setAssignSitesFor(null)}
+              >
+                Cancel
+              </button>
+              <button
+                type="button"
+                disabled={savingSites}
+                className="rounded-lg bg-blue-600 px-3 py-2 text-sm font-medium text-white hover:bg-blue-700 disabled:opacity-50"
+                onClick={() => void saveAssignedSites()}
+              >
+                {savingSites ? "Saving…" : "Save"}
+              </button>
+            </div>
           </div>
         </div>
-        <Table columns={columns} data={rows} />
-      </div>
-      {selectedProfile && (
-        <UserProfileModal
-          profile={selectedProfile}
-          onClose={() => setSelectedProfile(null)}
-          onUpdate={() => {
-            window.location.reload();
-          }}
-        />
       )}
     </>
   );

@@ -2,7 +2,7 @@
 
 import { useEffect, useMemo, useState, useCallback } from "react";
 import Image from "next/image";
-import { useSession } from "next-auth/react";
+import { useClientSession } from "../components/ClientSessionProvider";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import Table from "@/app/dashboard/components/ui/Table";
 import { Database } from "lucide-react";
@@ -46,7 +46,7 @@ type UserSummary = { id?: string; name?: string; email?: string; displayName?: s
 type ProfileSummary = { id?: string; userId?: string; displayName?: string };
 
 export default function CertificationsPage() {
-  const { data: session } = useSession();
+  const { uid: sessionUid } = useClientSession();
   const [tab, setTab] = useState<"certifications" | "training">("certifications");
   const [certs, setCerts] = useState<Item[]>([]);
   const [training, setTraining] = useState<Item[]>([]);
@@ -75,9 +75,6 @@ export default function CertificationsPage() {
       .finally(() => setLoading(false));
   }, []);
 
-
-  const sessionUser = session?.user as { id?: string; uid?: string } | undefined;
-  const sessionUid = sessionUser?.id ?? sessionUser?.uid ?? "";
 
   const items = tab === "certifications" ? certs : training;
   const filteredItems = useMemo(() => {

@@ -1,12 +1,20 @@
 "use client";
 
-import { createContext, useContext, useEffect, useState, type ReactNode } from "react";
+import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  APP_LANGUAGE_CODES,
+  resolveAppLocale,
+  translateMessage,
+  type AppLanguageCode,
+  type AppLocale,
+} from "@/lib/i18n/catalog";
 
 const STORAGE_KEY = "display-preferences";
 
 export type DateFormat = "ddmmyyyy" | "mmddyyyy";
 export type TimeFormat = "12h" | "24h";
 export type TableDensity = "compact" | "comfortable" | "spacious";
+export type { AppLocale, AppLanguageCode };
 
 type DisplayPreferences = {
   dateFormat: DateFormat;
@@ -18,6 +26,7 @@ type DisplayPreferences = {
   dashboardBackgroundBlur: boolean;
   /** Opacity of the light/dark scrim over the image (0.35–0.92) */
   dashboardBackgroundOverlay: number;
+  locale: AppLocale;
 };
 
 const defaults: DisplayPreferences = {
@@ -27,7 +36,14 @@ const defaults: DisplayPreferences = {
   dashboardBackgroundImageUrl: null,
   dashboardBackgroundBlur: true,
   dashboardBackgroundOverlay: 0.72,
+  locale: "system",
 };
+
+function parseLocale(raw: unknown): AppLocale {
+  if (raw === "system") return "system";
+  if (typeof raw === "string" && APP_LANGUAGE_CODES.has(raw)) return raw as AppLanguageCode;
+  return defaults.locale;
+}
 
 type ContextValue = DisplayPreferences & {
   setDateFormat: (v: DateFormat) => void;
@@ -36,6 +52,9 @@ type ContextValue = DisplayPreferences & {
   setDashboardBackgroundImageUrl: (v: string | null) => void;
   setDashboardBackgroundBlur: (v: boolean) => void;
   setDashboardBackgroundOverlay: (v: number) => void;
+  setLocale: (v: AppLocale) => void;
+  resolvedLocale: AppLanguageCode;
+  t: (key: string) => string;
 };
 
 const DisplayPreferencesContext = createContext<ContextValue | null>(null);
@@ -63,6 +82,7 @@ function loadPreferences(): DisplayPreferences {
           ? parsed.dashboardBackgroundBlur
           : defaults.dashboardBackgroundBlur,
       dashboardBackgroundOverlay: overlay,
+      locale: parseLocale(parsed.locale),
     };
   } catch {
     return defaults;
@@ -78,9 +98,22 @@ function savePreferences(prefs: DisplayPreferences) {
   }
 }
 
+const fallbackContext: ContextValue = {
+  ...defaults,
+  setDateFormat: () => {},
+  setTimeFormat: () => {},
+  setTableDensity: () => {},
+  setDashboardBackgroundImageUrl: () => {},
+  setDashboardBackgroundBlur: () => {},
+  setDashboardBackgroundOverlay: () => {},
+  setLocale: () => {},
+  resolvedLocale: "en",
+  t: (key) => translateMessage("en", key),
+};
+
 export function useDisplayPreferences() {
   const ctx = useContext(DisplayPreferencesContext);
-  if (!ctx) return defaults as ContextValue;
+  if (!ctx) return fallbackContext;
   return ctx;
 }
 
@@ -153,6 +186,20 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
     savePreferences(next);
   };
 
+  const resolvedLocale = useMemo(
+    () =>
+      resolveAppLocale(
+        prefs.locale,
+        typeof navigator === "undefined" ? undefined : navigator.language
+      ),
+    [prefs.locale]
+  );
+
+  useEffect(() => {
+    if (typeof document === "undefined") return;
+    document.documentElement.lang = resolvedLocale === "en" ? "en-GB" : resolvedLocale;
+  }, [resolvedLocale]);
+
   const value: ContextValue = {
     ...prefs,
     setDateFormat: (v) => update({ dateFormat: v }),
@@ -162,6 +209,9 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
     setDashboardBackgroundBlur: (v) => update({ dashboardBackgroundBlur: v }),
     setDashboardBackgroundOverlay: (v) =>
       update({ dashboardBackgroundOverlay: Math.min(0.92, Math.max(0.35, v)) }),
+    setLocale: (v) => update({ locale: v }),
+    resolvedLocale,
+    t: (key) => translateMessage(resolvedLocale, key),
   };
 
   return (

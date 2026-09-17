@@ -2,6 +2,7 @@
 
 import { useState, useEffect } from "react";
 import Button from "../../components/ui/Button";
+import { SitePicker } from "../../components/ui/SitePicker";
 
 type Site = { id: string; name?: string };
 
@@ -16,12 +17,20 @@ export default function AddNearMissModal() {
     if (!open) return;
     fetch("/api/sites", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : []))
-      .then((list) => setSites(Array.isArray(list) ? list : []))
+      .then((list) => {
+        const sitesList = Array.isArray(list) ? list : [];
+        setSites(sitesList);
+        if (sitesList.length === 1) setSiteId((prev) => prev || sitesList[0].id);
+      })
       .catch(() => setSites([]));
   }, [open]);
 
   async function handleSubmit() {
     if (!description.trim()) return;
+    if (!siteId.trim()) {
+      alert("Select a site. This report will only appear for that site.");
+      return;
+    }
     setSubmitting(true);
     try {
       const meRes = await fetch("/api/me", { credentials: "include" });
@@ -35,7 +44,7 @@ export default function AddNearMissModal() {
         body: JSON.stringify({
           description: description.trim(),
           status: "pending",
-          siteId: siteId.trim() || null,
+          siteId: siteId.trim(),
           reportedBy,
         }),
       });
@@ -84,24 +93,20 @@ export default function AddNearMissModal() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Site (optional)</label>
-              <select
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Site <span className="text-red-600">*</span>
+              </label>
+              <SitePicker
+                sites={sites}
                 value={siteId}
-                onChange={(e) => setSiteId(e.target.value)}
-                className="w-full rounded-lg border border-slate-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select site...</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id}>
-                    {s.name ?? s.id}
-                  </option>
-                ))}
-              </select>
+                onChange={setSiteId}
+                placeholder="Select site…"
+              />
             </div>
             <div className="flex gap-2 pt-2">
               <Button
                 onClick={handleSubmit}
-                disabled={!description.trim() || submitting}
+                disabled={!description.trim() || !siteId.trim() || submitting}
                 className="flex-1"
               >
                 {submitting ? "Saving…" : "Save Report"}

@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
+import { AUTH_COOKIE_NAMES, authCookieClearOptions } from "@/lib/authCookies";
 
-const DASHBOARD_ROLES = ["ADMIN", "admin", "SUPERVISOR", "supervisor", "superuser", "OPERATIVE", "operative", "sub_admin"];
+const DASHBOARD_ROLES = ["ADMIN", "admin", "SUPERVISOR", "supervisor", "superuser", "OPERATIVE", "operative", "sub_admin", "site_admin"];
 
 const PUBLIC_PATHS = [
   "/",
@@ -31,12 +32,9 @@ export function proxy(req: NextRequest) {
   // Clear stale auth cookies on login and auth callback – never preserve
   if (path.startsWith("/login") || path.startsWith("/admin/login") || path.startsWith("/auth/callback")) {
     const res = NextResponse.next();
-    res.cookies.set("role", "", { path: "/", maxAge: 0 });
-    res.cookies.set("user_email", "", { path: "/", maxAge: 0 });
-    res.cookies.set("companyId", "", { path: "/", maxAge: 0 });
-    res.cookies.set("impersonating", "", { path: "/", maxAge: 0 });
-    res.cookies.set("session_id", "", { path: "/", maxAge: 0 });
-    res.cookies.set("session_started_at", "", { path: "/", maxAge: 0 });
+    for (const name of AUTH_COOKIE_NAMES) {
+      res.cookies.set(name, "", authCookieClearOptions());
+    }
     return res;
   }
 

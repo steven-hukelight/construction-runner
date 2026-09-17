@@ -5,7 +5,7 @@ import nodemailer from "nodemailer";
 export async function POST(req: Request) {
   try {
     const { userId, tempPassword } = await req.json();
-    if (!userId || !tempPassword) return NextResponse.json({ error: "missing" }, { status: 400 });
+    if (!userId) return NextResponse.json({ error: "missing" }, { status: 400 });
 
     const { data: user } = await supabaseAdmin.from("users").select("email, display_name").eq("id", userId).maybeSingle();
     if (!user) return NextResponse.json({ error: "user not found" }, { status: 404 });
@@ -13,7 +13,9 @@ export async function POST(req: Request) {
     if (!email) return NextResponse.json({ error: "no email" }, { status: 400 });
 
     const subject = "Welcome to Construction Runner";
-    const text = `Hello ${user.display_name || ""},\n\nYour account has been approved. You can sign in with: \n\nEmail: ${email}\nTemporary password: ${tempPassword}\n\nPlease change your password after first login.`;
+    const text = tempPassword
+      ? `Hello ${user.display_name || ""},\n\nYour account has been approved. You can sign in with:\n\nEmail: ${email}\nTemporary password: ${tempPassword}\n\nPlease change your password after first login.`
+      : `Hello ${user.display_name || ""},\n\nYour account has been approved. Sign in to the Construction Runner app with the email and password you chose when you registered.\n\nIf you have forgotten that password, use Forgot password on https://www.construction-runner.com/forgot-password`;
 
     if (process.env.RESEND_API_KEY) {
       try {

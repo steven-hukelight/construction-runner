@@ -6,6 +6,16 @@ import Table from "../components/ui/Table";
 import TableActions from "../components/ui/TableActions";
 import useSWR from "swr";
 
+function siteIsVisible(row: { showOnMap?: boolean; show_on_map?: boolean } | null | undefined) {
+  if (!row) return true;
+  if (row.showOnMap === false || row.show_on_map === false) return false;
+  return true;
+}
+
+function siteIsActive(row: { active?: boolean } | null | undefined) {
+  return row?.active !== false;
+}
+
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function SitesTable({ data }: any) {
   const fetcher = (url: string) =>
@@ -51,7 +61,7 @@ export default function SitesTable({ data }: any) {
   }
 
   async function toggleVisible(row: any) {
-    const next = !(row.showOnMap ?? true);
+    const next = !siteIsVisible(row);
     try {
       const res = await fetch(`/api/sites/${encodeURIComponent(row.id)}`, {
         method: "PATCH",
@@ -71,10 +81,19 @@ export default function SitesTable({ data }: any) {
         await mutate();
         return;
       }
+      const payload = (await res.json().catch(() => null)) as
+        | { site?: Record<string, unknown> }
+        | null;
       mutate(
         (prev) =>
-          (prev ?? []).map((r) => (r.id === row.id ? { ...r, showOnMap: next } : r)),
-        false
+          (prev ?? []).map((r) =>
+            r.id === row.id
+              ? payload?.site
+                ? { ...r, ...payload.site }
+                : { ...r, showOnMap: next, show_on_map: next }
+              : r
+          ),
+        { revalidate: true }
       );
     } catch {
       window.alert("Network error while saving.");
@@ -120,8 +139,8 @@ export default function SitesTable({ data }: any) {
       header: "Active",
       accessor: "active",
       render: (row: any) => (
-        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${row.active !== false ? "bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300" : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400"}`}>
-          {row.active !== false ? "Active" : "Inactive"}
+        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${siteIsActive(row) ? "bg-green-50 dark:bg-green-900/50 text-green-700 dark:text-green-300" : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400"}`}>
+          {siteIsActive(row) ? "Active" : "Inactive"}
         </span>
       ),
     },
@@ -163,8 +182,8 @@ export default function SitesTable({ data }: any) {
       header: "Visible",
       accessor: "showOnMap",
       render: (row: any) => (
-        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${row.showOnMap !== false ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400"}`}>
-          {row.showOnMap !== false ? "Shown" : "Hidden"}
+        <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${siteIsVisible(row) ? "bg-blue-50 dark:bg-blue-900/50 text-blue-700 dark:text-blue-300" : "bg-gray-100 dark:bg-slate-700 text-gray-600 dark:text-slate-400"}`}>
+          {siteIsVisible(row) ? "Shown" : "Hidden"}
         </span>
       ),
     },

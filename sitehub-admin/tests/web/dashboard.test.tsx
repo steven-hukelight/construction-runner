@@ -1,22 +1,22 @@
 import { render, screen } from '@testing-library/react';
 import Dashboard from '@/app/dashboard/page';
-import { SessionProvider } from 'next-auth/react';
-import type { Session } from 'next-auth';
+import { ClientSessionProvider } from '@/app/dashboard/components/ClientSessionProvider';
 
 describe('Web Dashboard', () => {
   function renderWithSession(role: string) {
-    const session: Session = {
-      user: {
-        email: `${role}@construction-runner.com`,
-        name: role.charAt(0).toUpperCase() + role.slice(1),
-        role,
-      },
-      expires: '2099-01-01T00:00:00.000Z',
-    };
     render(
-      <SessionProvider session={session}>
+      <ClientSessionProvider
+        initial={{
+          role,
+          companyId: null,
+          email: `${role}@construction-runner.com`,
+          uid: '',
+          impersonating: false,
+          sessionStartedAt: null,
+        }}
+      >
         <Dashboard />
-      </SessionProvider>
+      </ClientSessionProvider>
     );
   }
 

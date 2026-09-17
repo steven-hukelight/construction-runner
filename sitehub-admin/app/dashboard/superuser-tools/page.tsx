@@ -6,8 +6,6 @@ import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
 import {
   RefreshCw,
-  Database,
-  FileCheck,
   Download,
   CheckCircle2,
   AlertTriangle,
@@ -20,6 +18,7 @@ import {
   Upload,
   Users,
 } from "lucide-react";
+import { CompanyPicker } from "../components/ui/SitePicker";
 type Company = { id: string; name: string | null };
 
 export default function SuperuserToolsPage() {
@@ -391,58 +390,6 @@ export default function SuperuserToolsPage() {
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
             <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <RefreshCw className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Attendance refresh</h3>
-              <p className="text-sm text-gray-600">Rebuild attendance cache from source data</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => runTool("attendance", "/api/maintenance/attendance-refresh")}
-            disabled={!!running}
-            className="inline-flex items-center gap-2"
-          >
-            {running === "attendance" ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <RefreshCw className="w-4 h-4" />
-            )}
-            Run refresh
-          </Button>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Database className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-gray-900">Seed cert training</h3>
-              <p className="text-sm text-gray-600">Dev-only: seed certifications and training data</p>
-            </div>
-          </div>
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={() => runTool("seed", "/api/dev/seed-cert-training")}
-            disabled={!!running}
-            className="inline-flex items-center gap-2"
-          >
-            {running === "seed" ? (
-              <RefreshCw className="w-4 h-4 animate-spin" />
-            ) : (
-              <FileCheck className="w-4 h-4" />
-            )}
-            Run seed
-          </Button>
-        </div>
-
-        <div className="card">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
               <Download className="w-5 h-5 text-blue-600" />
             </div>
             <div>
@@ -451,18 +398,15 @@ export default function SuperuserToolsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={exportCompanyId}
-              onChange={(e) => setExportCompanyId(e.target.value)}
-              className="input w-full max-w-[200px]"
-            >
-              <option value="">Select company</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name || c.id}
-                </option>
-              ))}
-            </select>
+            <div className="w-full max-w-[240px]">
+              <CompanyPicker
+                companies={companies}
+                value={exportCompanyId}
+                onChange={setExportCompanyId}
+                variant="compact"
+                placeholder="Select company"
+              />
+            </div>
             <Button
               size="sm"
               variant="secondary"
@@ -653,16 +597,16 @@ export default function SuperuserToolsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <select
-              value={copyTemplateId}
-              onChange={(e) => setCopyTemplateId(e.target.value)}
-              className="w-full max-w-[240px] px-4 py-2 border border-gray-200 rounded-xl text-sm"
-            >
-              <option value="">Select template</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name || c.id}</option>
-              ))}
-            </select>
+            <div className="w-full max-w-[240px]">
+              <CompanyPicker
+                companies={companies}
+                value={copyTemplateId}
+                onChange={setCopyTemplateId}
+                variant="compact"
+                fieldLabel="Template"
+                placeholder="Select template"
+              />
+            </div>
             <input
               type="text"
               value={copyNewName}
@@ -694,16 +638,15 @@ export default function SuperuserToolsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <select
-              value={bulkInviteCompanyId}
-              onChange={(e) => setBulkInviteCompanyId(e.target.value)}
-              className="w-full max-w-[240px] block px-4 py-2 border border-gray-200 rounded-xl text-sm"
-            >
-              <option value="">Select company</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name || c.id}</option>
-              ))}
-            </select>
+            <div className="w-full max-w-[240px]">
+              <CompanyPicker
+                companies={companies}
+                value={bulkInviteCompanyId}
+                onChange={setBulkInviteCompanyId}
+                variant="compact"
+                placeholder="Select company"
+              />
+            </div>
             <textarea
               value={bulkInviteEmails}
               onChange={(e) => setBulkInviteEmails(e.target.value)}
@@ -735,16 +678,15 @@ export default function SuperuserToolsPage() {
             </div>
           </div>
           <div className="space-y-2">
-            <select
-              value={importCsvCompanyId}
-              onChange={(e) => setImportCsvCompanyId(e.target.value)}
-              className="w-full max-w-[240px] block px-4 py-2 border border-gray-200 rounded-xl text-sm"
-            >
-              <option value="">Select company</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name || c.id}</option>
-              ))}
-            </select>
+            <div className="w-full max-w-[240px]">
+              <CompanyPicker
+                companies={companies}
+                value={importCsvCompanyId}
+                onChange={setImportCsvCompanyId}
+                variant="compact"
+                placeholder="Select company"
+              />
+            </div>
             <input
               type="file"
               accept=".csv"
@@ -775,16 +717,18 @@ export default function SuperuserToolsPage() {
             </div>
           </div>
           <div className="flex flex-wrap items-center gap-2">
-            <select
-              value={syncProfileCompanyId}
-              onChange={(e) => setSyncProfileCompanyId(e.target.value)}
-              className="w-full max-w-[200px] px-4 py-2 border border-gray-200 rounded-xl text-sm"
-            >
-              <option value="">All companies</option>
-              {companies.map((c) => (
-                <option key={c.id} value={c.id}>{c.name || c.id}</option>
-              ))}
-            </select>
+            <div className="w-full max-w-[240px]">
+              <CompanyPicker
+                companies={companies}
+                value={syncProfileCompanyId}
+                onChange={setSyncProfileCompanyId}
+                variant="compact"
+                allowNone
+                noneValue=""
+                noneLabel="All companies"
+                placeholder="All companies"
+              />
+            </div>
             <Button
               size="sm"
               variant="secondary"

@@ -1,10 +1,13 @@
 import { purgeSiteBeforeDelete } from "@/app/api/sites/_utils/purgeSiteBeforeDelete";
 import { ensureSiteAccess } from "@/app/api/sites/_utils/siteAccess";
+import { serializeSites } from "@/app/api/sites/_utils/serializeSite";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { randomUUID } from "crypto";
+import { canCreateAndAssignSites } from "@/lib/auth/roles";
+import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
 
 export async function GET(req: Request) {
   try {
@@ -22,7 +25,7 @@ export async function GET(req: Request) {
       const all = searchParams.get("all") === "true";
       if (all) {
         const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false }).limit(500);
-        return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
+        return NextResponse.json(serializeSites(data ?? []));
       }
       companyId = searchParams.get("companyId") || companyId || undefined;
       if (companyId) {
@@ -32,19 +35,25 @@ export async function GET(req: Request) {
           .eq("company_id", companyId)
           .order("created_at", { ascending: false })
           .limit(500);
-        return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
+        return NextResponse.json(serializeSites(data ?? []));
       }
       const { data } = await supabaseAdmin.from("sites").select("*").order("created_at", { ascending: false }).limit(500);
-      return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
+      return NextResponse.json(serializeSites(data ?? []));
     }
     if (companyId) {
-      const { data } = await supabaseAdmin
+      let query = supabaseAdmin
         .from("sites")
         .select("*")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .limit(500);
-      return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
+      const restricted = await getRestrictedSiteIds(role);
+      if (restricted) {
+        if (restricted.length === 0) return NextResponse.json([]);
+        query = query.in("id", restricted);
+      }
+      const { data } = await query;
+      return NextResponse.json(serializeSites(data ?? []));
     }
     return NextResponse.json([], { status: 200 });
   } catch (e: unknown) {
@@ -63,6 +72,12 @@ export async function POST(req: Request) {
 
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value;
+    if (!canCreateAndAssignSites(role)) {
+      return NextResponse.json(
+        { error: "Only a Super Admin or Superuser can create sites." },
+        { status: 403 }
+      );
+    }
     const companyId =
       cookieStore.get("companyId")?.value ||
       (await resolveCompanyId({

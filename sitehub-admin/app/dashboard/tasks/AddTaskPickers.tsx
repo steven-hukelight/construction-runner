@@ -1,12 +1,13 @@
 "use client";
 
-import { useState, useEffect, useRef, useMemo, useCallback } from "react";
+import { useState, useEffect, useMemo, useCallback } from "react";
 import { Calendar, ChevronLeft, ChevronRight } from "lucide-react";
 import { clsx } from "clsx";
+import { SitePicker as SharedSitePicker } from "../components/ui/SitePicker";
 
 type Site = { id: string; name?: string };
 
-/** Button + popover list — avoids native `<select>` (Chrome breaks in modals / stacked context). */
+/** Card-style site list — avoids native `<select>` (Chrome breaks in modals). */
 export function SitePicker({
   sites,
   value,
@@ -16,84 +17,14 @@ export function SitePicker({
   value: string;
   onChange: (id: string) => void;
 }) {
-  const [open, setOpen] = useState(false);
-  const rootRef = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!open) return;
-    const handler = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler, true);
-    return () => document.removeEventListener("mousedown", handler, true);
-  }, [open]);
-
-  const label =
-    value && sites.length
-      ? sites.find((s) => s.id === value)?.name ?? value
-      : "Select site…";
-
   return (
-    <div className="relative" ref={rootRef}>
-      <button
-        type="button"
-        onClick={() => setOpen((o) => !o)}
-        aria-expanded={open}
-        aria-haspopup="listbox"
-        className={clsx(
-          "w-full rounded-lg border border-slate-300 bg-white px-3 py-2.5 text-left text-sm",
-          "dark:border-slate-600 dark:bg-slate-900 dark:text-slate-100",
-          "focus:outline-none focus:ring-2 focus:ring-blue-500",
-          "flex items-center justify-between gap-2"
-        )}
-      >
-        <span className="truncate">{label}</span>
-        <span className="text-slate-400 shrink-0 text-xs" aria-hidden>
-          ▾
-        </span>
-      </button>
-      {open && (
-        <ul
-          role="listbox"
-          className={clsx(
-            "absolute z-[10060] mt-1 max-h-56 w-full overflow-y-auto rounded-lg border border-slate-200 bg-white py-1 shadow-xl",
-            "dark:border-slate-600 dark:bg-slate-900"
-          )}
-        >
-          <li>
-            <button
-              type="button"
-              role="option"
-              className="w-full px-3 py-2 text-left text-sm text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-800"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-            >
-              — None —
-            </button>
-          </li>
-          {sites.map((s) => (
-            <li key={s.id}>
-              <button
-                type="button"
-                role="option"
-                className={clsx(
-                  "w-full px-3 py-2 text-left text-sm hover:bg-slate-50 dark:text-slate-100 dark:hover:bg-slate-800",
-                  value === s.id && "bg-blue-50 font-medium dark:bg-slate-800"
-                )}
-                onClick={() => {
-                  onChange(s.id);
-                  setOpen(false);
-                }}
-              >
-                {s.name ?? s.id}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-    </div>
+    <SharedSitePicker
+      sites={sites}
+      value={value}
+      onChange={onChange}
+      allowNone={false}
+      placeholder="Select site…"
+    />
   );
 }
 

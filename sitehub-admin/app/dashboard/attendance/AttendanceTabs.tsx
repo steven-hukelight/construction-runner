@@ -4,7 +4,6 @@ import { useState, useCallback, useEffect } from "react";
 import LiveAttendance from "./LiveAttendance";
 import SignInOut from "./SignInOut";
 import RoleCall from "./RoleCall";
-import { useTransition } from "react";
 import { getRoleFromClient, getCompanyIdFromClient } from "@/lib/utils/cookies";
 import { Calendar, UserRoundPen } from "lucide-react";
 
@@ -20,7 +19,6 @@ const tabs = [
 
 export default function AttendanceTabs() {
   const [active, setActive] = useState<(typeof tabs)[number]["id"]>("live");
-  const [pending, startTransition] = useTransition();
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [recordAttendanceOpen, setRecordAttendanceOpen] = useState(false);
   const [showSuperuserHint, setShowSuperuserHint] = useState(false);
@@ -40,40 +38,6 @@ export default function AttendanceTabs() {
   const triggerRefetch = useCallback(() => {
     setRefreshTrigger((n) => n + 1);
   }, []);
-
-  async function refreshAttendance() {
-    try {
-      startTransition(() => {});
-      let companyId: string | null = null;
-      try {
-        const meRes = await fetch("/api/me", { credentials: "include" });
-        if (meRes.ok) {
-          const me = await meRes.json();
-          companyId = me?.companyId ?? null;
-        }
-      } catch {
-        /* ignore */
-      }
-      const res = await fetch("/api/maintenance/attendance-refresh", {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId }),
-      });
-      const json = await res.json();
-      if (res.ok) {
-        triggerRefetch();
-      }
-      alert(
-        res.ok
-          ? `Refreshed ${json.total ?? 0} records. Updated names: ${json.nameUpdated ?? 0}, sites: ${json.siteUpdated ?? 0}`
-          : `Refresh failed: ${json.error || "Unknown error"}`
-      );
-    } catch (e: unknown) {
-      const msg = e instanceof Error ? e.message : "Unknown error";
-      alert(`Refresh failed: ${msg}`);
-    }
-  }
 
   return (
     <div className="space-y-6">
@@ -146,21 +110,11 @@ export default function AttendanceTabs() {
             </div>
           )}
           <div className="bg-white dark:bg-slate-800 border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-6">
-            <div className="flex items-center justify-between mb-4">
-              <div>
-                <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Live Attendance</h3>
-                <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
-                  The live list archives automatically at midnight (UK). Pick a past date to view the archive.
-                </p>
-              </div>
-              <button
-                onClick={refreshAttendance}
-                disabled={pending}
-                className="inline-flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-white dark:bg-slate-700 hover:bg-gray-50 dark:hover:bg-slate-600 text-gray-700 dark:text-slate-200 border border-gray-200 dark:border-slate-600 transition-all"
-                title="Refresh missing names and sites"
-              >
-                {pending ? "Refreshing..." : "Refresh names/sites"}
-              </button>
+            <div className="mb-4">
+              <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Live Attendance</h3>
+              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+                The live list archives automatically at midnight (UK). Pick a past date to view the archive.
+              </p>
             </div>
             <LiveAttendance refreshTrigger={refreshTrigger} selectedDate={selectedDate} />
           </div>

@@ -4,6 +4,7 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { PortalOverlay } from "../../components/PortalOverlay";
+import { SitePicker } from "../../components/ui/SitePicker";
 
 type Site = { id: string; name?: string };
 
@@ -26,12 +27,20 @@ export default function BriefingsUploadModal() {
     if (!open) return;
     fetch("/api/sites", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : []))
-      .then((arr) => setSites(Array.isArray(arr) ? arr : []))
+      .then((arr) => {
+        const list = Array.isArray(arr) ? arr : [];
+        setSites(list);
+        if (list.length === 1) setSiteId((prev) => prev || list[0].id);
+      })
       .catch(() => setSites([]));
   }, [open]);
 
   async function handleUpload() {
     if (!file) return;
+    if (!siteId.trim()) {
+      alert("Select a site. This briefing will only appear for that site.");
+      return;
+    }
     setUploading(true);
     try {
       const form = new FormData();
@@ -93,19 +102,16 @@ export default function BriefingsUploadModal() {
             />
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">Site (optional)</label>
-            <select
+            <label className="block text-sm font-semibold text-gray-700 mb-1">
+              Site <span className="text-red-600">*</span>
+            </label>
+            <SitePicker
+              sites={sites}
               value={siteId}
-              onChange={(e: ChangeEvent<HTMLSelectElement>) => setSiteId(e.target.value)}
-              className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-            >
-              <option value="">No site selected (company-wide)</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>
-                  {s.name ?? s.id}
-                </option>
-              ))}
-            </select>
+              onChange={setSiteId}
+              placeholder="Select site…"
+            />
+            <p className="mt-1 text-xs text-slate-500">Stays in this site’s folder only.</p>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">PDF File</label>
@@ -119,7 +125,7 @@ export default function BriefingsUploadModal() {
           <div className="flex gap-2 pt-2">
             <Button
               onClick={handleUpload}
-              disabled={!file || uploading}
+              disabled={!file || !siteId || uploading}
               className="flex-1"
             >
               {uploading ? "Uploading…" : "Upload"}

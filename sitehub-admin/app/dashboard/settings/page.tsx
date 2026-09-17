@@ -6,24 +6,27 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import PageHeader from "../components/PageHeader";
 import { useTheme } from "@/app/ThemeProvider";
 import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { User, Building2, Bell, Shield, Palette, Database, Mail } from "lucide-react";
+import { User, Building2, Bell, Shield, Palette, Database, Mail, Calendar, Clock, Rows3 } from "lucide-react";
+import { CardSelect } from "../components/ui/CardSelect";
+import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 
 export default function SettingsPage() {
+  const { t } = useDisplayPreferences();
   const activeTabDefault = "personal";
   const [activeTab, setActiveTab] = useState(activeTabDefault);
 
   const tabs = [
-    { id: "personal", label: "Personal Information", icon: User },
-    { id: "company", label: "Company", icon: Building2 },
-    { id: "notifications", label: "Notifications", icon: Bell },
-    { id: "security", label: "Security", icon: Shield },
-    { id: "display", label: "Display", icon: Palette },
-    { id: "data", label: "Data & Privacy", icon: Database },
+    { id: "personal", label: t("Personal Information"), icon: User },
+    { id: "company", label: t("Company"), icon: Building2 },
+    { id: "notifications", label: t("Notifications"), icon: Bell },
+    { id: "security", label: t("Security"), icon: Shield },
+    { id: "display", label: t("Display"), icon: Palette },
+    { id: "data", label: t("Data & Privacy"), icon: Database },
   ];
 
   return (
     <>
-      <PageHeader title="Settings" description="Manage your account and preferences" />
+      <PageHeader title={t("Settings")} description={t("Manage your account and preferences")} />
 
       <div className="space-y-6">
         {/* Selection bar (same layout as Safety) */}
@@ -517,6 +520,7 @@ function DisplaySettings() {
     setDashboardBackgroundImageUrl,
     setDashboardBackgroundBlur,
     setDashboardBackgroundOverlay,
+    t,
   } = useDisplayPreferences();
 
   const [bgUrlError, setBgUrlError] = useState<string | null>(null);
@@ -570,6 +574,15 @@ function DisplaySettings() {
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 dark:text-slate-100 mb-6">Display Preferences</h2>
       <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
+          <div>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">{t("Language")}</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">
+              {t("Choose the language for menus and common pages")}
+            </p>
+          </div>
+          <LanguageSwitcher />
+        </div>
         <div className="py-4 border-b border-gray-200 dark:border-slate-600 space-y-4">
           <div>
             <p className="font-semibold text-gray-900 dark:text-slate-100">Dashboard background</p>
@@ -708,8 +721,8 @@ function DisplaySettings() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-slate-100">Theme</p>
-            <p className="text-sm text-gray-600 dark:text-slate-400">Follow system, or choose light or dark</p>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">{t("Theme")}</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{t("Follow system, or choose light or dark")}</p>
           </div>
           <div className="flex flex-wrap gap-4 items-center">
             {(["light", "dark", "system"] as const).map((t) => (
@@ -730,48 +743,60 @@ function DisplaySettings() {
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-slate-100">Date format</p>
-            <p className="text-sm text-gray-600 dark:text-slate-400">How dates are shown across the app</p>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">{t("Date format")}</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{t("How dates are shown across the app")}</p>
           </div>
-          <select
-            value={dateFormat}
-            onChange={(e) => setDateFormat(e.target.value as "ddmmyyyy" | "mmddyyyy")}
-            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="ddmmyyyy">DD/MM/YYYY (e.g. 06/03/2025)</option>
-            <option value="mmddyyyy">MM/DD/YYYY (e.g. 03/06/2025)</option>
-          </select>
+          <div className="w-full max-w-xs">
+            <CardSelect
+              items={[
+                { id: "ddmmyyyy", name: "DD/MM/YYYY", subtitle: "e.g. 06/03/2025" },
+                { id: "mmddyyyy", name: "MM/DD/YYYY", subtitle: "e.g. 03/06/2025" },
+              ]}
+              value={dateFormat}
+              onChange={(id) => setDateFormat(id as "ddmmyyyy" | "mmddyyyy")}
+              icon={Calendar}
+              fieldLabel="Date format"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4 border-b border-gray-200 dark:border-slate-600">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-slate-100">Time format</p>
-            <p className="text-sm text-gray-600 dark:text-slate-400">12-hour or 24-hour clock</p>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">{t("Time format")}</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{t("12-hour or 24-hour clock")}</p>
           </div>
-          <select
-            value={timeFormat}
-            onChange={(e) => setTimeFormat(e.target.value as "12h" | "24h")}
-            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="24h">24-hour (e.g. 14:30)</option>
-            <option value="12h">12-hour (e.g. 2:30 PM)</option>
-          </select>
+          <div className="w-full max-w-xs">
+            <CardSelect
+              items={[
+                { id: "24h", name: "24-hour", subtitle: "e.g. 14:30" },
+                { id: "12h", name: "12-hour", subtitle: "e.g. 2:30 PM" },
+              ]}
+              value={timeFormat}
+              onChange={(id) => setTimeFormat(id as "12h" | "24h")}
+              icon={Clock}
+              fieldLabel="Time format"
+            />
+          </div>
         </div>
 
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 py-4">
           <div>
-            <p className="font-semibold text-gray-900 dark:text-slate-100">Table density</p>
-            <p className="text-sm text-gray-600 dark:text-slate-400">Font size and row spacing in tables</p>
+            <p className="font-semibold text-gray-900 dark:text-slate-100">{t("Table density")}</p>
+            <p className="text-sm text-gray-600 dark:text-slate-400">{t("Font size and row spacing in tables")}</p>
           </div>
-          <select
-            value={tableDensity}
-            onChange={(e) => setTableDensity(e.target.value as "compact" | "comfortable" | "spacious")}
-            className="rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-          >
-            <option value="compact">Compact</option>
-            <option value="comfortable">Comfortable</option>
-            <option value="spacious">Spacious</option>
-          </select>
+          <div className="w-full max-w-xs">
+            <CardSelect
+              items={[
+                { id: "compact", name: "Compact" },
+                { id: "comfortable", name: "Comfortable" },
+                { id: "spacious", name: "Spacious" },
+              ]}
+              value={tableDensity}
+              onChange={(id) => setTableDensity(id as "compact" | "comfortable" | "spacious")}
+              icon={Rows3}
+              fieldLabel="Table density"
+            />
+          </div>
         </div>
 
         <div className="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-600">
@@ -789,48 +814,18 @@ function SecuritySettings() {
   return (
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h2>
-      <div className="space-y-6">
-        <div>
-          <h3 className="font-semibold text-gray-900 mb-3">Change Password</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <button className="button">Update Password</button>
-          </div>
-        </div>
-        <div className="pt-6 border-t">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">Two-Factor Authentication</p>
-              <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
-            </div>
-            <button className="button ghost">Enable</button>
-          </div>
-        </div>
-        <div className="pt-6 border-t">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="font-semibold text-gray-900">Session Timeout</p>
-              <p className="text-sm text-gray-600">Auto logout after inactivity</p>
-            </div>
-            <select className="input">
-              <option>15 minutes</option>
-              <option>30 minutes</option>
-              <option>1 hour</option>
-              <option>Never</option>
-            </select>
-          </div>
-        </div>
+      <div className="space-y-4 text-sm text-gray-700">
+        <p>
+          Web sessions sign you out after 30 minutes of inactivity. Password reset links expire after 1 hour.
+        </p>
+        <p>
+          To change your password, use{" "}
+          <a href="/forgot-password" className="text-blue-600 font-medium hover:underline">
+            Forgot password
+          </a>{" "}
+          on the sign-in screen.
+        </p>
+        <p className="text-gray-500">Two-factor authentication is not available during beta.</p>
       </div>
     </div>
   );
@@ -840,30 +835,15 @@ function DataPrivacySettings() {
   return (
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Data & Privacy</h2>
-      <div className="space-y-6">
-        <div className="py-4 border-b">
-          <h3 className="font-semibold text-gray-900 mb-2">Export Your Data</h3>
-          <p className="text-sm text-gray-600 mb-4">Download a copy of your data including sites, Health & Safety documents, and user information</p>
-          <button className="button ghost">Export Data</button>
-        </div>
-        <div className="py-4 border-b">
-          <h3 className="font-semibold text-gray-900 mb-2">Data Retention</h3>
-          <p className="text-sm text-gray-600 mb-4">Configure how long data is retained in the system</p>
-          <select className="input w-full max-w-xs">
-            <option>30 days</option>
-            <option>90 days</option>
-            <option>1 year</option>
-            <option>Forever</option>
-          </select>
-        </div>
-        <div className="py-4 border-b">
-          <h3 className="font-semibold text-red-600 mb-2">Delete Account</h3>
-          <p className="text-sm text-gray-600 mb-4">Permanently delete your account and all associated data</p>
-          <button className="px-4 py-2 bg-red-600 text-white rounded-full font-medium hover:bg-red-700">
-            Delete Account
-          </button>
-        </div>
-      </div>
+      <p className="text-sm text-gray-600 mb-6">
+        Download your data or request erasure from Profile → Privacy &amp; Data. That is the live GDPR path.
+      </p>
+      <a
+        href="/dashboard/profile"
+        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
+      >
+        Open Profile →
+      </a>
     </div>
   );
 }

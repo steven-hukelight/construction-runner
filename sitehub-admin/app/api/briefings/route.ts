@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
 
 export const dynamic = "force-dynamic";
 
@@ -22,8 +23,14 @@ export async function GET(req: Request) {
 
     if (role === "superuser") companyId = searchParams.get("companyId") || companyId || undefined;
 
+    const explicitSiteId = searchParams.get("siteId")?.trim() || searchParams.get("site_id")?.trim();
+    const restricted = await getRestrictedSiteIds(role);
+    const siteScope = siteIdsForFilter(restricted, explicitSiteId);
+    if (siteScope === "none") return NextResponse.json([]);
+
     let query = supabaseAdmin.from("briefings").select("*").order("created_at", { ascending: false }).limit(500);
     if (companyId) query = query.eq("company_id", companyId);
+    if (siteScope !== "all") query = query.in("site_id", siteScope);
     const { data } = await query;
     const briefings = (data ?? []).map((d) => ({ id: d.id, ...d }));
     return NextResponse.json(briefings);

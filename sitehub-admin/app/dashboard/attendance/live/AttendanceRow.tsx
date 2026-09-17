@@ -1,13 +1,8 @@
 "use client";
 
-import { formatTime, useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import type { AttendanceSession } from "./attendanceSessionTypes";
-import {
-  formatDurationBetween,
-  getSessionEndDate,
-  getSessionStartDate,
-  isActiveWorkSession,
-} from "./attendanceSessionUtils";
+import { getAttendanceRowModel } from "./attendanceRowModel";
 
 export default function AttendanceRow({
   session,
@@ -25,49 +20,11 @@ export default function AttendanceRow({
   onOpenDetails: () => void;
 }) {
   const { timeFormat } = useDisplayPreferences();
-  const start = getSessionStartDate(session);
-  const end = getSessionEndDate(session);
-  const active = isActiveWorkSession(session);
-
-  const timeOpts = { timeFormat };
-
-  let sessionTimeLabel: string;
-  if (session.kind === "absent") {
-    sessionTimeLabel = start ? formatTime(start, timeOpts) : "—";
-  } else if (session.kind === "orphan_sign_out") {
-    const endHm = end ? formatTime(end, timeOpts) : "—";
-    sessionTimeLabel = `— · Out ${endHm}`;
-  } else if (active && start) {
-    sessionTimeLabel = `In ${formatTime(start, timeOpts)} · Out —`;
-  } else if (start && end) {
-    sessionTimeLabel = `In ${formatTime(start, timeOpts)} · Out ${formatTime(end, timeOpts)}`;
-  } else if (start) {
-    sessionTimeLabel = `In ${formatTime(start, timeOpts)} · Out —`;
-  } else {
-    sessionTimeLabel = "—";
-  }
-
-  let durationLabel: string;
-  if (session.kind === "absent") {
-    durationLabel = "—";
-  } else if (start && end) {
-    durationLabel = formatDurationBetween(start, end);
-  } else if (start && active) {
-    durationLabel = formatDurationBetween(start, now);
-  } else {
-    durationLabel = "—";
-  }
-
-  let statusLabel: string;
-  if (session.kind === "absent") {
-    statusLabel = "Absent";
-  } else if (session.kind === "orphan_sign_out") {
-    statusLabel = "Exit only";
-  } else if (active) {
-    statusLabel = "Active";
-  } else {
-    statusLabel = "Completed";
-  }
+  const { timeLines, durationLabel, statusLabel, active } = getAttendanceRowModel(
+    session,
+    now,
+    timeFormat
+  );
 
   const rowTone = active
     ? "bg-emerald-500/[0.06] dark:bg-emerald-500/[0.08] hover:bg-emerald-500/[0.09] dark:hover:bg-emerald-500/[0.12]"
@@ -80,9 +37,9 @@ export default function AttendanceRow({
       </td>
       <td className={`${densityTd} align-middle text-slate-600 dark:text-slate-400`}>{siteLabel}</td>
       <td className={`${densityTd} align-middle`}>
-        <span className="tabular-nums text-sm text-slate-800 dark:text-slate-200 whitespace-nowrap">
-          {sessionTimeLabel}
-        </span>
+        <div className="tabular-nums text-sm text-slate-800 dark:text-slate-200 space-y-0.5">
+          {timeLines.length ? timeLines.map((line) => <div key={line}>{line}</div>) : "—"}
+        </div>
       </td>
       <td className={`${densityTd} align-middle`}>
         <span className="tabular-nums text-sm font-medium text-slate-700 dark:text-slate-300">{durationLabel}</span>

@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { getRestrictedSiteIds, siteIdsForFilter, assertWritableSiteId } from "@/lib/auth/siteScope";
 
 export async function GET(req: Request) {
   try {
@@ -22,13 +23,18 @@ export async function GET(req: Request) {
 
     const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10) || 100, 500);
     const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
+    const restricted = await getRestrictedSiteIds(role);
+    const siteScope = siteIdsForFilter(restricted, searchParams.get("siteId"));
+    if (siteScope === "none") return NextResponse.json([]);
 
     if (role === "superuser") {
-      const { data } = await supabaseAdmin
+      let q = supabaseAdmin
         .from("deliveries")
         .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, load_url, load_photos, created_at")
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
+      if (siteScope !== "all") q = q.in("site_id", siteScope);
+      const { data } = await q;
       const deliveries = data ?? [];
       const siteIds = [...new Set(deliveries.map((d) => (d as Record<string, unknown>).site_id).filter(Boolean))];
       const siteMap: Record<string, string> = {};
@@ -44,12 +50,14 @@ export async function GET(req: Request) {
       return NextResponse.json(enriched);
     }
     if (companyId) {
-      const { data } = await supabaseAdmin
+      let q = supabaseAdmin
         .from("deliveries")
         .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, load_url, load_photos, created_at")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
+      if (siteScope !== "all") q = q.in("site_id", siteScope);
+      const { data } = await q;
       const deliveries = data ?? [];
       const siteIds = [...new Set(deliveries.map((d) => (d as Record<string, unknown>).site_id).filter(Boolean))];
       const siteMap: Record<string, string> = {};
@@ -86,12 +94,15 @@ export async function POST(req: Request) {
   }
   const assignedCompanyId = role === "superuser" ? (body.company_id ?? body.companyId ?? companyId ?? null) : (companyId ?? null);
   if (!assignedCompanyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
+  const deliverySiteId = body.site_id ?? body.siteId ?? null;
+  const siteForbid = await assertWritableSiteId(role, deliverySiteId);
+  if (siteForbid) return siteForbid;
 
   const id = crypto.randomUUID();
   const { data, error } = await supabaseAdmin.from("deliveries").insert({
     id,
     reference: body.reference ?? null,
-    site_id: body.site_id ?? body.siteId ?? null,
+    site_id: deliverySiteId,
     company_id: assignedCompanyId,
     created_by: body.created_by ?? body.createdBy ?? null,
     status: body.status ?? "PENDING",

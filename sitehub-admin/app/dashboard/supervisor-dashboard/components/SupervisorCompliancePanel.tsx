@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useSyncExternalStore } from "react";
-import { Users, CheckCircle, AlertTriangle, XCircle, Shield, Calendar, FileWarning } from "lucide-react";
+import { Users, CheckCircle, AlertTriangle, XCircle, Shield, Calendar, FileWarning, Briefcase } from "lucide-react";
+import { CardSelect } from "../../components/ui/CardSelect";
+import { CompanyPicker, SitePicker } from "../../components/ui/SitePicker";
 import SupervisorOperativeCard from "./SupervisorOperativeCard";
 import SupervisorOperativeDrawer from "./SupervisorOperativeDrawer";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
@@ -73,81 +75,80 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
     return true;
   });
 
-  const selectClass =
-    "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
-
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center gap-4">
-        <label htmlFor="sup-compliance-site" className="text-sm font-medium text-gray-700">
-          Site
-        </label>
-        <select
-          id="sup-compliance-site"
+      <div className="flex flex-wrap items-end gap-3">
+        <SitePicker
+          sites={sites}
           value={siteId}
-          onChange={(e) => setSiteId(e.target.value)}
-          className={selectClass}
-        >
-          <option value="">Select site</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name || s.id}
-            </option>
-          ))}
-        </select>
+          onChange={setSiteId}
+          variant="compact"
+          placeholder="Select site"
+          className="w-56"
+        />
 
         {data && (
           <>
-            <select
+            <CardSelect
+              items={[
+                { id: "compliant", name: "Compliant" },
+                ...(preInductionUiEnabled
+                  ? [{ id: "missing_pre_induction", name: "Missing Pre-Induction" }]
+                  : []),
+                { id: "missing_induction", name: "Missing Induction" },
+                { id: "expired", name: "Expired" },
+                { id: "override_applied", name: "Override Applied" },
+                { id: "grandfathered", name: "Grandfathered" },
+              ]}
               value={filters.status}
-              onChange={(e) => setFilters((f) => ({ ...f, status: e.target.value }))}
-              className={selectClass}
-            >
-              <option value="all">All statuses</option>
-              <option value="compliant">Compliant</option>
-              {preInductionUiEnabled && (
-                <option value="missing_pre_induction">Missing Pre-Induction</option>
-              )}
-              <option value="missing_induction">Missing Induction</option>
-              <option value="expired">Expired</option>
-              <option value="override_applied">Override Applied</option>
-              <option value="grandfathered">Grandfathered</option>
-            </select>
-            <select
+              onChange={(id) => setFilters((f) => ({ ...f, status: id }))}
+              icon={Shield}
+              fieldLabel="Status"
+              variant="compact"
+              allowNone
+              noneValue="all"
+              noneLabel="All statuses"
+              className="w-52"
+            />
+            <CompanyPicker
+              companies={data.companyOptions}
               value={filters.companyId}
-              onChange={(e) => setFilters((f) => ({ ...f, companyId: e.target.value }))}
-              className={selectClass}
-            >
-              <option value="all">All companies</option>
-              {data.companyOptions.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
-                </option>
-              ))}
-            </select>
-            {(data.tradeOptions?.length ?? 0) > 0 && (
-              <select
+              onChange={(id) => setFilters((f) => ({ ...f, companyId: id }))}
+              variant="compact"
+              allowNone
+              noneValue="all"
+              noneLabel="All companies"
+              className="w-52"
+            />
+            {(data.tradeOptions?.length ?? 0) > 0 ? (
+              <CardSelect
+                items={data.tradeOptions!.map((t) => ({ id: t, name: t }))}
                 value={filters.trade}
-                onChange={(e) => setFilters((f) => ({ ...f, trade: e.target.value }))}
-                className={selectClass}
-              >
-                <option value="all">All trades</option>
-                {data.tradeOptions!.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-            )}
-            <select
+                onChange={(id) => setFilters((f) => ({ ...f, trade: id }))}
+                icon={Briefcase}
+                fieldLabel="Trade"
+                variant="compact"
+                allowNone
+                noneValue="all"
+                noneLabel="All trades"
+                className="w-48"
+              />
+            ) : null}
+            <CardSelect
+              items={[
+                { id: "expiring", name: "Expiring soon" },
+                { id: "expired", name: "Expired" },
+              ]}
               value={filters.expiry}
-              onChange={(e) => setFilters((f) => ({ ...f, expiry: e.target.value }))}
-              className={selectClass}
-            >
-              <option value="all">All</option>
-              <option value="expiring">Expiring soon</option>
-              <option value="expired">Expired</option>
-            </select>
+              onChange={(id) => setFilters((f) => ({ ...f, expiry: id }))}
+              icon={Calendar}
+              fieldLabel="Expiry"
+              variant="compact"
+              allowNone
+              noneValue="all"
+              noneLabel="All"
+              className="w-44"
+            />
           </>
         )}
       </div>

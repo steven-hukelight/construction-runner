@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { getServerPublicOrigin } from "@/lib/url";
+import { findUserByIdOrEmail } from "@/lib/auth/findUser";
 
 export async function GET() {
   try {
@@ -44,7 +45,7 @@ export async function GET() {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { id, role: roleFromBody } = body;
+    const { id, role: roleFromBody, siteIds: siteIdsFromBody } = body;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
     const cookieStore = await cookies();
@@ -54,10 +55,22 @@ export async function POST(req: Request) {
     const effectiveApproverRole = actualApproverRole === "superuser" ? "SUPERUSER" : actualApproverRole.toUpperCase();
 
     const assignRoleUpper = String(roleFromBody ?? "OPERATIVE").toUpperCase();
+    const requestedSiteIds = [
+      ...new Set(
+        (Array.isArray(siteIdsFromBody) ? siteIdsFromBody : [])
+          .map((x: unknown) => String(x).trim())
+          .filter(Boolean)
+      ),
+    ];
 
-    if (assignRoleUpper === "ADMIN" || assignRoleUpper === "SUPERVISOR") {
+    if (assignRoleUpper === "ADMIN" || assignRoleUpper === "SUPERVISOR" || assignRoleUpper === "SITE_ADMIN") {
       if (effectiveApproverRole !== "ADMIN" && effectiveApproverRole !== "SUPERUSER") {
         return NextResponse.json({ error: "Only approved ADMIN or SUPERUSER can approve ADMIN/SUPERVISOR roles" }, { status: 403 });
+      }
+      if (assignRoleUpper === "SITE_ADMIN" || assignRoleUpper === "SUPERVISOR") {
+        if (requestedSiteIds.length === 0) {
+          return NextResponse.json({ error: "Select at least one site" }, { status: 400 });
+        }
       }
     } else if (assignRoleUpper === "OPERATIVE") {
       if (
@@ -81,21 +94,36 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Already processed" }, { status: 400 });
     }
 
+    let approvedSiteIds: string[] = [];
+    if (assignRoleUpper === "SITE_ADMIN" || assignRoleUpper === "SUPERVISOR") {
+      let siteQuery = supabaseAdmin.from("sites").select("id").in("id", requestedSiteIds);
+      if (effectiveCompanyId) siteQuery = siteQuery.eq("company_id", effectiveCompanyId);
+      const { data: allowedSites } = await siteQuery;
+      approvedSiteIds = requestedSiteIds.filter((sid) =>
+        (allowedSites ?? []).some((s) => String(s.id) === sid)
+      );
+      if (approvedSiteIds.length === 0) {
+        return NextResponse.json({ error: "Select at least one site in this company" }, { status: 400 });
+      }
+    }
+
     const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
     let authUser: { id: string } | null = null;
+    let appliedTempPassword = false;
 
-    const { data: existingUser } = await supabaseAdmin.from("users").select("id").eq("email", reg.email ?? "").maybeSingle();
-    if (existingUser) {
-      authUser = { id: existingUser.id };
+    const existingUser = await findUserByIdOrEmail({ email: reg.email ?? "" });
+    if (existingUser?.id) {
+      authUser = { id: String(existingUser.id) };
     } else {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email: reg.email ?? "",
+        email: (reg.email ?? "").trim().toLowerCase(),
         password: tempPassword,
         email_confirm: true,
         user_metadata: { name: reg.name ?? undefined },
       });
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       authUser = created?.user ? { id: created.user.id } : null;
+      appliedTempPassword = !!authUser;
     }
 
 
@@ -103,7 +131,7 @@ export async function POST(req: Request) {
 
     const isCompanyAdmin = reg.role === "ADMIN" && reg.status === "COMPANY_ADMIN_PENDING";
     const approvedForApp = !isCompanyAdmin;
-    const roleVal = (roleFromBody ?? reg.role ?? "OPERATIVE").toString().toLowerCase();
+    const roleVal = assignRoleUpper.toLowerCase();
 
     await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
       app_metadata: {
@@ -117,7 +145,7 @@ export async function POST(req: Request) {
     await supabaseAdmin.from("users").upsert(
       {
         id: authUser.id,
-        email: reg.email ?? null,
+        email: (reg.email ?? "").trim().toLowerCase() || null,
         display_name: reg.name ?? "",
         company_id: effectiveCompanyId,
         role: roleVal,
@@ -125,6 +153,17 @@ export async function POST(req: Request) {
       },
       { onConflict: "id" }
     );
+
+    await supabaseAdmin.from("user_sites").delete().eq("user_id", authUser.id);
+    if ((assignRoleUpper === "SITE_ADMIN" || assignRoleUpper === "SUPERVISOR") && approvedSiteIds.length > 0) {
+      const { error: sitesErr } = await supabaseAdmin.from("user_sites").insert(
+        approvedSiteIds.map((site_id) => ({ user_id: authUser.id, site_id }))
+      );
+      if (sitesErr) {
+        console.error("user_sites insert failed:", sitesErr);
+        return NextResponse.json({ error: sitesErr.message }, { status: 500 });
+      }
+    }
 
     await supabaseAdmin
       .from("registrations")
@@ -145,24 +184,19 @@ export async function POST(req: Request) {
       await fetch(`${publicBase.replace(/\/$/, "")}/api/auth/sendWelcome`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authUser.id, tempPassword }),
+        body: JSON.stringify({
+          userId: authUser.id,
+          ...(appliedTempPassword ? { tempPassword } : {}),
+        }),
       });
     } catch (e) {
       console.error("welcome email failed", e);
     }
 
-    try {
-      const base = getServerPublicOrigin();
-      await fetch(`${base.replace(/\/$/, "")}/api/auth/send-password-reset`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email: reg.email }),
-      });
-    } catch (e) {
-      console.error("auto password reset email failed", e);
-    }
-
-    const res = NextResponse.json({ ok: true, tempPassword });
+    const res = NextResponse.json({
+      ok: true,
+      ...(appliedTempPassword ? { tempPassword } : {}),
+    });
     // Do NOT set role here – only setUserCookies (after login) may set the role cookie
     return res;
   } catch (err) {

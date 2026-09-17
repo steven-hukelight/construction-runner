@@ -1,9 +1,12 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { formatDate, formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
+import { SitePicker } from "../components/ui/SitePicker";
+import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
+import { leftSiteAutoSignOutReasonSuffix } from "./live/sessionNotesFormat";
 
 type TimestampLike = { toDate?: () => Date } | string | number | Date;
 type AttendanceLog = {
@@ -20,6 +23,12 @@ type AttendanceLog = {
   siteId?: string;
   site_id?: string;
   action?: string;
+  exit_time?: TimestampLike;
+  exitTime?: TimestampLike;
+  sign_out_time?: TimestampLike;
+  signOutTime?: TimestampLike;
+  auto_sign_out_reason?: string;
+  autoSignOutReason?: string;
 };
 
 type PersonStatus = {
@@ -28,6 +37,10 @@ type PersonStatus = {
   lastAction: string;
   lastActionNormalized: "sign_in" | "sign_out";
   lastTime: string;
+  signedInTime: string;
+  leftSiteTime: string;
+  signedOutTime: string;
+  autoSignOutReason: string;
 };
 
 type User = { id?: string; userId?: string; name?: string; displayName?: string; display_name?: string; email?: string };
@@ -99,6 +112,27 @@ function formatTimestamp(value: TimestampLike | undefined): string {
   return formatDateTime(dt);
 }
 
+function formatTimeOrEmpty(value: TimestampLike | undefined): string {
+  if (!value) return "";
+  let dt: Date;
+  if (typeof value === "string" || typeof value === "number") {
+    dt = new Date(value);
+    if (isNaN(dt.getTime())) return "";
+  } else if (value instanceof Date) {
+    dt = value;
+  } else if (typeof value === "object" && value.toDate && typeof value.toDate === "function") {
+    try {
+      dt = value.toDate();
+    } catch {
+      return "";
+    }
+  } else {
+    return "";
+  }
+  const s = formatTime(dt);
+  return s === "—" ? "" : s;
+}
+
 function normalizeAction(a: string): "sign_in" | "sign_out" {
   const s = a.toLowerCase().trim();
   if (
@@ -154,12 +188,33 @@ export default function RoleCall({
       const actionNorm = normalizeAction(actionRaw);
       const resolvedName = resolveName(uid, data, users, profiles);
 
+      const signedInTime = formatTimeOrEmpty(data.timestamp);
+      const leftSiteTime = formatTimeOrEmpty(data.exitTime ?? data.exit_time);
+      const signedOutTime = formatTimeOrEmpty(
+        data.signOutTime ?? data.sign_out_time ?? (actionNorm === "sign_out" ? data.timestamp : undefined)
+      );
+      const autoSignOutReason = String(data.autoSignOutReason ?? data.auto_sign_out_reason ?? "").trim();
+      const reasonSuffix = leftSiteAutoSignOutReasonSuffix(autoSignOutReason);
+      const lastTime =
+        actionNorm === "sign_in"
+          ? (signedInTime ? `Signed in: ${signedInTime}` : formatTimestamp(data.timestamp))
+          : [
+              leftSiteTime && `Left site: ${leftSiteTime}${reasonSuffix}`,
+              signedOutTime && `Signed out: ${signedOutTime}`,
+            ]
+              .filter(Boolean)
+              .join(" | ") || formatTimestamp(data.timestamp);
+
       seen.set(key, {
         id: key,
         name: resolvedName,
         lastAction: actionRaw,
         lastActionNormalized: actionNorm,
-        lastTime: formatTimestamp(data.timestamp),
+        lastTime,
+        signedInTime,
+        leftSiteTime,
+        signedOutTime,
+        autoSignOutReason,
       });
     });
 
@@ -184,6 +239,11 @@ export default function RoleCall({
         if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
         let res: Response;
         if (isToday) {
+          const bounds = localCalendarDayToUtcIsoBounds(selectedDate);
+          if (bounds) {
+            params.set("windowStart", bounds.start);
+            params.set("windowEnd", bounds.end);
+          }
           // Latest live row per person (including leftover open sessions until midnight archive).
           res = await fetch(`/api/attendance?${params}`, {
             cache: "no-store",
@@ -250,7 +310,19 @@ export default function RoleCall({
     const rows = displayedPeople
       .map((p) => {
         const safeName = (p.name || "").replace(/"/g, '""');
-        return `"${safeName}",${p.lastActionNormalized === "sign_in" ? "SIGN IN" : "SIGN OUT"},${p.lastTime}`;
+        const times =
+          p.lastActionNormalized === "sign_in"
+            ? p.signedInTime
+              ? `Signed in: ${p.signedInTime}`
+              : p.lastTime
+            : [
+                p.leftSiteTime &&
+                  `Left site: ${p.leftSiteTime}${leftSiteAutoSignOutReasonSuffix(p.autoSignOutReason)}`,
+                p.signedOutTime && `Signed out: ${p.signedOutTime}`,
+              ]
+                .filter(Boolean)
+                .join(" | ") || p.lastTime;
+        return `"${safeName}",${p.lastActionNormalized === "sign_in" ? "Signed in" : "Signed out"},${times}`;
       })
       .join("\n");
 
@@ -288,7 +360,7 @@ export default function RoleCall({
         y = 20;
       }
       doc.text(
-        `${index + 1}. ${p.name}  •  ${p.lastAction}  •  ${p.lastTime}`,
+        `${index + 1}. ${p.name}  •  ${p.lastActionNormalized === "sign_in" ? "Signed in" : "Signed out"}  •  ${p.lastTime}`,
         14,
         y
       );
@@ -356,14 +428,31 @@ export default function RoleCall({
                 : "bg-rose-50 text-rose-700"
             }`}
           >
-            {isIn ? "SIGN IN" : "SIGN OUT"}
+            {isIn ? "Signed in" : "Signed out"}
           </span>
         );
       },
     },
     {
-      header: "Last Time",
+      header: "Times",
       accessor: "lastTime",
+      render: (row: PersonStatus) => {
+        if (row.lastActionNormalized === "sign_in") {
+          return (
+            <span className="tabular-nums text-sm text-slate-800 dark:text-slate-200">
+              {row.signedInTime ? `Signed in: ${row.signedInTime}` : row.lastTime || "—"}
+            </span>
+          );
+        }
+        const reasonSuffix = leftSiteAutoSignOutReasonSuffix(row.autoSignOutReason);
+        return (
+          <div className="tabular-nums text-sm text-slate-800 dark:text-slate-200 space-y-0.5">
+            {row.leftSiteTime ? <div>Left site: {row.leftSiteTime}{reasonSuffix}</div> : null}
+            {row.signedOutTime ? <div>Signed out: {row.signedOutTime}</div> : null}
+            {!row.leftSiteTime && !row.signedOutTime ? <div>{row.lastTime || "—"}</div> : null}
+          </div>
+        );
+      },
     },
   ];
 
@@ -388,23 +477,23 @@ export default function RoleCall({
               />
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <label className="text-xs text-slate-600">Site</label>
-            <select
-              className="input text-xs"
-              value={selectedSiteId}
-              onChange={(e) => setSelectedSiteId(e.target.value as string | "all")}
-            >
-              <option value="all">All sites</option>
-              {sites.map((s) => (
-                <option key={s.id} value={s.id}>{s.name || s.id}</option>
-              ))}
-            </select>
-          </div>
+          <SitePicker
+            sites={sites}
+            value={selectedSiteId}
+            onChange={(id) => setSelectedSiteId(id as string | "all")}
+            variant="compact"
+            allowNone
+            noneValue="all"
+            noneLabel="All sites"
+            placeholder="All sites"
+            className="w-52"
+          />
         </div>
         {people.length > 0 && (
           <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Date: {selectedDate}</span>
+            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
+              Date: {formatDate(new Date(`${selectedDate}T12:00:00`))}
+            </span>
             <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Site: {selectedSiteName}</span>
             <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
               {displayedPeople.length} {displayedPeople.length === 1 ? "person" : "people"}

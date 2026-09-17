@@ -1,6 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
 
 export async function GET(req: Request) {
   try {
@@ -14,7 +15,7 @@ export async function GET(req: Request) {
     const uid = auth.uid;
     const roleLower = (auth.role ?? "").toLowerCase();
     const canViewCompanyNearMiss =
-      roleLower === "supervisor" || roleLower === "admin" || roleLower === "superuser";
+      roleLower === "supervisor" || roleLower === "admin" || roleLower === "superuser" || roleLower === "site_admin";
     // Operatives always see only their own reports. Supervisors/admins may list company-wide
     // unless they pass mine=true (self-only).
     const filterToReporterOnly = !canViewCompanyNearMiss || mineOnly;
@@ -29,7 +30,10 @@ export async function GET(req: Request) {
         .select("id", { count: "exact", head: true })
         .eq("company_id", companyId);
       countQuery = countQuery.is("reviewed_at", null);
-      if (siteId) countQuery = countQuery.eq("site_id", siteId);
+      const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
+      const siteScope = siteIdsForFilter(restricted, siteId);
+      if (siteScope === "none") return NextResponse.json({ count: 0 });
+      if (siteScope !== "all") countQuery = countQuery.in("site_id", siteScope);
       const { count, error } = await countQuery;
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ count: count ?? 0 });
@@ -41,6 +45,10 @@ export async function GET(req: Request) {
       .select("*")
       .limit(limit);
     if (companyId) query = query.eq("company_id", companyId);
+    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
+    const siteScope = siteIdsForFilter(restricted, siteId);
+    if (siteScope === "none") return NextResponse.json([]);
+    if (siteScope !== "all") query = query.in("site_id", siteScope);
     if (unreviewedOnly) query = query.is("reviewed_at", null);
     if (filterToReporterOnly && uid) query = query.eq("reported_by", uid);
     if (siteId) query = query.eq("site_id", siteId);
@@ -105,13 +113,15 @@ export async function POST(req: Request) {
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
   const { description, status, siteId, operativeId, reportedBy, attachments } = body;
+  const siteForbid = await assertWritableSiteId(auth.role, siteId, auth.uid);
+  if (siteForbid) return siteForbid;
   const { data, error } = await supabaseAdmin
     .from("near_miss_reports")
     .insert({
       description: description ?? "",
       status: status ?? "pending",
       company_id: companyId,
-      site_id: siteId ?? null,
+      site_id: siteId,
       reported_by: reportedBy ?? operativeId ?? null,
       attachments: Array.isArray(attachments) ? attachments : [],
     })

@@ -1,5 +1,7 @@
 "use client";
 
+import { PersonPicker, SitePicker } from "../../components/ui/SitePicker";
+
 type User = {
   id: string;
   name?: string;
@@ -40,8 +42,8 @@ export default function AttendanceFilters({
   onActiveSessionsOnlyChange: (v: boolean) => void;
 }) {
   return (
-    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-center sm:justify-between">
-      <div className="flex flex-wrap items-center gap-3">
+    <div className="flex flex-col gap-4 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
+      <div className="flex flex-wrap items-end gap-3">
         {showDatePicker && (
           <>
             <div className="flex items-center gap-2">
@@ -64,36 +66,33 @@ export default function AttendanceFilters({
             )}
           </>
         )}
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">Site</label>
-          <select
-            className="input text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
-            value={selectedSiteId}
-            onChange={(e) => onSiteChange(e.target.value)}
-          >
-            <option value="all">All sites</option>
-            {sites.map((s) => (
-              <option key={s.id} value={s.id}>
-                {s.name || s.id}
-              </option>
-            ))}
-          </select>
-        </div>
-        <div className="flex items-center gap-2">
-          <label className="text-xs font-medium text-slate-600 dark:text-slate-400">User</label>
-          <select
-            className="input text-sm py-1.5 dark:bg-slate-800 dark:border-slate-600 dark:text-slate-100"
-            value={selectedUserId}
-            onChange={(e) => onUserChange(e.target.value)}
-          >
-            <option value="all">All users</option>
-            {users.map((u) => (
-              <option key={u.id} value={u.id}>
-                {u.display_name || u.displayName || u.name || (u.email ? String(u.email).split("@")[0] : u.id)}
-              </option>
-            ))}
-          </select>
-        </div>
+        <SitePicker
+          sites={sites}
+          value={selectedSiteId}
+          onChange={onSiteChange}
+          variant="compact"
+          allowNone
+          noneValue="all"
+          noneLabel="All sites"
+          placeholder="All sites"
+          className="w-52"
+        />
+        <PersonPicker
+          people={users.map((u) => ({
+            id: u.id,
+            name: u.display_name || u.displayName || u.name,
+            email: u.email,
+          }))}
+          value={selectedUserId}
+          onChange={onUserChange}
+          fieldLabel="User"
+          variant="compact"
+          allowNone
+          noneValue="all"
+          noneLabel="All users"
+          placeholder="All users"
+          className="w-56"
+        />
       </div>
 
       <label className="inline-flex items-center gap-2 cursor-pointer select-none rounded-lg border border-slate-200/90 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/60 px-3 py-2">

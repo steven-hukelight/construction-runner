@@ -5,6 +5,7 @@ import { fetchSites } from "./actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import { canCreateAndAssignSites } from "@/lib/auth/roles";
 
 export default async function SitesPage() {
   const cookieStore = await cookies();
@@ -64,7 +65,7 @@ export default async function SitesPage() {
         description="Manage all active sites in your organisation."
       />
 
-      <AddSiteModal />
+      {canCreateAndAssignSites(role) ? <AddSiteModal /> : null}
 
       <SitesTable data={tableData} />
     </div>

@@ -1,7 +1,13 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 
-const VALID_ROLES = ["superuser", "admin", "ADMIN", "supervisor", "SUPERVISOR", "sub_admin"];
+const VALID_ROLES = new Set([
+  "superuser",
+  "admin",
+  "site_admin",
+  "supervisor",
+  "sub_admin",
+]);
 
 export default async function DashboardPage() {
   const cookieStore = await cookies();
@@ -15,7 +21,7 @@ export default async function DashboardPage() {
   }
 
   // Role missing or invalid → login (do not default to admin)
-  if (!role || !VALID_ROLES.includes(role)) {
+  if (!role || !roleLower || !VALID_ROLES.has(roleLower)) {
     redirect("/admin/login");
   }
 
@@ -23,11 +29,7 @@ export default async function DashboardPage() {
     redirect("/dashboard/superuser-dashboard");
   }
 
-  if (roleLower === "admin") {
-    redirect("/dashboard/admin-dashboard");
-  }
-
-  if (roleLower === "sub_admin") {
+  if (roleLower === "admin" || roleLower === "site_admin" || roleLower === "sub_admin") {
     redirect("/dashboard/admin-dashboard");
   }
 

@@ -27,7 +27,7 @@ export default function EditSiteForm({ site }: { site: any }) {
       typeof site.geofence?.radiusMeters === "number"
         ? site.geofence.radiusMeters.toString()
         : "",
-    showOnMap: site.showOnMap !== false,
+    showOnMap: site.showOnMap !== false && site.show_on_map !== false,
     inductionRequired: site.inductionRequired === true,
   });
 

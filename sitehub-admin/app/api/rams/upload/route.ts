@@ -6,6 +6,8 @@ import { writeAuditLog, isUuidLike } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { RAMS_MAX_UPLOAD_BYTES, RAMS_MAX_UPLOAD_LABEL } from "@/lib/ramsUploadLimits";
+import { assertWritableSiteId } from "@/lib/auth/siteScope";
+import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 export const maxDuration = 120;
 
@@ -78,9 +80,12 @@ export async function POST(req: Request) {
   const email = cookieStore.get("user_email")?.value;
   const companyIdTrim = companyId.trim();
 
+  const sid = siteId.toString().trim();
+  const siteForbid = await assertWritableSiteId(role, sid);
+  if (siteForbid) return siteForbid;
+
   const bytes = await file.arrayBuffer();
   const buffer = Buffer.from(bytes);
-  const sid = siteId.toString().trim();
   const safeName = sanitizeFileName(file.name || "rams.pdf");
   const path = sid ? `rams/${sid}/${Date.now()}-${safeName}` : `rams/${Date.now()}-${safeName}`;
 
@@ -187,7 +192,9 @@ export async function POST(req: Request) {
     metadata: { ramsId: inserted?.id, siteId, fileName: file.name, companyId: companyIdTrim },
   });
 
-  const { data: companyUsers } = await supabaseAdmin.from("users").select("id").eq("company_id", companyIdTrim);
+  const { data: companyUsers } = sid
+    ? { data: (await userIdsForSiteContent(companyIdTrim, sid)).map((id) => ({ id })) }
+    : await supabaseAdmin.from("users").select("id").eq("company_id", companyIdTrim);
   const pushIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean) as string[];
   if (pushIds.length > 0) {
     sendPushToUsers(

@@ -2,7 +2,7 @@
  * Optional manual / legacy trigger: runs the same DB logic as pg_cron `perform_attendance_fallback`,
  * then drains the push queue (OneSignal). Primary schedule is Supabase pg_cron + Vercel dispatch cron.
  *
- * DB logic uses latest open SIGN_IN per user (created_at / timestamp ordering) and a 25s stale threshold
+ * DB logic uses latest open SIGN_IN per user (created_at / timestamp ordering) and a 2-minute stale threshold
  * — see `ATTENDANCE_FALLBACK_STALE_MS` and migrations `*attendance_fallback*`.
  */
 

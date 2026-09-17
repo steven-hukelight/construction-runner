@@ -34,8 +34,12 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
         r.ok ? r.json() : []
       ),
     ]).then(([sitesData, usersData]) => {
-      setSites(Array.isArray(sitesData) ? sitesData : []);
+      const list = Array.isArray(sitesData) ? sitesData : [];
+      setSites(list);
       setUsers(Array.isArray(usersData) ? usersData : []);
+      if (list.length === 1) {
+        setForm((f) => (f.siteId ? f : { ...f, siteId: list[0].id }));
+      }
     });
   }, [open]);
 
@@ -60,6 +64,10 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
   }
 
   async function handleSubmit() {
+    if (!form.siteId) {
+      alert("Select a site. This task will only appear for that site.");
+      return;
+    }
     try {
       await createTask({
         ...form,
@@ -159,7 +167,9 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
               </div>
             </div>
             <div>
-              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Site</label>
+              <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
+                Site <span className="text-red-600">*</span>
+              </label>
               <SitePicker sites={sites} value={form.siteId} onChange={(id) => setForm((f) => ({ ...f, siteId: id }))} />
             </div>
             <div>
@@ -167,7 +177,7 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
               <DueDateCalendar valueYmd={form.dueDate} onChangeYmd={(dueDate) => setForm((f) => ({ ...f, dueDate }))} />
             </div>
             <div className="pt-1">
-              <Button onClick={handleSubmit} className="w-full">
+              <Button onClick={handleSubmit} className="w-full" disabled={!form.siteId}>
                 Save Task
               </Button>
             </div>

@@ -4,6 +4,7 @@ import Image from "next/image";
 import { useState, useEffect, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import { SitePicker } from "../components/ui/SitePicker";
 import { PortalOverlay } from "../components/PortalOverlay";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import { RAMS_MAX_UPLOAD_BYTES, RAMS_MAX_UPLOAD_LABEL } from "@/lib/ramsUploadLimits";
@@ -24,7 +25,11 @@ export default function RAMSUploadModal() {
     if (!open) return;
     fetch("/api/sites", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : []))
-      .then((arr) => setSites(Array.isArray(arr) ? arr : []))
+      .then((arr) => {
+        const list = Array.isArray(arr) ? arr : [];
+        setSites(list);
+        if (list.length === 1) setSiteId((prev) => prev || list[0].id);
+      })
       .catch(() => setSites([]));
     fetch("/api/me", { credentials: "include" })
       .then((r) => r.json())
@@ -50,6 +55,10 @@ export default function RAMSUploadModal() {
 
   async function handleUpload() {
     if (!file) return;
+    if (!siteId.trim()) {
+      alert("Select a site. This RAMS document will only appear for that site.");
+      return;
+    }
     if (file.size > RAMS_MAX_UPLOAD_BYTES) {
       alert(`File too large (max ${RAMS_MAX_UPLOAD_LABEL})`);
       return;
@@ -58,7 +67,7 @@ export default function RAMSUploadModal() {
     try {
       const form = new FormData();
       form.append("file", file);
-      form.append("siteId", siteId.trim() || "");
+      form.append("siteId", siteId.trim());
       form.append("title", title.trim() || file.name.replace(/\.pdf$/i, "") || file.name);
       form.append("description", description.trim());
       const impersonatedCompanyId = getCompanyIdFromClient();
@@ -119,19 +128,16 @@ export default function RAMSUploadModal() {
             )}
             <div className="space-y-5">
               <div>
-                <label className="block text-sm font-semibold text-gray-700 mb-1">Site (optional)</label>
-                <select
+                <label className="block text-sm font-semibold text-gray-700 mb-1">
+                  Site <span className="text-red-600">*</span>
+                </label>
+                <SitePicker
+                  sites={sites}
                   value={siteId}
-                  onChange={(e: ChangeEvent<HTMLSelectElement>) => setSiteId(e.target.value)}
-                  className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  <option value="">No site selected</option>
-                  {sites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name ?? s.id}
-                    </option>
-                  ))}
-                </select>
+                  onChange={setSiteId}
+                  placeholder="Select site…"
+                />
+                <p className="mt-1 text-xs text-slate-500">Stays in this site’s folder only.</p>
               </div>
 
               <div>
@@ -170,7 +176,7 @@ export default function RAMSUploadModal() {
               </div>
 
               <div className="pt-2">
-                <Button onClick={handleUpload} className="w-full" disabled={uploading || !file}>
+                <Button onClick={handleUpload} className="w-full" disabled={uploading || !file || !siteId.trim()}>
                   {uploading ? "Uploading…" : "Upload"}
                 </Button>
               </div>

@@ -1,6 +1,39 @@
 /**
- * Utility functions for cookie parsing and user session management
+ * Client-side session helpers.
+ *
+ * Auth cookies are HttpOnly. Privilege fields are hydrated from the server
+ * layout (ClientSessionProvider), never from document.cookie.
+ * currentSiteId is a UI preference cookie, not an auth cookie.
  */
+
+export type ClientSessionSnapshot = {
+  role: string | null;
+  companyId: string | null;
+  email: string;
+  uid: string;
+  impersonating: boolean;
+  sessionStartedAt: number | null;
+};
+
+let clientSnapshot: ClientSessionSnapshot | null = null;
+
+export function hydrateClientSession(snapshot: ClientSessionSnapshot): void {
+  if (typeof window === "undefined") return;
+  clientSnapshot = snapshot;
+}
+
+function snapshot(): ClientSessionSnapshot {
+  return (
+    clientSnapshot ?? {
+      role: null,
+      companyId: null,
+      email: "",
+      uid: "",
+      impersonating: false,
+      sessionStartedAt: null,
+    }
+  );
+}
 
 function safeGetCookieString(): string {
   if (typeof document === "undefined") return "";
@@ -12,57 +45,52 @@ function safeGetCookieString(): string {
 }
 
 export function getUserEmailFromCookie(): string {
-  const cookies = safeGetCookieString().split(";");
-  const emailCookie = cookies.find((c) => c.trim().startsWith("user_email="));
-  return emailCookie ? decodeURIComponent(emailCookie.split("=")[1]) : "";
+  return snapshot().email;
 }
 
 export function getUserIdFromCookie(): string {
-  const cookies = safeGetCookieString().split(";");
-  const idCookie = cookies.find((c) => c.trim().startsWith("user_id="));
-  return idCookie ? decodeURIComponent(idCookie.split("=")[1]) : "";
+  return snapshot().uid;
 }
 
-/** User ID (public.users.id) from uid cookie, set by setUserCookies after login. */
+/** User ID (public.users.id) set after login. */
 export function getUidFromCookie(): string {
-  const match = safeGetCookieString().match(/(?:^|; )uid=([^;]*)/);
-  return match ? decodeURIComponent(match[1]).trim() : "";
+  return snapshot().uid;
 }
 
 export function sanitizeEmail(email: string): string {
-  return email.replace(/[^a-zA-Z0-9]/g, '_');
+  return email.replace(/[^a-zA-Z0-9]/g, "_");
 }
 
-/** Role from cookie (superuser, admin, etc.) */
+/** Role from the HttpOnly session (hydrated by ClientSessionProvider). */
 export function getRoleFromClient(): string | null {
-  const match = safeGetCookieString().match(/(?:^|; )role=([^;]*)/);
-  return match ? decodeURIComponent(match[1]).trim() || null : null;
+  return snapshot().role;
 }
 
 const UUID_REGEX = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
 
-/** Returns true if value is a valid UUID. */
 export function isCompanyIdUuid(value: string): boolean {
   return Boolean(value && UUID_REGEX.test(value.trim()));
 }
 
-/** Raw companyId from cookie (no UUID validation). Use when company IDs may be non-UUID. */
 export function getRawCompanyIdFromCookie(): string {
-  const match = safeGetCookieString().match(/(?:^|; )companyId=([^;]*)/);
-  return match ? decodeURIComponent(match[1]).trim() : "";
+  return snapshot().companyId ?? "";
 }
 
-/**
- * Company ID from cookie (public.users.company_id).
- * Accepts any non-empty value (UUID or other string ids).
- */
 export function getCompanyIdFromClient(): string | null {
   const raw = getRawCompanyIdFromCookie();
   return raw || null;
 }
 
-/** Current site ID from cookie (e.g. when user is viewing a site or has selected one). */
+/** Current site ID — UI preference, not used for authz. */
 export function getCurrentSiteIdFromCookie(): string | null {
   const match = safeGetCookieString().match(/(?:^|; )currentSiteId=([^;]*)/);
   return match ? decodeURIComponent(match[1]).trim() || null : null;
+}
+
+export function getSessionStartedAtFromClient(): number | null {
+  return snapshot().sessionStartedAt;
+}
+
+export function getImpersonatingFromClient(): boolean {
+  return snapshot().impersonating;
 }

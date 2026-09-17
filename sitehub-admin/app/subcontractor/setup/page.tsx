@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { Building2, UserPlus, FileUp, Users, ArrowRight } from "lucide-react";
+import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 
 type LinkedSite = { id: string; name?: string };
 type Operative = { id: string; name?: string; phone?: string };
@@ -365,13 +366,7 @@ export default function SubcontractorSetupPage() {
           )}
         </section>
 
-        <p className="text-center text-xs text-gray-500 mt-8">
-          By continuing, you agree to Construction Runner&apos;s{" "}
-          <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-            Privacy & Security Policy
-          </a>
-          .
-        </p>
+        <LegalConsentLinks className="text-center text-xs text-gray-500 mt-8" />
       </div>
     </div>
   );

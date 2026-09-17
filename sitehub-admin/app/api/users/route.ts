@@ -2,6 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
+import { canAssignSuperAdminRole, usesAssignedSites } from "@/lib/auth/roles";
 
 export const dynamic = "force-dynamic";
 
@@ -125,17 +126,46 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "company_id required" }, { status: 400 });
   }
 
+  const roleVal = String(body.role ?? "operative").toLowerCase().trim();
+  if (roleVal === "admin" && !canAssignSuperAdminRole(role)) {
+    return NextResponse.json(
+      { error: "Only a Super Admin can invite another Super Admin" },
+      { status: 403 }
+    );
+  }
+
+  const rawSiteIds = Array.isArray(body.siteIds) ? (body.siteIds as unknown[]) : [];
+  const requestedSiteIds = [...new Set<string>(rawSiteIds.map((x) => String(x).trim()).filter((x) => x.length > 0))];
+  if (usesAssignedSites(roleVal) && requestedSiteIds.length === 0) {
+    return NextResponse.json({ error: "Select at least one site" }, { status: 400 });
+  }
+
   const { data, error } = await supabaseAdmin.from("users").insert({
     id: crypto.randomUUID(),
     email: body.email,
     display_name: body.name ?? body.display_name ?? body.displayName ?? null,
-    role: body.role ?? "OPERATIVE",
+    role: roleVal,
     company_id: assignedCompanyId,
   }).select("id").single();
 
   if (error) {
     console.error("POST /api/users failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
+  }
+
+  if (usesAssignedSites(roleVal) && data?.id && requestedSiteIds.length > 0) {
+    const { data: allowedSites } = await supabaseAdmin
+      .from("sites")
+      .select("id")
+      .eq("company_id", assignedCompanyId)
+      .in("id", requestedSiteIds);
+    const allowed = new Set((allowedSites ?? []).map((s) => String(s.id)));
+    const siteIds = requestedSiteIds.filter((sid) => allowed.has(sid));
+    if (siteIds.length > 0) {
+      await supabaseAdmin.from("user_sites").insert(
+        siteIds.map((site_id) => ({ user_id: data.id, site_id }))
+      );
+    }
   }
 
   return NextResponse.json({ id: data?.id }, { status: 201 });

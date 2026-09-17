@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess";
+import { getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
 
 function getQueryCompanyId(req: Request): string | null {
   try {
@@ -110,6 +111,11 @@ export async function GET(req: Request) {
     if (companyId) {
       query = query.eq("company_id", companyId);
     }
+    const cookieStore = await cookies();
+    const restricted = await getRestrictedSiteIds(cookieStore.get("role")?.value);
+    const siteScope = siteIdsForFilter(restricted, new URL(req.url).searchParams.get("siteId"));
+    if (siteScope === "none") return NextResponse.json([]);
+    if (siteScope !== "all") query = query.in("site_id", siteScope);
 
     const { data: assets, error: qErr } = await query;
     if (qErr) {

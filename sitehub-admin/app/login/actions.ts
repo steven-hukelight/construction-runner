@@ -7,6 +7,7 @@ import {
   COOKIE_MAX_AGE_DEFAULT,
   COOKIE_MAX_AGE_REMEMBER,
 } from "@/lib/securityConfig";
+import { authCookieClearOptions, authCookieSetOptions } from "@/lib/authCookies";
 
 export async function setUserCookies(
   email: string,
@@ -105,40 +106,20 @@ export async function setUserCookies(
   const cookieStore = await cookies();
   const roleCookieValue = isSuperuser ? "superuser" : userRole;
 
-  cookieStore.set("role", roleCookieValue, {
-    path: "/",
-    maxAge,
-    httpOnly: false,
-    sameSite: "lax",
-  });
-
-  cookieStore.set("user_email", email, {
-    path: "/",
-    maxAge,
-    httpOnly: false,
-    sameSite: "lax",
-  });
+  cookieStore.set("role", roleCookieValue, authCookieSetOptions(maxAge));
+  cookieStore.set("user_email", email, authCookieSetOptions(maxAge));
+  cookieStore.set("impersonating", "", authCookieClearOptions());
 
   if (dbUserId) {
-    cookieStore.set("uid", dbUserId, {
-      path: "/",
-      maxAge,
-      httpOnly: false,
-      sameSite: "lax",
-    });
+    cookieStore.set("uid", dbUserId, authCookieSetOptions(maxAge));
   }
 
   if (isSuperuser) {
-    cookieStore.set("companyId", "", { path: "/", maxAge: 0 });
+    cookieStore.set("companyId", "", authCookieClearOptions());
   } else if (userCompanyId) {
-    cookieStore.set("companyId", userCompanyId, {
-      path: "/",
-      maxAge,
-      httpOnly: false,
-      sameSite: "lax",
-    });
+    cookieStore.set("companyId", userCompanyId, authCookieSetOptions(maxAge));
   } else {
-    cookieStore.set("companyId", "", { path: "/", maxAge: 0 });
+    cookieStore.set("companyId", "", authCookieClearOptions());
   }
 
   if (dbUserId) {
@@ -152,13 +133,8 @@ export async function setUserCookies(
         ipAddress: ip,
         userAgent,
       });
-      cookieStore.set("session_id", sess.id, { path: "/", maxAge, httpOnly: false, sameSite: "lax" });
-      cookieStore.set("session_started_at", String(Math.floor(sess.createdAt / 1000)), {
-        path: "/",
-        maxAge,
-        httpOnly: false,
-        sameSite: "lax",
-      });
+      cookieStore.set("session_id", sess.id, authCookieSetOptions(maxAge));
+      cookieStore.set("session_started_at", String(Math.floor(sess.createdAt / 1000)), authCookieSetOptions(maxAge));
     } catch (e) {
       console.warn("Session create failed in setUserCookies:", e);
     }

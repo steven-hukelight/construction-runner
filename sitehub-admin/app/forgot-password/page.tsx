@@ -2,8 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { supabase } from "@/lib/supabaseClient";
-import { getAuthRedirectOrigin } from "@/lib/url";
 import { motion } from "framer-motion";
 import { Mail } from "lucide-react";
 
@@ -19,18 +17,15 @@ export default function ForgotPasswordPage() {
     setLoading(true);
 
     try {
-      const { error: err } = await supabase.auth.resetPasswordForEmail(
-        email.trim(),
-        {
-          redirectTo: `${getAuthRedirectOrigin()}/reset-password`,
-        }
-      );
-
-      if (err) {
-        setError(err.message);
+      const res = await fetch("/api/auth/request-password-reset", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      if (!res.ok) {
+        setError("Something went wrong. Please try again.");
         return;
       }
-
       setSuccess(true);
     } catch {
       setError("Something went wrong. Please try again.");

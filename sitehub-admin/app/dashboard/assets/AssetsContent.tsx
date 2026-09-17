@@ -2,10 +2,12 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Trash2 } from "lucide-react";
+import { Trash2, Boxes, Activity } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import Button from "../components/ui/Button";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
+import { CardSelect } from "../components/ui/CardSelect";
+import { SitePicker } from "../components/ui/SitePicker";
 
 interface Asset {
   id: string;
@@ -194,7 +196,13 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
   }, [assets, filterStatus, filterType, filterSite]);
 
   const siteOptions = useMemo(() => {
-    const ids = [...new Set(assets.map((a) => a.site_id).filter(Boolean))];
+    const ids = [
+      ...new Set(
+        assets
+          .map((a) => a.site_id)
+          .filter((id): id is string => typeof id === "string" && id.length > 0),
+      ),
+    ];
     return ids.map((id) => ({ id, label: id }));
   }, [assets]);
 
@@ -260,42 +268,54 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
             >
               Export CSV
             </Button>
-            <select
-              className="input w-32 text-sm py-2"
+            <CardSelect
+              items={[
+                { id: "equipment", name: "Equipment" },
+                { id: "vehicle", name: "Vehicle" },
+                { id: "tool", name: "Tool" },
+                { id: "ppe", name: "PPE" },
+              ]}
               value={filterType}
-              onChange={(e) => setFilterType(e.target.value)}
-            >
-              <option value="">All types</option>
-              <option value="equipment">Equipment</option>
-              <option value="vehicle">Vehicle</option>
-              <option value="tool">Tool</option>
-              <option value="ppe">PPE</option>
-            </select>
-            <select
-              className="input w-32 text-sm py-2"
+              onChange={setFilterType}
+              icon={Boxes}
+              fieldLabel="Type"
+              variant="compact"
+              allowNone
+              noneValue=""
+              noneLabel="All types"
+              className="w-40"
+            />
+            <CardSelect
+              items={[
+                { id: "active", name: "Active" },
+                { id: "inactive", name: "Inactive" },
+                { id: "maintenance", name: "Maintenance" },
+                { id: "good", name: "Good" },
+                { id: "fair", name: "Fair" },
+                { id: "poor", name: "Poor" },
+              ]}
               value={filterStatus}
-              onChange={(e) => setFilterStatus(e.target.value)}
-            >
-              <option value="">All status</option>
-              <option value="active">Active</option>
-              <option value="inactive">Inactive</option>
-              <option value="maintenance">Maintenance</option>
-              <option value="good">Good</option>
-              <option value="fair">Fair</option>
-              <option value="poor">Poor</option>
-            </select>
-            {siteOptions.length > 0 && (
-              <select
-                className="input w-36 text-sm py-2"
+              onChange={setFilterStatus}
+              icon={Activity}
+              fieldLabel="Status"
+              variant="compact"
+              allowNone
+              noneValue=""
+              noneLabel="All status"
+              className="w-40"
+            />
+            {siteOptions.length > 0 ? (
+              <SitePicker
+                sites={siteOptions.map((s) => ({ id: s.id, name: s.label }))}
                 value={filterSite}
-                onChange={(e) => setFilterSite(e.target.value)}
-              >
-                <option value="">All sites</option>
-                {siteOptions.map((s) => (
-                  <option key={s.id} value={s.id}>{s.label}</option>
-                ))}
-              </select>
-            )}
+                onChange={setFilterSite}
+                variant="compact"
+                allowNone
+                noneValue=""
+                noneLabel="All sites"
+                className="w-48"
+              />
+            ) : null}
           </div>
         </div>
         <div className="overflow-x-auto">

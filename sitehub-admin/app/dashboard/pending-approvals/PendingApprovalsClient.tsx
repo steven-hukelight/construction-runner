@@ -1,8 +1,9 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
-import Button from "../components/ui/Button";
+import ApprovalRowActions from "./ApprovalRowActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
+import { roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
 
 type Reg = {
   id: string;
@@ -13,18 +14,35 @@ type Reg = {
   status?: string;
 };
 
+type Site = { id: string; name: string };
+
 export default function PendingApprovalsClient() {
   const [regs, setRegs] = useState<Reg[]>([]);
   const [loading, setLoading] = useState(true);
   const [approverRole, setApproverRole] = useState<string | null>(null);
+  const [sites, setSites] = useState<Site[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
       setApproverRole(getRoleFromClient()?.toLowerCase() ?? null);
-      const res = await fetch("/api/auth/registrations", { credentials: "include", cache: "no-store" });
-      const json = await res.json();
+      const [regRes, sitesRes] = await Promise.all([
+        fetch("/api/auth/registrations", { credentials: "include", cache: "no-store" }),
+        fetch("/api/sites", { credentials: "include", cache: "no-store" }),
+      ]);
+      const json = await regRes.json();
       setRegs(Array.isArray(json) ? json : []);
+      const sitesJson = await sitesRes.json().catch(() => []);
+      setSites(
+        Array.isArray(sitesJson)
+          ? sitesJson
+              .map((s: { id?: string; name?: string }) => ({
+                id: String(s.id ?? ""),
+                name: String(s.name ?? s.id ?? ""),
+              }))
+              .filter((s: Site) => s.id)
+          : []
+      );
     } catch {
       setRegs([]);
     } finally {
@@ -39,12 +57,16 @@ export default function PendingApprovalsClient() {
     load();
   }, [load]);
 
-  async function approve(id: string, assignRole: string) {
+  async function approve(id: string, assignRole: string, siteIds: string[]) {
     const res = await fetch("/api/auth/registrations", {
       method: "POST",
       credentials: "include",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ id, role: assignRole.toUpperCase() }),
+      body: JSON.stringify({
+        id,
+        role: assignRole.toUpperCase(),
+        siteIds: usesAssignedSites(assignRole) ? siteIds : [],
+      }),
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
@@ -65,23 +87,6 @@ export default function PendingApprovalsClient() {
     await load();
   }
 
-  function roleOptions(): { value: string; label: string }[] {
-    const ar = approverRole ?? "";
-    if (ar === "superuser" || ar === "admin") {
-      return [
-        { value: "OPERATIVE", label: "Operative" },
-        { value: "SUPERVISOR", label: "Supervisor" },
-        { value: "ADMIN", label: "Admin" },
-      ];
-    }
-    if (ar === "supervisor" || ar === "sub_admin") {
-      return [{ value: "OPERATIVE", label: "Operative" }];
-    }
-    return [{ value: "OPERATIVE", label: "Operative" }];
-  }
-
-  const options = roleOptions();
-
   return (
     <div className="rounded-xl border border-gray-200/60 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
       {loading && <p className="p-6 text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
@@ -97,47 +102,27 @@ export default function PendingApprovalsClient() {
                 <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Email</th>
                 <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Company</th>
                 <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Requested</th>
-                <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Assign role</th>
-                <th className="text-right font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Actions</th>
+                <th className="text-right font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Assign role</th>
               </tr>
             </thead>
             <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
               {regs.map((r) => {
                 const requested = (r.role ?? "OPERATIVE").toString().toUpperCase();
-                const defaultAssign = options.some((o) => o.value === requested) ? requested : options[0]?.value ?? "OPERATIVE";
                 return (
                   <tr key={r.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-700/40">
                     <td className="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium">{r.name ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{r.email ?? "—"}</td>
                     <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{r.companyName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{requested}</td>
+                    <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{roleDisplayName(requested)}</td>
                     <td className="px-4 py-3">
-                      <select
-                        className="rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-gray-900 dark:text-slate-100 px-2 py-1.5 text-sm min-w-[9rem]"
-                        id={`assign-${r.id}`}
-                        defaultValue={defaultAssign}
-                      >
-                        {options.map((o) => (
-                          <option key={o.value} value={o.value}>
-                            {o.label}
-                          </option>
-                        ))}
-                      </select>
-                    </td>
-                    <td className="px-4 py-3 text-right space-x-2">
-                      <Button
-                        size="sm"
-                        type="button"
-                        onClick={() => {
-                          const el = document.getElementById(`assign-${r.id}`) as HTMLSelectElement | null;
-                          approve(r.id, el?.value ?? defaultAssign);
-                        }}
-                      >
-                        Approve
-                      </Button>
-                      <Button size="sm" type="button" variant="secondary" onClick={() => reject(r.id)}>
-                        Reject
-                      </Button>
+                      <ApprovalRowActions
+                        regId={r.id}
+                        defaultRole={requested}
+                        approverRole={approverRole}
+                        sites={sites}
+                        onApprove={approve}
+                        onReject={reject}
+                      />
                     </td>
                   </tr>
                 );

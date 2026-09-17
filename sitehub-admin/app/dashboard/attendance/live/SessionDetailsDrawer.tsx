@@ -1,5 +1,6 @@
 "use client";
 
+import { useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import type { AttendanceLog, AttendanceSession } from "./attendanceSessionTypes";
@@ -8,6 +9,8 @@ import ExitReasonBadge from "./ExitReasonBadge";
 import {
   getExitReasonKind,
   getSessionEndDate,
+  getSessionLeaveDate,
+  getSessionSignedOutDate,
   getSessionStartDate,
   isAbsentAction,
   isSignInAction,
@@ -61,7 +64,7 @@ function logMetaRows(log: AttendanceLog | null, title: string) {
   const signOutDiffers =
     exitDt &&
     signOutDt &&
-    Math.abs(signOutDt.getTime() - exitDt.getTime()) > 90_000;
+    Math.abs(signOutDt.getTime() - exitDt.getTime()) > 30_000;
 
   return (
     <div className="space-y-3 rounded-lg border border-slate-200/80 dark:border-slate-600 bg-slate-50/50 dark:bg-slate-900/40 p-3">
@@ -71,11 +74,9 @@ function logMetaRows(log: AttendanceLog | null, title: string) {
         "Time on attendance record",
         ts ? formatDateTime(ts) : log.timestamp != null ? String(log.timestamp) : undefined
       )}
-      {isSignOutAction(log.action) && exitDt
-        ? fieldBlock("Exit / leave time", formatDateTime(exitDt))
-        : null}
-      {isSignOutAction(log.action) && signOutDt && signOutDiffers
-        ? fieldBlock("Sign-out processed", formatDateTime(signOutDt))
+      {exitDt ? fieldBlock("Left site", formatDateTime(exitDt)) : null}
+      {signOutDt && (signOutDiffers || !exitDt)
+        ? fieldBlock("Signed out", formatDateTime(signOutDt))
         : null}
       {isAuto ? fieldBlock("How it ended", describeAttendanceAutoSignOutReason(autoReason)) : null}
       <details className="group rounded-md border border-slate-200/60 dark:border-slate-600/80 bg-white/40 dark:bg-slate-900/30">
@@ -98,15 +99,22 @@ export default function SessionDetailsDrawer({
   companyLabel,
   open,
   onClose,
+  onClearAbsent,
 }: {
   session: AttendanceSession | null;
   companyLabel: string | null;
   open: boolean;
   onClose: () => void;
+  onClearAbsent?: () => Promise<void>;
 }) {
+  const [clearing, setClearing] = useState(false);
+  const [clearError, setClearError] = useState<string | null>(null);
+
   if (!open || !session) return null;
 
   const start = getSessionStartDate(session);
+  const leave = getSessionLeaveDate(session);
+  const signedOutAt = getSessionSignedOutDate(session);
   const end = getSessionEndDate(session);
   const exitKind = getExitReasonKind(session);
   const mergedNotes = collectNotesFromSession(session);
@@ -158,18 +166,54 @@ export default function SessionDetailsDrawer({
                   )}
                 </div>
               ) : null}
+              {onClearAbsent ? (
+                <div className="pt-3 space-y-2">
+                  <p className="text-xs text-slate-500 dark:text-slate-400">
+                    Clears the lock so this operative can sign in again. The original mark is kept as an audit note.
+                  </p>
+                  {clearError ? (
+                    <p className="text-sm text-red-600 dark:text-red-400">{clearError}</p>
+                  ) : null}
+                  <button
+                    type="button"
+                    disabled={clearing}
+                    onClick={async () => {
+                      setClearError(null);
+                      setClearing(true);
+                      try {
+                        await onClearAbsent();
+                        onClose();
+                      } catch (e) {
+                        setClearError(e instanceof Error ? e.message : "Could not clear absent");
+                      } finally {
+                        setClearing(false);
+                      }
+                    }}
+                    className="rounded-lg bg-amber-600 px-3 py-2 text-sm font-medium text-white hover:bg-amber-700 disabled:opacity-60"
+                  >
+                    {clearing ? "Clearing…" : "Clear absent mark"}
+                  </button>
+                </div>
+              ) : null}
             </div>
           ) : (
             <>
               <dl className="space-y-4">
                 {fieldBlock(
-                  "Sign in · Sign out",
-                  start && end
-                    ? `In ${formatDateTime(start)} · Out ${formatDateTime(end)}`
-                    : start
-                      ? `In ${formatDateTime(start)} (still on site)`
+                  "Sign in",
+                  start
+                    ? `${formatDateTime(start)}${leave || signedOutAt ? "" : " (still on site)"}`
+                    : undefined
+                )}
+                {fieldBlock("Left site", leave ? formatDateTime(leave) : start && !end ? "—" : undefined)}
+                {fieldBlock(
+                  "Signed out",
+                  signedOutAt
+                    ? formatDateTime(signedOutAt)
+                    : leave
+                      ? formatDateTime(leave)
                       : end
-                        ? `Out ${formatDateTime(end)} (no sign-in row)`
+                        ? formatDateTime(end)
                         : undefined
                 )}
                 {session.kind === "work_session" ? (

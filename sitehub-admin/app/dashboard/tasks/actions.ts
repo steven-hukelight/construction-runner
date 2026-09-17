@@ -40,6 +40,9 @@ export async function createTask(data: {
   assignedToIds?: string[];
   dueDate?: string;
 }) {
+  if (!data.siteId?.trim()) {
+    throw new Error("Select a site. This task will only appear for that site.");
+  }
   const base = await tasksBase();
   const url = `${base}/api/tasks`;
   const cookie = await getCookieHeader();

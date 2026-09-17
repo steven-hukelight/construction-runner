@@ -1,6 +1,19 @@
 /** Stored at start of attendance.notes for ABSENT rows; followed by YYYY-MM-DD (UTC calendar day). */
 export const ABSENT_FOR_PREFIX = "__ABSENT_FOR__:";
 
+/** Appended when an ABSENT row is voided (self-undo or admin clear). */
+export const ABSENT_CLEARED_PREFIX = "__ABSENT_CLEARED__:";
+
+export function appendAbsentClearedNote(
+  existing: string | null | undefined,
+  clearedByUserId: string,
+  source: "self" | "admin"
+): string {
+  const line = `${ABSENT_CLEARED_PREFIX}${new Date().toISOString()} by=${clearedByUserId} source=${source}`;
+  const base = existing?.trim() ?? "";
+  return base ? `${base}\n${line}` : line;
+}
+
 export function formatAbsentNotes(absentDateUtcYmd: string, userNote?: string | null): string {
   const base = `${ABSENT_FOR_PREFIX}${absentDateUtcYmd}`;
   const t = userNote?.trim();

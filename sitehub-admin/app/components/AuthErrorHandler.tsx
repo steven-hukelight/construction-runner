@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
+import { clearServerAuthCookies } from "@/lib/clientLogout";
 
 /**
  * Handles "Invalid Refresh Token" and similar auth errors by clearing stale
@@ -18,13 +19,7 @@ export function AuthErrorHandler() {
       if (didClear) return;
       didClear = true;
       await supabase.auth.signOut({ scope: "local" });
-      try {
-        ["role", "user_email", "companyId", "impersonating", "session_id", "session_started_at"].forEach(
-          (name) => (document.cookie = `${name}=; path=/; max-age=0`)
-        );
-      } catch {
-        /* document.cookie access denied */
-      }
+      await clearServerAuthCookies();
       if (typeof window !== "undefined") {
         Object.keys(window.localStorage)
           .filter((k) => k.startsWith("sb-") || k === "sb_token" || k === "remembered_email")

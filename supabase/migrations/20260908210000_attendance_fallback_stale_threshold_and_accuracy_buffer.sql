@@ -1,7 +1,7 @@
 -- Section I: Make pg_cron auto sign-out fallback conservative.
 --
 -- Field report (Sep 2026): operatives signed in and physically on-site are
--- being auto signed out with reason `fallback_stale_outside`. Two root
+-- being auto signed out with reason `fallback_stale_outside`. Three root
 -- causes:
 --
 --   1. The stale threshold in `perform_attendance_fallback()` is 25 s.
@@ -17,20 +17,25 @@
 --      Both make "outside" too easy when GPS accuracy is 20–40 m near a
 --      boundary — a normal condition on a smartphone.
 --
--- This migration only touches the fallback path — sign-in / RAMS gates
--- keep the existing `point_inside_site()` semantics. Changes:
+--   3. Coarse / cell-tower fixes (accuracy 200 m+) routinely jump
+--      hundreds of metres to a kilometre while the operative is still on
+--      site. The fallback then evaluates that jumped point as "outside"
+--      even when `last_location_outside_fence` is FALSE. Observed at
+--      Kidbrooke Village KV3G/F on 9 Sep 2026: 200 m accuracy, ~1 km jump.
+--
+-- This migration only touches the auto-sign-out evidence path — sign-in /
+-- RAMS gates keep the existing `point_inside_site()` semantics. Changes:
 --
 --   * New helper `point_definitely_outside_site(lat, lng, acc, site)` that
---     returns TRUE only when the point is outside the fence by more than
---     `max(20, 2*accuracy)` metres (circle) or the equivalent buffered
---     polygon test.
+--     returns TRUE only when accuracy is ≤ 80 m AND the point is outside
+--     the fence by more than `max(20, 2*accuracy)` metres.
 --   * `perform_attendance_fallback()` stale threshold: 25 s → 600 s
 --     (10 minutes). Native geofence exit remains the primary fast-path;
 --     the fallback is now genuinely a "last resort".
---   * Fallback uses `point_definitely_outside_site` when
---     `last_location_outside_fence` is NULL / FALSE. When it's already
---     TRUE (set by a foreground ping while inside the app), we still
---     honour it — that flag was written when accuracy was known good.
+--   * Fallback uses `point_definitely_outside_site` unless a *precise*
+--     ping already set `last_location_outside_fence` TRUE (accuracy ≤ 80 m).
+--   * `attendance_apply_location_ping` will not overwrite last-known
+--     coordinates or mark outside from a coarse (>80 m) fix.
 --
 -- Rollback: re-run the previous section-H migration
 -- (20260412134500_section_h_attendance_auto_signout_tune.sql).
@@ -62,6 +67,11 @@ BEGIN
   IF p_site IS NULL OR p_lat IS NULL OR p_lng IS NULL THEN RETURN false; END IF;
   acc := coalesce(p_accuracy, 0);
   IF acc < 0 OR acc <> acc THEN acc := 0; END IF;
+
+  -- Coarse GPS (cell / Wi-Fi / significant-change) cannot confirm an exit.
+  -- 80 m is well above typical on-site GNSS (5–30 m) and below the 200 m+
+  -- jumps that were signing people out while they were still on the plot.
+  IF acc > 80 THEN RETURN false; END IF;
 
   -- Safety buffer: never call someone "outside" until they're beyond both
   -- (a) 20 metres of pure slack and (b) twice the reported accuracy.
@@ -281,14 +291,14 @@ BEGIN
 
     -- Fence evaluation.
     --
-    -- If a foreground ping already set `last_location_outside_fence = TRUE`
-    -- while we had a fresh accuracy read, trust it (it was recorded with
-    -- accuracy-aware logic on the client). Otherwise use the new
-    -- `point_definitely_outside_site` which requires the position to be
-    -- outside the fence by max(20, 2*accuracy) metres. This closes the
-    -- "GPS drift near edge" false-positive that was signing on-site
-    -- operatives out.
-    IF rec.last_location_outside_fence IS TRUE THEN
+    -- Coarse fixes (>80 m) never confirm an exit — they are the GPS-drift
+    -- false-positive we are closing. A precise ping that already set
+    -- `last_location_outside_fence = TRUE` is still trusted. Otherwise use
+    -- `point_definitely_outside_site` (outside by max(20, 2*accuracy) m).
+    IF use_acc > 80 THEN
+      outside_effective := false;
+      fence_source := 'accuracy_too_poor_to_confirm_exit';
+    ELSIF rec.last_location_outside_fence IS TRUE THEN
       outside_effective := true;
       fence_source := 'last_location_outside_fence_true';
     ELSE
@@ -380,11 +390,14 @@ BEGIN
         'type', 'attendance_auto_sign_out',
         'reason', 'fallback_stale_outside',
         'trigger_source', 'cron',
-        'attendance_id', rec.id
+        'attendance_id', rec.id::text
       ),
       now_ts
     )
-    ON CONFLICT DO NOTHING;
+    ON CONFLICT (user_id, ((data->>'attendance_id')))
+      WHERE type = 'attendance_auto_sign_out'
+        AND (data->>'attendance_id') IS NOT NULL
+      DO NOTHING;
   END LOOP;
 END;
 $$;
@@ -392,3 +405,214 @@ $$;
 REVOKE ALL ON FUNCTION public.perform_attendance_fallback() FROM PUBLIC;
 GRANT EXECUTE ON FUNCTION public.perform_attendance_fallback() TO postgres;
 GRANT EXECUTE ON FUNCTION public.perform_attendance_fallback() TO service_role;
+
+-- ── attendance_apply_location_ping: ignore coarse jumps ────────────────────
+-- Keep last-known good coordinates when the new fix is worse than 80 m.
+-- Still heartbeat `last_location_timestamp` so the device looks alive.
+CREATE OR REPLACE FUNCTION public.attendance_apply_location_ping(
+  p_attendance_id text,
+  p_lat double precision,
+  p_lng double precision,
+  p_acc double precision,
+  p_outside_threshold_m double precision DEFAULT 35
+)
+RETURNS jsonb
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  rec public.attendance%ROWTYPE;
+  site_row public.sites%ROWTYPE;
+  inside_f boolean;
+  outside_flag boolean;
+  server_now timestamptz := clock_timestamp();
+  aid text := trim(both from coalesce(p_attendance_id, ''));
+  gf jsonb;
+  loc jsonb;
+  poly_lat double precision[];
+  poly_lng double precision[];
+  r record;
+  acc double precision;
+  center_lat double precision;
+  center_lng double precision;
+  dist double precision;
+  radius double precision;
+  eff_radius double precision;
+  d_boundary double precision;
+  clearance double precision;
+BEGIN
+  IF aid = '' THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'invalid_attendance_id');
+  END IF;
+
+  SELECT * INTO rec FROM public.attendance WHERE id::text = aid FOR UPDATE;
+  IF NOT FOUND THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'not_found');
+  END IF;
+
+  IF NOT public._attendance_action_is_sign_in(rec.action) THEN
+    RETURN jsonb_build_object('ok', false, 'error', 'not_signed_in');
+  END IF;
+
+  acc := coalesce(p_acc, 0);
+  IF acc < 0 OR acc <> acc THEN
+    acc := 0;
+  END IF;
+
+  -- Coarse jump: heartbeat only. Do not let a 200–1000 m cell fix replace
+  -- a precise on-site ping that already said the operative is inside.
+  IF acc > 80 THEN
+    UPDATE public.attendance
+    SET
+      last_location_timestamp = server_now,
+      last_location_accuracy = p_acc
+    WHERE id::text = aid;
+
+    RETURN jsonb_build_object(
+      'ok', true,
+      'lastLocationTimestamp', server_now,
+      'lastLocationOutsideFence', rec.last_location_outside_fence,
+      'insideFence', CASE
+        WHEN rec.last_location_outside_fence IS TRUE THEN false
+        ELSE true
+      END,
+      'skippedCoarsePing', true,
+      'skipped_coarse_ping', true
+    );
+  END IF;
+
+  SELECT * INTO site_row
+  FROM public.sites s
+  WHERE s.id::text = trim(both from coalesce(rec.site_id::text, ''))
+  LIMIT 1;
+
+  IF NOT FOUND THEN
+    UPDATE public.attendance
+    SET
+      last_location_lat = p_lat,
+      last_location_lng = p_lng,
+      last_location_accuracy = p_acc,
+      last_location_timestamp = server_now,
+      last_location_outside_fence = NULL
+    WHERE id::text = aid;
+
+    RETURN jsonb_build_object(
+      'ok', true,
+      'lastLocationTimestamp', server_now,
+      'lastLocationOutsideFence', null,
+      'siteMissing', true
+    );
+  END IF;
+
+  inside_f := public.point_inside_site(
+    p_lat,
+    p_lng,
+    acc::double precision,
+    site_row
+  );
+
+  gf := site_row.geofence;
+  loc := site_row.location;
+
+  poly_lat := ARRAY[]::double precision[];
+  poly_lng := ARRAY[]::double precision[];
+  FOR r IN SELECT v_lat, v_lng FROM public._polygon_vertices_geofence(gf) LOOP
+    poly_lat := array_append(poly_lat, r.v_lat);
+    poly_lng := array_append(poly_lng, r.v_lng);
+  END LOOP;
+
+  IF array_length(poly_lat, 1) IS NULL OR array_length(poly_lat, 1) < 3 THEN
+    poly_lat := ARRAY[]::double precision[];
+    poly_lng := ARRAY[]::double precision[];
+    FOR r IN SELECT v_lat, v_lng FROM public._polygon_vertices_location_geojson(loc) LOOP
+      poly_lat := array_append(poly_lat, r.v_lat);
+      poly_lng := array_append(poly_lng, r.v_lng);
+    END LOOP;
+  END IF;
+
+  IF array_length(poly_lat, 1) IS NOT NULL AND array_length(poly_lat, 1) >= 3 THEN
+    IF inside_f THEN
+      outside_flag := false;
+      clearance := 0;
+    ELSE
+      d_boundary := public._min_distance_to_polygon_boundary_meters(p_lat, p_lng, poly_lat, poly_lng);
+      IF d_boundary IS NULL THEN
+        outside_flag := NOT inside_f;
+        clearance := NULL;
+      ELSE
+        clearance := d_boundary;
+        outside_flag := d_boundary > p_outside_threshold_m;
+      END IF;
+    END IF;
+  ELSE
+    center_lat := NULL;
+    center_lng := NULL;
+    IF gf IS NOT NULL AND jsonb_typeof(gf -> 'center') = 'object' THEN
+      SELECT * INTO center_lat, center_lng FROM public._vertex_from_jsonb(gf -> 'center');
+    END IF;
+    IF center_lat IS NULL AND loc IS NOT NULL AND jsonb_typeof(loc) = 'object' THEN
+      center_lat := public._jsonb_num(loc, ARRAY['lat', 'latitude'], NULL::double precision);
+      center_lng := public._jsonb_num(loc, ARRAY['lng', 'longitude', 'lon'], NULL::double precision);
+    END IF;
+    IF center_lat IS NULL AND site_row.latitude IS NOT NULL AND site_row.longitude IS NOT NULL THEN
+      center_lat := site_row.latitude::double precision;
+      center_lng := site_row.longitude::double precision;
+    END IF;
+
+    IF center_lat IS NULL OR center_lng IS NULL THEN
+      outside_flag := NOT inside_f;
+      clearance := NULL;
+    ELSE
+      radius := public._jsonb_num(
+        coalesce(gf, '{}'::jsonb),
+        ARRAY['radiusMeters', 'radius_meters'],
+        NULL::double precision
+      );
+      IF radius IS NULL OR radius <= 0 THEN
+        IF site_row.radius_meters IS NOT NULL AND (site_row.radius_meters)::double precision > 0 THEN
+          radius := (site_row.radius_meters)::double precision;
+        ELSE
+          radius := 500::double precision;
+        END IF;
+      END IF;
+      IF radius IS NULL OR radius <= 0 THEN
+        radius := 500::double precision;
+      END IF;
+
+      eff_radius := greatest(20::double precision, radius - acc);
+      dist := public._geo_distance_meters(p_lat, p_lng, center_lat, center_lng);
+
+      IF inside_f THEN
+        outside_flag := false;
+        clearance := 0;
+      ELSE
+        clearance := greatest(0::double precision, dist - eff_radius);
+        outside_flag := clearance > p_outside_threshold_m;
+      END IF;
+    END IF;
+  END IF;
+
+  UPDATE public.attendance
+  SET
+    last_location_lat = p_lat,
+    last_location_lng = p_lng,
+    last_location_accuracy = p_acc,
+    last_location_timestamp = server_now,
+    last_location_outside_fence = outside_flag
+  WHERE id::text = aid;
+
+  RETURN jsonb_build_object(
+    'ok', true,
+    'lastLocationTimestamp', server_now,
+    'lastLocationOutsideFence', outside_flag,
+    'insideFence', inside_f,
+    'outsideThresholdMeters', p_outside_threshold_m,
+    'outsideClearanceMeters', clearance
+  );
+END;
+$$;
+
+REVOKE ALL ON FUNCTION public.attendance_apply_location_ping(text, double precision, double precision, double precision, double precision) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION public.attendance_apply_location_ping(text, double precision, double precision, double precision, double precision) TO service_role;
+GRANT EXECUTE ON FUNCTION public.attendance_apply_location_ping(text, double precision, double precision, double precision, double precision) TO postgres;

@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { writeAuditLog } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
+import { assertWritableSiteId } from "@/lib/auth/siteScope";
+import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 export async function POST(req: Request) {
   const form = await req.formData();
@@ -26,8 +28,10 @@ export async function POST(req: Request) {
 
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
   if (!file) return NextResponse.json({ error: "File required" }, { status: 400 });
+  const siteForbid = await assertWritableSiteId(cookieStore.get("role")?.value, siteId);
+  if (siteForbid) return siteForbid;
 
-  const path = `briefings/${Date.now()}-${file.name}`;
+  const path = `briefings/${siteId.trim()}/${Date.now()}-${file.name}`;
   const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
     .from("briefings")
     .upload(path, file, { contentType: file.type, upsert: true });
@@ -48,7 +52,7 @@ export async function POST(req: Request) {
     body: body.trim() || null,
     file_url: fileUrl,
     company_id: companyId,
-    site_id: siteId.trim() || null,
+    site_id: siteId.trim(),
     uploaded_by: actorId,
   }).select("id").single();
 
@@ -66,8 +70,7 @@ export async function POST(req: Request) {
     metadata: { briefingId: briefing?.id, title: title || file.name },
   });
 
-  const { data: companyUsers } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
-  const userIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean);
+  const userIds = await userIdsForSiteContent(companyId, siteId.trim());
   if (userIds.length > 0) {
     sendPushToUsers(
       userIds,

@@ -4,6 +4,7 @@
 import { useState, useEffect } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
+import { SitePicker } from "../components/ui/SitePicker";
 import { useRouter } from "next/navigation";
 import { createDelivery } from "./actions";
 import { getCurrentSiteIdFromCookie } from "@/lib/utils/cookies";
@@ -57,7 +58,7 @@ export default function AddDeliveryModal() {
   }, [open]);
 
   const effectiveWholesaler = form.wholesaler === "__other__" ? form.wholesalerOther.trim() : form.wholesaler;
-  const canSubmit = effectiveWholesaler.length > 0;
+  const canSubmit = effectiveWholesaler.length > 0 && !!form.siteId;
 
   async function handleSubmit() {
     if (!canSubmit) return;
@@ -69,15 +70,13 @@ export default function AddDeliveryModal() {
   }
 
   function onSiteSelect(value: string) {
-    if (value === "__other__") {
-      setForm((f) => ({ ...f, siteId: "", site: "" }));
+    if (!value) {
+      setForm((f) => ({ ...f, siteId: "", site: f.site && !sites.some((s) => s.id === f.siteId) ? f.site : "" }));
       return;
     }
     const s = sites.find((x) => x.id === value);
     setForm((f) => ({ ...f, siteId: value, site: s?.name ?? value }));
   }
-
-  const selectedSiteId = form.siteId && sites.some((s) => s.id === form.siteId) ? form.siteId : (form.site || form.siteId ? "__other__" : "");
 
   return (
     <div className="space-y-3">
@@ -124,27 +123,15 @@ export default function AddDeliveryModal() {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-slate-700 mb-1">Site</label>
-              <select
-                className="w-full rounded-lg border border-slate-300 px-3 py-2.5 text-sm text-slate-900 bg-white focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 [&>option]:text-slate-900 [&>option]:bg-white"
-                value={selectedSiteId}
-                onChange={(e) => onSiteSelect(e.target.value)}
-              >
-                <option value="">Select site...</option>
-                {sites.map((s) => (
-                  <option key={s.id} value={s.id} className="text-slate-900">{s.name || s.id}</option>
-                ))}
-                <option value="__other__" className="text-slate-900">Other (type below)</option>
-              </select>
-              {(selectedSiteId === "__other__" || (!selectedSiteId && (form.site || form.siteId))) && (
-                <Input
-                  className="mt-2"
-                  label="Site name (if other)"
-                  value={form.site || form.siteId}
-                  onChange={(e: any) => setForm({ ...form, site: e.target.value, siteId: e.target.value })}
-                  placeholder="Site name or ID"
-                />
-              )}
+              <label className="block text-sm font-medium text-slate-700 mb-1">
+                Site <span className="text-red-600">*</span>
+              </label>
+              <SitePicker
+                sites={sites}
+                value={form.siteId && sites.some((s) => s.id === form.siteId) ? form.siteId : ""}
+                onChange={onSiteSelect}
+                placeholder="Select site…"
+              />
             </div>
 
             <Input

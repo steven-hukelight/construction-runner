@@ -1,11 +1,10 @@
 "use client";
 
-/**
- * Color-coded badge for user roles to visually differentiate at a glance.
- */
+import { roleDisplayName } from "@/lib/auth/roles";
 const ROLE_STYLES: Record<string, { bg: string; text: string; border?: string }> = {
   superuser: { bg: "bg-violet-100 dark:bg-violet-900/50", text: "text-violet-800 dark:text-violet-300", border: "border-violet-200 dark:border-violet-800" },
   admin: { bg: "bg-blue-100 dark:bg-blue-900/50", text: "text-blue-800 dark:text-blue-300", border: "border-blue-200 dark:border-blue-800" },
+  site_admin: { bg: "bg-sky-100 dark:bg-sky-900/50", text: "text-sky-800 dark:text-sky-300", border: "border-sky-200 dark:border-sky-800" },
   sub_admin: { bg: "bg-indigo-100 dark:bg-indigo-900/50", text: "text-indigo-800 dark:text-indigo-300", border: "border-indigo-200 dark:border-indigo-800" },
   supervisor: { bg: "bg-amber-100 dark:bg-amber-900/50", text: "text-amber-800 dark:text-amber-300", border: "border-amber-200 dark:border-amber-800" },
   operative: { bg: "bg-emerald-100 dark:bg-emerald-900/50", text: "text-emerald-800 dark:text-emerald-300", border: "border-emerald-200 dark:border-emerald-800" },
@@ -21,7 +20,7 @@ interface RoleBadgeProps {
 
 export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
   const r = (role ?? "—").toString().trim() || "—";
-  const display = r === "—" ? "—" : r;
+  const display = r === "—" ? "—" : roleDisplayName(r);
   const roleKey = r === "—" ? "" : r.toLowerCase();
   const style = ROLE_STYLES[roleKey] ?? defaultStyle;
 

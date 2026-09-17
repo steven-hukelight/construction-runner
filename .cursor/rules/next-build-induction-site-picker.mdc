@@ -1,0 +1,15 @@
+---
+description: Implemented — inducted-only site picker (app 1.0.3+23 + web)
+alwaysApply: false
+---
+
+# Inducted sites picker — done (1.0.3+23)
+
+Queued by Steven (16 Sep 2026). Implemented for the 1.0.3+23 Flutter build, with matching web.
+
+- App **Select site** uses `GET /api/me/inducted-sites`.
+- **My Inductions** still uses `GET /api/sites`.
+- Web **Record Attendance** site picker uses `GET /api/users/[id]/inducted-sites` for the selected operative.
+- Operative self sign-in is rejected without a valid (non-expired) induction.
+
+Delete this rule after that build is live.

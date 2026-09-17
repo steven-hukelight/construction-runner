@@ -3,6 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import PageHeader from "@/app/dashboard/components/PageHeader";
+import { SitePicker } from "@/app/dashboard/components/ui/SitePicker";
 import QuickInductionSummary from "./components/QuickInductionSummary";
 import QuickInductionTable from "./components/QuickInductionTable";
 import useSWR from "swr";
@@ -68,23 +69,13 @@ export default function QuickInductionPage() {
         }
       />
 
-      <div className="flex flex-wrap items-center gap-4">
-        <label htmlFor="supervisor-site" className="text-sm font-medium text-gray-700">
-          Site
-        </label>
-        <select
-          id="supervisor-site"
+      <div className="w-64">
+        <SitePicker
+          sites={sites}
           value={selectedSiteId}
-          onChange={(e) => setSiteId(e.target.value)}
-          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
-        >
-          <option value="">Select site</option>
-          {sites.map((s) => (
-            <option key={s.id} value={s.id}>
-              {s.name || s.id}
-            </option>
-          ))}
-        </select>
+          onChange={setSiteId}
+          placeholder="Select site"
+        />
       </div>
 
       {isLoading ? (

@@ -8,6 +8,7 @@ export type Registration = {
   name?: string;
   email?: string;
   companyName?: string;
+  role?: string;
 };
 
 type EditRegistrationModalProps = {

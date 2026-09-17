@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
+import Link from "next/link";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 
@@ -153,8 +154,11 @@ export default function OperativeProfileClient({ id }: { id: string }) {
 
   return (
     <div className="space-y-6">
+      <Link href="/dashboard/users" className="text-sm font-medium text-blue-600 hover:text-blue-700">
+        ← Back to users
+      </Link>
       <div className="card">
-        <h2 className="text-lg font-semibold text-slate-900">Operative Profile</h2>
+        <h2 className="text-lg font-semibold text-slate-900">Medical records</h2>
         {!user && <p className="text-sm text-slate-500">Loading...</p>}
         {user && (
           <div className="mt-3 flex items-center gap-4">

@@ -6,6 +6,7 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 import { getRamsStatusForSite, isRamsCompliant, type RamsTrainingData } from "@/lib/ramsCompliance";
 import {
   ABSENT_FOR_PREFIX,
+  appendAbsentClearedNote,
   formatAbsentNotes,
   parseAbsentForDate,
   parseYmd,
@@ -21,6 +22,9 @@ import { AUTO_SIGN_OUT_TIMEOUT_MS } from "@/lib/attendanceFallbackConstants";
 import { fetchLatestAttendanceRowForUser } from "@/lib/attendanceLatestRow";
 import { enrichAttendanceApiFields, exitIsoFromBody, normalizeAttendanceAction } from "@/lib/attendanceRowEnrich";
 import { sendAttendanceAutoSignOutPush } from "@/lib/attendanceAutoSignOutPush";
+import { dispatchPendingAttendancePushNotifications } from "@/lib/dispatchAttendancePushQueue";
+import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
+import { userHasValidSiteInduction } from "@/lib/induction/listInductedSites";
 
 export const dynamic = "force-dynamic";
 
@@ -28,10 +32,9 @@ export const dynamic = "force-dynamic";
  * Hybrid auto sign-out:
  * - Foreground: worker app Dart timer (unchanged).
  * - Native strict: POST with auto_sign_out + auto_sign_out_reason "native_geofence" (optional).
- * - Server fallback: Supabase pg_cron `perform_attendance_fallback()` every minute; stale ping (>25s) plus
- *   outside fence: uses `last_location_outside_fence` when set by foreground pings, else legacy coordinate check.
- *   Push queue drained by
- *   `POST /api/maintenance/dispatch-attendance-push-queue` with CRON_SECRET (Vercel cron or equivalent).
+ * - Server fallback: Supabase pg_cron `perform_attendance_fallback()` every minute; stale ping (>2 min) plus
+ *   a confirmed outside fence. Coarse GPS cannot confirm exit. Push is sent from Postgres via OneSignal
+ *   and also drained by `POST /api/maintenance/dispatch-attendance-push-queue`.
  */
 
 async function userHasAbsentForUtcDate(userId: string, absentForYmd: string): Promise<boolean> {
@@ -99,6 +102,12 @@ async function normalizeAttendanceRows(rows: Record<string, unknown>[]): Promise
 
 export async function GET(req: Request) {
   try {
+    // Live attendance polls this often; drain any cron-queued pushes that
+    // have not yet been sent (idempotent via push_dispatched_at).
+    void dispatchPendingAttendancePushNotifications(50).catch((err) =>
+      console.warn("[push] drain on GET /api/attendance:", err)
+    );
+
     const cookieStore = await cookies();
     const url = new URL(req.url);
     const limitParam = url.searchParams.get("limit");
@@ -240,6 +249,16 @@ export async function GET(req: Request) {
       const userIds = (users ?? []).map((u) => u.id);
       if (userIds.length === 0) return NextResponse.json([], { status: 200 });
       let q = supabaseAdmin.from("attendance").select("*").in("user_id", userIds);
+      const restrictedSites = await getRestrictedSiteIds(role);
+      if (restrictedSites) {
+        if (restrictedSites.length === 0) return NextResponse.json([], { status: 200 });
+        if (siteIdParam && !restrictedSites.includes(siteIdParam)) {
+          return NextResponse.json([], { status: 200 });
+        }
+        if (!siteIdParam) {
+          q = q.in("site_id", restrictedSites);
+        }
+      }
       q = applyExtraFilters(q);
       const { data: att, error: attAdminErr } = await q.order("timestamp", { ascending: false }).limit(limit);
       if (attAdminErr) console.error("[GET /api/attendance] admin attendance:", attAdminErr.message, attAdminErr);
@@ -402,20 +421,31 @@ export async function POST(req: Request) {
     const bodyCompanyId = body.company_id ?? body.companyId ?? body.companyid;
     const queryCompanyId = url.searchParams.get("companyId")?.trim() || undefined;
     // Native geofence / mobile Bearer often has no cookies; body company_id must count for operatives too.
-    const assignedCompanyId =
+    let assignedCompanyId =
       role === "superuser"
         ? (bodyCompanyId ?? queryCompanyId ?? companyId ?? null)
         : (companyId ?? bodyCompanyId ?? queryCompanyId ?? null);
-    if (!assignedCompanyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
 
     // Verify operative exists in users table (required for FK)
-    const { data: operativeUser } = await supabaseAdmin.from("users").select("id").eq("id", operativeId).maybeSingle();
+    const { data: operativeUser } = await supabaseAdmin
+      .from("users")
+      .select("id, company_id")
+      .eq("id", operativeId)
+      .maybeSingle();
     if (!operativeUser) {
       return NextResponse.json(
         { error: "User not found. The operative ID may not exist in the database." },
         { status: 404 }
       );
     }
+    const targetCompanyId =
+      (operativeUser as { company_id?: string | null }).company_id != null
+        ? String((operativeUser as { company_id?: string | null }).company_id)
+        : "";
+    if (!assignedCompanyId && targetCompanyId) {
+      assignedCompanyId = targetCompanyId;
+    }
+    if (!assignedCompanyId) return NextResponse.json({ error: "company_id required" }, { status: 400 });
 
     const roleLower = (role ?? "").toLowerCase();
     if (roleLower === "operative" && !hasBearer) {
@@ -430,7 +460,118 @@ export async function POST(req: Request) {
     }
 
     const actionNormalized = (action ?? "").toString().toUpperCase().replace(/\s/g, "_");
+    const isSignInAction =
+      actionNormalized === "SIGN_IN" ||
+      actionNormalized === "IN" ||
+      actionNormalized === "SIGNIN" ||
+      actionNormalized === "CHECKIN";
+    if (isSignInAction && siteId && roleLower === "operative") {
+      const inducted = await userHasValidSiteInduction(String(operativeId), String(siteId));
+      if (!inducted) {
+        return NextResponse.json(
+          {
+            error: "induction_required",
+            message: "Complete site induction before signing in at this site.",
+          },
+          { status: 403 },
+        );
+      }
+    }
     const isAbsent = actionNormalized === "ABSENT" || actionNormalized === "MARK_ABSENT";
+    const isClearAbsent =
+      actionNormalized === "CLEAR_ABSENT" || actionNormalized === "UNDO_ABSENT";
+
+    // --- Undo / admin-clear an absent mark (soft-void, keep the row for audit) ---
+    if (isClearAbsent) {
+      const rawDate = (body.absentDate ?? body.date ?? body.absent_date) as string | undefined;
+      const absentDateYmd = (rawDate && String(rawDate).trim()) || utcTodayYmd();
+      if (!parseYmd(absentDateYmd)) {
+        return NextResponse.json(
+          { error: "invalid_absent_date", message: "Use YYYY-MM-DD (UTC calendar date)." },
+          { status: 400 }
+        );
+      }
+
+      let actorId = (mobileAuth.uid && String(mobileAuth.uid).trim()) ||
+        cookieStore.get("uid")?.value?.trim() ||
+        "";
+      if (!actorId && userEmailEffective) {
+        const { data: meActor } = await supabaseAdmin
+          .from("users")
+          .select("id")
+          .eq("email", userEmailEffective)
+          .maybeSingle();
+        if (meActor?.id) actorId = String(meActor.id);
+      }
+      const staffRoles = new Set(["admin", "supervisor", "sub_admin", "superuser"]);
+      const isStaff = staffRoles.has(roleLower);
+      const isSelf = actorId !== "" && actorId === String(operativeId);
+      const todayY = utcTodayYmd();
+
+      if (!isSelf && !isStaff) {
+        return NextResponse.json(
+          { error: "forbidden", message: "You can only undo your own absent mark." },
+          { status: 403 }
+        );
+      }
+      if (isSelf && !isStaff && ymdBefore(absentDateYmd, todayY)) {
+        return NextResponse.json(
+          {
+            error: "absent_date_past",
+            message: "Only an admin can clear an absent mark for a past date.",
+          },
+          { status: 403 }
+        );
+      }
+      if (isStaff && !isSelf && roleLower !== "superuser") {
+        const staffCompany = String(assignedCompanyId ?? "");
+        if (!staffCompany || !targetCompanyId || staffCompany !== targetCompanyId) {
+          return NextResponse.json(
+            { error: "forbidden", message: "You can only clear absent marks for your company." },
+            { status: 403 }
+          );
+        }
+      }
+
+      const { data: existingAbsent } = await supabaseAdmin
+        .from("attendance")
+        .select("id, notes")
+        .eq("user_id", operativeId)
+        .eq("action", "ABSENT")
+        .like("notes", `${ABSENT_FOR_PREFIX}${absentDateYmd}%`)
+        .limit(1)
+        .maybeSingle();
+      if (!existingAbsent?.id) {
+        return NextResponse.json(
+          { error: "absent_not_found", message: "No absent mark found for this date." },
+          { status: 404 }
+        );
+      }
+
+      const source = isSelf ? "self" : "admin";
+      const clearedBy = actorId || (isStaff ? "admin" : String(operativeId));
+      const { error: clearErr } = await supabaseAdmin
+        .from("attendance")
+        .update({
+          action: "ABSENT_CLEARED",
+          notes: appendAbsentClearedNote(
+            (existingAbsent as { notes?: string | null }).notes,
+            clearedBy,
+            source
+          ),
+        })
+        .eq("id", existingAbsent.id);
+      if (clearErr) {
+        console.error("POST /api/attendance clear absent:", clearErr);
+        return NextResponse.json({ error: clearErr.message }, { status: 500 });
+      }
+      return NextResponse.json({
+        ok: true,
+        id: existingAbsent.id,
+        cleared: true,
+        absentDate: absentDateYmd,
+      });
+    }
     const isSignIn = actionNormalized === "IN" || actionNormalized === "SIGN_IN" || actionNormalized === "CHECKIN";
     const isSignOut =
       actionNormalized === "SIGN_OUT" ||

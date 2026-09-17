@@ -12,6 +12,7 @@ import {
   COOKIE_MAX_AGE_MOBILE_APP,
   COOKIE_MAX_AGE_REMEMBER,
 } from "./securityConfig";
+import { serializeAuthCookie, serializeAuthCookieClear } from "./authCookies";
 
 const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -249,23 +250,25 @@ export async function handleLoginPost(req: Request): Promise<NextResponse> {
       suspicious,
     });
 
-    const cookiePart = (name: string, value: string, age: number) =>
-      `${name}=${encodeURIComponent(value)}; Path=/; Max-Age=${age}; SameSite=Lax`;
-    res.headers.append("Set-Cookie", cookiePart("role", roleCookieValue, maxAge));
-    res.headers.append("Set-Cookie", cookiePart("user_email", sessionEmail, maxAge));
+    res.headers.append("Set-Cookie", serializeAuthCookie("role", roleCookieValue, maxAge));
+    res.headers.append("Set-Cookie", serializeAuthCookie("user_email", sessionEmail, maxAge));
+    res.headers.append("Set-Cookie", serializeAuthCookieClear("impersonating"));
     if (dbUserId) {
-      res.headers.append("Set-Cookie", cookiePart("uid", dbUserId, maxAge));
+      res.headers.append("Set-Cookie", serializeAuthCookie("uid", dbUserId, maxAge));
     }
     if (sessionId && sessionStartedAt !== null) {
-      res.headers.append("Set-Cookie", cookiePart("session_id", sessionId, maxAge));
-      res.headers.append("Set-Cookie", cookiePart("session_started_at", String(Math.floor(sessionStartedAt / 1000)), maxAge));
+      res.headers.append("Set-Cookie", serializeAuthCookie("session_id", sessionId, maxAge));
+      res.headers.append(
+        "Set-Cookie",
+        serializeAuthCookie("session_started_at", String(Math.floor(sessionStartedAt / 1000)), maxAge)
+      );
     }
     if (isSuperuser) {
-      res.headers.append("Set-Cookie", "companyId=; Path=/; Max-Age=0; SameSite=Lax");
+      res.headers.append("Set-Cookie", serializeAuthCookieClear("companyId"));
     } else if (userCompanyId) {
-      res.headers.append("Set-Cookie", cookiePart("companyId", userCompanyId, maxAge));
+      res.headers.append("Set-Cookie", serializeAuthCookie("companyId", userCompanyId, maxAge));
     } else {
-      res.headers.append("Set-Cookie", "companyId=; Path=/; Max-Age=0; SameSite=Lax");
+      res.headers.append("Set-Cookie", serializeAuthCookieClear("companyId"));
     }
     return res;
   } catch (e) {

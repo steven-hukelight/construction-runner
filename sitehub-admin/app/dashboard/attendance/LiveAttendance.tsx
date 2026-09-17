@@ -4,9 +4,11 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
 import AttendanceFilters from "./live/AttendanceFilters";
 import AttendanceTable from "./live/AttendanceTable";
+import AttendanceCards from "./live/AttendanceCards";
 import SessionDetailsDrawer from "./live/SessionDetailsDrawer";
 import type { AttendanceLog } from "./live/attendanceSessionTypes";
 import type { AttendanceSession } from "./live/attendanceSessionTypes";
+import { parseAbsentForDate } from "@/lib/attendanceAbsent";
 import {
   buildAttendanceSessions,
   getPrimaryAttendanceLog,
@@ -131,6 +133,7 @@ export default function LiveAttendance({
   const [activeSessionsOnly, setActiveSessionsOnly] = useState(false);
   const [drawerSession, setDrawerSession] = useState<AttendanceSession | null>(null);
   const [now, setNow] = useState(() => new Date());
+  const [listEpoch, setListEpoch] = useState(0);
 
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
@@ -206,7 +209,7 @@ export default function LiveAttendance({
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [refreshTrigger, selectedDate, selectedSiteId, selectedUserId, isToday]);
+  }, [refreshTrigger, selectedDate, selectedSiteId, selectedUserId, isToday, listEpoch]);
 
   useEffect(() => {
     let cancelled = false;
@@ -348,13 +351,22 @@ export default function LiveAttendance({
       />
 
       {displayedSessions.length > 0 ? (
-        <AttendanceTable
-          sessions={displayedSessions}
-          resolveOperativeLabel={resolveOperativeLabel}
-          resolveSiteLabel={resolveSiteLabel}
-          now={now}
-          onOpenSession={setDrawerSession}
-        />
+        <>
+          <AttendanceCards
+            sessions={displayedSessions}
+            resolveOperativeLabel={resolveOperativeLabel}
+            resolveSiteLabel={resolveSiteLabel}
+            now={now}
+            onOpenSession={setDrawerSession}
+          />
+          <AttendanceTable
+            sessions={displayedSessions}
+            resolveOperativeLabel={resolveOperativeLabel}
+            resolveSiteLabel={resolveSiteLabel}
+            now={now}
+            onOpenSession={setDrawerSession}
+          />
+        </>
       ) : null}
 
       {displayedSessions.length === 0 && (
@@ -372,6 +384,34 @@ export default function LiveAttendance({
         companyLabel={drawerCompany}
         open={drawerSession != null}
         onClose={() => setDrawerSession(null)}
+        onClearAbsent={
+          drawerSession?.kind === "absent"
+            ? async () => {
+                const uid = String(drawerSession.userId ?? "").trim();
+                const ymd = parseAbsentForDate(drawerSession.absentLog?.notes ?? null);
+                const cid = uid ? userIdToCompanyId.get(uid) : undefined;
+                const res = await fetch("/api/attendance", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    action: "clear_absent",
+                    operativeId: uid,
+                    absentDate: ymd,
+                    companyId: cid,
+                  }),
+                });
+                const data = (await res.json().catch(() => ({}))) as {
+                  error?: string;
+                  message?: string;
+                };
+                if (!res.ok) {
+                  throw new Error(data.message || data.error || "Could not clear absent");
+                }
+                setListEpoch((n) => n + 1);
+              }
+            : undefined
+        }
       />
     </div>
   );

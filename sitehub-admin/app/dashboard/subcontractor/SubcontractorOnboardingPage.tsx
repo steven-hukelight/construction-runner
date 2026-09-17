@@ -1,7 +1,9 @@
 "use client";
 
 import React, { useState, useEffect, useMemo } from "react";
-import { UserPlus, RefreshCw, Loader2 } from "lucide-react";
+import { UserPlus, RefreshCw, Loader2, Filter, Briefcase } from "lucide-react";
+import { CardSelect } from "../components/ui/CardSelect";
+import { SitePicker } from "../components/ui/SitePicker";
 import PageHeader from "../components/PageHeader";
 import SubcontractorOperativeTable from "./SubcontractorOperativeTable";
 import SubcontractorOperativeDrawer from "./SubcontractorOperativeDrawer";
@@ -141,42 +143,46 @@ export default function SubcontractorOnboardingPage() {
                 onChange={(e) => setSearch(e.target.value)}
                 className={`${selectClass} min-w-[160px] flex-1 max-w-xs`}
               />
-              <select
+              <CardSelect
+                items={[
+                  { id: "missing", name: "Missing items" },
+                  { id: "expiring", name: "Expiring" },
+                  { id: "incomplete", name: "Incomplete Pre-Induction" },
+                ]}
                 value={statusFilter}
-                onChange={(e) => setStatusFilter(e.target.value)}
-                className={selectClass}
-              >
-                <option value="all">All status</option>
-                <option value="missing">Missing items</option>
-                <option value="expiring">Expiring</option>
-                <option value="incomplete">Incomplete Pre-Induction</option>
-              </select>
-              <select
+                onChange={setStatusFilter}
+                icon={Filter}
+                fieldLabel="Status"
+                variant="compact"
+                allowNone
+                noneValue="all"
+                noneLabel="All status"
+                className="w-48"
+              />
+              <CardSelect
+                items={tradeOptions.map((t) => ({ id: t, name: t }))}
                 value={tradeFilter}
-                onChange={(e) => setTradeFilter(e.target.value)}
-                className={selectClass}
-              >
-                <option value="all">All trades</option>
-                {tradeOptions.map((t) => (
-                  <option key={t} value={t}>
-                    {t}
-                  </option>
-                ))}
-              </select>
-              {linkedSites.length > 0 && (
-                <select
+                onChange={setTradeFilter}
+                icon={Briefcase}
+                fieldLabel="Trade"
+                variant="compact"
+                allowNone
+                noneValue="all"
+                noneLabel="All trades"
+                className="w-44"
+              />
+              {linkedSites.length > 0 ? (
+                <SitePicker
+                  sites={linkedSites}
                   value={siteFilter}
-                  onChange={(e) => setSiteFilter(e.target.value)}
-                  className={selectClass}
-                >
-                  <option value="all">All sites</option>
-                  {linkedSites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name ?? s.id}
-                    </option>
-                  ))}
-                </select>
-              )}
+                  onChange={setSiteFilter}
+                  variant="compact"
+                  allowNone
+                  noneValue="all"
+                  noneLabel="All sites"
+                  className="w-48"
+                />
+              ) : null}
             </div>
           </div>
 

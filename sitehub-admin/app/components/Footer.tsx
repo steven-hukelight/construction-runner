@@ -1,17 +1,27 @@
 "use client";
 
 import Link from "next/link";
+import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
 export default function Footer() {
+  const { t } = useDisplayPreferences();
   return (
     <footer className="mt-auto border-t border-gray-200 dark:border-slate-600 bg-white/50 dark:bg-slate-800/90 py-4 px-4">
-      <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-center gap-x-4 gap-y-1 text-sm text-gray-600 dark:text-slate-400">
+      <div className="mx-auto max-w-7xl flex flex-wrap items-center justify-center gap-x-4 gap-y-2 text-sm text-gray-600 dark:text-slate-400">
+        <Link
+          href="/legal/terms"
+          className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
+        >
+          {t("Terms of Service")}
+        </Link>
         <Link
           href="/legal/privacy-and-security"
           className="text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 hover:underline"
         >
-          Privacy & Security
+          {t("Privacy & Security")}
         </Link>
+        <LanguageSwitcher compact className="min-w-[12rem]" />
       </div>
     </footer>
   );

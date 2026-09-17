@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useCallback } from "react";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
+import { useClientSession } from "../ClientSessionProvider";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -25,7 +26,6 @@ import {
   List,
   MapPin,
   Users,
-  UserCog,
   ClipboardCheck,
   Building2,
   ClipboardList,
@@ -33,8 +33,9 @@ import {
 } from "lucide-react";
 
 import { preInductionUiEnabled } from "@/lib/featureFlags";
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance | Missing Info], Users, pending signups, Operatives, Attendance
+// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance | Missing Info], Users, pending signups, Attendance
 const adminNavItems = [
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
   { name: "Subcontractors", href: "/dashboard/subcontractors", icon: Building2 },
@@ -57,7 +58,6 @@ const adminNavItems = [
       ]),
   { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Pending approvals", href: "/dashboard/pending-approvals", icon: UserCheck },
-  { name: "Operatives", href: "/dashboard/operatives", icon: UserCog },
   { name: "Attendance", href: "/dashboard/attendance", icon: ClipboardList },
 ];
 
@@ -89,20 +89,10 @@ const safetySubItems = [
 const subAdminNavItem = { name: "Operative Onboarding", href: "/dashboard/subcontractor", icon: FileText };
 
 export default function Sidebar({ role }: SidebarProps) {
+  const { t } = useDisplayPreferences();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  // Must not read document.cookie during the initial render: SSR has no document, so the
-  // server and client would disagree and React hydration would fail. Resolve after mount.
-  const [impersonating, setImpersonating] = useState(false);
-  useEffect(() => {
-    queueMicrotask(() => {
-      try {
-        setImpersonating(document.cookie.includes("impersonating=true"));
-      } catch {
-        setImpersonating(false);
-      }
-    });
-  }, []);
+  const { impersonating } = useClientSession();
   const [nearMissBadge, setNearMissBadge] = useState(0);
   const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
   const [safetyExpanded, setSafetyExpanded] = useState(
@@ -123,7 +113,7 @@ export default function Sidebar({ role }: SidebarProps) {
   const fetchPendingApprovalsBadge = useCallback(() => {
     const r = (getRoleFromClient() ?? "").toLowerCase();
     if (!r || r === "operative") return;
-    if (!["admin", "supervisor", "sub_admin", "superuser"].includes(r)) return;
+    if (!["admin", "supervisor", "sub_admin", "superuser", "site_admin"].includes(r)) return;
     fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" })
       .then((res) => res.json())
       .then((d) => setPendingApprovalsBadge(Array.isArray(d) ? d.length : 0))
@@ -213,7 +203,7 @@ export default function Sidebar({ role }: SidebarProps) {
             onClick={() => setMobileMenuOpen(false)}
           >
             <LayoutDashboard size={20} strokeWidth={2.5} />
-            <span>Dashboard</span>
+            <span>{t("Dashboard")}</span>
           </Link>
           {(role === "superuser" || role === "SUPERUSER") && (
             <Link
@@ -226,7 +216,7 @@ export default function Sidebar({ role }: SidebarProps) {
               onClick={() => setMobileMenuOpen(false)}
             >
               <UserCheck size={20} strokeWidth={2.5} />
-              <span className="flex-1 min-w-0">Pending approvals</span>
+              <span className="flex-1 min-w-0">{t("Pending approvals")}</span>
               {pendingApprovalsBadge > 0 && (
                 <span
                   className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
@@ -244,12 +234,15 @@ export default function Sidebar({ role }: SidebarProps) {
               onClick={() => setMobileMenuOpen(false)}
             >
               <subAdminNavItem.icon size={20} strokeWidth={2.5} />
-              <span>{subAdminNavItem.name}</span>
+              <span>{t(subAdminNavItem.name)}</span>
             </Link>
           )}
-          {["admin", "ADMIN", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "") &&
+          {["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "") &&
             adminNavItems.map((item) => {
-              const active = pathname === item.href || pathname?.startsWith(item.href + "/");
+              const active =
+                pathname === item.href ||
+                pathname?.startsWith(item.href + "/") ||
+                (item.href === "/dashboard/users" && pathname?.startsWith("/dashboard/operatives"));
               const Icon = item.icon;
               const showPendingBadge =
                 item.href === "/dashboard/pending-approvals" && pendingApprovalsBadge > 0;
@@ -261,7 +254,7 @@ export default function Sidebar({ role }: SidebarProps) {
                   onClick={() => setMobileMenuOpen(false)}
                 >
                   <Icon size={20} strokeWidth={2.5} />
-                  <span className="flex-1 min-w-0">{item.name}</span>
+                  <span className="flex-1 min-w-0">{t(item.name)}</span>
                   {showPendingBadge && (
                     <span
                       className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
@@ -277,17 +270,17 @@ export default function Sidebar({ role }: SidebarProps) {
             <>
               <Link href="/dashboard/attendance" className={pathname === "/dashboard/attendance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                 <ClipboardList size={20} strokeWidth={2.5} />
-                <span>Attendance</span>
+                <span>{t("Attendance")}</span>
               </Link>
               {preInductionUiEnabled ? (
                 <Link href="/dashboard/induction-compliance" className={pathname === "/dashboard/induction-compliance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                   <ClipboardCheck size={20} strokeWidth={2.5} />
-                  <span>Induction Compliance</span>
+                  <span>{t("Induction Compliance")}</span>
                 </Link>
               ) : (
                 <Link href="/dashboard/missing-info" className={pathname === "/dashboard/missing-info" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                   <ClipboardCheck size={20} strokeWidth={2.5} />
-                  <span>Missing Info</span>
+                  <span>{t("Missing Info")}</span>
                 </Link>
               )}
             </>
@@ -303,7 +296,7 @@ export default function Sidebar({ role }: SidebarProps) {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Icon size={20} strokeWidth={2.5} />
-                <span>{item.name}</span>
+                <span>{t(item.name)}</span>
               </Link>
             );
           })}
@@ -316,7 +309,7 @@ export default function Sidebar({ role }: SidebarProps) {
             >
               <span className="flex items-center gap-3">
                 <HardHat size={20} strokeWidth={2.5} />
-                Safety
+                {t("Safety")}
               </span>
               {nearMissBadge > 0 && (
                 <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">
@@ -338,7 +331,7 @@ export default function Sidebar({ role }: SidebarProps) {
                       onClick={() => setMobileMenuOpen(false)}
                     >
                       <SubIcon size={16} strokeWidth={2} />
-                      {sub.name}
+                      {t(sub.name)}
                     </Link>
                   );
                 })}
@@ -356,7 +349,7 @@ export default function Sidebar({ role }: SidebarProps) {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Icon size={20} strokeWidth={2.5} />
-                <span>{item.name}</span>
+                <span>{t(item.name)}</span>
               </Link>
             );
           })}
@@ -370,17 +363,25 @@ export default function Sidebar({ role }: SidebarProps) {
               className="text-xs font-semibold text-gray-700 dark:text-slate-200 mb-1 hover:underline focus:underline"
               style={{ display: 'inline-block' }}
             >
-              Need help?
+              {t("Need help?")}
             </a>
-            <p className="text-xs text-gray-600 dark:text-slate-400">Visit our support center</p>
+            <p className="text-xs text-gray-600 dark:text-slate-400">{t("Visit our support center")}</p>
           </div>
+          <a
+            href="/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1"
+          >
+            {t("Terms of Service")}
+          </a>
           <a
             href="/legal/privacy-and-security"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1"
           >
-            Privacy & Security Policy
+            {t("Privacy & Security Policy")}
           </a>
         </div>
       </aside>

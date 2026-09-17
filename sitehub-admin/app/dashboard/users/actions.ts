@@ -5,6 +5,7 @@ import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { canAssignSuperAdminRole, isCompanySuperAdmin, usesAssignedSites } from "@/lib/auth/roles";
 
 export async function fetchUsers(companyId?: string, role?: string, cookieHeader?: string) {
   try {
@@ -27,7 +28,7 @@ export async function fetchUsers(companyId?: string, role?: string, cookieHeader
   }
 }
 
-export async function inviteUser(data: { name: string; email: string; role: string }) {
+export async function inviteUser(data: { name: string; email: string; role: string; siteIds?: string[] }) {
   const base = await getServerRequestBaseUrl();
   const url = `${base}/api/users`;
   const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
@@ -48,7 +49,7 @@ export async function updateUserRole(id: string, role: string): Promise<{ succes
     const userRole = cookieStore.get("role")?.value;
     const roleLower = (userRole ?? "").toLowerCase();
     if (roleLower !== "admin" && roleLower !== "superuser" && roleLower !== "sub_admin") {
-      return { success: false, error: "Only admins can update user roles" };
+      return { success: false, error: "Only Super Admins can update user roles" };
     }
 
     let companyId = cookieStore.get("companyId")?.value?.trim();
@@ -61,18 +62,34 @@ export async function updateUserRole(id: string, role: string): Promise<{ succes
         })) || undefined;
     }
 
-    const { data: userRow } = await supabaseAdmin.from("users").select("company_id").eq("id", id).maybeSingle();
+    const { data: userRow } = await supabaseAdmin.from("users").select("company_id, role").eq("id", id).maybeSingle();
     if (!userRow) return { success: false, error: "User not found" };
     const targetCompanyId = String((userRow as { company_id?: string | null }).company_id ?? "").trim();
     if (roleLower !== "superuser" && companyId !== targetCompanyId) {
       return { success: false, error: "Cannot update user in another company" };
     }
 
-    const updates = { role, updated_at: new Date().toISOString() };
+    const allowed = new Set(["admin", "site_admin", "supervisor", "operative", "sub_admin", "viewer"]);
+    if (roleLower === "superuser") allowed.add("superuser");
+    const nextRole = role.toLowerCase().trim();
+    if (!allowed.has(nextRole)) {
+      return { success: false, error: "Invalid role" };
+    }
+
+    const targetIsSuperAdmin = isCompanySuperAdmin((userRow as { role?: string }).role);
+    if ((nextRole === "admin" || targetIsSuperAdmin) && !canAssignSuperAdminRole(userRole)) {
+      return { success: false, error: "Only a Super Admin can assign or change Super Admin" };
+    }
+
+    const updates = { role: nextRole, updated_at: new Date().toISOString() };
     const { error } = await supabaseAdmin.from("users").update(updates).eq("id", id);
     if (error) {
       console.error("updateUserRole error:", error);
       return { success: false, error: (error as { message?: string }).message ?? "Failed to update role" };
+    }
+
+    if (!usesAssignedSites(nextRole)) {
+      await supabaseAdmin.from("user_sites").delete().eq("user_id", id);
     }
 
     revalidatePath("/dashboard/users");

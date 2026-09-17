@@ -34,7 +34,7 @@ export function getAllowedOrigins(): string[] {
 // Cookie settings
 export const COOKIE_SETTINGS = {
   path: "/" as const,
-  httpOnly: false,
+  httpOnly: true,
   sameSite: "lax" as const,
   secure: process.env.NODE_ENV === "production",
 };

@@ -5,9 +5,10 @@ import {
   SESSION_IDLE_TIMEOUT_MS,
   SESSION_ABSOLUTE_TIMEOUT_MS,
 } from "@/lib/securityConfig";
+import { getSessionStartedAtFromClient } from "@/lib/utils/cookies";
+import { clearServerAuthCookies } from "@/lib/clientLogout";
 
 const ACTIVITY_EVENTS = ["mousedown", "keydown", "scroll", "touchstart"];
-const COOKIES_TO_CLEAR = ["role", "companyId", "user_email", "uid", "impersonating", "session_id", "session_started_at"];
 
 /**
  * Session timeout: idle (30 min) + absolute (24h).
@@ -15,24 +16,18 @@ const COOKIES_TO_CLEAR = ["role", "companyId", "user_email", "uid", "impersonati
  */
 export function useSessionTimeout() {
   const logout = useCallback((reason: "idle" | "absolute" = "idle") => {
-    try {
-      COOKIES_TO_CLEAR.forEach((name) => (document.cookie = `${name}=; path=/; max-age=0`));
-    } catch {
-      /* document.cookie access denied */
-    }
     const param = reason === "absolute" ? "expired=1" : "timeout=1";
-    window.location.href = `/admin/login?${param}`;
+    void clearServerAuthCookies().finally(() => {
+      window.location.href = `/admin/login?${param}`;
+    });
   }, []);
 
   useEffect(() => {
     let idleTimeoutId: ReturnType<typeof setTimeout> | null = null;
     let absoluteTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const startedAt = (() => {
-      if (typeof document === "undefined") return null;
-      const match = document.cookie.match(/session_started_at=(\d+)/);
-      return match ? parseInt(match[1], 10) * 1000 : null;
-    })();
+    const startedUnix = getSessionStartedAtFromClient();
+    const startedAt = startedUnix != null ? startedUnix * 1000 : null;
 
     const resetIdleTimer = () => {
       if (idleTimeoutId) clearTimeout(idleTimeoutId);

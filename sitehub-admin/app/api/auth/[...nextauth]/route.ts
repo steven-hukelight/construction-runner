@@ -1,11 +1,13 @@
-import NextAuth from "next-auth";
-import { authOptions } from "@/lib/authOptions";
+import { NextResponse } from "next/server";
 import { POST as loginPost } from "../login/route";
 
-const handler = NextAuth(authOptions);
+/** NextAuth is retired. POST .../login still aliases the real login handler. */
+function gone() {
+  return NextResponse.json({ error: "Gone" }, { status: 410 });
+}
 
-export async function GET(req: Request, ctx: { params: Promise<{ nextauth?: string[] }> }) {
-  return handler(req, ctx as never);
+export async function GET() {
+  return gone();
 }
 
 export async function POST(
@@ -16,5 +18,5 @@ export async function POST(
   if (params.nextauth?.[0] === "login") {
     return loginPost(req);
   }
-  return handler(req, ctx as never);
+  return gone();
 }

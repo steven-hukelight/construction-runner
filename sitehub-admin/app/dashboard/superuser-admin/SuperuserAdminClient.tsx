@@ -6,6 +6,7 @@ import Table from "../components/ui/Table";
 import { Building2, Users, MapPin, UserPlus, FileText, RefreshCw } from "lucide-react";
 import Button from "../components/ui/Button";
 import Link from "next/link";
+import { CompanyPicker } from "../components/ui/SitePicker";
 import useSWR from "swr";
 
 type UserRow = { id: string; email?: string | null; name?: string | null; display_name?: string | null; role?: string | null; company_id?: string | null };
@@ -59,20 +60,17 @@ export default function SuperuserAdminClient() {
   return (
     <div className="space-y-10">
       <div className="flex flex-wrap items-center gap-4">
-        <div className="flex items-center gap-2">
-          <label className="text-sm font-medium text-gray-700">Filter by company</label>
-          <select
+        <div className="w-64">
+          <CompanyPicker
+            companies={companies}
             value={companyFilter}
-            onChange={(e) => setCompanyFilter(e.target.value)}
-            className="input max-w-[220px]"
-          >
-            <option value="">All companies</option>
-            {companies.map((c) => (
-              <option key={c.id} value={c.id}>
-                {c.name ?? c.id}
-              </option>
-            ))}
-          </select>
+            onChange={setCompanyFilter}
+            variant="compact"
+            allowNone
+            noneValue=""
+            noneLabel="All companies"
+            placeholder="All companies"
+          />
         </div>
         <Button variant="secondary" onClick={() => mutate()} className="inline-flex items-center gap-2">
           <RefreshCw className="w-4 h-4" />

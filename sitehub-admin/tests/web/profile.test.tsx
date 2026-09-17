@@ -1,18 +1,22 @@
 import { render, screen, fireEvent } from '@testing-library/react';
 import ProfilePage from '@/app/dashboard/profile/page';
-import { SessionProvider } from 'next-auth/react';
-import type { Session } from 'next-auth';
+import { ClientSessionProvider } from '@/app/dashboard/components/ClientSessionProvider';
 
 describe('Profile Management', () => {
   it('should allow editing profile', () => {
-    const session: Session = {
-      user: { email: 'user@construction-runner.com', name: 'User', role: 'user' },
-      expires: '2099-01-01T00:00:00.000Z',
-    };
     render(
-      <SessionProvider session={session}>
+      <ClientSessionProvider
+        initial={{
+          role: 'user',
+          companyId: null,
+          email: 'user@construction-runner.com',
+          uid: '',
+          impersonating: false,
+          sessionStartedAt: null,
+        }}
+      >
         <ProfilePage />
-      </SessionProvider>
+      </ClientSessionProvider>
     );
     // Simulate editing name
     const nameInput = screen.getByLabelText(/name/i);

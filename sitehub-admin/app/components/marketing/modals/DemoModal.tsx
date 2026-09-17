@@ -36,6 +36,7 @@ export default function DemoModal({
     message: "",
   });
   const [errors, setErrors] = useState<FormErrors>({});
+  const [website, setWebsite] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitStatus, setSubmitStatus] = useState<
     "idle" | "success" | "error"
@@ -97,9 +98,12 @@ export default function DemoModal({
       const response = await fetch("/api/demo", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({ ...formData, website }),
       });
-      if (!response.ok) throw new Error("Failed to submit form");
+      const json = await response.json().catch(() => ({}));
+      if (!response.ok) {
+        throw new Error((json as { error?: string }).error || "Failed to submit form");
+      }
       setSubmitStatus("success");
       setSubmitMessage("Thank you! We will contact you soon.");
       setFormData({
@@ -116,9 +120,8 @@ export default function DemoModal({
         setSubmitStatus("idle");
       }, 3000);
     } catch (err) {
-      console.error("Form submission error:", err);
       setSubmitStatus("error");
-      setSubmitMessage("Something went wrong. Please try again.");
+      setSubmitMessage(err instanceof Error ? err.message : "Something went wrong. Please try again.");
     } finally {
       setIsSubmitting(false);
     }
@@ -155,6 +158,19 @@ export default function DemoModal({
           )}
           {submitStatus === "idle" && (
             <form onSubmit={handleSubmit} className="space-y-4">
+              <div className="absolute -left-[9999px] h-0 w-0 overflow-hidden" aria-hidden>
+                <label>
+                  Website
+                  <input
+                    type="text"
+                    name="website"
+                    tabIndex={-1}
+                    autoComplete="off"
+                    value={website}
+                    onChange={(e) => setWebsite(e.target.value)}
+                  />
+                </label>
+              </div>
               <div>
                 <label className="block text-sm font-medium text-slate-200 mb-1">
                   Full Name <span className="text-red-400">*</span>

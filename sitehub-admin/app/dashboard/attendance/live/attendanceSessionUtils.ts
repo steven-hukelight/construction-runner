@@ -14,6 +14,10 @@ export function isAbsentAction(action: string | undefined): boolean {
   return a === "ABSENT" || a === "MARK_ABSENT";
 }
 
+export function isClearedAbsentAction(action: string | undefined): boolean {
+  return normalizeActionKey(action) === "ABSENT_CLEARED";
+}
+
 export function isSignInAction(action: string | undefined): boolean {
   const a = normalizeActionKey(action);
   return a === "SIGN_IN" || a === "IN" || a === "SIGNIN" || a === "CHECKIN";
@@ -97,8 +101,20 @@ export function getExitReasonKind(session: AttendanceSession): ExitReasonKind | 
   const meta = outMeta?.auto || outMeta?.reason ? outMeta : inMeta;
 
   if (!meta?.auto && !meta?.reason) return "manual";
-  if (meta.reason === "fallback") return "server_check";
+  if (
+    meta.reason === "fallback" ||
+    meta.reason === "fallback_stale_outside" ||
+    meta.reason === "fallback_max_shift"
+  ) {
+    return "server_check";
+  }
   return "auto";
+}
+
+export function getSessionAutoSignOutReason(session: AttendanceSession): string {
+  const outMeta = autoMetaFromLog(session.signOutLog);
+  const inMeta = autoMetaFromLog(session.signInLog);
+  return (outMeta?.reason || inMeta?.reason || "").trim();
 }
 
 export function getSessionStartDate(session: AttendanceSession): Date | null {
@@ -112,6 +128,29 @@ export function getSessionStartDate(session: AttendanceSession): Date | null {
     return parseTimestamp(session.signInLog.timestamp);
   }
   return null;
+}
+
+export function getSessionLeaveDate(session: AttendanceSession): Date | null {
+  if (session.kind === "absent") return null;
+  const fromOut = session.signOutLog
+    ? parseTimestamp(session.signOutLog.exitTime ?? session.signOutLog.exit_time)
+    : null;
+  if (fromOut) return fromOut;
+  const fromIn = session.signInLog
+    ? parseTimestamp(session.signInLog.exitTime ?? session.signInLog.exit_time)
+    : null;
+  return fromIn;
+}
+
+export function getSessionSignedOutDate(session: AttendanceSession): Date | null {
+  if (session.kind === "absent") return null;
+  const fromOut =
+    parseTimestamp(session.signOutLog?.signOutTime ?? session.signOutLog?.sign_out_time) ??
+    (session.signOutLog && isSignOutAction(session.signOutLog.action)
+      ? parseTimestamp(session.signOutLog.timestamp)
+      : null);
+  if (fromOut) return fromOut;
+  return parseTimestamp(session.signInLog?.signOutTime ?? session.signInLog?.sign_out_time);
 }
 
 export function getSessionEndDate(session: AttendanceSession): Date | null {
@@ -201,6 +240,9 @@ export function buildAttendanceSessions(logs: AttendanceLog[]): AttendanceSessio
     };
 
     for (const log of sorted) {
+      if (isClearedAbsentAction(log.action)) {
+        continue;
+      }
       if (isAbsentAction(log.action)) {
         flushPendingOpen();
         sessions.push({

@@ -18,6 +18,7 @@ import {
   ClipboardCheck,
 } from "lucide-react";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
+import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
 /* OPTION A: Single sidebar — Modules removed; use CompanySwitcher then regular Sidebar for Messaging, Assets, Offline */
 const navItems = [
@@ -49,6 +50,7 @@ const navItems = [
 ];
 
 export default function SuperuserSidebar() {
+  const { t } = useDisplayPreferences();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
@@ -97,7 +99,7 @@ export default function SuperuserSidebar() {
                 onClick={() => setMobileMenuOpen(false)}
               >
                 <Icon size={20} strokeWidth={2.5} />
-                <span>{item.name}</span>
+                <span>{t(item.name)}</span>
               </Link>
             );
           })}
@@ -105,16 +107,24 @@ export default function SuperuserSidebar() {
 
         <div className="shrink-0 pt-4 space-y-2">
           <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 dark:from-slate-800 dark:to-slate-700 border border-blue-100 dark:border-slate-600">
-            <p className="text-xs font-semibold text-gray-700 dark:text-slate-200">Superuser panel</p>
-            <p className="text-xs text-gray-600 dark:text-slate-400">Tenant & system management</p>
+            <p className="text-xs font-semibold text-gray-700 dark:text-slate-200">{t("Superuser panel")}</p>
+            <p className="text-xs text-gray-600 dark:text-slate-400">{t("Tenant & system management")}</p>
           </div>
+          <a
+            href="/legal/terms"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1"
+          >
+            {t("Terms of Service")}
+          </a>
           <a
             href="/legal/privacy-and-security"
             target="_blank"
             rel="noopener noreferrer"
             className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline px-1"
           >
-            Privacy & Security Policy
+            {t("Privacy & Security Policy")}
           </a>
         </div>
       </aside>

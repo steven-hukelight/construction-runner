@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
+import { getRestrictedSiteIds, siteIdsForFilter, assertWritableSiteId } from "@/lib/auth/siteScope";
 
 type TaskRow = {
   id?: string;
@@ -92,13 +93,18 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10) || 100, 500);
     const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
     const siteId = searchParams.get("siteId")?.trim() || searchParams.get("site_id")?.trim();
+    const restricted = await getRestrictedSiteIds(role);
+    const siteScope = siteIdsForFilter(restricted, siteId);
+    if (siteScope === "none") return NextResponse.json([]);
 
     if (role === "superuser" && !companyId) {
-      const { data } = await supabaseAdmin
+      let allQuery = supabaseAdmin
         .from("tasks")
         .select("id, title, description, status, company_id, site_id, assigned_to, created_at, due_date")
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
+      if (siteScope !== "all") allQuery = allQuery.in("site_id", siteScope);
+      const { data } = await allQuery;
       const list = (data || []) as TaskRow[];
       let enriched = await enrichTasksWithNames(list);
       enriched = await enrichTasksWithAttachments(enriched);
@@ -145,7 +151,7 @@ export async function GET(req: Request) {
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
-      if (siteId) tasksQuery = tasksQuery.eq("site_id", siteId);
+      if (siteScope !== "all") tasksQuery = tasksQuery.in("site_id", siteScope);
       const { data: tasks } = await tasksQuery;
       const list = tasks ?? [];
       if (list.length > 0) {
@@ -202,6 +208,10 @@ export async function POST(req: Request) {
   const assignedToIds = (b.assignedToIds ?? (b.assignedTo ? [b.assignedTo] : [])) as string[];
   const firstAssignee = Array.isArray(assignedToIds) ? assignedToIds[0] : assignedToIds;
 
+  const siteId = (b.siteId ?? b.site_id ?? null) as string | null;
+  const siteForbid = await assertWritableSiteId(role, siteId);
+  if (siteForbid) return siteForbid;
+
   const dueDateVal = (b.dueDate ?? b.due_date ?? null) as string | null;
   const insertPayload: Record<string, unknown> = {
     id: crypto.randomUUID(),
@@ -209,7 +219,7 @@ export async function POST(req: Request) {
     description: (b.description ?? "") as string,
     status: (b.status ?? "OPEN") as string,
     company_id: assignedCompanyId,
-    site_id: (b.siteId ?? b.site_id ?? null) as string | null,
+    site_id: siteId,
     assigned_to: firstAssignee ?? null,
     due_date: dueDateVal && String(dueDateVal).trim() ? dueDateVal : null,
   };

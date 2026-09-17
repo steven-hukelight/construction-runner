@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
+import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 
 type RegisterTab = "join" | "newCompany";
 
@@ -277,13 +278,7 @@ function RegisterPageContent() {
             >
               {newCompanyLoading ? "Submitting..." : "Request New Company"}
             </button>
-            <p className="text-xs text-center text-gray-500 mt-2">
-              By continuing, you agree to our{" "}
-              <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                Privacy & Security Policy
-              </a>
-              .
-            </p>
+            <LegalConsentLinks />
             {newCompanyMessage && <div className="text-sm text-center text-blue-700 mt-2 font-medium">{newCompanyMessage}</div>}
           </div>
         </form>
@@ -338,11 +333,12 @@ function RegisterPageContent() {
               <label className="block text-sm font-medium text-gray-700">Set Password</label>
               <input
                 type="password"
-                placeholder="Choose a password"
+                placeholder="Choose a password (at least 8 characters)"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
                 value={invitePassword}
                 onChange={(e) => setInvitePassword(e.target.value)}
                 required
+                minLength={8}
               />
             </div>
           </div>
@@ -354,13 +350,7 @@ function RegisterPageContent() {
             >
               {inviteLoading ? "Submitting..." : "Submit registration"}
             </button>
-            <p className="text-xs text-center text-gray-500 mt-2">
-              By continuing, you agree to our{" "}
-              <a href="/legal/privacy-and-security" target="_blank" rel="noopener noreferrer" className="text-blue-600 hover:underline">
-                Privacy & Security Policy
-              </a>
-              .
-            </p>
+            <LegalConsentLinks />
             {inviteMessage && <div className="text-sm text-center text-blue-700 mt-2 font-medium">{inviteMessage}</div>}
           </div>
         </form>

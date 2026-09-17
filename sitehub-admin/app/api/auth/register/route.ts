@@ -6,7 +6,8 @@ import { notifyAdminsOperativePendingSignup } from "@/lib/notifyAdminPendingOper
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email, name, companyName, companyCode, password: rawPassword } = body;
+    const { email: rawEmail, name, companyName, companyCode, password: rawPassword } = body;
+    const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
     const password =
       typeof rawPassword === "string" && rawPassword.length >= 8 ? rawPassword : undefined;
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
@@ -125,7 +126,13 @@ export async function POST(req: Request) {
     }
 
     const res = NextResponse.json({ id: reg.id, companyId, inviteCode: companyDoc?.invite_code }, { status: 201 });
-    res.cookies.set("companyId", String(companyId), { path: "/", httpOnly: false });
+    res.cookies.set("companyId", String(companyId), {
+      path: "/",
+      httpOnly: true,
+      sameSite: "lax",
+      secure: process.env.NODE_ENV === "production",
+      maxAge: 24 * 60 * 60,
+    });
     // Do NOT set role here – only setUserCookies (after login) may set the role cookie
     return res;
   } catch {

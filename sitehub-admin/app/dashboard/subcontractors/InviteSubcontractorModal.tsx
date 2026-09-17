@@ -3,6 +3,7 @@
 import { useState, useEffect } from "react";
 import Modal from "../components/ui/Modal";
 import Button from "../components/ui/Button";
+import { SitePicker } from "../components/ui/SitePicker";
 import { Copy, Check } from "lucide-react";
 
 type Site = { id: string; name?: string };
@@ -100,23 +101,16 @@ export default function InviteSubcontractorModal({
         ) : (
           <>
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">Site to link</label>
-              <select
-                className="w-full rounded-xl border border-gray-200 bg-white px-4 py-3 text-gray-900 focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-2">
+                Site to link
+              </label>
+              <SitePicker
+                sites={sites}
                 value={siteId}
-                onChange={(e) => setSiteId(e.target.value)}
+                onChange={setSiteId}
                 disabled={loading}
-              >
-                {loading && sites.length === 0 ? (
-                  <option>Loading sites…</option>
-                ) : (
-                  sites.map((s) => (
-                    <option key={s.id} value={s.id}>
-                      {s.name || s.id}
-                    </option>
-                  ))
-                )}
-              </select>
+                placeholder="Select site…"
+              />
             </div>
             <div className="flex justify-end gap-2">
               <Button variant="secondary" onClick={onClose}>Cancel</Button>
