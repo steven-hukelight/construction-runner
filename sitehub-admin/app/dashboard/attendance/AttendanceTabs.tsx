@@ -68,18 +68,15 @@ export default function AttendanceTabs() {
         </div>
       </div>
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="bg-white dark:bg-slate-800 border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-1.5 inline-flex gap-1">
+        <div className="admin-tabs">
           {tabs.map((tab) => {
             const isActive = active === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActive(tab.id)}
-                className={`px-4 py-2 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-blue-600 text-white shadow-sm"
-                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-700"
-                }`}
+                className={isActive ? "active" : ""}
               >
                 {tab.label}
               </button>
@@ -90,7 +87,7 @@ export default function AttendanceTabs() {
           <button
             type="button"
             onClick={() => setRecordAttendanceOpen((o) => !o)}
-            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm transition hover:bg-blue-700 hover:border-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 focus-visible:ring-offset-2 dark:focus-visible:ring-offset-slate-900"
+            className="inline-flex items-center justify-center gap-2 rounded-lg border border-blue-600 bg-blue-600 px-4 py-2 text-sm font-semibold text-white shadow-sm hover:bg-blue-700"
             aria-expanded={recordAttendanceOpen}
           >
             <UserRoundPen className="h-4 w-4 shrink-0 opacity-95" aria-hidden />
@@ -102,17 +99,17 @@ export default function AttendanceTabs() {
       {active === "live" && (
         <div className="space-y-4">
           {recordAttendanceOpen && (
-            <div className="rounded-xl border border-gray-200/80 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm p-5">
+            <div className="rounded-lg border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-5">
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">
                 Sign an operative in or out and optionally attach a site and notes.
               </p>
               <SignInOut embedded onRecorded={triggerRefetch} />
             </div>
           )}
-          <div className="bg-white dark:bg-slate-800 border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-6">
-            <div className="mb-4">
+          <div>
+            <div className="mb-3">
               <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">Live Attendance</h3>
-              <p className="text-xs text-slate-500 dark:text-slate-400 mt-0.5">
+              <p className="text-xs text-gray-500 mt-0.5">
                 The live list archives automatically at midnight (UK). Pick a past date to view the archive.
               </p>
             </div>
@@ -122,7 +119,7 @@ export default function AttendanceTabs() {
       )}
 
       {active === "role" && (
-        <div className="bg-white dark:bg-slate-800 border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-6">
+        <div>
           <RoleCall
             selectedDate={selectedDate}
             onArchived={() => setSelectedDate(todayStr())}

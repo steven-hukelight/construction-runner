@@ -1,6 +1,8 @@
 "use client";
 
+import { UserRound } from "lucide-react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
+import { TableNameCell } from "../../components/ui/TableChrome";
 import type { AttendanceSession } from "./attendanceSessionTypes";
 import { getAttendanceRowModel } from "./attendanceRowModel";
 
@@ -26,43 +28,31 @@ export default function AttendanceRow({
     timeFormat
   );
 
-  const rowTone = active
-    ? "bg-emerald-500/[0.06] dark:bg-emerald-500/[0.08] hover:bg-emerald-500/[0.09] dark:hover:bg-emerald-500/[0.12]"
-    : "bg-transparent hover:bg-slate-50/80 dark:hover:bg-slate-800/40 opacity-95";
+  const chip = active
+    ? "status-chip--ok"
+    : session.kind === "absent"
+      ? "status-chip--warn"
+      : "status-chip--muted";
 
   return (
-    <tr className={`border-b border-slate-100 dark:border-slate-700/80 transition-colors ${rowTone}`}>
+    <tr className="data-table-row border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/60 dark:hover:bg-slate-700/80">
       <td className={`${densityTd} align-middle`}>
-        <span className="font-medium text-slate-900 dark:text-slate-100">{operativeLabel}</span>
+        <TableNameCell icon={UserRound} label={operativeLabel} />
       </td>
       <td className={`${densityTd} align-middle text-slate-600 dark:text-slate-400`}>{siteLabel}</td>
       <td className={`${densityTd} align-middle`}>
-        <div className="tabular-nums text-sm text-slate-800 dark:text-slate-200 space-y-0.5">
+        <div className="space-y-0.5 text-sm tabular-nums text-slate-800 dark:text-slate-200">
           {timeLines.length ? timeLines.map((line) => <div key={line}>{line}</div>) : "—"}
         </div>
       </td>
       <td className={`${densityTd} align-middle`}>
-        <span className="tabular-nums text-sm font-medium text-slate-700 dark:text-slate-300">{durationLabel}</span>
+        <span className="text-sm font-medium tabular-nums text-slate-700 dark:text-slate-300">{durationLabel}</span>
       </td>
       <td className={`${densityTd} align-middle`}>
-        <span
-          className={`inline-flex rounded-md px-2 py-0.5 text-xs font-semibold ${
-            active
-              ? "bg-emerald-500/15 text-emerald-800 dark:text-emerald-200 ring-1 ring-emerald-500/20"
-              : session.kind === "absent"
-                ? "bg-amber-500/12 text-amber-900 dark:text-amber-100 ring-1 ring-amber-500/20"
-                : "bg-slate-500/10 text-slate-600 dark:text-slate-400 ring-1 ring-slate-500/15"
-          }`}
-        >
-          {statusLabel}
-        </span>
+        <span className={`status-chip ${chip}`}>{statusLabel}</span>
       </td>
       <td className={`${densityTd} align-middle text-right`}>
-        <button
-          type="button"
-          onClick={onOpenDetails}
-          className="text-sm font-medium text-blue-600 hover:text-blue-700 dark:text-blue-400 dark:hover:text-blue-300"
-        >
+        <button type="button" onClick={onOpenDetails} className="table-link">
           Details
         </button>
       </td>

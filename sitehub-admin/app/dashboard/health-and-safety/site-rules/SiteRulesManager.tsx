@@ -238,7 +238,7 @@ export default function SiteRulesManager() {
       )}
 
       <p className="text-sm text-slate-600 mb-6">
-        Define site rules that operatives will see in the app. Add rules by category and optionally attach documents for emergency procedures.
+        Define per-site rules operatives accept during induction (after the safety pack and RAMS). Add a rule to a site, pick PPE / emergency / conduct, and optionally attach a document. Company-wide PPE and emergency copy belongs under Induction safety.
       </p>
 
       <div className="space-y-8">

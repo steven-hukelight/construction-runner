@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { AlertTriangle, FileDown, Trash2, Eye } from "lucide-react";
 import Table from "../../components/ui/Table";
+import { DataTableShell } from "../../components/ui/TableChrome";
 import { TaskStatusPill } from "../../components/ui/TaskStatusPill";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
@@ -114,7 +115,7 @@ export default function NearMissManager() {
         <div className="flex flex-wrap gap-2">
           <Link
             href={`/dashboard/health-and-safety/near-miss/${row.id}`}
-            className="btn-ghost inline-flex items-center gap-1.5 no-underline"
+            className="table-link inline-flex items-center gap-1.5"
           >
             <Eye size={14} />
             View
@@ -149,24 +150,17 @@ export default function NearMissManager() {
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-2 rounded-lg bg-amber-100 dark:bg-amber-900/50">
-          <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">Near Miss Reports</h3>
-          <p className="text-sm text-slate-600">Operative-submitted safety incidents for review.</p>
-        </div>
-      </div>
-
+    <DataTableShell
+      title="Near miss reports"
+      subtitle="Operative-submitted safety incidents for review."
+    >
       {loading ? (
-        <div className="p-6 text-sm text-gray-500">Loading…</div>
+        <div className="p-6 text-sm text-slate-500">Loading…</div>
       ) : items.length === 0 ? (
-        <div className="p-6 text-sm text-gray-500">No near miss reports yet.</div>
+        <div className="p-6 text-sm text-slate-500">No near miss reports yet.</div>
       ) : (
         <>
-          <div className="space-y-3 md:hidden">
+          <div className="space-y-3 p-4 md:hidden">
             {items.map((row) => (
               <SafetyRecordCard
                 key={row.id}
@@ -203,10 +197,10 @@ export default function NearMissManager() {
             ))}
           </div>
           <div className="hidden md:block">
-            <Table columns={columns} data={items} />
+            <Table embedded columns={columns} data={items} />
           </div>
         </>
       )}
-    </div>
+    </DataTableShell>
   );
 }

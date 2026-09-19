@@ -1,7 +1,9 @@
 "use client";
 
 import React from "react";
+import { UserRound } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+import { DataTableShell, TableNameCell } from "../../components/ui/TableChrome";
 import type { ComplianceRow } from "../server";
 import ComplianceStatusBadge from "./ComplianceStatusBadge";
 import ComplianceMissingItemsIcon from "./ComplianceMissingItemsIcon";
@@ -37,60 +39,35 @@ export default function ComplianceTable({
 }: Props) {
   const density = useTableDensityClasses();
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-        <table className={`w-full table-auto min-w-[800px] ${density.table}`}>
-          <thead className="sticky top-0 bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-600 z-10">
-            <tr>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Name
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Role
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Company
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Site
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Status
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                RAMS
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide w-8`}>
-                Missing
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap w-8`}>
-                Expiry
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                Override
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide w-12`} />
+    <DataTableShell
+      title="Compliance"
+      subtitle={`${rows.length} record${rows.length === 1 ? "" : "s"}`}
+    >
+      <div className="max-h-[520px] overflow-x-auto overflow-y-auto">
+        <table className={`data-table w-full table-auto min-w-[800px] ${density.table}`}>
+          <thead className="sticky top-0 z-10">
+            <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
+              <th className={`${density.th} whitespace-nowrap`}>Name</th>
+              <th className={`${density.th} whitespace-nowrap`}>Role</th>
+              <th className={`${density.th} whitespace-nowrap`}>Company</th>
+              <th className={`${density.th} whitespace-nowrap`}>Site</th>
+              <th className={`${density.th} whitespace-nowrap`}>Status</th>
+              <th className={`${density.th} whitespace-nowrap`}>RAMS</th>
+              <th className={`${density.th} w-8 whitespace-nowrap`}>Missing</th>
+              <th className={`${density.th} w-8 whitespace-nowrap`}>Expiry</th>
+              <th className={`${density.th} whitespace-nowrap`}>Override</th>
+              <th className={`${density.th} w-12`} />
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-600">
+          <tbody>
             {rows.map((row, i) => (
               <tr
                 key={`${row.userId}-${row.siteId}-${i}`}
-                className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors cursor-pointer"
+                className="data-table-row cursor-pointer border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/60 dark:hover:bg-slate-700/80"
                 onClick={() => onRowClick(row.userId)}
               >
                 <td className={density.td}>
-                  <div className="flex items-center gap-2">
-                    <div className="h-8 w-8 rounded-full bg-blue-100 dark:bg-blue-900/50 flex items-center justify-center text-blue-700 dark:text-blue-300 font-medium text-sm shrink-0">
-                      {(row.userName || "?")[0]?.toUpperCase() ?? "?"}
-                    </div>
-                    <div>
-                      <div className="font-medium text-gray-900 dark:text-slate-100">{row.userName}</div>
-                      {row.trade && (
-                        <div className="text-xs text-gray-500 dark:text-slate-400">{row.trade}</div>
-                      )}
-                    </div>
-                  </div>
+                  <TableNameCell icon={UserRound} label={row.userName} detail={row.trade} />
                 </td>
                 <td className={density.td}>
                   <RoleBadge role={row.userRole ?? "OPERATIVE"} />
@@ -122,9 +99,7 @@ export default function ComplianceTable({
                 </td>
                 <td className={density.td}>
                   {row.adminPreInductionOverride ? (
-                    <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 dark:bg-purple-900/50 text-purple-800 dark:text-purple-300">
-                      Override
-                    </span>
+                    <span className="status-chip status-chip--info">Override</span>
                   ) : (
                     <span className="text-gray-400 dark:text-slate-500">—</span>
                   )}
@@ -148,8 +123,8 @@ export default function ComplianceTable({
         </table>
       </div>
       {rows.length === 0 && (
-        <div className="py-12 text-center text-gray-500 dark:text-slate-400">No records to display.</div>
+        <div className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">No records to display.</div>
       )}
-    </div>
+    </DataTableShell>
   );
 }

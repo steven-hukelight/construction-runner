@@ -5,6 +5,7 @@ import { AlertTriangle, Plus } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
+import { DataTableShell } from "../../components/ui/TableChrome";
 import TableActions from "../../components/ui/TableActions";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { SitePicker } from "../../components/ui/SitePicker";
@@ -75,7 +76,7 @@ export default function SafetyAlertsManager() {
   const severityBadge = (s: string) => {
     const sv = SEVERITIES.find((x) => x.id === s) ?? SEVERITIES[0];
     return (
-      <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded ${sv.class}`}>
+      <span className={`status-chip ${sv.class}`}>
         {sv.label}
       </span>
     );
@@ -103,26 +104,17 @@ export default function SafetyAlertsManager() {
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-red-100">
-            <AlertTriangle className="w-5 h-5 text-red-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">Safety Alerts</h3>
-            <p className="text-sm text-slate-600">
-              Site safety alerts with severity levels: info, warning, critical.
-            </p>
-          </div>
-        </div>
+    <DataTableShell
+      title="Safety alerts"
+      subtitle="Site safety alerts with severity levels: info, warning, critical."
+      actions={
         <Button size="sm" onClick={() => setAdding(true)}>
           <Plus size={18} /> Add Alert
         </Button>
-      </div>
-
-      {adding && (
-        <div className="mb-6 p-6 rounded-xl border border-red-200 bg-red-50/30 space-y-4">
+      }
+      extra={
+        adding ? (
+        <div className="rounded-2xl border border-red-200 bg-red-50/30 p-4 space-y-4">
           <h4 className="font-medium text-slate-900">New Safety Alert</h4>
           <Input
             label="Title"
@@ -165,9 +157,10 @@ export default function SafetyAlertsManager() {
             </Button>
           </div>
         </div>
-      )}
-
-      <div className="space-y-3 md:hidden">
+        ) : null
+      }
+    >
+      <div className="space-y-3 p-4 md:hidden">
         {items.map((row) => (
           <SafetyRecordCard
             key={row.id}
@@ -185,8 +178,8 @@ export default function SafetyAlertsManager() {
         ))}
       </div>
       <div className="hidden md:block">
-        <Table columns={columns} data={items} />
+        <Table embedded columns={columns} data={items} />
       </div>
-    </div>
+    </DataTableShell>
   );
 }

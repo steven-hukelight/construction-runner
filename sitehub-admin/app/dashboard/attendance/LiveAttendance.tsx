@@ -351,33 +351,28 @@ export default function LiveAttendance({
       />
 
       {displayedSessions.length > 0 ? (
-        <>
-          <AttendanceCards
-            sessions={displayedSessions}
-            resolveOperativeLabel={resolveOperativeLabel}
-            resolveSiteLabel={resolveSiteLabel}
-            now={now}
-            onOpenSession={setDrawerSession}
-          />
-          <AttendanceTable
-            sessions={displayedSessions}
-            resolveOperativeLabel={resolveOperativeLabel}
-            resolveSiteLabel={resolveSiteLabel}
-            now={now}
-            onOpenSession={setDrawerSession}
-          />
-        </>
+        <AttendanceCards
+          sessions={displayedSessions}
+          resolveOperativeLabel={resolveOperativeLabel}
+          resolveSiteLabel={resolveSiteLabel}
+          now={now}
+          onOpenSession={setDrawerSession}
+        />
       ) : null}
-
-      {displayedSessions.length === 0 && (
-        <div className="text-sm text-slate-500 dark:text-slate-400">
-          {activeSessionsOnly && sessions.length > 0
+      <AttendanceTable
+        sessions={displayedSessions}
+        resolveOperativeLabel={resolveOperativeLabel}
+        resolveSiteLabel={resolveSiteLabel}
+        now={now}
+        onOpenSession={setDrawerSession}
+        emptyMessage={
+          activeSessionsOnly && sessions.length > 0
             ? "No active entries match this filter."
             : isToday
               ? "No entries to show."
-              : `No entries for ${selectedDate}.`}
-        </div>
-      )}
+              : `No entries for ${selectedDate}.`
+        }
+      />
 
       <SessionDetailsDrawer
         session={drawerSession}

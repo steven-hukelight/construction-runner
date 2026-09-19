@@ -18,7 +18,6 @@ export default async function SubcontractorsPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
       <PageHeader
         title="Subcontractors"
         description="Partner companies linked to your sites. Invite and manage subcontractors."

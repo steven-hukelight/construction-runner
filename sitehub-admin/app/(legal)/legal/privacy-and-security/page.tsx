@@ -2,6 +2,7 @@
 
 import Link from "next/link";
 import { Shield, ArrowLeft, Lock } from "lucide-react";
+import MarketingShell from "@/app/components/marketing/MarketingShell";
 
 /**
  * Construction Runner — Privacy & Security Master Policy
@@ -11,8 +12,9 @@ export default function PrivacyAndSecurityPage() {
   const lastUpdated = "February 2025";
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
-      <div className="mx-auto max-w-3xl px-4 py-12 flex-1 overflow-y-auto">
+    <MarketingShell>
+      <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
+        <div className="rounded-[20px] bg-[rgba(255,255,255,0.92)] px-5 py-10 shadow-[0_12px_40px_rgba(15,35,70,0.22)] ring-1 ring-white/70 backdrop-blur-xl sm:px-10">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 mb-8"
@@ -172,7 +174,8 @@ export default function PrivacyAndSecurityPage() {
             Legacy Privacy Policy
           </Link>
         </div>
+        </div>
       </div>
-    </div>
+    </MarketingShell>
   );
 }

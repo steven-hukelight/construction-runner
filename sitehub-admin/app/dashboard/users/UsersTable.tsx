@@ -1,8 +1,9 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { Users, CheckCircle, Circle, Filter } from "lucide-react";
+import { CheckCircle, Circle, Filter, UserRound } from "lucide-react";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import TableActions from "../components/ui/TableActions";
 import RoleBadge from "../components/RoleBadge";
 import { CardSelect } from "../components/ui/CardSelect";
@@ -266,7 +267,13 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
   type Column = { header: string; accessor: string; render?: (row: UserRow) => React.ReactNode };
 
   const columns: Column[] = [
-    { header: "Name", accessor: "name" },
+    {
+      header: "Name",
+      accessor: "name",
+      render: (row: UserRow) => (
+        <TableNameCell icon={UserRound} label={row.name || row.email || "—"} />
+      ),
+    },
     { header: "Email", accessor: "email" },
     {
       header: "Company",
@@ -300,7 +307,7 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
             </span>
             <Link
               href={`/dashboard/users/${row.id}`}
-              className="text-blue-600 hover:text-blue-700 text-sm font-medium underline"
+              className="table-link"
             >
               View profile
             </Link>
@@ -345,20 +352,10 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
 
   return (
     <>
-      <div className="card">
-        <div className="flex flex-wrap items-center justify-between gap-3 mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-              <Users className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-            </div>
-            <div>
-              <h3 className="text-lg font-semibold text-slate-900">All Users</h3>
-              <p className="text-sm text-slate-600">
-                {displayedRows.length}
-                {roleFilter === "all" ? ` of ${rows.length}` : ""} people
-              </p>
-            </div>
-          </div>
+      <Table
+        title="All users"
+        subtitle={`${displayedRows.length}${roleFilter === "all" ? ` of ${rows.length}` : ""} people`}
+        actions={
           <CardSelect
             items={[
               { id: "OPERATIVE", name: "Operative" },
@@ -377,9 +374,10 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
             noneLabel="All roles"
             className="w-52"
           />
-        </div>
-        <Table columns={columns} data={displayedRows} />
-      </div>
+        }
+        columns={columns}
+        data={displayedRows}
+      />
       {assignSitesFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
           <div className="w-full max-w-md rounded-2xl bg-white dark:bg-slate-800 p-6 shadow-xl">

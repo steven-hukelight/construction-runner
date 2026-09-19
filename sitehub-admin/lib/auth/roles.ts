@@ -28,6 +28,23 @@ export function canCreateAndAssignSites(role: string | null | undefined): boolea
   return r === "superuser" || r === "admin";
 }
 
+/** Superuser, Super Admin, Supervisor, and Site Admin may add operatives to a site. */
+export function canAssignOperativesToSites(role: string | null | undefined): boolean {
+  const r = normalizeRole(role);
+  return r === "superuser" || r === "admin" || r === "supervisor" || r === "site_admin";
+}
+
+/** Super Admin / Superuser edit the company default safety pack. */
+export function canEditCompanySafetyPack(role: string | null | undefined): boolean {
+  const r = normalizeRole(role);
+  return r === "superuser" || r === "admin";
+}
+
+/** Super Admin, Superuser, Supervisor, and Site Admin may edit a site safety pack. */
+export function canEditSiteSafetyPack(role: string | null | undefined): boolean {
+  return canAssignOperativesToSites(role);
+}
+
 /** Only company Super Admin or platform Superuser may grant Super Admin. */
 export function canAssignSuperAdminRole(role: string | null | undefined): boolean {
   const r = normalizeRole(role);

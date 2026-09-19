@@ -30,10 +30,9 @@ export default async function SiteRulesPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-40 left-1/2 w-80 h-80 bg-gradient-to-br from-amber-400/10 to-orange-400/10 rounded-full blur-3xl -z-10" />
       <PageHeader
         title="Site Rules"
-        description="PPE requirements, emergency procedures, and conduct rules. Editable by admin."
+        description="Per-site PPE, emergency, and conduct rules with optional attachments. Operatives accept these after the safety pack and RAMS. Not the company safety pack — that lives under Induction safety."
       />
       <SiteRulesManager />
     </div>

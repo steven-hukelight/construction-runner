@@ -1,7 +1,6 @@
 export default function DashboardLoading() {
   return (
     <div className="relative space-y-8 animate-pulse">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/5 to-cyan-400/5 rounded-full blur-3xl -z-10" />
       {/* Page header skeleton */}
       <div className="space-y-2">
         <div className="h-8 w-48 rounded-lg bg-gray-200/80" />

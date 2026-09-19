@@ -2,9 +2,28 @@
 
 import { useMemo, useState } from "react";
 import { EnhancedCard } from "./ui/enhanced-card";
-import { BarChart, Bar, LineChart, Line, PieChart, Pie, Cell, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from "recharts";
-import { TrendingUp, Activity, PieChart as PieChartIcon } from "lucide-react";
-import type { DashboardDataTask, DashboardDataUser, DashboardDataSite, DashboardDataRams, TimestampLike } from "./dashboardTypes";
+import {
+  BarChart,
+  Bar,
+  LineChart,
+  Line,
+  PieChart,
+  Pie,
+  Cell,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+  Legend,
+  ResponsiveContainer,
+} from "recharts";
+import type {
+  DashboardDataTask,
+  DashboardDataUser,
+  DashboardDataSite,
+  DashboardDataRams,
+  TimestampLike,
+} from "./dashboardTypes";
 
 interface DashboardChartsProps {
   sites: DashboardDataSite[];
@@ -13,241 +32,214 @@ interface DashboardChartsProps {
   tasks: DashboardDataTask[];
 }
 
-const COLORS = ['#3b82f6', '#10b981', '#0ea5e9', '#f59e0b', '#ef4444'];
+const COLORS = ["#2563eb", "#0d9488", "#0284c7", "#d97706", "#dc2626"];
 
-// Helper function to get month name
 function getMonthName(monthIndex: number) {
-  const months = ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'];
+  const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
   return months[monthIndex];
 }
 
-// Helper to process data by month
-function getMonthlyActivityData(sites: DashboardDataSite[], rams: DashboardDataRams[], users: DashboardDataUser[]) {
-  const monthlyMap = new Map<string, { month: string; year: number; sites: number; rams: number; users: number }>();
+function parseDate(val: TimestampLike): Date | null {
+  if (!val) return null;
+  if (typeof val === "string") return new Date(val);
+  if (typeof val === "object" && val !== null && typeof (val as { toDate?: () => Date }).toDate === "function") {
+    return (val as { toDate: () => Date }).toDate();
+  }
+  try {
+    return new Date(val as number | Date);
+  } catch {
+    return null;
+  }
+}
+
+function getMonthlyOpsData(
+  sites: DashboardDataSite[],
+  rams: DashboardDataRams[],
+  users: DashboardDataUser[],
+  tasks: DashboardDataTask[]
+) {
+  const monthlyMap = new Map<
+    string,
+    { month: string; sites: number; rams: number; people: number; tasks: number }
+  >();
   const now = new Date();
-  
-  // Initialize last 6 months
+
   for (let i = 5; i >= 0; i--) {
     const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
     const key = `${date.getFullYear()}-${date.getMonth()}`;
     monthlyMap.set(key, {
       month: getMonthName(date.getMonth()),
-      year: date.getFullYear(),
       sites: 0,
       rams: 0,
-      users: 0,
+      people: 0,
+      tasks: 0,
     });
   }
-  
-  const parseDate = (val: TimestampLike): Date | null => {
-    if (!val) return null;
-    if (typeof val === "string") return new Date(val);
-    if (typeof val === "object" && val !== null && typeof (val as { toDate?: () => Date }).toDate === "function") return (val as { toDate: () => Date }).toDate();
-    try {
-      return new Date(val as number | Date);
-    } catch {
-      return null;
-    }
+
+  const bump = (items: { created_at?: TimestampLike; createdAt?: TimestampLike }[] | undefined, field: "sites" | "rams" | "people" | "tasks") => {
+    items?.forEach((item) => {
+      const date = parseDate(item.created_at ?? item.createdAt);
+      if (!date) return;
+      const bucket = monthlyMap.get(`${date.getFullYear()}-${date.getMonth()}`);
+      if (bucket) bucket[field]++;
+    });
   };
 
-  // Count sites by month (API returns created_at, server may use createdAt)
-  sites?.forEach((item) => {
-    const ts = item.created_at ?? item.createdAt;
-    const date = parseDate(ts);
-    if (!date) return;
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    const bucket = monthlyMap.get(key);
-    if (bucket) bucket.sites++;
-  });
+  bump(sites, "sites");
+  bump(rams, "rams");
+  bump(users, "people");
+  bump(tasks, "tasks");
 
-  // Count RAMS by month
-  rams?.forEach((item) => {
-    const ts = item.created_at ?? item.createdAt;
-    const date = parseDate(ts);
-    if (!date) return;
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    const bucket = monthlyMap.get(key);
-    if (bucket) bucket.rams++;
-  });
-
-  // Count users by month
-  users?.forEach((item) => {
-    const ts = item.created_at ?? item.createdAt;
-    const date = parseDate(ts);
-    if (!date) return;
-    const key = `${date.getFullYear()}-${date.getMonth()}`;
-    const bucket = monthlyMap.get(key);
-    if (bucket) bucket.users++;
-  });
-  
   return Array.from(monthlyMap.values());
 }
 
-// Helper to get growth trend data
-function getGrowthTrendData(sites: DashboardDataSite[], rams: DashboardDataRams[], users: DashboardDataUser[]) {
-  const monthlyData = getMonthlyActivityData(sites, rams, users);
-  
-  return monthlyData.map((data, index) => {
-    // Calculate cumulative totals
-    let totalSites = 0;
-    let totalRams = 0;
-    let totalUsers = 0;
-    
-    for (let i = 0; i <= index; i++) {
-      totalSites += monthlyData[i].sites;
-      totalRams += monthlyData[i].rams;
-      totalUsers += monthlyData[i].users;
-    }
-    
-    return {
-      month: data.month,
-      sites: totalSites,
-      rams: totalRams,
-      users: totalUsers,
-    };
-  });
+function ChartHeader({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="mb-5">
+      <h3 className="text-base font-semibold text-gray-900 dark:text-slate-100">{title}</h3>
+      <p className="mt-0.5 text-sm text-gray-500 dark:text-slate-400">{description}</p>
+    </div>
+  );
+}
+
+const tooltipStyle = {
+  backgroundColor: "#fff",
+  border: "1px solid #e5e7eb",
+  borderRadius: "8px",
+  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
+};
+
+function EmptyChart({ message }: { message: string }) {
+  return (
+    <div className="flex h-[280px] items-center justify-center rounded-xl border border-dashed border-blue-100 bg-[#f7fafc] px-6 text-center text-sm text-gray-500 dark:border-slate-600 dark:bg-slate-900/40 dark:text-slate-400">
+      {message}
+    </div>
+  );
 }
 
 export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsProps) {
-  const [activeTab, setActiveTab] = useState<'activity' | 'growth'>('activity');
-  const [ramsView, setRamsView] = useState<'pie' | 'bar'>('pie');
-  const [taskView, setTaskView] = useState<'status' | 'trend'>('status');
-  
-  // Generate chart data from dashboard props
-  const monthlyActivityData = useMemo(() => getMonthlyActivityData(sites, rams, users), [sites, rams, users]);
-  const growthTrendData = useMemo(() => getGrowthTrendData(sites, rams, users), [sites, rams, users]);
+  const [activityView, setActivityView] = useState<"added" | "tasks">("added");
+  const [ramsView, setRamsView] = useState<"pie" | "bar">("pie");
+  const [peopleView, setPeopleView] = useState<"roles" | "tasks">("roles");
 
-  // RAMS status distribution (memoized to avoid re-filtering every render)
-  const ramsStatusData = useMemo(() => [
-    { name: 'Approved', value: rams?.filter((r) => r.status === 'APPROVED')?.length || 0 },
-    { name: 'Pending', value: rams?.filter((r) => r.status === 'PENDING')?.length || 0 },
-    { name: 'Rejected', value: rams?.filter((r) => r.status === 'REJECTED')?.length || 0 },
-  ].filter(item => item.value > 0), [rams]);
+  const monthlyOpsData = useMemo(
+    () => getMonthlyOpsData(sites, rams, users, tasks),
+    [sites, rams, users, tasks]
+  );
 
-  // Task completion data (memoized)
-  const taskData = useMemo(() => [
-    { name: 'Completed', value: tasks?.filter((t) => t.status === 'COMPLETED')?.length || 0 },
-    { name: 'In Progress', value: tasks?.filter((t) => t.status === 'IN_PROGRESS')?.length || 0 },
-    { name: 'Pending', value: tasks?.filter((t) => t.status === 'PENDING' || !t.status)?.length || 0 },
-  ].filter(item => item.value > 0), [tasks]);
+  const ramsStatusData = useMemo(() => {
+    const approved = rams?.filter((r) => (r.status ?? "").toUpperCase() === "APPROVED").length || 0;
+    const pending = rams?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length || 0;
+    const rejected = rams?.filter((r) => (r.status ?? "").toUpperCase() === "REJECTED").length || 0;
+    return [
+      { name: "Approved", value: approved },
+      { name: "Awaiting review", value: pending },
+      { name: "Rejected", value: rejected },
+    ].filter((item) => item.value > 0);
+  }, [rams]);
+
+  const taskStatusData = useMemo(() => {
+    return [
+      { name: "Completed", value: tasks?.filter((t) => (t.status ?? "").toUpperCase() === "COMPLETED").length || 0 },
+      { name: "In progress", value: tasks?.filter((t) => (t.status ?? "").toUpperCase() === "IN_PROGRESS").length || 0 },
+      {
+        name: "To do",
+        value:
+          tasks?.filter((t) => {
+            const s = (t.status ?? "").toUpperCase();
+            return !s || s === "PENDING" || s === "TODO" || s === "OPEN";
+          }).length || 0,
+      },
+    ].filter((item) => item.value > 0);
+  }, [tasks]);
+
+  const roleData = useMemo(() => {
+    const counts = new Map<string, number>();
+    const labelFor = (role: string | undefined) => {
+      const r = (role ?? "").toLowerCase();
+      if (r === "operative") return "Operatives";
+      if (r === "supervisor") return "Supervisors";
+      if (r === "admin" || r === "site_admin") return "Admins";
+      if (r === "sub_admin") return "Subcontractor admins";
+      if (r === "superuser") return "Superusers";
+      return role ? role.replace(/_/g, " ") : "Other";
+    };
+    users?.forEach((u) => {
+      const label = labelFor(u.role);
+      counts.set(label, (counts.get(label) ?? 0) + 1);
+    });
+    return Array.from(counts.entries())
+      .map(([name, value]) => ({ name, value }))
+      .sort((a, b) => b.value - a.value);
+  }, [users]);
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Monthly Activity / Growth Trends with Tabs */}
-      <EnhancedCard gradient delay={0.5}>
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
-            <button
-              onClick={() => setActiveTab('activity')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                activeTab === 'activity'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Monthly Activity
-              </div>
-            </button>
-            <button
-              onClick={() => setActiveTab('growth')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                activeTab === 'growth'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Growth Trends
-              </div>
-            </button>
-          </div>
+    <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <EnhancedCard>
+        <ChartHeader
+          title="What's been added"
+          description="New sites, RAMS, people and tasks created over the last six months."
+        />
+        <div className="admin-tabs mb-4">
+          <button
+            type="button"
+            onClick={() => setActivityView("added")}
+            className={activityView === "added" ? "active" : ""}
+          >
+            Sites · RAMS · people
+          </button>
+          <button
+            type="button"
+            onClick={() => setActivityView("tasks")}
+            className={activityView === "tasks" ? "active" : ""}
+          >
+            Tasks raised
+          </button>
         </div>
-
-        {/* Chart content */}
-        {activeTab === 'activity' ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyActivityData}>
+        {activityView === "added" ? (
+          <ResponsiveContainer width="100%" height={280}>
+            <LineChart data={monthlyOpsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Line type="monotone" dataKey="sites" stroke="#3b82f6" strokeWidth={3} dot={{ r: 4 }} name="Sites Created" />
-              <Line type="monotone" dataKey="rams" stroke="#10b981" strokeWidth={3} dot={{ r: 4 }} name="RAMS Added" />
-              <Line type="monotone" dataKey="users" stroke="#0ea5e9" strokeWidth={3} dot={{ r: 4 }} name="Users Joined" />
+              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Line type="monotone" dataKey="sites" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} name="Sites" />
+              <Line type="monotone" dataKey="rams" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3 }} name="RAMS" />
+              <Line type="monotone" dataKey="people" stroke="#0284c7" strokeWidth={2.5} dot={{ r: 3 }} name="People" />
             </LineChart>
           </ResponsiveContainer>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={growthTrendData}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={monthlyOpsData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Bar dataKey="sites" fill="#3b82f6" radius={[8, 8, 0, 0]} name="Total Sites" />
-              <Bar dataKey="rams" fill="#10b981" radius={[8, 8, 0, 0]} name="Total RAMS" />
-              <Bar dataKey="users" fill="#0ea5e9" radius={[8, 8, 0, 0]} name="Total Users" />
+              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Legend wrapperStyle={{ fontSize: "12px" }} />
+              <Bar dataKey="tasks" fill="#2563eb" radius={[8, 8, 0, 0]} name="Tasks raised" />
             </BarChart>
           </ResponsiveContainer>
         )}
       </EnhancedCard>
 
-      {/* RAMS Status Distribution */}
-      <EnhancedCard gradient delay={0.6}>
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
-            <button
-              onClick={() => setRamsView('pie')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                ramsView === 'pie'
-                  ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <PieChartIcon className="w-4 h-4" />
-                Distribution
-              </div>
-            </button>
-            <button
-              onClick={() => setRamsView('bar')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                ramsView === 'bar'
-                  ? 'bg-gradient-to-r from-green-600 to-green-700 text-white shadow-lg shadow-green-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Comparison
-              </div>
-            </button>
-          </div>
+      <EnhancedCard>
+        <ChartHeader
+          title="RAMS status"
+          description="How method statements stand today — approved, waiting for review, or rejected."
+        />
+        <div className="admin-tabs mb-4">
+          <button type="button" onClick={() => setRamsView("pie")} className={ramsView === "pie" ? "active" : ""}>
+            Breakdown
+          </button>
+          <button type="button" onClick={() => setRamsView("bar")} className={ramsView === "bar" ? "active" : ""}>
+            Counts
+          </button>
         </div>
-
-        {/* Chart content */}
-        {ramsView === 'pie' ? (
-          <ResponsiveContainer width="100%" height={300}>
+        {ramsStatusData.length === 0 ? (
+          <EmptyChart message="No RAMS yet. Upload method statements under Health & Safety → RAMS." />
+        ) : ramsView === "pie" ? (
+          <ResponsiveContainer width="100%" height={280}>
             <PieChart>
               <Pie
                 data={ramsStatusData}
@@ -255,113 +247,76 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
                 cy="50%"
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
-                outerRadius={100}
-                fill="#3b82f6"
+                outerRadius={95}
+                fill="#2563eb"
                 dataKey="value"
               >
-                {ramsStatusData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                {ramsStatusData.map((_, index) => (
+                  <Cell key={`rams-${index}`} fill={COLORS[index % COLORS.length]} />
                 ))}
               </Pie>
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
+              <Tooltip contentStyle={tooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
+          <ResponsiveContainer width="100%" height={280}>
             <BarChart data={ramsStatusData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Bar dataKey="value" fill="#10b981" radius={[8, 8, 0, 0]} />
+              <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="value" fill="#0d9488" radius={[8, 8, 0, 0]} name="RAMS" />
             </BarChart>
           </ResponsiveContainer>
         )}
       </EnhancedCard>
 
-      {/* Task Status */}
-      <EnhancedCard gradient delay={0.7}>
-        {/* Tabs */}
-        <div className="flex items-center justify-between mb-6">
-          <div className="flex gap-2 p-1 bg-gray-100/80 dark:bg-slate-700/60 backdrop-blur-sm rounded-xl">
-            <button
-              onClick={() => setTaskView('status')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                taskView === 'status'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <Activity className="w-4 h-4" />
-                Current Status
-              </div>
-            </button>
-            <button
-              onClick={() => setTaskView('trend')}
-              className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 ${
-                taskView === 'trend'
-                  ? 'bg-gradient-to-r from-blue-600 to-blue-700 text-white shadow-lg shadow-blue-500/30'
-                  : 'text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-white/50 dark:hover:bg-slate-600/50'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <TrendingUp className="w-4 h-4" />
-                Over Time
-              </div>
-            </button>
-          </div>
+      <EnhancedCard className="lg:col-span-2">
+        <ChartHeader
+          title="Team & site work"
+          description="Who is in the company, and how site tasks are progressing."
+        />
+        <div className="admin-tabs mb-4">
+          <button
+            type="button"
+            onClick={() => setPeopleView("roles")}
+            className={peopleView === "roles" ? "active" : ""}
+          >
+            People by role
+          </button>
+          <button
+            type="button"
+            onClick={() => setPeopleView("tasks")}
+            className={peopleView === "tasks" ? "active" : ""}
+          >
+            Task progress
+          </button>
         </div>
-
-        {/* Chart content */}
-        {taskView === 'status' ? (
-          <ResponsiveContainer width="100%" height={300}>
-            <BarChart data={taskData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Bar dataKey="value" fill="#3b82f6" radius={[8, 8, 0, 0]} />
-            </BarChart>
-          </ResponsiveContainer>
+        {peopleView === "roles" ? (
+          roleData.length === 0 ? (
+            <EmptyChart message="No people in this company yet. Invite the team from Users." />
+          ) : (
+            <ResponsiveContainer width="100%" height={280}>
+              <BarChart data={roleData} layout="vertical" margin={{ left: 24, right: 16 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis type="number" allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+                <YAxis type="category" dataKey="name" width={140} stroke="#6b7280" style={{ fontSize: "12px" }} />
+                <Tooltip contentStyle={tooltipStyle} />
+                <Bar dataKey="value" fill="#2563eb" radius={[0, 8, 8, 0]} name="People" />
+              </BarChart>
+            </ResponsiveContainer>
+          )
+        ) : taskStatusData.length === 0 ? (
+          <EmptyChart message="No site tasks yet. Create tasks from the Tasks page." />
         ) : (
-          <ResponsiveContainer width="100%" height={300}>
-            <LineChart data={monthlyActivityData}>
+          <ResponsiveContainer width="100%" height={280}>
+            <BarChart data={taskStatusData}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <YAxis stroke="#6b7280" style={{ fontSize: '12px' }} />
-              <Tooltip 
-                contentStyle={{ 
-                  backgroundColor: '#fff', 
-                  border: '1px solid #e5e7eb',
-                  borderRadius: '8px',
-                  boxShadow: '0 4px 12px rgba(0,0,0,0.1)'
-                }}
-              />
-              <Legend wrapperStyle={{ fontSize: '12px' }} />
-              <Line type="monotone" dataKey="sites" stroke="#3b82f6" strokeWidth={2} dot={{ r: 3 }} name="Tasks Created" />
-            </LineChart>
+              <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+              <Tooltip contentStyle={tooltipStyle} />
+              <Bar dataKey="value" fill="#0284c7" radius={[8, 8, 0, 0]} name="Tasks" />
+            </BarChart>
           </ResponsiveContainer>
         )}
       </EnhancedCard>

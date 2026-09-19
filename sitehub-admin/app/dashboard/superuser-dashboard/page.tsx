@@ -62,29 +62,16 @@ export default async function SuperuserDashboardPage() {
   ];
 
   return (
-    <div className="relative min-h-screen">
-      <div className="fixed inset-0 -z-10 overflow-hidden pointer-events-none">
-        <div className="absolute inset-0 bg-gradient-to-br from-blue-50/50 via-sky-50/30 to-cyan-50/50 dark:from-slate-900/95 dark:via-slate-800/90 dark:to-slate-900/95" />
-        <div
-          className="absolute top-0 right-[10%] w-[500px] h-[500px] bg-gradient-to-br from-blue-400/20 to-blue-500/20 dark:from-blue-500/10 dark:to-blue-600/10 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "8s" }}
-        />
-        <div
-          className="absolute top-[40%] left-[5%] w-[400px] h-[400px] bg-gradient-to-tr from-blue-300/15 to-blue-500/15 dark:from-blue-400/8 dark:to-blue-500/8 rounded-full blur-3xl animate-pulse"
-          style={{ animationDuration: "10s", animationDelay: "2s" }}
-        />
+    <div className="space-y-8 pb-12">
+      <div>
+        <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
+          Superuser Dashboard
+        </h1>
+        <p className="text-gray-600">
+          Manage tenants, users, and system settings. Use the company switcher in the top bar to
+          impersonate a company and view their dashboard.
+        </p>
       </div>
-
-      <div className="space-y-8 pb-12 relative z-10">
-        <div>
-          <h1 className="text-2xl font-bold mb-2 bg-gradient-to-r from-blue-600 to-blue-800 bg-clip-text text-transparent">
-            Superuser Dashboard
-          </h1>
-          <p className="text-gray-600">
-            Manage tenants, users, and system settings. Use the company switcher in the top bar to
-            impersonate a company and view their dashboard.
-          </p>
-        </div>
 
         <SuperuserSelfOverrideSection role={role} />
 
@@ -95,13 +82,11 @@ export default async function SuperuserDashboardPage() {
               <Link
                 key={item.href}
                 href={item.href}
-                className="card flex flex-col p-6 group"
+                className="card flex flex-col p-5 group"
               >
-                <div className="flex items-start justify-between mb-4">
-                  <div className="p-3 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-                    <Icon className="w-6 h-6 text-blue-600" />
-                  </div>
-                  <ArrowRight className="w-5 h-5 text-gray-400 group-hover:text-blue-600 group-hover:translate-x-1 transition-all" />
+                <div className="flex items-start justify-between mb-3">
+                  <Icon className="w-5 h-5 text-blue-600" />
+                  <ArrowRight className="w-4 h-4 text-gray-400 group-hover:text-blue-700" />
                 </div>
                 <h2 className="font-semibold text-gray-900 mb-1">{item.title}</h2>
                 <p className="text-sm text-gray-600 flex-1">{item.description}</p>
@@ -130,7 +115,6 @@ export default async function SuperuserDashboardPage() {
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>
-      </div>
     </div>
   );
 }

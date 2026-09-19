@@ -20,7 +20,6 @@ export default async function SafetyAlertsPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-40 left-40 w-80 h-80 bg-gradient-to-br from-red-400/10 to-rose-400/10 rounded-full blur-3xl -z-10" />
       <PageHeader
         title="Safety Alerts"
         description="Site safety alerts with severity levels: info, warning, critical."

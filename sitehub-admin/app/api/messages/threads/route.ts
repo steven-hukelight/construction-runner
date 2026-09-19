@@ -71,7 +71,7 @@ async function resolveThreadsAuth(req: Request): Promise<{
 
 export async function GET(req: Request) {
   try {
-    const { companyId, userId, role, error } = await resolveThreadsAuth(req);
+    const { companyId, userId, error } = await resolveThreadsAuth(req);
     if (error) return error;
     if (!companyId) return NextResponse.json([], { status: 200 });
 
@@ -142,9 +142,6 @@ export async function GET(req: Request) {
     }
     }
 
-    const roleLower = (role ?? "").toLowerCase();
-    const isAdminOrSupervisor = ["admin", "supervisor", "sub_admin", "superuser"].includes(roleLower);
-
     const list = (threads ?? [])
       .map((t) => {
         const o = t as { id: string; created_by: string; created_at: string };
@@ -162,7 +159,7 @@ export async function GET(req: Request) {
           unread: unread ?? false,
         };
       })
-      .filter((t) => isAdminOrSupervisor || t.inThread);
+      .filter((t) => t.inThread);
 
     return NextResponse.json(list);
   } catch (e) {

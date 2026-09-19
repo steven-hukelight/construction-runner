@@ -1,17 +1,18 @@
 /**
  * POST /api/induction/complete
  * Marks a site induction as completed for the current user.
- * Used by mobile app when operative completes the induction checklist.
+ * Self-complete requires safety / RAMS / rules steps to be recorded.
  */
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { getInductionProgress } from "@/lib/induction/inductionProgress";
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const uid = cookieStore.get("uid")?.value;
-    const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
+    const auth = await resolveMobileApiAuth(req);
+    const uid = auth.uid;
+    const role = (auth.role ?? "").toLowerCase();
 
     if (!uid) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -28,12 +29,36 @@ export async function POST(req: Request) {
       );
     }
 
-    // User can complete their own induction; admin/supervisor can complete for operatives
     const isSelf = userId === uid;
-    const isAdmin = role === "superuser" || role === "admin" || role === "supervisor";
+    const isAdmin =
+      role === "superuser" ||
+      role === "admin" ||
+      role === "supervisor" ||
+      role === "site_admin";
 
     if (!isSelf && !isAdmin) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
+    if (isSelf) {
+      const progress = await getInductionProgress({
+        userId,
+        siteId,
+        companyId: auth.companyId,
+        ensureSafetyCopy: false,
+      });
+      if (!progress) {
+        return NextResponse.json({ error: "Site not found" }, { status: 404 });
+      }
+      if (!progress.canComplete) {
+        return NextResponse.json(
+          {
+            error: "induction_steps_incomplete",
+            message: "Read safety information, sign RAMS (or confirm already signed), and accept site rules before completing induction.",
+          },
+          { status: 400 },
+        );
+      }
     }
 
     const { error } = await supabaseAdmin.from("user_site_inductions").upsert(

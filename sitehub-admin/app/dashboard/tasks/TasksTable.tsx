@@ -5,6 +5,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
 import { ListTodo } from "lucide-react";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
@@ -148,9 +149,9 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
         <button
           type="button"
           onClick={() => setDetailTask(row)}
-          className="text-left font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          className="table-link text-left"
         >
-          {row.title || "Untitled"}
+          <TableNameCell icon={ListTodo} label={row.title || "Untitled"} />
         </button>
       ),
     },
@@ -220,34 +221,22 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-start justify-between mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-            <ListTodo className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">All Tasks</h3>
-            <p className="text-sm text-slate-600">{rows.length} tasks assigned</p>
-          </div>
-        </div>
-        {rows.length > 0 && (
-          <div className="flex items-center gap-2">
-            <Button
-              variant="secondary"
-              size="sm"
-              type="button"
-              onClick={handleExportCSV}
-            >
-              Export CSV
-            </Button>
-            <Button size="sm" type="button" onClick={handleExportPDF}>
-              Export PDF
-            </Button>
-          </div>
-        )}
-      </div>
+    <>
       <Table
+        title="All tasks"
+        subtitle={`${rows.length} tasks assigned`}
+        actions={
+          rows.length > 0 ? (
+            <div className="flex items-center gap-2">
+              <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV}>
+                Export CSV
+              </Button>
+              <Button size="sm" type="button" onClick={handleExportPDF}>
+                Export PDF
+              </Button>
+            </div>
+          ) : null
+        }
         columns={columns}
         data={rows}
         emptyMessage="No tasks yet. Use Add Task above to create one."
@@ -269,6 +258,6 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
           />,
           document.body
         )}
-    </div>
+    </>
   );
 }

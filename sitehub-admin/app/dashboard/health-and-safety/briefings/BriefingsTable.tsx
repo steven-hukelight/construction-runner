@@ -4,6 +4,7 @@ import { useMemo, useState } from "react";
 import { MessageSquare } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Table from "../../components/ui/Table";
+import { DataTableShell } from "../../components/ui/TableChrome";
 import TableActions from "../../components/ui/TableActions";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import BriefingDetailModal from "./BriefingDetailModal";
@@ -118,7 +119,7 @@ export default function BriefingsTable({
         <button
           type="button"
           onClick={() => setDetailBriefing(row)}
-          className="text-left font-medium text-blue-600 hover:text-blue-700 hover:underline"
+          className="table-link text-left"
         >
           {row.title || "Untitled"}
         </button>
@@ -174,19 +175,12 @@ export default function BriefingsTable({
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-          <MessageSquare className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">Toolbox Talks & Briefings</h3>
-          <p className="text-sm text-slate-600">
-            {rows.length} briefing{rows.length !== 1 ? "s" : ""}. Operatives acknowledge in the app.
-          </p>
-        </div>
-      </div>
-      <div className="space-y-3 md:hidden">
+    <>
+    <DataTableShell
+      title="Toolbox talks & briefings"
+      subtitle={`${rows.length} briefing${rows.length !== 1 ? "s" : ""}. Operatives acknowledge in the app.`}
+    >
+      <div className="space-y-3 p-4 md:hidden">
         {rows.map((row) => {
           const sid = String(row.siteId ?? "").trim();
           const pdf = row.fileUrl;
@@ -232,8 +226,9 @@ export default function BriefingsTable({
         })}
       </div>
       <div className="hidden md:block">
-        <Table columns={columns} data={rows} />
+        <Table embedded columns={columns} data={rows} />
       </div>
+    </DataTableShell>
       {detailBriefing && (
         <BriefingDetailModal
           briefing={detailBriefing}
@@ -242,6 +237,6 @@ export default function BriefingsTable({
           onClose={() => setDetailBriefing(null)}
         />
       )}
-    </div>
+    </>
   );
 }

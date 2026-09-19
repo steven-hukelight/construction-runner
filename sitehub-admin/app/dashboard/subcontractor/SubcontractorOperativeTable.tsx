@@ -3,6 +3,7 @@
 import React from "react";
 import Image from "next/image";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
 import {
   AlertTriangle,
   Clock,
@@ -10,6 +11,7 @@ import {
   Upload,
   CheckCircle,
   ExternalLink,
+  UserRound,
 } from "lucide-react";
 import type { SubcontractorOperativeRow } from "./utils/buildSubcontractorComplianceDataset";
 import RAMSStatusBadge from "../components/RAMSStatusBadge";
@@ -23,31 +25,25 @@ type Props = {
 };
 
 function StatusBadge({ status }: { status: string }) {
-  const map: Record<string, { bg: string; text: string }> = {
-    Inducted: { bg: "bg-green-100", text: "text-green-800" },
-    Grandfathered: { bg: "bg-blue-100", text: "text-blue-800" },
-    "Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-    "Pre-Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-    Expired: { bg: "bg-red-100", text: "text-red-800" },
-    "Not assigned": { bg: "bg-gray-100", text: "text-gray-700" },
+  const map: Record<string, string> = {
+    Inducted: "status-chip--ok",
+    Grandfathered: "status-chip--info",
+    "Induction Required": "status-chip--warn",
+    "Pre-Induction Required": "status-chip--warn",
+    Expired: "status-chip--danger",
+    "Not assigned": "status-chip--muted",
   };
-  const style = map[status] ?? { bg: "bg-gray-100", text: "text-gray-700" };
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${style.bg} ${style.text}`}>
-      {status}
-    </span>
-  );
+  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{status}</span>;
 }
 
 function PreInductionBadge({ status }: { status: string }) {
   const label = status.replace("_", " ");
   const map: Record<string, string> = {
-    complete: "bg-green-100 text-green-800",
-    not_started: "bg-gray-100 text-gray-700",
-    in_progress: "bg-amber-100 text-amber-800",
+    complete: "status-chip--ok",
+    not_started: "status-chip--muted",
+    in_progress: "status-chip--warn",
   };
-  const cls = map[status] ?? "bg-gray-100 text-gray-700";
-  return <span className={`inline-flex px-2 py-0.5 rounded text-xs font-medium ${cls}`}>{label}</span>;
+  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{label}</span>;
 }
 
 export default function SubcontractorOperativeTable({
@@ -137,60 +133,30 @@ export default function SubcontractorOperativeTable({
   }
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-        <table className={`w-full table-auto min-w-[800px] ${density.table}`}>
-          <thead className="sticky top-0 bg-gray-50 border-b border-gray-200 z-10">
-            <tr>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
-                Operative
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
-                Trade
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
-                Pre-Induction
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-8`}>
-                Missing
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-8`}>
-                Expiry
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
-                RAMS
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide whitespace-nowrap`}>
-                Induction
-              </th>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 uppercase tracking-wide w-24`}>
-                Actions
-              </th>
+    <DataTableShell title="Operatives" subtitle={`${rows.length} people`}>
+      <div className="max-h-[520px] overflow-x-auto overflow-y-auto">
+        <table className={`data-table w-full table-auto min-w-[800px] ${density.table}`}>
+          <thead className="sticky top-0 z-10">
+            <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+              <th className={`${density.th} whitespace-nowrap`}>Operative</th>
+              <th className={`${density.th} whitespace-nowrap`}>Trade</th>
+              <th className={`${density.th} whitespace-nowrap`}>Pre-Induction</th>
+              <th className={`${density.th} w-8`}>Missing</th>
+              <th className={`${density.th} w-8`}>Expiry</th>
+              <th className={`${density.th} whitespace-nowrap`}>RAMS</th>
+              <th className={`${density.th} whitespace-nowrap`}>Induction</th>
+              <th className={`${density.th} w-24`}>Actions</th>
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100">
+          <tbody>
             {rows.map((row) => (
               <tr
                 key={row.userId}
-                className="hover:bg-gray-50 transition-colors cursor-pointer"
+                className="data-table-row cursor-pointer border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70"
                 onClick={() => onRowClick(row)}
               >
                 <td className={density.td}>
-                  <div className="flex items-center gap-2">
-                    {row.avatar ? (
-                      <div className="h-8 w-8 rounded-full overflow-hidden shrink-0 bg-gray-100">
-                        <Image src={row.avatar} alt="" width={32} height={32} className="object-cover" />
-                      </div>
-                    ) : (
-                      <div className="h-8 w-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-700 font-medium text-sm shrink-0">
-                        {(row.name || "?")[0]?.toUpperCase() ?? "?"}
-                      </div>
-                    )}
-                    <div>
-                      <div className="font-medium text-gray-900">{row.name}</div>
-                      {row.email && <div className="text-xs text-gray-500">{row.email}</div>}
-                    </div>
-                  </div>
+                  <TableNameCell icon={UserRound} label={row.name} detail={row.email} />
                 </td>
                 <td className={`${density.td} text-gray-700`}>{row.trade || "—"}</td>
                 <td className={density.td}>
@@ -253,6 +219,6 @@ export default function SubcontractorOperativeTable({
           </tbody>
         </table>
       </div>
-    </div>
+    </DataTableShell>
   );
 }

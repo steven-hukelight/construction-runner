@@ -2,12 +2,13 @@
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
 import Link from "next/link";
-import { Trash2, Boxes, Activity } from "lucide-react";
-import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+import { Trash2, Boxes, Activity, Package } from "lucide-react";
 import Button from "../components/ui/Button";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import { CardSelect } from "../components/ui/CardSelect";
 import { SitePicker } from "../components/ui/SitePicker";
+import Table from "../components/ui/Table";
+import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
 
 interface Asset {
   id: string;
@@ -28,7 +29,6 @@ interface User {
 }
 
 export default function AssetsContent({ companyId }: { companyId: string }) {
-  const density = useTableDensityClasses();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
@@ -212,53 +212,11 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
 
   return (
     <div className="space-y-6">
-      <div className="card p-6">
-        <h3 className="text-lg font-semibold mb-4">Create Asset</h3>
-        <div className="flex flex-wrap gap-3">
-          <input
-            type="text"
-            className="input flex-1 min-w-[180px]"
-            placeholder="Asset name"
-            value={newAsset.name}
-            onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-          />
-          <select
-            className="input w-36"
-            value={newAsset.category}
-            onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value })}
-          >
-            <option value="equipment">Equipment</option>
-            <option value="vehicle">Vehicle</option>
-            <option value="tool">Tool</option>
-            <option value="ppe">PPE</option>
-          </select>
-          <input
-            type="text"
-            className="input flex-1 min-w-[120px]"
-            placeholder="Serial number"
-            value={newAsset.serial_number}
-            onChange={(e) => setNewAsset({ ...newAsset, serial_number: e.target.value })}
-          />
-          <select
-            className="input w-28"
-            value={newAsset.condition}
-            onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value })}
-          >
-            <option value="good">Good</option>
-            <option value="fair">Fair</option>
-            <option value="poor">Poor</option>
-            <option value="damaged">Damaged</option>
-          </select>
-          <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()}>
-            Add Asset
-          </Button>
-        </div>
-      </div>
-
-      <div className="card overflow-hidden">
-        <div className="px-6 py-4 border-b border-gray-200 flex flex-wrap items-center justify-between gap-4">
-          <h3 className="text-lg font-semibold">Asset List</h3>
-          <div className="flex flex-wrap gap-2 items-center">
+      <DataTableShell
+        title="All assets"
+        subtitle={`${filteredAssets.length} asset${filteredAssets.length === 1 ? "" : "s"}`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
             <Button
               variant="secondary"
               size="sm"
@@ -317,82 +275,107 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
               />
             ) : null}
           </div>
-        </div>
-        <div className="overflow-x-auto">
-          <table className={`w-full ${density.table}`}>
-            <thead className="bg-gray-50">
-              <tr>
-                <th className={`${density.th} text-left font-medium`}>Name</th>
-                <th className={`${density.th} text-left font-medium`}>Type</th>
-                <th className={`${density.th} text-left font-medium`}>Serial</th>
-                <th className={`${density.th} text-left font-medium`}>Status</th>
-                <th className={`${density.th} text-left font-medium`}>Assigned to</th>
-                <th className={`${density.th} text-left font-medium`}>Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filteredAssets.map((a) => (
-                <tr key={a.id} className="hover:bg-gray-50">
-                  <td className={`${density.td} font-medium`}>
-                    <Link href={`/dashboard/assets/${a.id}`} className="text-blue-600 hover:underline">
-                      {a.name}
-                    </Link>
-                  </td>
-                  <td className={density.td}>{a.type ?? a.category ?? "—"}</td>
-                  <td className={density.td}>{a.serial_number ?? "—"}</td>
-                  <td className={density.td}><TaskStatusPill status={a.status ?? a.condition} /></td>
-                  <td className={density.td}>{a.assigned_to ?? "—"}</td>
-                  <td className={density.td}>
-                    <div className="flex gap-2 items-center">
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => setAssignModal({ assetId: a.id, assetName: a.name })}
-                      >
-                        Assign
-                      </Button>
-                      <Button
-                        size="sm"
-                        variant="secondary"
-                        onClick={() => removeAsset(a.id, a.name)}
-                        className="text-red-600 hover:bg-red-50 hover:text-red-700"
-                        title="Remove asset"
-                      >
-                        <Trash2 size={16} />
-                      </Button>
-                      <label className="inline-flex">
-                        <input
-                          type="file"
-                          className="hidden"
-                          accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
-                          onChange={(e) => {
-                            const f = e.target.files?.[0];
-                            if (f) uploadDocument(a.id, f);
-                            e.target.value = "";
-                          }}
-                          disabled={uploading}
-                        />
-                        <span
-                          className={`inline-flex items-center px-3 py-1.5 rounded-lg text-sm font-medium border cursor-pointer ${
-                            uploading ? "opacity-50 cursor-not-allowed" : "hover:bg-gray-50"
-                          }`}
-                        >
-                          Upload
-                        </span>
-                      </label>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-        {filteredAssets.length === 0 && (
-          <div className="text-center text-slate-500 py-12">
-            {assets.length === 0 ? "No assets yet. Create one above." : "No assets match filters."}
+        }
+        extra={
+          <div className="flex flex-wrap gap-3 pt-1">
+            <input
+              type="text"
+              className="table-toolbar-input min-w-[180px] flex-1"
+              placeholder="Asset name"
+              value={newAsset.name}
+              onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+            />
+            <select
+              className="table-toolbar-input w-36"
+              value={newAsset.category}
+              onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value })}
+            >
+              <option value="equipment">Equipment</option>
+              <option value="vehicle">Vehicle</option>
+              <option value="tool">Tool</option>
+              <option value="ppe">PPE</option>
+            </select>
+            <input
+              type="text"
+              className="table-toolbar-input min-w-[120px] flex-1"
+              placeholder="Serial number"
+              value={newAsset.serial_number}
+              onChange={(e) => setNewAsset({ ...newAsset, serial_number: e.target.value })}
+            />
+            <select
+              className="table-toolbar-input w-28"
+              value={newAsset.condition}
+              onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value })}
+            >
+              <option value="good">Good</option>
+              <option value="fair">Fair</option>
+              <option value="poor">Poor</option>
+              <option value="damaged">Damaged</option>
+            </select>
+            <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()} size="sm">
+              Add Asset
+            </Button>
           </div>
-        )}
-      </div>
+        }
+      >
+        <Table
+          embedded
+          columns={[
+            {
+              header: "Name",
+              accessor: "name",
+              render: (a: Asset) => (
+                <Link href={`/dashboard/assets/${a.id}`} className="table-link">
+                  <TableNameCell icon={Package} label={a.name} />
+                </Link>
+              ),
+            },
+            { header: "Type", accessor: "type", render: (a: Asset) => a.type ?? a.category ?? "—" },
+            { header: "Serial", accessor: "serial_number", render: (a: Asset) => a.serial_number ?? "—" },
+            {
+              header: "Status",
+              accessor: "status",
+              render: (a: Asset) => <TaskStatusPill status={a.status ?? a.condition} />,
+            },
+            { header: "Assigned to", accessor: "assigned_to", render: (a: Asset) => a.assigned_to ?? "—" },
+            {
+              header: "Actions",
+              accessor: "actions",
+              render: (a: Asset) => (
+                <div className="flex items-center gap-3">
+                  <button type="button" className="table-link" onClick={() => setAssignModal({ assetId: a.id, assetName: a.name })}>
+                    Assign
+                  </button>
+                  <label className="table-link cursor-pointer">
+                    <input
+                      type="file"
+                      className="hidden"
+                      accept=".pdf,.doc,.docx,.jpg,.jpeg,.png"
+                      onChange={(e) => {
+                        const f = e.target.files?.[0];
+                        if (f) uploadDocument(a.id, f);
+                        e.target.value = "";
+                      }}
+                      disabled={uploading}
+                    />
+                    Upload
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => removeAsset(a.id, a.name)}
+                    className="text-red-600 hover:underline"
+                    title="Remove asset"
+                  >
+                    <Trash2 size={16} />
+                  </button>
+                </div>
+              ),
+            },
+          ]}
+          data={filteredAssets}
+          emptyMessage={assets.length === 0 ? "No assets yet. Create one above." : "No assets match filters."}
+        />
+      </DataTableShell>
 
       {assignModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">

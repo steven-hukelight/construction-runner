@@ -129,17 +129,21 @@ export default function DemoModal({
 
   if (!isOpen) return null;
 
+  const fieldClass =
+    "w-full rounded-xl border border-blue-100 bg-[#f7fafc] px-4 py-2.5 text-slate-900 placeholder:text-slate-400 outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20";
+  const labelClass = "mb-1 block text-sm font-medium text-slate-700";
+
   return (
     <div
       ref={modalRef}
-      className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-fade-in"
+      className="fixed inset-0 z-50 flex items-center justify-center bg-slate-900/30 p-4 backdrop-blur-sm animate-fade-in"
     >
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-3xl max-w-md w-full border border-slate-700/50 shadow-2xl animate-scale-in">
-        <div className="flex items-center justify-between p-6 border-b border-slate-700/50">
-          <h2 className="text-2xl font-bold text-white">Request a Demo</h2>
+      <div className="w-full max-w-md animate-scale-in rounded-2xl border border-blue-100/80 bg-white shadow-[0_16px_40px_rgba(37,76,128,0.16)]">
+        <div className="flex items-center justify-between border-b border-blue-100/80 p-6">
+          <h2 className="text-xl font-semibold text-slate-900">Request a Demo</h2>
           <button
             onClick={onClose}
-            className="text-slate-400 hover:text-white transition-colors text-2xl leading-none"
+            className="text-2xl leading-none text-slate-400 transition-colors hover:text-slate-700"
             aria-label="Close"
           >
             ×
@@ -147,12 +151,12 @@ export default function DemoModal({
         </div>
         <div className="p-6">
           {submitStatus === "success" && (
-            <div className="bg-green-500/20 border border-green-500/50 rounded-xl p-4 text-green-200 text-center">
+            <div className="rounded-xl border border-emerald-200 bg-emerald-50 p-4 text-center text-emerald-800">
               {submitMessage}
             </div>
           )}
           {submitStatus === "error" && (
-            <div className="bg-red-500/20 border border-red-500/50 rounded-xl p-4 text-red-200 text-center">
+            <div className="rounded-xl border border-red-200 bg-red-50 p-4 text-center text-red-700">
               {submitMessage}
             </div>
           )}
@@ -172,62 +176,62 @@ export default function DemoModal({
                 </label>
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Full Name <span className="text-red-400">*</span>
+                <label className={labelClass}>
+                  Full Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="fullName"
                   value={formData.fullName}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-colors"
+                  className={fieldClass}
                   placeholder="John Doe"
                 />
                 {errors.fullName && (
-                  <p className="text-red-400 text-xs mt-1">{errors.fullName}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.fullName}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Company Name <span className="text-red-400">*</span>
+                <label className={labelClass}>
+                  Company Name <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="text"
                   name="company"
                   value={formData.company}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-colors"
+                  className={fieldClass}
                   placeholder="Your Company"
                 />
                 {errors.company && (
-                  <p className="text-red-400 text-xs mt-1">{errors.company}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.company}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Email <span className="text-red-400">*</span>
+                <label className={labelClass}>
+                  Email <span className="text-red-500">*</span>
                 </label>
                 <input
                   type="email"
                   name="email"
                   value={formData.email}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-colors"
+                  className={fieldClass}
                   placeholder="john@example.com"
                 />
                 {errors.email && (
-                  <p className="text-red-400 text-xs mt-1">{errors.email}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.email}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Role <span className="text-red-400">*</span>
+                <label className={labelClass}>
+                  Role <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="role"
                   value={formData.role}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white focus:outline-none focus:border-blue-400 transition-colors"
+                  className={fieldClass}
                 >
                   <option value="">Select a role</option>
                   <option value="Manager">Manager</option>
@@ -236,18 +240,18 @@ export default function DemoModal({
                   <option value="Other">Other</option>
                 </select>
                 {errors.role && (
-                  <p className="text-red-400 text-xs mt-1">{errors.role}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.role}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Number of Sites <span className="text-red-400">*</span>
+                <label className={labelClass}>
+                  Number of Sites <span className="text-red-500">*</span>
                 </label>
                 <select
                   name="sites"
                   value={formData.sites}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white focus:outline-none focus:border-blue-400 transition-colors"
+                  className={fieldClass}
                 >
                   <option value="">Select number of sites</option>
                   <option value="1">1 Site</option>
@@ -256,26 +260,25 @@ export default function DemoModal({
                   <option value="10+">10+ Sites</option>
                 </select>
                 {errors.sites && (
-                  <p className="text-red-400 text-xs mt-1">{errors.sites}</p>
+                  <p className="mt-1 text-xs text-red-600">{errors.sites}</p>
                 )}
               </div>
               <div>
-                <label className="block text-sm font-medium text-slate-200 mb-1">
-                  Message{" "}
-                  <span className="text-slate-400 text-xs">(optional)</span>
+                <label className={labelClass}>
+                  Message <span className="text-xs font-normal text-slate-400">(optional)</span>
                 </label>
                 <textarea
                   name="message"
                   value={formData.message}
                   onChange={handleInputChange}
-                  className="w-full px-4 py-2 rounded-lg bg-slate-700/50 border border-slate-600 text-white placeholder-slate-400 focus:outline-none focus:border-blue-400 transition-colors resize-none h-24"
+                  className={`${fieldClass} h-24 resize-none`}
                   placeholder="Tell us about your needs..."
                 />
               </div>
               <button
                 type="submit"
                 disabled={isSubmitting}
-                className="w-full mt-6 px-6 py-3 rounded-lg font-semibold bg-gradient-to-r from-blue-500 to-cyan-500 text-white hover:shadow-lg hover:shadow-blue-500/50 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-300 hover:scale-105"
+                className="mt-2 w-full rounded-full bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
               >
                 {isSubmitting ? "Submitting..." : "Request Demo"}
               </button>

@@ -11,7 +11,6 @@ export default async function DeliveriesPage() {
   return (
     <div className="relative space-y-8">
       {/* Decorative background */}
-      <div className="absolute top-32 right-32 w-72 h-72 bg-gradient-to-br from-orange-400/10 to-amber-400/10 rounded-full blur-3xl -z-10" />
       
       <PageHeader
         title="Deliveries"

@@ -1,9 +1,12 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { UserRound } from "lucide-react";
 import ApprovalRowActions from "./ApprovalRowActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
 import { roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
+import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 
 type Reg = {
   id: string;
@@ -88,49 +91,39 @@ export default function PendingApprovalsClient() {
   }
 
   return (
-    <div className="rounded-xl border border-gray-200/60 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-      {loading && <p className="p-6 text-sm text-gray-500 dark:text-slate-400">Loading…</p>}
-      {!loading && regs.length === 0 && (
-        <p className="p-6 text-sm text-gray-500 dark:text-slate-400">No pending registrations.</p>
-      )}
-      {!loading && regs.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 dark:bg-slate-900/50 border-b border-gray-200 dark:border-slate-600">
-              <tr>
-                <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Name</th>
-                <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Email</th>
-                <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Company</th>
-                <th className="text-left font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Requested</th>
-                <th className="text-right font-semibold text-gray-700 dark:text-slate-200 px-4 py-3">Assign role</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100 dark:divide-slate-700">
-              {regs.map((r) => {
-                const requested = (r.role ?? "OPERATIVE").toString().toUpperCase();
-                return (
-                  <tr key={r.id} className="hover:bg-gray-50/80 dark:hover:bg-slate-700/40">
-                    <td className="px-4 py-3 text-gray-900 dark:text-slate-100 font-medium">{r.name ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{r.email ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{r.companyName ?? "—"}</td>
-                    <td className="px-4 py-3 text-gray-600 dark:text-slate-300">{roleDisplayName(requested)}</td>
-                    <td className="px-4 py-3">
-                      <ApprovalRowActions
-                        regId={r.id}
-                        defaultRole={requested}
-                        approverRole={approverRole}
-                        sites={sites}
-                        onApprove={approve}
-                        onReject={reject}
-                      />
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        </div>
-      )}
-    </div>
+    <Table
+      title="Pending registrations"
+      subtitle={`${regs.length} waiting`}
+      columns={[
+        {
+          header: "Name",
+          accessor: "name",
+          render: (r: Reg) => <TableNameCell icon={UserRound} label={r.name ?? "—"} />,
+        },
+        { header: "Email", accessor: "email", render: (r: Reg) => r.email ?? "—" },
+        { header: "Company", accessor: "companyName", render: (r: Reg) => r.companyName ?? "—" },
+        {
+          header: "Requested",
+          accessor: "role",
+          render: (r: Reg) => roleDisplayName((r.role ?? "OPERATIVE").toString().toUpperCase()),
+        },
+        {
+          header: "Assign role",
+          accessor: "actions",
+          render: (r: Reg) => (
+            <ApprovalRowActions
+              regId={r.id}
+              defaultRole={(r.role ?? "OPERATIVE").toString().toUpperCase()}
+              approverRole={approverRole}
+              sites={sites}
+              onApprove={approve}
+              onReject={reject}
+            />
+          ),
+        },
+      ]}
+      data={loading ? [] : regs}
+      emptyMessage={loading ? "Loading…" : "No pending registrations."}
+    />
   );
 }

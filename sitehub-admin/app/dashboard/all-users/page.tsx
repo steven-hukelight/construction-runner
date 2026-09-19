@@ -5,6 +5,7 @@ import { createPortal } from "react-dom";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 import Link from "next/link";
@@ -205,7 +206,7 @@ export default function AllUsersPage() {
   }
 
   const columns = [
-    { header: "Name", accessor: "name", render: (row: UserRow) => row.name || "—" },
+    { header: "Name", accessor: "name", render: (row: UserRow) => <TableNameCell icon={User} label={row.name || row.email || "—"} /> },
     { header: "Email", accessor: "email", render: (row: UserRow) => row.email || "—" },
     {
       header: "Role",
@@ -348,7 +349,6 @@ export default function AllUsersPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
 
       <PageHeader
         title="All users"
@@ -368,32 +368,13 @@ export default function AllUsersPage() {
         />
       </div>
 
-      <div className="card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-            <Users className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">All users</h3>
-            <p className="text-sm text-gray-600">{users.length} users</p>
-          </div>
-        </div>
-        {loading ? (
-          <div className="py-12 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
-          </div>
-        ) : users.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">
-            <Users className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No users found.</p>
-          </div>
-        ) : (
-          <Table
-            columns={columns}
-            data={companyFilter ? users.filter((u) => (u.company_id ?? u.companyId) === companyFilter) : users}
-          />
-        )}
-      </div>
+      <Table
+        title="All users"
+        subtitle={`${users.length} users`}
+        columns={columns}
+        data={loading ? [] : companyFilter ? users.filter((u) => (u.company_id ?? u.companyId) === companyFilter) : users}
+        emptyMessage={loading ? "Loading…" : "No users found."}
+      />
 
       {roleModal && (
         <div

@@ -101,7 +101,9 @@ export async function POST(req: Request) {
       radius_meters: radiusMeters ?? null,
       show_on_map: body.showOnMap ?? true,
       active: body.active ?? true,
-      manager_id: body.managerId ?? null,
+      manager_id: typeof body.managerId === "string" && body.managerId.trim()
+        ? body.managerId.trim()
+        : null,
       company_id: assignedCompanyId,
     }).select("id").single();
 

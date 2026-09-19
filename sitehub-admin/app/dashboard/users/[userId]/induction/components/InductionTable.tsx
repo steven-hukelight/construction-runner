@@ -4,7 +4,9 @@ import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "@/app/dashboard/components/ui/Table";
+import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
 import Button from "@/app/dashboard/components/ui/Button";
+import { MapPin } from "lucide-react";
 
 export type InductionRow = {
   siteId: string;
@@ -21,22 +23,14 @@ function formatCompletedAt(completedAt: string | null): string {
 }
 
 function StatusBadge({ status }: { status: InductionRow["status"] }) {
-  const styles: Record<InductionRow["status"], { bg: string; text: string }> = {
-    completed: { bg: "bg-emerald-100", text: "text-emerald-800" },
-    not_started: { bg: "bg-gray-100", text: "text-gray-700" },
-    expired: { bg: "bg-amber-100", text: "text-amber-800" },
-  };
-  const s = styles[status] ?? styles.not_started;
   const labels: Record<InductionRow["status"], string> = {
     completed: "Completed",
     not_started: "Not Started",
     expired: "Expired",
   };
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md ${s.bg} ${s.text}`}>
-      {labels[status]}
-    </span>
-  );
+  const chip =
+    status === "completed" ? "status-chip--ok" : status === "expired" ? "status-chip--danger" : "status-chip--muted";
+  return <span className={`status-chip ${chip}`}>{labels[status]}</span>;
 }
 
 export default function InductionTable({
@@ -73,7 +67,7 @@ export default function InductionTable({
   }
 
   const columns = [
-    { header: "Site Name", accessor: "siteName" as const, render: (row: InductionRow) => row.siteName },
+    { header: "Site Name", accessor: "siteName" as const, render: (row: InductionRow) => <TableNameCell icon={MapPin} label={row.siteName} /> },
     {
       header: "Status",
       accessor: "status" as const,
@@ -102,8 +96,12 @@ export default function InductionTable({
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <Table columns={columns} data={rows} />
-    </div>
+    <Table
+      title="Site inductions"
+      subtitle={`${rows.length} site${rows.length === 1 ? "" : "s"}`}
+      columns={columns}
+      data={rows}
+      emptyMessage="No induction records yet."
+    />
   );
 }

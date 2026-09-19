@@ -2,8 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
-import { motion } from "framer-motion";
-import { Sparkles, Calendar, Clock, LogIn } from "lucide-react";
+import { Clock, LogIn } from "lucide-react";
 import useSWR from "swr";
 
 type WelcomeBannerProps = {
@@ -11,9 +10,6 @@ type WelcomeBannerProps = {
   /** Site clock-in pill — only for field roles (e.g. supervisor); set from server via {@link isSiteAttendanceRole}. */
   showSiteAttendance?: boolean;
 };
-
-/** Subtle dark overlay for text contrast; can swap for text-shadow/pill/darker text later */
-const OVERLAY_OPACITY = "rgba(0, 0, 0, 0.2)";
 
 export default function WelcomeBanner({ subtitle, showSiteAttendance = false }: WelcomeBannerProps) {
   const { data: userName, isValidating } = useSWR(
@@ -25,9 +21,6 @@ export default function WelcomeBanner({ subtitle, showSiteAttendance = false }: 
       const me = Array.isArray(arr) ? arr[0] : arr;
       return (me?.name ?? me?.displayName ?? "").trim();
     },
-    // Name doesn't change between tab switches — avoid a re-fetch storm on
-    // every window/tab focus. Dedupe over a minute so quick back-and-forth
-    // navigation reuses the cached name.
     { revalidateOnFocus: false, dedupingInterval: 60_000 },
   );
   const { data: attendanceStatus } = useSWR(
@@ -37,15 +30,12 @@ export default function WelcomeBanner({ subtitle, showSiteAttendance = false }: 
       if (!res.ok) return { signedIn: false };
       return res.json() as Promise<{ signedIn: boolean; siteName?: string }>;
     },
-    // Attendance status endpoint runs 4+ DB queries per call; poll on the
-    // banner's own timer (component-level 60s tick), not on every focus.
     { revalidateOnFocus: false, dedupingInterval: 30_000 },
   );
   const [currentTime, setCurrentTime] = useState(new Date());
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    // Use requestAnimationFrame to defer setMounted to after paint
     const raf = requestAnimationFrame(() => setMounted(true));
     const timer = setInterval(() => setCurrentTime(new Date()), 60000);
     return () => {
@@ -64,151 +54,39 @@ export default function WelcomeBanner({ subtitle, showSiteAttendance = false }: 
   const formattedDate = formatDate(currentTime);
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: -20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.6, ease: [0.4, 0, 0.2, 1] }}
-      className="relative overflow-hidden rounded-3xl bg-gradient-to-r from-blue-500 via-blue-600 to-white p-12 shadow-2xl"
-      style={{
-        backgroundImage: 'radial-gradient(circle at 20% 50%, rgba(255, 255, 255, 0.1) 0%, transparent 50%), radial-gradient(circle at 10% 80%, rgba(96, 165, 250, 0.3) 0%, transparent 50%)'
-      }}
-    >
-      {/* Animated background orbs */}
-      <motion.div
-        className="absolute -top-20 -right-20 w-64 h-64 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(255, 255, 255, 0.2) 0%, transparent 70%)',
-          filter: 'blur(40px)'
-        }}
-        animate={{
-          scale: [1, 1.3, 1],
-          opacity: [0.3, 0.6, 0.3],
-        }}
-        transition={{ duration: 6, repeat: Infinity, ease: "easeInOut" }}
-      />
-      
-      <motion.div
-        className="absolute -bottom-20 -left-20 w-72 h-72 rounded-full"
-        style={{
-          background: 'radial-gradient(circle, rgba(147, 197, 253, 0.3) 0%, transparent 70%)',
-          filter: 'blur(60px)'
-        }}
-        animate={{
-          scale: [1.2, 1, 1.2],
-          opacity: [0.4, 0.7, 0.4],
-        }}
-        transition={{ duration: 8, repeat: Infinity, ease: "easeInOut" }}
-      />
-
-      {/* Decorative grid pattern */}
-      <div className="absolute inset-0 opacity-[0.03]" style={{
-        backgroundImage: `
-          linear-gradient(rgba(255,255,255,0.1) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(255,255,255,0.1) 1px, transparent 1px)
-        `,
-        backgroundSize: '50px 50px'
-      }} />
-
-      {/* Dark overlay for text readability — above background, below content */}
-      <div 
-        className="absolute inset-0 pointer-events-none" 
-        style={{ backgroundColor: OVERLAY_OPACITY, zIndex: 1 }}
-        aria-hidden
-      />
-
-      <div className="relative z-10">
-        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
-          {/* Left content */}
-          <div className="flex-1">
-            <motion.div
-              initial={{ opacity: 0, x: -20 }}
-              animate={{ opacity: 1, x: 0 }}
-              transition={{ delay: 0.2, duration: 0.6 }}
-              className="flex flex-wrap items-center gap-2 mb-4"
-            >
-              <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 border border-white dark:border-slate-600 shadow-lg">
-                <Sparkles className="w-4 h-4 text-amber-500 dark:text-amber-400" />
-                <span className="text-sm font-bold text-blue-600 dark:text-blue-400">Welcome back</span>
-              </div>
-              {showSiteAttendance && attendanceStatus && (
-                <div className="inline-flex items-center gap-2 bg-white/95 dark:bg-slate-800/95 backdrop-blur-md rounded-full px-4 py-2 border border-white dark:border-slate-600 shadow-lg">
-                  {attendanceStatus.signedIn ? (
-                    <>
-                      <LogIn className="w-4 h-4 text-green-600 dark:text-green-400" />
-                      <span className="text-sm font-bold text-green-700 dark:text-green-300">
-                        Signed in{attendanceStatus.siteName ? ` at ${attendanceStatus.siteName}` : ""}
-                      </span>
-                    </>
-                  ) : (
-                    <>
-                      <Clock className="w-4 h-4 text-slate-500 dark:text-slate-400" />
-                      <span className="text-sm font-bold text-slate-600 dark:text-slate-300">
-                        Not clocked in
-                      </span>
-                    </>
-                  )}
-                </div>
-              )}
-            </motion.div>
-            
-            <motion.h1
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.6 }}
-              className="text-4xl lg:text-5xl font-bold mb-3"
-              style={{ 
-                lineHeight: '1.1', 
-                letterSpacing: '-0.02em',
-              }}
-            >
-              <span className="text-white drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]">{getGreeting()},</span> <br />
-              <span 
-                className="text-blue-600"
-                style={{
-                  WebkitTextStroke: '1px #3b82f6',
-                  paintOrder: 'stroke fill',
-                  textShadow: '0 0 4px rgba(255,255,255,0.6), 0 1px 2px rgba(255,255,255,0.4)',
-                }}
-              >
-                {isValidating ? "\u00A0" : (userName || "there")}
-              </span>
-            </motion.h1>
-            
-            <motion.p
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4, duration: 0.6 }}
-              className="text-lg text-white font-semibold max-w-lg drop-shadow-[0_2px_8px_rgba(0,0,0,0.4)]"
-            >
-              {subtitle ?? "Here's an overview of your construction sites and team activity"}
-            </motion.p>
-          </div>
-
-          {/* Right content - Date card */}
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            transition={{ delay: 0.5, duration: 0.6 }}
-            className="lg:flex-shrink-0"
-          >
-            <div className="bg-white/95 dark:bg-slate-800/95 backdrop-blur-xl rounded-2xl p-6 border-4 border-blue-300 dark:border-slate-600 shadow-xl min-w-[200px] shrink-0">
-              <div className="flex items-start gap-4">
-                <div className="bg-gradient-to-br from-blue-500 to-blue-600 rounded-xl p-3 shadow-lg">
-                  <Calendar className="w-6 h-6 text-white" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="text-xs text-blue-600 dark:text-blue-400 font-bold uppercase tracking-wide mb-1">
-                    Today
-                  </div>
-                  <div className="text-base text-slate-700 dark:text-slate-200 font-bold leading-tight whitespace-nowrap overflow-visible">
-                    {mounted ? formattedDate : ' '}
-                  </div>
-                </div>
-              </div>
-            </div>
-          </motion.div>
-        </div>
+    <div className="rounded-2xl border border-blue-100/80 bg-white p-6 shadow-[0_8px_24px_rgba(37,76,128,0.07)] dark:border-slate-600 dark:bg-slate-800">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+      <div className="min-w-0 flex-1 border-l-4 border-blue-600 pl-4">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700 dark:text-blue-300">
+          Dashboard
+        </p>
+        <p className="mt-1 text-sm text-gray-500 dark:text-slate-400">
+          {mounted ? formattedDate : "\u00A0"}
+        </p>
+        <h1 className="mt-1 text-2xl font-semibold tracking-tight text-gray-900 dark:text-slate-100">
+          {getGreeting()}
+          {isValidating ? "" : `, ${userName || "there"}`}
+        </h1>
+        <p className="mt-1 max-w-xl text-sm text-gray-600 dark:text-slate-400">
+          {subtitle ?? "Overview of sites and team activity"}
+        </p>
       </div>
-    </motion.div>
+      {showSiteAttendance && attendanceStatus && (
+        <p className="inline-flex items-center gap-2 text-sm text-gray-600 dark:text-slate-300">
+          {attendanceStatus.signedIn ? (
+            <>
+              <LogIn className="h-4 w-4 text-gray-400" />
+              On site{attendanceStatus.siteName ? ` · ${attendanceStatus.siteName}` : ""}
+            </>
+          ) : (
+            <>
+              <Clock className="h-4 w-4 text-gray-400" />
+              Not clocked in
+            </>
+          )}
+        </p>
+      )}
+      </div>
+    </div>
   );
 }

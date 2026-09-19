@@ -3,10 +3,9 @@
 import { useState } from "react";
 import Messaging from "../companies/Messaging";
 import AssetManagement from "../companies/AssetManagement";
-import OfflineWorking from "../companies/OfflineWorking";
-import { MessageSquare, Package, WifiOff } from "lucide-react";
+import { MessageSquare, Package } from "lucide-react";
 
-type Tab = "messaging" | "assets" | "offline";
+type Tab = "messaging" | "assets";
 
 export default function ModulesContent({ companyId, canDeleteMessages = false }: { companyId: string; canDeleteMessages?: boolean }) {
   const [tab, setTab] = useState<Tab>("messaging");
@@ -14,7 +13,6 @@ export default function ModulesContent({ companyId, canDeleteMessages = false }:
   const tabs: { id: Tab; label: string; icon: typeof MessageSquare }[] = [
     { id: "messaging", label: "Messaging", icon: MessageSquare },
     { id: "assets", label: "Assets", icon: Package },
-    { id: "offline", label: "Offline", icon: WifiOff },
   ];
 
   return (
@@ -41,7 +39,6 @@ export default function ModulesContent({ companyId, canDeleteMessages = false }:
 
       {tab === "messaging" && <Messaging companyId={companyId} canDelete={canDeleteMessages} />}
       {tab === "assets" && <AssetManagement companyId={companyId} />}
-      {tab === "offline" && <OfflineWorking companyId={companyId} />}
     </div>
   );
 }

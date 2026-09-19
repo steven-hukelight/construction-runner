@@ -45,7 +45,7 @@ export default function ModulesCompanySelector() {
     <div className="card max-w-md">
       <h2 className="text-lg font-semibold mb-2">Select a company</h2>
       <p className="text-sm text-gray-600 mb-4">
-        Choose a company to use Messaging, Asset Management, and Offline Working.
+        Choose a company to use Messaging and Asset Management.
       </p>
       <div className="flex gap-2 flex-wrap items-end">
         <div className="flex-1 min-w-[200px]">

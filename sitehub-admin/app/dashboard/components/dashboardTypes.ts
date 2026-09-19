@@ -19,6 +19,7 @@ export interface DashboardDataUser {
   id: string;
   name?: string;
   display_name?: string;
+  role?: string;
   created_at?: TimestampLike;
   createdAt?: TimestampLike;
 }

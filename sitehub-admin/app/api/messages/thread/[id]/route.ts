@@ -69,7 +69,7 @@ export async function GET(
 ) {
   try {
     const { id } = await params;
-    const { companyId, userId, role, error } = await resolveThreadAuth(req);
+    const { companyId, userId, error } = await resolveThreadAuth(req);
     if (error) return error;
     if (!companyId) {
       return NextResponse.json({ error: "Company required" }, { status: 400 });
@@ -92,25 +92,17 @@ export async function GET(
       .eq("user_id", userId)
       .maybeSingle();
 
-    const roleLower = (role ?? "").toLowerCase();
-    const isAdminOrSupervisor = ["admin", "supervisor", "sub_admin", "superuser"].includes(roleLower);
+    if (!inThread) {
+      return NextResponse.json({ error: "Not a participant" }, { status: 403 });
+    }
 
     const upsertRow = { thread_id: id, user_id: userId, last_read_at: new Date().toISOString() };
     const upsertFallback = { thread_id: id, user_id: userId };
-    const doUpsert = async () => {
-      const { error } = await supabaseAdmin.from("message_recipients").upsert(upsertRow, { onConflict: "thread_id,user_id" });
-      if (error) {
-        await supabaseAdmin.from("message_recipients").upsert(upsertFallback, { onConflict: "thread_id,user_id" });
-      }
-    };
-    if (!inThread) {
-      if (isAdminOrSupervisor && companyId && (thread as { company_id: string }).company_id === companyId) {
-        await doUpsert();
-      } else {
-        return NextResponse.json({ error: "Not a participant" }, { status: 403 });
-      }
-    } else {
-      await doUpsert();
+    const { error: readErr } = await supabaseAdmin
+      .from("message_recipients")
+      .upsert(upsertRow, { onConflict: "thread_id,user_id" });
+    if (readErr) {
+      await supabaseAdmin.from("message_recipients").upsert(upsertFallback, { onConflict: "thread_id,user_id" });
     }
 
     let recipients: Array<{ user_id: string; last_read_at?: string | null }> = [];

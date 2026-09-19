@@ -6,7 +6,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import PageHeader from "../components/PageHeader";
 import { useTheme } from "@/app/ThemeProvider";
 import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { User, Building2, Bell, Shield, Palette, Database, Mail, Calendar, Clock, Rows3 } from "lucide-react";
+import { Mail, Calendar, Clock, Rows3 } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 
@@ -16,12 +16,12 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState(activeTabDefault);
 
   const tabs = [
-    { id: "personal", label: t("Personal Information"), icon: User },
-    { id: "company", label: t("Company"), icon: Building2 },
-    { id: "notifications", label: t("Notifications"), icon: Bell },
-    { id: "security", label: t("Security"), icon: Shield },
-    { id: "display", label: t("Display"), icon: Palette },
-    { id: "data", label: t("Data & Privacy"), icon: Database },
+    { id: "personal", label: t("Personal Information") },
+    { id: "company", label: t("Company") },
+    { id: "notifications", label: t("Notifications") },
+    { id: "security", label: t("Security") },
+    { id: "display", label: t("Display") },
+    { id: "data", label: t("Data & Privacy") },
   ];
 
   return (
@@ -30,21 +30,16 @@ export default function SettingsPage() {
 
       <div className="space-y-6">
         {/* Selection bar (same layout as Safety) */}
-        <div className="flex flex-wrap gap-1 p-1 rounded-xl bg-gray-100 dark:bg-slate-800 border border-gray-200 dark:border-slate-600">
+        <div className="admin-tabs">
           {tabs.map((tab) => {
-            const Icon = tab.icon;
             const isActive = activeTab === tab.id;
             return (
               <button
                 key={tab.id}
+                type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-sm font-medium transition-all ${
-                  isActive
-                    ? "bg-white dark:bg-slate-700 text-blue-600 dark:text-blue-400 shadow-sm border border-gray-200 dark:border-slate-600"
-                    : "text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100 hover:bg-gray-50 dark:hover:bg-slate-700"
-                }`}
+                className={isActive ? "active" : ""}
               >
-                <Icon size={18} strokeWidth={2} />
                 {tab.label}
               </button>
             );

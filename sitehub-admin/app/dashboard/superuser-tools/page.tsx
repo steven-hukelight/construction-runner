@@ -17,8 +17,10 @@ import {
   Mail,
   Upload,
   Users,
+  Building2,
 } from "lucide-react";
 import { CompanyPicker } from "../components/ui/SitePicker";
+import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
 type Company = { id: string; name: string | null };
 
 export default function SuperuserToolsPage() {
@@ -367,7 +369,6 @@ export default function SuperuserToolsPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
 
       <PageHeader
         title="Superuser tools"
@@ -744,47 +745,57 @@ export default function SuperuserToolsPage() {
       </div>
 
       {validateResult && (
-        <div className="card">
-          <h3 className="text-lg font-semibold text-gray-900 mb-3 flex items-center gap-2">
-            <CheckCircle2 className="w-5 h-5 text-blue-600" />
-            Validation result
-          </h3>
-          <p className="text-sm text-gray-600 mb-4">{validateResult.message}</p>
-          {Object.keys(validateResult.missingCompanyId).length > 0 && (
-            <div className="mb-4 p-3 rounded-lg bg-amber-50 border border-amber-200">
-              <h4 className="font-medium text-amber-800 flex items-center gap-2 mb-2">
-                <AlertTriangle className="w-4 h-4" />
-                Documents missing companyId
-              </h4>
-              <ul className="text-sm text-amber-900 space-y-1">
-                {Object.entries(validateResult.missingCompanyId)
-                  .filter(([, n]) => n > 0)
-                  .map(([col, n]) => (
-                    <li key={col}>{col}: {n}</li>
-                  ))}
-              </ul>
-              <p className="text-xs text-amber-700 mt-2">
-                Run <code className="bg-amber-100 px-1 rounded">node scripts/migrate-legacy-to-test-company.js</code> to assign them to Test Company.
-              </p>
-            </div>
-          )}
+        <DataTableShell
+          title="Validation result"
+          subtitle={validateResult.message}
+          extra={
+            Object.keys(validateResult.missingCompanyId).length > 0 ? (
+              <div className="mt-2 rounded-xl border border-amber-200 bg-amber-50 p-3">
+                <h4 className="mb-2 flex items-center gap-2 font-medium text-amber-800">
+                  <AlertTriangle className="h-4 w-4" />
+                  Documents missing companyId
+                </h4>
+                <ul className="space-y-1 text-sm text-amber-900">
+                  {Object.entries(validateResult.missingCompanyId)
+                    .filter(([, n]) => n > 0)
+                    .map(([col, n]) => (
+                      <li key={col}>
+                        {col}: {n}
+                      </li>
+                    ))}
+                </ul>
+                <p className="mt-2 text-xs text-amber-700">
+                  Run <code className="rounded bg-amber-100 px-1">node scripts/migrate-legacy-to-test-company.js</code> to assign them to Test Company.
+                </p>
+              </div>
+            ) : null
+          }
+        >
           <div className="overflow-x-auto">
-            <table className={`w-full ${density.table}`}>
+            <table className={`data-table w-full ${density.table}`}>
               <thead>
-                <tr className="border-b border-gray-200">
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Company</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Sites</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Users</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Tasks</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>RAMS</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Deliveries</th>
-                  <th className={`text-left ${density.th} font-medium text-gray-700`}>Attendance</th>
+                <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500">
+                  <th className={density.th}>Company</th>
+                  <th className={density.th}>Sites</th>
+                  <th className={density.th}>Users</th>
+                  <th className={density.th}>Tasks</th>
+                  <th className={density.th}>RAMS</th>
+                  <th className={density.th}>Deliveries</th>
+                  <th className={density.th}>Attendance</th>
                 </tr>
               </thead>
               <tbody>
                 {Object.entries(validateResult.perCompany).map(([companyId, counts]) => (
-                  <tr key={companyId} className="border-b border-gray-100">
-                    <td className={`${density.td} font-medium`}>{companies.find((c) => c.id === companyId)?.name ?? companyId}</td>
+                  <tr
+                    key={companyId}
+                    className="data-table-row border-b border-slate-100/90 last:border-b-0 hover:bg-blue-50/70"
+                  >
+                    <td className={density.td}>
+                      <TableNameCell
+                        icon={Building2}
+                        label={companies.find((c) => c.id === companyId)?.name ?? companyId}
+                      />
+                    </td>
                     <td className={density.td}>{counts.sites ?? 0}</td>
                     <td className={density.td}>{counts.users ?? 0}</td>
                     <td className={density.td}>{counts.tasks ?? 0}</td>
@@ -796,7 +807,7 @@ export default function SuperuserToolsPage() {
               </tbody>
             </table>
           </div>
-        </div>
+        </DataTableShell>
       )}
 
     </div>

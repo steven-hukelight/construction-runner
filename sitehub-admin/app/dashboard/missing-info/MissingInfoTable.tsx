@@ -3,8 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Loader2, Download, HeartPulse } from "lucide-react";
+import { Download, HeartPulse, UserRound } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
+import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 
 type Row = {
   userId: string;
@@ -50,15 +52,26 @@ export default function MissingInfoTable() {
   });
 
   return (
-    <div className="space-y-4">
-      <div className="flex flex-wrap items-center gap-3 justify-between">
-        <div className="flex flex-wrap items-center gap-3">
+    <Table
+      title="Missing info"
+      subtitle={
+        loading
+          ? "Loading…"
+          : `${filtered.length} of ${rows.length} worker${rows.length === 1 ? "" : "s"}`
+      }
+      actions={
+        <a href="/api/admin/missing-info?format=csv" className="table-link inline-flex items-center gap-2">
+          <Download className="h-4 w-4" /> Export CSV
+        </a>
+      }
+      extra={
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           <input
             type="text"
             placeholder="Search by name or email"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
-            className="w-64 rounded-lg border border-gray-300 px-3 py-2 text-sm focus:border-blue-500 focus:outline-none focus:ring-2 focus:ring-blue-500/20"
+            className="table-toolbar-input w-64"
           />
           <CardSelect
             items={[
@@ -77,77 +90,42 @@ export default function MissingInfoTable() {
             className="w-64"
           />
         </div>
-        <a
-          href="/api/admin/missing-info?format=csv"
-          className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50"
-        >
-          <Download className="w-4 h-4" /> Export CSV
-        </a>
-      </div>
-
-      <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-        {loading ? (
-          <div className="flex items-center gap-2 py-16 justify-center text-gray-500">
-            <Loader2 className="w-4 h-4 animate-spin" /> Loading…
-          </div>
-        ) : filtered.length === 0 ? (
-          <div className="py-16 text-center text-gray-500 text-sm">
-            {rows.length === 0
-              ? "Everyone in your company has their emergency contact and medical info filled in. Nothing to chase."
-              : "No workers match the current filter."}
-          </div>
-        ) : (
-          <table className="w-full text-sm">
-            <thead className="bg-gray-50 text-gray-600 text-xs uppercase tracking-wide">
-              <tr>
-                <th className="text-left px-4 py-3">Worker</th>
-                <th className="text-left px-4 py-3">Role</th>
-                <th className="text-left px-4 py-3">Missing</th>
-                <th className="text-right px-4 py-3"></th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-100">
-              {filtered.map((r) => (
-                <tr key={r.userId} className="hover:bg-gray-50">
-                  <td className="px-4 py-3">
-                    <div className="font-medium text-gray-900">{r.name || "—"}</div>
-                    <div className="text-xs text-gray-500">{r.email}</div>
-                  </td>
-                  <td className="px-4 py-3 text-gray-700">{r.role ?? "—"}</td>
-                  <td className="px-4 py-3">
-                    <div className="flex gap-1.5 flex-wrap">
-                      {r.missingEmergencyContact && (
-                        <span className="inline-flex rounded-full bg-amber-100 text-amber-800 px-2 py-0.5 text-xs">
-                          Emergency contact
-                        </span>
-                      )}
-                      {r.missingMedicalInfo && (
-                        <span className="inline-flex rounded-full bg-red-100 text-red-800 px-2 py-0.5 text-xs">
-                          Medical info
-                        </span>
-                      )}
-                    </div>
-                  </td>
-                  <td className="px-4 py-3 text-right">
-                    <Link
-                      href={`/dashboard/users/${r.userId}/my-info`}
-                      className="inline-flex items-center rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-xs font-medium text-gray-700 hover:bg-gray-50"
-                    >
-                      Fill in
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        )}
-      </div>
-
-      {!loading && filtered.length > 0 && (
-        <div className="text-xs text-gray-500 text-right">
-          {filtered.length} of {rows.length} worker{rows.length === 1 ? "" : "s"} shown
-        </div>
-      )}
-    </div>
+      }
+      columns={[
+        {
+          header: "Worker",
+          accessor: "name",
+          render: (r: Row) => <TableNameCell icon={UserRound} label={r.name || "—"} detail={r.email} />,
+        },
+        { header: "Role", accessor: "role", render: (r: Row) => r.role ?? "—" },
+        {
+          header: "Missing",
+          accessor: "missing",
+          render: (r: Row) => (
+            <div className="flex flex-wrap gap-1.5">
+              {r.missingEmergencyContact && <span className="status-chip status-chip--warn">Emergency contact</span>}
+              {r.missingMedicalInfo && <span className="status-chip status-chip--danger">Medical info</span>}
+            </div>
+          ),
+        },
+        {
+          header: "Actions",
+          accessor: "actions",
+          render: (r: Row) => (
+            <Link href={`/dashboard/users/${r.userId}/my-info`} className="table-link">
+              Fill in
+            </Link>
+          ),
+        },
+      ]}
+      data={loading ? [] : filtered}
+      emptyMessage={
+        loading
+          ? "Loading…"
+          : rows.length === 0
+            ? "Everyone in your company has their emergency contact and medical info filled in. Nothing to chase."
+            : "No workers match the current filter."
+      }
+    />
   );
 }

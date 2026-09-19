@@ -1,15 +1,13 @@
 ---
-description: Implemented — inducted-only site picker (app 1.0.3+23 + web)
+description: Assigned-sites induction (app 1.0.2+25 + web)
 alwaysApply: false
 ---
 
-# Inducted sites picker — done (1.0.3+23)
+# Assigned sites + real induction — 1.0.2+25
 
-Queued by Steven (16 Sep 2026). Implemented for the 1.0.3+23 Flutter build, with matching web.
+- Operative **Select site** and **My Inductions** use `GET /api/me/assigned-sites`.
+- Superuser / Super Admin / Supervisor add people on Sites → Induction (no RAMS-before-assign).
+- Induction opens safety pack, RAMS (sign or already signed), then site rules.
+- Company default: Health & Safety → Induction safety. Per-site copy: Sites → Safety info.
 
-- App **Select site** uses `GET /api/me/inducted-sites`.
-- **My Inductions** still uses `GET /api/sites`.
-- Web **Record Attendance** site picker uses `GET /api/users/[id]/inducted-sites` for the selected operative.
-- Operative self sign-in is rejected without a valid (non-expired) induction.
-
-Delete this rule after that build is live.
+Do not bump the marketing version past 1.0.2 unless Steven asks.

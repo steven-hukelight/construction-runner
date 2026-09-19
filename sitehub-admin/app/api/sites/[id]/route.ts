@@ -27,7 +27,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
     updateData.show_on_map = body.showOnMap ?? body.show_on_map ?? true;
   }
   if (Object.prototype.hasOwnProperty.call(body, "active")) updateData.active = body.active ?? true;
-  if (Object.prototype.hasOwnProperty.call(body, "managerId")) updateData.manager_id = body.managerId ?? null;
+  if (Object.prototype.hasOwnProperty.call(body, "managerId")) {
+    const next = typeof body.managerId === "string" ? body.managerId.trim() : body.managerId;
+    updateData.manager_id = next ? String(next) : null;
+  }
   if (Object.prototype.hasOwnProperty.call(body, "inductionRequired")) updateData.induction_required = !!body.inductionRequired;
   if (typeof body.mainContractorId === "string") updateData.main_contractor_id = body.mainContractorId.trim() || null;
 

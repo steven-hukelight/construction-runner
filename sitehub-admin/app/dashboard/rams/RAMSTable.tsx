@@ -3,8 +3,9 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { FileText, Eye } from "lucide-react";
+import { FileText } from "lucide-react";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import { StatusPill, statusToVariant } from "../components/ui/StatusPill";
 import TableActions from "../components/ui/TableActions";
 import { updateRAMSStatus, deleteRAMS } from "./actions";
@@ -85,12 +86,8 @@ export default function RAMSTable({ data }: any) {
       header: "Title",
       accessor: "title",
       render: (row: any) => (
-        <Link
-          href={`/dashboard/health-and-safety/rams/${row.id}`}
-          className="btn-ghost inline-flex items-center gap-1.5 no-underline"
-        >
-          <Eye size={14} />
-          {row.title || "Untitled"}
+        <Link href={`/dashboard/health-and-safety/rams/${row.id}`} className="table-link">
+          <TableNameCell icon={FileText} label={row.title || "Untitled"} />
         </Link>
       ),
     },
@@ -138,17 +135,11 @@ export default function RAMSTable({ data }: any) {
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-center gap-3 mb-4">
-        <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-          <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-        </div>
-        <div>
-          <h3 className="text-lg font-semibold text-slate-900">All RAMS Documents</h3>
-          <p className="text-sm text-slate-600">{rowsSafe.length} documents uploaded</p>
-        </div>
-      </div>
-      <Table columns={columns} data={rowsSafe} />
-    </div>
+    <Table
+      title="All RAMS documents"
+      subtitle={`${rowsSafe.length} documents uploaded`}
+      columns={columns}
+      data={rowsSafe}
+    />
   );
 }

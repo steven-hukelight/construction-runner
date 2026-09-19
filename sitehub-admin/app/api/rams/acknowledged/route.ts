@@ -1,14 +1,14 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 
 export const dynamic = "force-dynamic";
 
 /** GET /api/rams/acknowledged — RAMS document IDs the current user has acknowledged. */
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const uid = cookieStore.get("uid")?.value?.trim();
+    const auth = await resolveMobileApiAuth(req);
+    const uid = auth.uid?.trim();
     if (!uid) return NextResponse.json({ ids: [] });
 
     const { data } = await supabaseAdmin.from("rams_acknowledgements").select("rams_id").eq("user_id", uid);

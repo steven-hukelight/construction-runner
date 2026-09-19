@@ -1,6 +1,5 @@
 import PageHeader from "../components/PageHeader";
 import SitesTable from "./SitesTable";
-import AddSiteModal from "./AddSiteModal";
 import { fetchSites } from "./actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
@@ -56,18 +55,18 @@ export default async function SitesPage() {
   }
 
   return (
-    <div className="relative space-y-8">
-      {/* Decorative background */}
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
-      
+    <div className="relative min-w-0 space-y-5">
       <PageHeader
+        compact
         title="Sites"
-        description="Manage all active sites in your organisation."
+        description="Locations, geofences, and who manages each site."
       />
 
-      {canCreateAndAssignSites(role) ? <AddSiteModal /> : null}
-
-      <SitesTable data={tableData} />
+      <SitesTable
+        data={tableData}
+        canCreate={canCreateAndAssignSites(role)}
+        canAssignManager={canCreateAndAssignSites(role)}
+      />
     </div>
   );
 }

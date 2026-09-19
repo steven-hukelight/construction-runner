@@ -31,7 +31,7 @@ export function TaskStatusPill({ status }: { status?: string | null }) {
   const style = STATUS_STYLES[s] ?? STATUS_STYLES[s.toLowerCase()] ?? DEFAULT;
   const label = s === "—" ? "—" : s.replace(/_/g, " ");
   return (
-    <span className={`inline-flex px-2.5 py-1 rounded-md text-xs font-medium ${style}`}>
+    <span className={`inline-flex px-2.5 py-1 rounded-full text-xs font-medium ${style}`}>
       {label}
     </span>
   );

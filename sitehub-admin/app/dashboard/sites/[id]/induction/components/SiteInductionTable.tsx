@@ -3,9 +3,11 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
+import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
 import Button from "@/app/dashboard/components/ui/Button";
 import type { SiteInductionOperative } from "../server";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
+import { UserRound } from "lucide-react";
 
 // When the pre-induction UI is disabled site-wide, present pre-induction
 // specific statuses under neutral labels so users don't see the feature name.
@@ -23,23 +25,19 @@ function formatCompletedAt(completedAt: string | null): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  Inducted: { bg: "bg-emerald-100", text: "text-emerald-800" },
-  Grandfathered: { bg: "bg-blue-100", text: "text-blue-800" },
-  "Pre-Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-  "Pre-Induction Override": { bg: "bg-purple-100", text: "text-purple-800" },
-  "Induction Required": { bg: "bg-gray-100", text: "text-gray-700" },
-  Expired: { bg: "bg-red-100", text: "text-red-800" },
-};
-
 function StatusBadge({ status }: { status: SiteInductionOperative["status"] }) {
-  const s = STATUS_STYLES[status] ?? { bg: "bg-gray-100", text: "text-gray-700" };
   const label = STATUS_DISPLAY_LABEL[status] ?? status;
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md ${s.bg} ${s.text}`}>
-      {label}
-    </span>
-  );
+  const chip =
+    status === "Inducted"
+      ? "status-chip--ok"
+      : status === "Grandfathered" || status === "Pre-Induction Override"
+        ? "status-chip--info"
+        : status === "Expired"
+          ? "status-chip--danger"
+          : status === "Pre-Induction Required" || status === "Induction Required"
+            ? "status-chip--warn"
+            : "status-chip--muted";
+  return <span className={`status-chip ${chip}`}>{label}</span>;
 }
 
 const CAN_MARK_INDUCTED = ["Induction Required", "Pre-Induction Required", "Pre-Induction Override"];
@@ -116,7 +114,9 @@ export default function SiteInductionTable({
     {
       header: "Operative Name",
       accessor: "operativeName" as const,
-      render: (row: SiteInductionOperative) => row.operativeName,
+      render: (row: SiteInductionOperative) => (
+        <TableNameCell icon={UserRound} label={row.operativeName} />
+      ),
     },
     {
       header: "Company Name",
@@ -190,8 +190,12 @@ export default function SiteInductionTable({
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <Table columns={columns} data={rows} />
-    </div>
+    <Table
+      title="Site induction"
+      subtitle={`${rows.length} operative${rows.length === 1 ? "" : "s"}`}
+      columns={columns}
+      data={rows}
+      emptyMessage="No operatives match the filters."
+    />
   );
 }

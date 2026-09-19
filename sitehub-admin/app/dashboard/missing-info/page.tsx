@@ -28,7 +28,7 @@ export default async function MissingInfoPage() {
     <div className="space-y-6">
       <PageHeader
         title="Missing Info"
-        description="Workers with no emergency contact and/or no medical info. Use this to chase completion — the app no longer blocks sign-in on it."
+        description="Workers with no emergency contact and/or incomplete medical info. Medical counts as complete once they have answered fit-to-work / no issues, uploaded a certificate, or added a declaration."
       />
       <MissingInfoTable />
     </div>

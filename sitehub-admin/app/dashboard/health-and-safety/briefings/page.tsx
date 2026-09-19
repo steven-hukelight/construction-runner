@@ -32,7 +32,6 @@ export default async function BriefingsPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-40 right-20 w-80 h-80 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
       <PageHeader
         title="Briefings"
         description="Toolbox talks and site briefings. Upload PDFs for operatives to acknowledge in the app. Admins and supervisors can see who acknowledged each item and export a CSV per briefing or for all briefings."

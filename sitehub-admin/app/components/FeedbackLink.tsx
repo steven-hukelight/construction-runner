@@ -17,7 +17,7 @@ export default function FeedbackLink({ variant = "topbar" }: { variant?: Variant
       "text-slate-600 hover:text-blue-600 dark:text-slate-300 dark:hover:text-blue-400 text-sm px-2 py-1.5",
     button:
       "text-gray-700 hover:text-blue-600 hover:bg-blue-50 border border-gray-200 bg-white px-3 py-2 rounded-xl text-sm",
-    landing: "text-slate-500 hover:text-slate-300 transition-colors",
+    landing: "text-white/80 hover:text-white transition-colors",
     login: "text-sm text-slate-600 hover:text-blue-600 underline underline-offset-4",
   };
 

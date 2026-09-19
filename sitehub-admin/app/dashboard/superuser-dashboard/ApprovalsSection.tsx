@@ -1,7 +1,8 @@
 "use client";
 import { useEffect, useState } from "react";
-import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
-import Button from "../components/ui/Button";
+import { UserRound } from "lucide-react";
+import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import EditRegistrationModal, { type Registration } from "./EditRegistrationModal";
 import ApprovalRowActions from "../pending-approvals/ApprovalRowActions";
 import { useClientSession } from "../components/ClientSessionProvider";
@@ -10,7 +11,6 @@ import { usesAssignedSites } from "@/lib/auth/roles";
 type Site = { id: string; name: string };
 
 export default function ApprovalsSection() {
-  const density = useTableDensityClasses();
   const [pending, setPending] = useState<Registration[]>([]);
   const [loading, setLoading] = useState(false);
   const [editing, setEditing] = useState<Registration | null>(null);
@@ -83,48 +83,41 @@ export default function ApprovalsSection() {
   }
 
   return (
-    <div className="card p-6 mt-8">
-      <h2 className="font-semibold text-gray-900 mb-2">Pending User Approvals</h2>
-      {loading && <div className="text-blue-600">Loading...</div>}
-      {pending.length === 0 && !loading && (
-        <div className="text-gray-500">No pending registrations.</div>
-      )}
-      {pending.length > 0 && (
-        <table className={`w-full mt-4 ${density.table}`}>
-          <thead>
-            <tr>
-              <th className={`text-left ${density.th}`}>Name</th>
-              <th className={`text-left ${density.th}`}>Email</th>
-              <th className={`text-left ${density.th}`}>Company</th>
-              <th className={`text-left ${density.th}`}>Actions</th>
-            </tr>
-          </thead>
-          <tbody>
-            {pending.map((reg) => (
-              <tr key={reg.id}>
-                <td className={density.td}>{reg.name}</td>
-                <td className={density.td}>{reg.email}</td>
-                <td className={density.td}>{reg.companyName}</td>
-                <td className={density.td}>
-                  <div className="flex flex-col items-end gap-2">
-                    <ApprovalRowActions
-                      regId={reg.id}
-                      defaultRole={(reg.role || "OPERATIVE").toString().toUpperCase()}
-                      approverRole={approverRole}
-                      sites={sites}
-                      onApprove={handleApprove}
-                      onReject={handleReject}
-                    />
-                    <Button onClick={() => setEditing(reg)} size="sm" variant="secondary">
-                      Edit
-                    </Button>
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      )}
+    <div className="mt-8">
+      <Table
+        title="Pending user approvals"
+        subtitle={`${pending.length} waiting`}
+        columns={[
+          {
+            header: "Name",
+            accessor: "name",
+            render: (reg: Registration) => <TableNameCell icon={UserRound} label={reg.name || "—"} />,
+          },
+          { header: "Email", accessor: "email" },
+          { header: "Company", accessor: "companyName" },
+          {
+            header: "Actions",
+            accessor: "actions",
+            render: (reg: Registration) => (
+              <div className="flex flex-col items-end gap-2">
+                <ApprovalRowActions
+                  regId={reg.id}
+                  defaultRole={(reg.role || "OPERATIVE").toString().toUpperCase()}
+                  approverRole={approverRole}
+                  sites={sites}
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                />
+                <button type="button" onClick={() => setEditing(reg)} className="table-link">
+                  Edit
+                </button>
+              </div>
+            ),
+          },
+        ]}
+        data={loading ? [] : pending}
+        emptyMessage={loading ? "Loading…" : "No pending registrations."}
+      />
       {editing && (
         <EditRegistrationModal
           registration={editing}

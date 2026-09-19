@@ -25,6 +25,7 @@ import { sendAttendanceAutoSignOutPush } from "@/lib/attendanceAutoSignOutPush";
 import { dispatchPendingAttendancePushNotifications } from "@/lib/dispatchAttendancePushQueue";
 import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
 import { userHasValidSiteInduction } from "@/lib/induction/listInductedSites";
+import { userIsAssignedToSite } from "@/lib/induction/listAssignedSites";
 
 export const dynamic = "force-dynamic";
 
@@ -466,6 +467,16 @@ export async function POST(req: Request) {
       actionNormalized === "SIGNIN" ||
       actionNormalized === "CHECKIN";
     if (isSignInAction && siteId && roleLower === "operative") {
+      const assigned = await userIsAssignedToSite(String(operativeId), String(siteId));
+      if (!assigned) {
+        return NextResponse.json(
+          {
+            error: "not_assigned",
+            message: "You have not been added to this site.",
+          },
+          { status: 403 },
+        );
+      }
       const inducted = await userHasValidSiteInduction(String(operativeId), String(siteId));
       if (!inducted) {
         return NextResponse.json(
@@ -922,12 +933,10 @@ export async function POST(req: Request) {
         reasonRaw != null && String(reasonRaw).trim()
           ? String(reasonRaw).trim()
           : "native_geofence";
-      // NOTE: Client-inserted SIGN OUT rows create a new attendance row rather
-      // than closing the original SIGN IN, so the pg_cron fallback may still
-      // encounter the orphan open row and try to sign it out (different
-      // attendance_id → different dedupe key). That secondary path is a known
-      // follow-up; see docs. Dedupe here still prevents *this* row from
-      // notifying more than once.
+      // Client-inserted SIGN OUT rows do not rewrite the original SIGN IN.
+      // perform_attendance_fallback skips any SIGN IN that already has a later
+      // SIGN OUT for that user, so cron must not emit a second fallback close.
+      // Dedupe here still prevents *this* row from notifying more than once.
       void sendAttendanceAutoSignOutPush(
         String(operativeId),
         pushReason,

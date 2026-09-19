@@ -1,26 +1,20 @@
 "use client";
 
 import React from "react";
+import { UserRound } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
+import { DataTableShell, TableNameCell } from "../../components/ui/TableChrome";
 import type { ComplianceUser, ComplianceSite, InductionStatus } from "../server";
 
 function StatusBadge({ status }: { status: InductionStatus }) {
-  const styles: Record<InductionStatus, { bg: string; text: string }> = {
-    completed: { bg: "bg-emerald-100 dark:bg-emerald-900/50", text: "text-emerald-800 dark:text-emerald-300" },
-    not_started: { bg: "bg-gray-100 dark:bg-slate-700", text: "text-gray-700 dark:text-slate-300" },
-    expired: { bg: "bg-amber-100 dark:bg-amber-900/50", text: "text-amber-800 dark:text-amber-300" },
-  };
-  const s = styles[status] ?? styles.not_started;
   const labels: Record<InductionStatus, string> = {
     completed: "Completed",
     not_started: "Not Started",
     expired: "Expired",
   };
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md whitespace-nowrap ${s.bg} ${s.text}`}>
-      {labels[status]}
-    </span>
-  );
+  const chip =
+    status === "completed" ? "status-chip--ok" : status === "expired" ? "status-chip--danger" : "status-chip--muted";
+  return <span className={`status-chip ${chip}`}>{labels[status]}</span>;
 }
 
 type Props = {
@@ -32,30 +26,27 @@ type Props = {
 export default function ComplianceMatrix({ users, sites, matrix }: Props) {
   const density = useTableDensityClasses();
   return (
-    <div className="rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-sm overflow-hidden">
-      <div className="overflow-x-auto max-h-[520px] overflow-y-auto">
-        <table className={`w-full table-auto min-w-[600px] ${density.table}`}>
-          <thead className="sticky top-0 bg-gray-50 dark:bg-slate-900 border-b border-gray-200 dark:border-slate-600 z-10">
-            <tr>
-              <th className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}>
-                User / Company
-              </th>
+    <DataTableShell title="Induction matrix" subtitle={`${users.length} user${users.length === 1 ? "" : "s"}`}>
+      <div className="max-h-[520px] overflow-x-auto overflow-y-auto">
+        <table className={`data-table w-full table-auto min-w-[600px] ${density.table}`}>
+          <thead className="sticky top-0 z-10">
+            <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
+              <th className={`${density.th} whitespace-nowrap`}>User / Company</th>
               {sites.map((s) => (
-                <th
-                  key={s.id}
-                  className={`text-left ${density.th} text-xs font-semibold text-gray-700 dark:text-slate-400 uppercase tracking-wide whitespace-nowrap`}
-                >
+                <th key={s.id} className={`${density.th} whitespace-nowrap`}>
                   {s.name}
                 </th>
               ))}
             </tr>
           </thead>
-          <tbody className="divide-y divide-gray-100 dark:divide-slate-600">
+          <tbody>
             {users.map((u) => (
-              <tr key={u.id} className="hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors">
+              <tr
+                key={u.id}
+                className="data-table-row border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/60 dark:hover:bg-slate-700/80"
+              >
                 <td className={density.td}>
-                  <div className="font-medium text-gray-900 dark:text-slate-100">{u.name}</div>
-                  <div className="text-xs text-gray-500 dark:text-slate-400">{u.companyName}</div>
+                  <TableNameCell icon={UserRound} label={u.name} detail={u.companyName} />
                 </td>
                 {sites.map((s) => {
                   const cell = matrix[u.id]?.[s.id];
@@ -72,10 +63,8 @@ export default function ComplianceMatrix({ users, sites, matrix }: Props) {
         </table>
       </div>
       {users.length === 0 && (
-        <div className="py-12 text-center text-gray-500 dark:text-slate-400">
-          No users to display.
-        </div>
+        <div className="py-12 text-center text-sm text-slate-500 dark:text-slate-400">No users to display.</div>
       )}
-    </div>
+    </DataTableShell>
   );
 }

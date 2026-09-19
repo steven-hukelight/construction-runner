@@ -5,7 +5,8 @@ import Image from "next/image";
 import { useClientSession } from "../components/ClientSessionProvider";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import Table from "@/app/dashboard/components/ui/Table";
-import { Database } from "lucide-react";
+import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
+import { Award } from "lucide-react";
 
 type MaybeDate =
   | string
@@ -301,25 +302,11 @@ export default function CertificationsPage() {
         />
       </div>
 
-      <div className="card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-            <Database className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">{tab === "certifications" ? "Certifications" : "Training"}</h3>
-            <p className="text-sm text-slate-600">{filteredItems.length} record{filteredItems.length === 1 ? "" : "s"}</p>
-          </div>
-        </div>
-
-        {loading ? (
-          <div className="p-6 text-sm text-gray-500">Loading…</div>
-        ) : filteredItems.length === 0 ? (
-          <div className="p-6 text-sm text-gray-500">No records yet</div>
-        ) : (
-          <Table
-            columns={[
-              { header: "Title", accessor: "title" },
+      <Table
+        title={tab === "certifications" ? "Certifications" : "Training"}
+        subtitle={`${filteredItems.length} record${filteredItems.length === 1 ? "" : "s"}`}
+        columns={[
+              { header: "Title", accessor: "title", render: (row: Item) => <TableNameCell icon={Award} label={row.title || "Untitled"} /> },
               { header: "Issuer", accessor: "issuer" },
               {
                 header: "User",
@@ -365,12 +352,12 @@ export default function CertificationsPage() {
                           className="w-12 h-12 rounded object-cover border border-gray-200"
                           unoptimized
                         />
-                        <span className="text-blue-600 hover:underline">Open</span>
+                        <span className="table-link">Open</span>
                       </a>
                     );
                   }
                   return (
-                    <a href={url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+                    <a href={url} target="_blank" rel="noreferrer" className="table-link">
                       Open
                     </a>
                   );
@@ -387,10 +374,9 @@ export default function CertificationsPage() {
                 ),
               },
             ]}
-            data={filteredItems}
-          />
-        )}
-      </div>
+        data={loading ? [] : filteredItems}
+        emptyMessage={loading ? "Loading…" : "No records yet"}
+      />
     </>
   );
 }

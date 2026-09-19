@@ -2,21 +2,15 @@
 
 import React, { useState } from "react";
 import Link from "next/link";
+import Image from "next/image";
 import {
   ArrowRight,
   MessageSquareText,
   ShieldCheck,
   CalendarDays,
 } from "lucide-react";
-import { GridOverlay } from "@/app/components/marketing/backgrounds/GridOverlay";
-import { NoiseOverlay } from "@/app/components/marketing/backgrounds/NoiseOverlay";
-import { LightBeams } from "@/app/components/marketing/backgrounds/LightBeams";
-import MorphingBlobs from "@/app/components/marketing/backgrounds/MorphingBlobs";
-import FloatingParticles from "@/app/components/marketing/effects/FloatingParticles";
-import RippleEffect from "@/app/components/marketing/effects/RippleEffect";
-import PageContainer from "@/app/components/marketing/layout/PageContainer";
-import Section from "@/app/components/marketing/layout/Section";
 import DemoModal from "@/app/components/marketing/modals/DemoModal";
+import MarketingShell from "@/app/components/marketing/MarketingShell";
 
 const MEMBER_LOGIN_URL = "/admin/login";
 
@@ -45,88 +39,93 @@ export default function ContactPage() {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
 
   return (
-    <div className="relative min-h-screen overflow-x-hidden bg-gradient-to-br from-[#0a0e1a] via-[#1a1f35] to-[#0a0e1a]">
-      <MorphingBlobs />
-      <FloatingParticles />
-      <NoiseOverlay />
-      <LightBeams />
-      <GridOverlay />
-      <RippleEffect />
+    <>
+      <MarketingShell>
+        <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
+          <header className="flex items-center justify-between gap-4 rounded-2xl bg-white/90 px-4 py-3 shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:px-5">
+            <Link href="/" className="flex items-center gap-3">
+              <Image
+                src="/icon.png?v=3"
+                alt="Construction Runner logo"
+                width={48}
+                height={48}
+                unoptimized
+                className="h-12 w-12 shrink-0 object-contain"
+              />
+              <span className="text-lg font-semibold tracking-tight text-slate-900">
+                Construction Runner
+              </span>
+            </Link>
+            <div className="flex items-center gap-3">
+              <Link
+                href="/"
+                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              >
+                Home
+              </Link>
+              <Link
+                href={MEMBER_LOGIN_URL}
+                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              >
+                Member Login
+              </Link>
+            </div>
+          </header>
 
-      <div className="absolute right-5 top-5 z-[100] flex items-center gap-3">
-        <Link
-          href="/"
-          className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:text-white"
-        >
-          Home
-        </Link>
-        <Link
-          href={MEMBER_LOGIN_URL}
-          className="rounded-full border border-white/15 bg-white/5 px-4 py-2 text-sm font-medium text-slate-200 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:text-white"
-        >
-          Member Login
-        </Link>
-      </div>
-
-      <Section center className="relative min-h-screen py-24">
-        <PageContainer>
-          <div className="relative z-10 mx-auto max-w-5xl text-center">
-            <div className="inline-flex items-center rounded-full border border-white/10 bg-white/5 px-4 py-2 text-sm text-slate-300 backdrop-blur-sm">
+          <div className="mx-auto mt-8 max-w-4xl rounded-2xl bg-white/90 px-6 py-10 text-center shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:px-10">
+            <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
               Contact Construction Runner
             </div>
 
-            <h1 className="mt-8 text-5xl font-extrabold leading-tight text-white md:text-7xl">
+            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
               Start the conversation.
             </h1>
 
-            <p className="mx-auto mt-6 max-w-3xl text-lg text-slate-300 md:text-xl">
+            <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
               Whether you are reviewing platforms, tightening compliance
               workflows, or planning a wider rollout, we can help you assess fit
               quickly.
             </p>
 
-            <div className="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
+            <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setIsDemoModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-gradient-to-r from-blue-500 to-cyan-500 px-8 py-4 text-lg font-semibold text-white shadow-2xl transition-all duration-300 hover:scale-105 hover:shadow-blue-500/50"
+                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
               >
                 Request a Demo
                 <ArrowRight className="h-5 w-5" />
               </button>
               <Link
                 href={MEMBER_LOGIN_URL}
-                className="rounded-full border border-white/15 bg-white/5 px-8 py-4 text-lg font-semibold text-slate-200 backdrop-blur-sm transition-all duration-300 hover:border-white/30 hover:bg-white/10 hover:text-white"
+                className="rounded-full border border-blue-100 bg-white px-7 py-3 text-base font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
               >
                 Member Login
               </Link>
             </div>
-
-            <div className="mt-16 grid gap-6 md:grid-cols-3">
-              {contactOptions.map((option) => (
-                <div
-                  key={option.title}
-                  className="glass rounded-3xl border border-white/10 p-8 text-left transition-all duration-300 hover:border-white/20 hover:bg-white/10"
-                >
-                  <div className="mb-5 inline-flex h-12 w-12 items-center justify-center rounded-2xl border border-white/20 bg-white/10 text-white shadow-lg backdrop-blur-sm">
-                    {option.icon}
-                  </div>
-                  <h2 className="text-2xl font-bold text-white">
-                    {option.title}
-                  </h2>
-                  <p className="mt-3 text-slate-300">{option.description}</p>
-                </div>
-              ))}
-            </div>
           </div>
-        </PageContainer>
-      </Section>
 
+          <div className="mt-8 grid gap-5 md:grid-cols-3">
+            {contactOptions.map((option) => (
+              <div
+                key={option.title}
+                className="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md"
+              >
+                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                  {option.icon}
+                </div>
+                <h2 className="text-lg font-semibold text-slate-900">{option.title}</h2>
+                <p className="mt-2 text-sm leading-relaxed text-slate-600">{option.description}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </MarketingShell>
       <DemoModal
         isOpen={isDemoModalOpen}
         onClose={() => setIsDemoModalOpen(false)}
         onSuccess={() => setIsDemoModalOpen(false)}
       />
-    </div>
+    </>
   );
 }

@@ -34,8 +34,7 @@ export default async function RAMSPage() {
   const rams = await fetchRAMS(companyId ?? undefined, cookieHeader);
 
   return (
-    <div className="relative space-y-8">
-      <div className="absolute top-40 left-20 w-80 h-80 bg-gradient-to-br from-green-400/10 to-emerald-400/10 rounded-full blur-3xl -z-10" />
+      <div className="relative space-y-8">
       <PageHeader
         title="RAMS"
         description="Risk Assessments & Method Statements. Manage RAMS documents across your sites."

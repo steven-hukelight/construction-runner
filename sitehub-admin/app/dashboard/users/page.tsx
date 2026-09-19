@@ -50,7 +50,6 @@ export default async function UsersPage() {
 
       <div className="relative">
         {/* Decorative background element */}
-        <div className="absolute -top-4 -right-4 w-72 h-72 bg-gradient-to-br from-blue-400/10 to-blue-500/10 rounded-full blur-3xl -z-10" />
         
         <UsersTable
           data={deepSerializeForClient(users)}

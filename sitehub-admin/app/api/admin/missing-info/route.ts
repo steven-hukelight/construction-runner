@@ -7,7 +7,8 @@
  *
  * "Incomplete" today means either:
  *   - no emergency contact name AND no emergency contact phone, OR
- *   - no medical row (or medical row exists but medicalDeclaration is empty)
+ *   - no medical row, or the medical form has not been answered
+ *     (fit to work / no issues / certificate / declaration / allergies or medication)
  *
  * Auth: admin, supervisor, or superuser. Company-scoped.
  * Replaces the old /dashboard/induction-compliance dashboard.
@@ -17,6 +18,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { isMedicalInfoComplete } from "@/lib/myInfo";
 
 export const dynamic = "force-dynamic";
 
@@ -101,7 +103,9 @@ export async function GET(req: Request) {
         .in("user_id", userIds),
       supabaseAdmin
         .from("pre_induction_medical")
-        .select("user_id, medical_declaration, medical_verified")
+        .select(
+          "user_id, medical_declaration, medical_verified, fit_to_work, has_medical_issues, medical_certificate_url, allergies, medication"
+        )
         .in("user_id", userIds),
     ]);
 
@@ -115,12 +119,37 @@ export async function GET(req: Request) {
       const row = r as { user_id: string; emergency_contact_name: string | null; emergency_contact_phone: string | null };
       personalByUser.set(row.user_id, { name: row.emergency_contact_name, phone: row.emergency_contact_phone });
     }
-    const medicalByUser = new Map<string, { declaration: string | null; verified: boolean }>();
+    const medicalByUser = new Map<
+      string,
+      {
+        medicalDeclaration: string | null;
+        medicalVerified: boolean;
+        fitToWork: unknown;
+        hasMedicalIssues: unknown;
+        medicalCertificateUrl: string | null;
+        allergies: string | null;
+        medication: string | null;
+      }
+    >();
     for (const r of medicalRes.data ?? []) {
-      const row = r as { user_id: string; medical_declaration: string | null; medical_verified: boolean | null };
+      const row = r as {
+        user_id: string;
+        medical_declaration: string | null;
+        medical_verified: boolean | null;
+        fit_to_work: unknown;
+        has_medical_issues: unknown;
+        medical_certificate_url: string | null;
+        allergies: string | null;
+        medication: string | null;
+      };
       medicalByUser.set(row.user_id, {
-        declaration: row.medical_declaration,
-        verified: !!row.medical_verified,
+        medicalDeclaration: row.medical_declaration,
+        medicalVerified: !!row.medical_verified,
+        fitToWork: row.fit_to_work,
+        hasMedicalIssues: row.has_medical_issues,
+        medicalCertificateUrl: row.medical_certificate_url,
+        allergies: row.allergies,
+        medication: row.medication,
       });
     }
 
@@ -136,7 +165,7 @@ export async function GET(req: Request) {
       const name = ((profile?.name ?? "").trim() || (personal?.name ?? "").trim()) || null;
       const phone = ((profile?.phone ?? "").trim() || (personal?.phone ?? "").trim()) || null;
       const missingEmergency = !name && !phone;
-      const missingMedical = !medical || !(medical.declaration ?? "").trim();
+      const missingMedical = !isMedicalInfoComplete(medical);
 
       if (missingEmergency || missingMedical) {
         rows.push({

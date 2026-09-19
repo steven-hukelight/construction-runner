@@ -26,7 +26,7 @@ export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
 
   return (
     <span
-      className={`role-badge inline-flex px-2 py-0.5 text-xs font-medium rounded-md border ${style.bg} ${style.text} ${style.border ?? ""} ${className}`}
+      className={`role-badge inline-flex px-2.5 py-1 text-xs font-medium rounded-full border ${style.bg} ${style.text} ${style.border ?? ""} ${className}`}
       title={display}
     >
       {display}

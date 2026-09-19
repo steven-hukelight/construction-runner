@@ -42,7 +42,7 @@ export default async function MessagingPage() {
     <div className="relative space-y-8">
       <PageHeader
         title="Messaging"
-        description="Real-time messaging with operatives and supervisors."
+        description="Only conversations you are in. New messages go to the people you pick unless you choose to broadcast."
       />
       <MessagingContent companyId={companyId} canDelete={canDelete} />
     </div>

@@ -4,6 +4,7 @@ import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
 import { Package } from "lucide-react";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
@@ -166,8 +167,8 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       header: "Reference",
       accessor: "reference",
       render: (row: Delivery) => (
-        <Link href={`/dashboard/deliveries/${row.id}`} className="text-blue-600 hover:underline">
-          {row.reference || row.wholesaler || row.id?.slice(0, 8) || "—"}
+        <Link href={`/dashboard/deliveries/${row.id}`} className="table-link">
+          <TableNameCell icon={Package} label={row.reference || row.wholesaler || row.id?.slice(0, 8) || "—"} />
         </Link>
       ),
     },
@@ -226,48 +227,31 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   ];
 
   return (
-    <div className="card">
-      <div className="flex flex-wrap items-start justify-between gap-4 mb-4">
-        <div className="flex items-center gap-3">
-          <div className="p-2 rounded-lg bg-blue-100 dark:bg-blue-900/50">
-            <Package className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">All Deliveries</h3>
-            <p className="text-sm text-slate-600">{rows.length} deliveries tracked</p>
-          </div>
-        </div>
+    <Table
+      title="All deliveries"
+      subtitle={`${rows.length} deliveries tracked`}
+      actions={
         <div className="flex flex-wrap items-center gap-2">
           <input
             type="date"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className="table-toolbar-input"
             value={dateFrom}
             onChange={(e) => setDateFrom(e.target.value)}
             placeholder="From"
           />
           <input
             type="date"
-            className="rounded-lg border border-slate-300 px-2 py-1.5 text-sm"
+            className="table-toolbar-input"
             value={dateTo}
             onChange={(e) => setDateTo(e.target.value)}
             placeholder="To"
           />
-          <Button
-            variant="secondary"
-            size="sm"
-            type="button"
-            onClick={() => mutate()}
-          >
+          <Button variant="secondary" size="sm" type="button" onClick={() => mutate()}>
             Refresh
           </Button>
           {rows.length > 0 && (
             <>
-              <Button
-                variant="secondary"
-                size="sm"
-                type="button"
-                onClick={handleExportCSV}
-              >
+              <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV}>
                 Export CSV
               </Button>
               <Button size="sm" type="button" onClick={handleExportPDF}>
@@ -276,8 +260,9 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
             </>
           )}
         </div>
-      </div>
-      <Table columns={columns} data={filteredRows} />
-    </div>
+      }
+      columns={columns}
+      data={filteredRows}
+    />
   );
 }

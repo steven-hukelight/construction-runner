@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, FileDown, Users } from "lucide-react";
 import Button from "../../components/ui/Button";
+import { DataTableShell } from "../../components/ui/TableChrome";
 import { PortalOverlay } from "../../components/PortalOverlay";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
@@ -220,33 +221,39 @@ export default function BriefingDetailModal({
               <p className="text-sm text-slate-500 dark:text-slate-400">No acknowledgements yet.</p>
             )}
             {!loading && acks.length > 0 && (
-              <div className="overflow-x-auto rounded-lg border border-slate-200 dark:border-slate-600">
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="bg-slate-50 dark:bg-slate-900/80 text-left">
-                      <th className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Name</th>
-                      <th className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Email</th>
-                      <th className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Acknowledged</th>
-                      <th className="px-3 py-2 font-semibold text-slate-700 dark:text-slate-300">Signature</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {acks.map((r) => (
-                      <tr
-                        key={r.userId}
-                        className="border-t border-slate-100 dark:border-slate-700/80 text-slate-800 dark:text-slate-200"
-                      >
-                        <td className="px-3 py-2">{r.name}</td>
-                        <td className="px-3 py-2">{r.email}</td>
-                        <td className="px-3 py-2 whitespace-nowrap">
-                          {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}
-                        </td>
-                        <td className="px-3 py-2">{r.hasSignature ? "Yes" : "—"}</td>
+              <DataTableShell>
+                <div className="overflow-x-auto">
+                  <table className="data-table w-full text-sm">
+                    <thead>
+                      <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
+                        <th className="px-5 py-3">Name</th>
+                        <th className="px-5 py-3">Email</th>
+                        <th className="px-5 py-3">Acknowledged</th>
+                        <th className="px-5 py-3">Signature</th>
                       </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
+                    </thead>
+                    <tbody>
+                      {acks.map((r) => (
+                        <tr
+                          key={r.userId}
+                          className="data-table-row border-b border-slate-100/90 text-slate-800 last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/80 dark:text-slate-200"
+                        >
+                          <td className="px-5 py-3 font-semibold">{r.name}</td>
+                          <td className="px-5 py-3">{r.email}</td>
+                          <td className="whitespace-nowrap px-5 py-3">
+                            {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}
+                          </td>
+                          <td className="px-5 py-3">
+                            <span className={`status-chip ${r.hasSignature ? "status-chip--ok" : "status-chip--muted"}`}>
+                              {r.hasSignature ? "Yes" : "—"}
+                            </span>
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </DataTableShell>
             )}
             <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
               PDF includes your company logo (from Settings → Company) and acknowledgement list. CSV opens in Excel or Numbers.

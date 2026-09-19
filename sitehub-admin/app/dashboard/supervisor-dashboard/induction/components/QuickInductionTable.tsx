@@ -3,8 +3,10 @@
 import React, { useState } from "react";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
+import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
 import Button from "@/app/dashboard/components/ui/Button";
 import type { QuickInductionOperative } from "../server";
+import { UserRound } from "lucide-react";
 
 function formatCompletedAt(completedAt: Date | null): string {
   if (!completedAt) return "—";
@@ -15,15 +17,14 @@ function formatCompletedAt(completedAt: Date | null): string {
 // Neutral status labels — the "Pre-Induction Required" / "Pre-Induction Override"
 // legacy labels are mapped to plain "Induction Required" / "Override Applied" so
 // pre-induction language never leaks to supervisors after the My Info reflow.
-const STATUS_STYLES: Record<string, { bg: string; text: string }> = {
-  Inducted: { bg: "bg-emerald-100", text: "text-emerald-800" },
-  Grandfathered: { bg: "bg-blue-100", text: "text-blue-800" },
-  "Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-  "Override Applied": { bg: "bg-purple-100", text: "text-purple-800" },
-  Expired: { bg: "bg-red-100", text: "text-red-800" },
+const STATUS_CHIP: Record<string, string> = {
+  Inducted: "status-chip--ok",
+  Grandfathered: "status-chip--info",
+  "Induction Required": "status-chip--warn",
+  "Override Applied": "status-chip--info",
+  Expired: "status-chip--danger",
 };
 
-/** Rewrite legacy pre-induction labels to their neutral equivalents. */
 function displayStatus(status: string): string {
   if (status === "Pre-Induction Required") return "Induction Required";
   if (status === "Pre-Induction Override") return "Override Applied";
@@ -32,12 +33,8 @@ function displayStatus(status: string): string {
 
 function StatusBadge({ status }: { status: string }) {
   const label = displayStatus(status);
-  const s = STATUS_STYLES[label] ?? { bg: "bg-gray-100", text: "text-gray-700" };
-  return (
-    <span className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md ${s.bg} ${s.text}`}>
-      {label}
-    </span>
-  );
+  const chip = STATUS_CHIP[label] ?? "status-chip--muted";
+  return <span className={`status-chip ${chip}`}>{label}</span>;
 }
 
 export default function QuickInductionTable({
@@ -74,7 +71,9 @@ export default function QuickInductionTable({
     {
       header: "Operative Name",
       accessor: "operativeName" as const,
-      render: (row: QuickInductionOperative) => row.operativeName,
+      render: (row: QuickInductionOperative) => (
+        <TableNameCell icon={UserRound} label={row.operativeName} />
+      ),
     },
     {
       header: "Company Name",
@@ -109,8 +108,12 @@ export default function QuickInductionTable({
   ];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white shadow-sm overflow-hidden">
-      <Table columns={columns} data={rows} />
-    </div>
+    <Table
+      title="Site induction"
+      subtitle={`${rows.length} operative${rows.length === 1 ? "" : "s"}`}
+      columns={columns}
+      data={rows}
+      emptyMessage="No operatives assigned to this site."
+    />
   );
 }

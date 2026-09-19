@@ -3,7 +3,6 @@
 import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { MapPin, Building2, ClipboardCheck } from "lucide-react";
 
 export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
   useEffect(() => {
@@ -20,27 +19,21 @@ export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
   const isDetails = pathname === base;
   const isSubcontractors = pathname === `${base}/subcontractors`;
   const isInduction = pathname === `${base}/induction`;
-
-  const tabClass = (active: boolean) =>
-    `flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-xl border-b-2 -mb-px transition ${
-      active
-        ? "border-blue-600 text-blue-600 bg-blue-50/50 dark:bg-blue-900/20 dark:text-blue-400"
-        : "border-transparent text-gray-600 dark:text-slate-400 hover:text-gray-900 dark:hover:text-slate-100"
-    }`;
+  const isSafety = pathname === `${base}/safety`;
 
   return (
-    <div className="flex gap-2 border-b border-gray-200 dark:border-slate-600">
-      <Link href={base} className={tabClass(isDetails)}>
-        <MapPin size={18} />
+    <div className="flex gap-0 admin-tabs">
+      <Link href={base} className={isDetails ? "active" : ""} aria-current={isDetails ? "page" : undefined}>
         Details
       </Link>
-      <Link href={`${base}/subcontractors`} className={tabClass(isSubcontractors)}>
-        <Building2 size={18} />
+      <Link href={`${base}/subcontractors`} className={isSubcontractors ? "active" : ""} aria-current={isSubcontractors ? "page" : undefined}>
         Subcontractors
       </Link>
-      <Link href={`${base}/induction`} className={tabClass(isInduction)}>
-        <ClipboardCheck size={18} />
+      <Link href={`${base}/induction`} className={isInduction ? "active" : ""} aria-current={isInduction ? "page" : undefined}>
         Induction
+      </Link>
+      <Link href={`${base}/safety`} className={isSafety ? "active" : ""} aria-current={isSafety ? "page" : undefined}>
+        Safety info
       </Link>
     </div>
   );

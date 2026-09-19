@@ -3,7 +3,8 @@
 import { useState } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "../components/ui/Table";
-import { Building2, Users, MapPin, UserPlus, FileText, RefreshCw } from "lucide-react";
+import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
+import { Building2, Users, MapPin, UserPlus, RefreshCw } from "lucide-react";
 import Button from "../components/ui/Button";
 import Link from "next/link";
 import { CompanyPicker } from "../components/ui/SitePicker";
@@ -79,52 +80,34 @@ export default function SuperuserAdminClient() {
       </div>
 
       {/* Companies */}
-      <section className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Building2 className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Companies</h2>
-              <p className="text-sm text-gray-600">{companies.length} companies</p>
-            </div>
-          </div>
-          <Link href="/dashboard/companies" className="text-blue-600 hover:underline text-sm font-medium">
-            Manage →
+      <Table
+        title="Companies"
+        subtitle={`${companies.length} companies`}
+        actions={
+          <Link href="/dashboard/companies" className="table-link">
+            Manage
           </Link>
-        </div>
-        <Table
-          columns={[
-            { header: "Name", accessor: "name" },
+        }
+        columns={[
+            { header: "Name", accessor: "name", render: (r: { name?: string }) => <TableNameCell icon={Building2} label={r.name || "—"} /> },
             { header: "ID", accessor: "id" },
             { header: "Users", accessor: "userCount" },
             { header: "Sites", accessor: "siteCount" },
           ]}
           data={filteredCompanies}
-        />
-      </section>
+      />
 
-      {/* Users */}
-      <section className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Users</h2>
-              <p className="text-sm text-gray-600">{users.length} users</p>
-            </div>
-          </div>
-          <Link href="/dashboard/all-users" className="text-blue-600 hover:underline text-sm font-medium">
-            Manage →
+      <Table
+        title="Users"
+        subtitle={`${users.length} users`}
+        actions={
+          <Link href="/dashboard/all-users" className="table-link">
+            Manage
           </Link>
-        </div>
-        <Table
-          columns={[
+        }
+        columns={[
             { header: "Email", accessor: "email" },
-            { header: "Name", accessor: "name", render: (r: UserRow) => r.name ?? r.display_name ?? r.email ?? "—" },
+            { header: "Name", accessor: "name", render: (r: UserRow) => <TableNameCell icon={Users} label={r.name ?? r.display_name ?? r.email ?? "—"} /> },
             { header: "Role", accessor: "role" },
             {
               header: "Company",
@@ -132,29 +115,19 @@ export default function SuperuserAdminClient() {
               render: (r: UserRow) => companyMap[r.company_id ?? ""] ?? r.company_id ?? "—",
             },
           ]}
-          data={filteredUsers}
-        />
-      </section>
+        data={filteredUsers}
+      />
 
-      {/* Sites */}
-      <section className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <MapPin className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Sites</h2>
-              <p className="text-sm text-gray-600">{sites.length} sites</p>
-            </div>
-          </div>
-          <Link href="/dashboard/sites" className="text-blue-600 hover:underline text-sm font-medium">
-            Manage →
+      <Table
+        title="Sites"
+        subtitle={`${sites.length} sites`}
+        actions={
+          <Link href="/dashboard/sites" className="table-link">
+            Manage
           </Link>
-        </div>
-        <Table
-          columns={[
-            { header: "Name", accessor: "name" },
+        }
+        columns={[
+            { header: "Name", accessor: "name", render: (r: Site) => <TableNameCell icon={MapPin} label={r.name || "—"} /> },
             { header: "Address", accessor: "address" },
             {
               header: "Company",
@@ -162,32 +135,33 @@ export default function SuperuserAdminClient() {
               render: (r: Site) => companyMap[r.company_id ?? ""] ?? r.company_id ?? "—",
             },
           ]}
-          data={filteredSites}
-        />
-      </section>
+        data={filteredSites}
+      />
 
-      {/* Registrations */}
-      <section className="card p-6">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-            <UserPlus className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h2 className="text-lg font-semibold text-gray-900">Registrations</h2>
-            <p className="text-sm text-gray-600">{registrations.length} registrations</p>
-          </div>
-        </div>
-        <Table
-          columns={[
+      <Table
+        title="Registrations"
+        subtitle={`${registrations.length} registrations`}
+        columns={[
             {
               header: "Email",
               accessor: "data",
-              render: (r: Registration) => (r.data as { email?: string })?.email ?? "—",
+              render: (r: Registration) => (
+                <TableNameCell icon={UserPlus} label={(r.data as { email?: string })?.email ?? "—"} />
+              ),
             },
             {
               header: "Status",
               accessor: "data",
-              render: (r: Registration) => (r.data as { status?: string })?.status ?? "—",
+              render: (r: Registration) => {
+                const status = (r.data as { status?: string })?.status ?? "—";
+                const chip =
+                  status === "PENDING" || status === "COMPANY_ADMIN_PENDING"
+                    ? "status-chip--warn"
+                    : status === "APPROVED"
+                      ? "status-chip--ok"
+                      : "status-chip--muted";
+                return <span className={`status-chip ${chip}`}>{status}</span>;
+              },
             },
             {
               header: "Company",
@@ -201,46 +175,33 @@ export default function SuperuserAdminClient() {
                 r.created_at ? formatDateTime(r.created_at) : "—",
             },
           ]}
-          data={filteredRegistrations}
-        />
-      </section>
+        data={filteredRegistrations}
+      />
 
-      {/* Activity logs */}
-      <section className="card p-6">
-        <div className="flex items-center justify-between mb-4">
-          <div className="flex items-center gap-3">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
-            <div>
-              <h2 className="text-lg font-semibold text-gray-900">Activity logs</h2>
-              <p className="text-sm text-gray-600">Audit and registration events</p>
-            </div>
-          </div>
-          <Link href="/dashboard/system-logs" className="text-blue-600 hover:underline text-sm font-medium">
-            Full logs →
+      <DataTableShell
+        title="Activity logs"
+        subtitle="Audit and registration events"
+        actions={
+          <Link href="/dashboard/system-logs" className="table-link">
+            Full logs
           </Link>
-        </div>
+        }
+      >
         {logs.length === 0 ? (
-          <div className="py-8 text-center text-gray-500 text-sm">No activity yet</div>
+          <div className="py-16 text-center text-sm text-slate-500">No activity yet</div>
         ) : (
-          <div className="space-y-2 max-h-[320px] overflow-y-auto">
+          <div className="max-h-[320px] space-y-1 overflow-y-auto px-2 py-2">
             {logs.map((entry) => (
-              <div
-                key={entry.id}
-                className="flex items-start gap-3 py-2.5 px-4 rounded-lg bg-gray-50/60 border border-gray-200/40"
-              >
-                <div className="flex-1 min-w-0">
-                  <p className="text-sm text-gray-900">{entry.message}</p>
-                  <p className="text-xs text-gray-500 mt-0.5">
-                    {entry.time} {entry.source && `· ${entry.source}`}
-                  </p>
-                </div>
+              <div key={entry.id} className="rounded-xl px-4 py-2.5 hover:bg-blue-50/70">
+                <p className="text-sm text-slate-900">{entry.message}</p>
+                <p className="mt-0.5 text-xs text-slate-500">
+                  {entry.time} {entry.source && `· ${entry.source}`}
+                </p>
               </div>
             ))}
           </div>
         )}
-      </section>
+      </DataTableShell>
     </div>
   );
 }

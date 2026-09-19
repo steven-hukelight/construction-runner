@@ -20,7 +20,7 @@ import {
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-/* OPTION A: Single sidebar — Modules removed; use CompanySwitcher then regular Sidebar for Messaging, Assets, Offline */
+/* OPTION A: Single sidebar — Modules removed; use CompanySwitcher then regular Sidebar for Messaging and Assets */
 const navItems = [
   { name: "Superuser Dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
   { name: "Multi-company Admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
@@ -58,7 +58,7 @@ export default function SuperuserSidebar() {
     <>
       <button
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="mobile-menu-btn fixed top-5 left-5 z-50 p-3 rounded-xl bg-gradient-to-br from-blue-600 to-blue-700 border border-white/20 text-white shadow-xl hover:shadow-2xl transition-all duration-300"
+        className="mobile-menu-btn fixed top-5 left-5 z-50 p-2.5 rounded-lg bg-slate-800 text-white"
         aria-label="Toggle menu"
       >
         {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
@@ -66,7 +66,7 @@ export default function SuperuserSidebar() {
 
       {mobileMenuOpen && (
         <div
-          className="mobile-menu-btn fixed inset-0 bg-gradient-to-br from-gray-900/80 via-blue-900/70 to-blue-800/80 backdrop-blur-sm z-30"
+          className="mobile-menu-btn fixed inset-0 bg-black/40 z-30"
           onClick={() => setMobileMenuOpen(false)}
         />
       )}
@@ -76,14 +76,12 @@ export default function SuperuserSidebar() {
         style={mobileMenuOpen ? { transform: "translateX(0)" } : {}}
       >
         <div className="shrink-0">
-          <div className="logo flex items-center gap-3 mb-8 pb-6 border-b border-gray-200/50">
-            <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-600 to-blue-700 p-1 flex items-center justify-center shadow-lg overflow-hidden">
-              <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="object-contain" unoptimized />
-            </div>
-            <span>Construction Runner Superuser</span>
+          <div className="logo flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
+            <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="h-12 w-12 shrink-0 object-contain" unoptimized />
+            <span>Construction<br />Runner</span>
           </div>
           <div className="px-3 mb-3">
-            <p className="text-xs font-bold text-gray-500 uppercase tracking-wider">Superuser</p>
+            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.12em]">Main menu</p>
           </div>
         </div>
 
@@ -105,11 +103,8 @@ export default function SuperuserSidebar() {
           })}
         </nav>
 
-        <div className="shrink-0 pt-4 space-y-2">
-          <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-50 to-sky-50 dark:from-slate-800 dark:to-slate-700 border border-blue-100 dark:border-slate-600">
-            <p className="text-xs font-semibold text-gray-700 dark:text-slate-200">{t("Superuser panel")}</p>
-            <p className="text-xs text-gray-600 dark:text-slate-400">{t("Tenant & system management")}</p>
-          </div>
+        <div className="shrink-0 pt-4 space-y-2 px-1">
+          <p className="text-xs text-gray-500 dark:text-slate-400">{t("Superuser panel")}</p>
           <a
             href="/legal/terms"
             target="_blank"

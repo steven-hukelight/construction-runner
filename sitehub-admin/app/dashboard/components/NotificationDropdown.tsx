@@ -163,7 +163,11 @@ export default function NotificationDropdown() {
         }
         if (Array.isArray(threads) && threads.length > 0) {
           threads
-            .filter((t: { lastAt?: string }) => t.lastAt && new Date(t.lastAt).getTime() > dayAgo)
+            .filter((t: { lastAt?: string; unread?: boolean; inThread?: boolean }) => {
+              if (!t.lastAt || new Date(t.lastAt).getTime() <= dayAgo) return false;
+              // Prefer true unread; fall back to any recent thread for roles without last_read.
+              return t.unread === true || t.unread == null;
+            })
             .slice(0, 5)
             .forEach((t: { id: string; lastMessage?: string; lastAt?: string }) => {
               const preview = (t.lastMessage || "New conversation").slice(0, 50) + ((t.lastMessage?.length ?? 0) > 50 ? "…" : "");
@@ -298,11 +302,35 @@ export default function NotificationDropdown() {
 
   const unseenCount = unseenItems.length;
 
-  const handleNotificationClick = useCallback((item: NotificationItem) => {
-    markSeen(item.type, item.id);
-    setSeenKeys((prev) => new Set([...prev, `${item.type}:${item.id}`]));
-    setOpen(false);
+  const markItemsSeen = useCallback((list: NotificationItem[]) => {
+    if (list.length === 0) return;
+    list.forEach((i) => markSeen(i.type, i.id));
+    setSeenKeys((prev) => {
+      const next = new Set(prev);
+      list.forEach((i) => next.add(`${i.type}:${i.id}`));
+      return next;
+    });
   }, []);
+
+  // Mark listed items as read when the panel closes (after the user has opened it).
+  const wasOpenRef = useRef(false);
+  useEffect(() => {
+    if (open) {
+      wasOpenRef.current = true;
+      return;
+    }
+    if (!wasOpenRef.current || displayItems.length === 0) return;
+    wasOpenRef.current = false;
+    markItemsSeen(displayItems);
+  }, [open, displayItems, markItemsSeen]);
+
+  const handleNotificationClick = useCallback(
+    (item: NotificationItem) => {
+      markItemsSeen([item]);
+      setOpen(false);
+    },
+    [markItemsSeen]
+  );
 
   return (
     <div ref={containerRef} className="relative">
@@ -426,10 +454,7 @@ export default function NotificationDropdown() {
                             : "/dashboard/users"
                 }
                 onClick={() => {
-                  displayItems.forEach((i) => {
-                    markSeen(i.type, i.id);
-                    setSeenKeys((p) => new Set([...p, `${i.type}:${i.id}`]));
-                  });
+                  markItemsSeen(displayItems);
                   setOpen(false);
                 }}
                 className="block text-center text-sm font-medium text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300"

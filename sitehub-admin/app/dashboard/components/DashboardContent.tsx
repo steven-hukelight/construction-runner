@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import dynamic from "next/dynamic";
 import Link from "next/link";
-import { PlusCircle, FileText, MapPin, Users, ListTodo, TrendingUp, Clock, CheckCircle, AlertCircle, type LucideIcon } from "lucide-react";
+import { FileText, MapPin, Users, ListTodo, type LucideIcon } from "lucide-react";
 import { StatCard } from "./ui/stat-card";
 import { EnhancedCard } from "./ui/enhanced-card";
 
@@ -13,7 +13,7 @@ const DashboardCharts = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="animate-pulse rounded-2xl border border-slate-200 dark:border-slate-600 bg-slate-100 dark:bg-slate-800 h-80 my-6"
+        className="animate-pulse rounded-2xl border border-blue-100 bg-blue-50/50 dark:border-slate-600 dark:bg-slate-800 h-80 my-6"
         aria-hidden
       />
     ),
@@ -141,135 +141,77 @@ export function DashboardContent({
   const effTasks = liveTasks ?? tasks;
 
   const effTotalSites = Array.isArray(effSites) ? effSites.length : totalSites;
-  const effActiveRAMS = Array.isArray(effRAMS) ? effRAMS.filter((r) => r.status === "APPROVED").length : activeRAMS;
+  const effActiveRAMS = Array.isArray(effRAMS)
+    ? effRAMS.filter((r) => (r.status ?? "").toUpperCase() === "APPROVED").length
+    : activeRAMS;
   const effTotalUsers = Array.isArray(effUsers) ? effUsers.length : totalUsers;
-  const effTotalTasks = Array.isArray(effTasks) ? effTasks.length : totalTasks;
+  const effOpenTasks = Array.isArray(effTasks)
+    ? effTasks.filter((t) => {
+        const s = (t.status ?? "").toUpperCase();
+        return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
+      }).length
+    : totalTasks;
 
   return (
-    <div className="space-y-10">
-      {/* Near miss notification banner – prominent when new near misses reported */}
+    <div className="space-y-8">
       {unreviewedNearMiss > 0 && (
         <Link
           href="/dashboard/health-and-safety/near-miss?unreviewed=true"
-          className="block rounded-xl border-2 border-amber-200 dark:border-amber-700/50 bg-amber-50 dark:bg-amber-900/20 p-4 shadow-sm transition hover:bg-amber-100 dark:hover:bg-amber-900/30"
+          className="block rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-[0_8px_24px_rgba(37,76,128,0.06)] hover:bg-amber-100/80 dark:bg-amber-900/20"
         >
-          <div className="flex items-center gap-3">
-            <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-amber-500">
-              <AlertCircle className="h-5 w-5 text-white" />
-            </div>
-            <div className="min-w-0 flex-1">
-              <p className="font-semibold text-amber-900 dark:text-amber-200">
-                {unreviewedNearMiss} new near miss{unreviewedNearMiss === 1 ? "" : "es"} reported
-              </p>
-              <p className="text-sm text-amber-800 dark:text-amber-300">
-                Review in Health & Safety → Near Miss
-              </p>
-            </div>
-          </div>
+          <p className="font-semibold text-amber-900 dark:text-amber-200">
+            {unreviewedNearMiss} new near miss{unreviewedNearMiss === 1 ? "" : "es"} reported
+          </p>
+          <p className="text-sm text-amber-800 dark:text-amber-300">
+            Review in Health & Safety → Near Miss
+          </p>
         </Link>
       )}
-      {/* Enhanced Stats Grid with breathing room */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 items-stretch">
-        <StatCard 
-          title="Total Sites" 
-          value={effTotalSites} 
-          icon={MapPin} 
-          color="blue"
-          trend={{ value: 12, isPositive: true }}
-          delay={0}
-        />
-        <StatCard 
-          title="Active RAMS" 
-          value={effActiveRAMS} 
-          icon={FileText} 
-          color="green"
-          trend={{ value: 8, isPositive: true }}
-          delay={0.1}
-        />
-        <StatCard 
-          title="Users" 
-          value={effTotalUsers} 
-          icon={Users} 
-          color="cyan"
-          trend={{ value: 5, isPositive: true }}
-          delay={0.2}
-        />
-        <StatCard 
-          title="Tasks" 
-          value={effTotalTasks} 
-          icon={ListTodo} 
-          color="orange"
-          trend={{ value: 3, isPositive: false }}
-          delay={0.3}
-        />
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <StatCard title="Sites" value={effTotalSites} icon={MapPin} color="blue" />
+        <StatCard title="Approved RAMS" value={effActiveRAMS} icon={FileText} color="green" />
+        <StatCard title="People" value={effTotalUsers} icon={Users} color="cyan" />
+        <StatCard title="Open tasks" value={effOpenTasks} icon={ListTodo} color="orange" />
       </div>
 
-      {/* Quick Actions — placed above Charts for higher visibility */}
-      <EnhancedCard gradient delay={0.5}>
-        <div className="space-y-6">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="p-3 rounded-2xl bg-gradient-to-br from-blue-500 via-blue-600 to-blue-700 shadow-lg shadow-blue-500/30">
-                <TrendingUp className="w-6 h-6 text-white" />
-              </div>
-              <div>
-                <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-300 dark:to-blue-400 bg-clip-text text-transparent">Quick Actions</h2>
-                <p className="text-sm text-gray-500 dark:text-slate-400">Frequently used shortcuts</p>
-              </div>
-            </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <Link
+          href="/dashboard/sites"
+          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
+            <MapPin className="w-5 h-5" />
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <Link 
-              href="/dashboard/sites" 
-              className="group relative overflow-hidden p-6 rounded-2xl bg-gradient-to-br from-blue-50 via-blue-50 to-cyan-50 dark:from-slate-700/80 dark:via-slate-700/60 dark:to-slate-700/80 hover:shadow-xl hover:shadow-blue-500/20 dark:hover:shadow-blue-500/10 transition-all duration-500 border border-blue-200/50 dark:border-slate-600 hover:border-blue-400 dark:hover:border-slate-500 hover:-translate-y-1"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full -mr-16 -mt-16" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                  <PlusCircle className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-lg">Add Site</h3>
-                  <p className="text-sm text-gray-600 dark:text-slate-400">Create new location</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link 
-              href="/dashboard/rams" 
-              className="group relative overflow-hidden p-6 rounded-2xl bg-gradient-to-br from-green-50 via-green-50 to-emerald-50 dark:from-slate-700/80 dark:via-slate-700/60 dark:to-slate-700/80 hover:shadow-xl hover:shadow-green-500/20 dark:hover:shadow-green-500/10 transition-all duration-500 border border-green-200/50 dark:border-slate-600 hover:border-green-400 dark:hover:border-slate-500 hover:-translate-y-1"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-green-400/10 rounded-full -mr-16 -mt-16" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                  <FileText className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-lg">Upload RAMS</h3>
-                  <p className="text-sm text-gray-600 dark:text-slate-400">Safety documentation</p>
-                </div>
-              </div>
-            </Link>
-
-            <Link 
-              href="/dashboard/users" 
-              className="group relative overflow-hidden p-6 rounded-2xl bg-gradient-to-br from-sky-50 via-blue-50 to-cyan-50 dark:from-slate-700/80 dark:via-slate-700/60 dark:to-slate-700/80 hover:shadow-xl hover:shadow-blue-500/20 dark:hover:shadow-blue-500/10 transition-all duration-500 border border-blue-200/50 dark:border-slate-600 hover:border-blue-400 dark:hover:border-slate-500 hover:-translate-y-1"
-            >
-              <div className="absolute top-0 right-0 w-32 h-32 bg-blue-400/10 rounded-full -mr-16 -mt-16" />
-              <div className="relative flex items-center gap-4">
-                <div className="p-4 rounded-2xl bg-gradient-to-br from-blue-500 to-cyan-500 shadow-lg shadow-blue-500/50 group-hover:scale-110 group-hover:rotate-3 transition-all duration-300">
-                  <Users className="w-6 h-6 text-white" />
-                </div>
-                <div>
-                  <h3 className="font-bold text-gray-900 dark:text-slate-100 text-lg">Invite User</h3>
-                  <p className="text-sm text-gray-600 dark:text-slate-400">Add team member</p>
-                </div>
-              </div>
-            </Link>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Add a site</h3>
+            <p className="text-sm text-gray-500">Set up a job and assign the team</p>
           </div>
-        </div>
-      </EnhancedCard>
+        </Link>
+        <Link
+          href="/dashboard/health-and-safety/rams"
+          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
+            <FileText className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Issue RAMS</h3>
+            <p className="text-sm text-gray-500">Method statements for operatives to sign</p>
+          </div>
+        </Link>
+        <Link
+          href="/dashboard/users"
+          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
+        >
+          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
+            <Users className="w-5 h-5" />
+          </div>
+          <div>
+            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Add people</h3>
+            <p className="text-sm text-gray-500">Invite supervisors and operatives</p>
+          </div>
+        </Link>
+      </div>
 
       {/* Charts Section */}
       <DashboardCharts 
@@ -279,96 +221,88 @@ export function DashboardContent({
         tasks={effTasks}
       />
 
-      {/* Activity Overview */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <EnhancedCard delay={0.6}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-green-500 to-emerald-500 shadow-lg shadow-green-500/30">
-              <CheckCircle className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Recent Activity</h3>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Latest updates</p>
-            </div>
+        <EnhancedCard>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Latest on the job</h3>
+            <p className="text-sm text-gray-500">Most recent site, RAMS and person activity</p>
           </div>
           <div className="space-y-3">
-            {/* Most recent site */}
             {effSites && effSites[0] && (
-              <ActivityItem 
+              <ActivityItem
                 icon={MapPin}
-                title={`Site added: ${effSites[0].name}`}
+                title={`Site set up: ${effSites[0].name}`}
                 time={getRelativeTime(effSites[0].created_at ?? effSites[0].createdAt)}
-                color="blue"
               />
             )}
-            {/* Most recent RAMS */}
             {effRAMS && effRAMS[0] && (
-              <ActivityItem 
+              <ActivityItem
                 icon={FileText}
-                title={`RAMS ${effRAMS[0].status?.toLowerCase()}: ${effRAMS[0].title || 'Document'}`}
+                title={`RAMS ${String(effRAMS[0].status ?? "added").toLowerCase()}: ${effRAMS[0].title || "Untitled"}`}
                 time={getRelativeTime(effRAMS[0].created_at ?? effRAMS[0].createdAt)}
-                color="green"
               />
             )}
-            {/* Most recent user */}
             {effUsers && effUsers[0] && (
-              <ActivityItem 
+              <ActivityItem
                 icon={Users}
-                title={`User registered: ${effUsers[0].name ?? effUsers[0].display_name}`}
+                title={`Joined: ${effUsers[0].name ?? effUsers[0].display_name ?? "Team member"}`}
                 time={getRelativeTime(effUsers[0].created_at ?? effUsers[0].createdAt)}
-                color="cyan"
               />
+            )}
+            {(!effSites?.[0] && !effRAMS?.[0] && !effUsers?.[0]) && (
+              <p className="py-4 text-sm text-gray-500">Nothing to show yet — add a site or invite people to get started.</p>
             )}
           </div>
         </EnhancedCard>
 
-        <EnhancedCard delay={0.7}>
-          <div className="flex items-center gap-3 mb-6">
-            <div className="p-3 rounded-2xl bg-gradient-to-br from-orange-500 to-amber-500 shadow-lg shadow-orange-500/30">
-              <Clock className="w-6 h-6 text-white" />
-            </div>
-            <div>
-              <h3 className="text-xl font-bold text-gray-900 dark:text-slate-100">Pending Items</h3>
-              <p className="text-sm text-gray-500 dark:text-slate-400">Requires attention</p>
-            </div>
+        <EnhancedCard>
+          <div className="mb-4">
+            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Needs attention</h3>
+            <p className="text-sm text-gray-500">Approvals, reviews and outstanding work</p>
           </div>
           <div className="space-y-3">
-            {/* Active tasks count */}
-            {effTotalTasks > 0 && (
-              <PendingItem 
-                title={`${effTotalTasks} task${effTotalTasks === 1 ? '' : 's'} to complete`}
-                priority="medium"
-              />
-            )}
-            {/* Pending RAMS count */}
             {(() => {
-              const pendingRAMS = effRAMS?.filter((r) => r.status === 'PENDING')?.length ?? 0;
+              const pendingRAMS = effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING")?.length ?? 0;
               return pendingRAMS > 0 ? (
-                <PendingItem 
-                  title={`${pendingRAMS} RAMS awaiting review`}
-                  priority="high"
-                />
+                <PendingItem title={`${pendingRAMS} RAMS waiting for review`} priority="high" />
               ) : null;
             })()}
-            {/* Unreviewed near misses */}
             {unreviewedNearMiss > 0 && (
               <Link href="/dashboard/health-and-safety/near-miss?unreviewed=true">
-                <PendingItem 
-                  title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? '' : 'es'} to review`}
+                <PendingItem
+                  title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? "" : "es"} to review`}
                   priority="high"
                 />
               </Link>
             )}
-            {/* Pending registrations – same source as Approvals modal */}
+            {(() => {
+              const openTasks =
+                effTasks?.filter((t) => {
+                  const s = (t.status ?? "").toUpperCase();
+                  return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
+                }).length ?? effOpenTasks;
+              return openTasks > 0 ? (
+                <PendingItem title={`${openTasks} site task${openTasks === 1 ? "" : "s"} still open`} priority="medium" />
+              ) : null;
+            })()}
             {(() => {
               const pendingCount = pendingRegistrations?.length ?? 0;
               return pendingCount > 0 ? (
-                <PendingItem 
-                  title={`${pendingCount} registration${pendingCount === 1 ? '' : 's'} pending approval`}
+                <PendingItem
+                  title={`${pendingCount} registration${pendingCount === 1 ? "" : "s"} waiting for approval`}
                   priority="low"
                 />
               ) : null;
             })()}
+            {(effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
+              unreviewedNearMiss === 0 &&
+              (pendingRegistrations?.length ?? 0) === 0 &&
+              (effTasks?.filter((t) => {
+                const s = (t.status ?? "").toUpperCase();
+                return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
+              }).length ?? 0) === 0 && (
+                <p className="py-4 text-sm text-gray-500">Nothing waiting — you&apos;re clear for now.</p>
+              )}
           </div>
         </EnhancedCard>
       </div>
@@ -377,34 +311,35 @@ export function DashboardContent({
 }
 
 // --- Types and Helper Components ---
-const activityColorClasses: Record<"blue" | "green" | "cyan", string> = {
-  blue: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300",
-  green: "bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300",
-  cyan: "bg-cyan-100 dark:bg-cyan-900/40 text-cyan-700 dark:text-cyan-300",
-};
-
-function ActivityItem({ icon: Icon, title, time, color }: { icon: LucideIcon; title: string; time: string; color: "blue" | "green" | "cyan" }) {
+function ActivityItem({ icon: Icon, title, time }: { icon: LucideIcon; title: string; time: string; color?: "blue" | "green" | "cyan" }) {
   return (
-    <div className="flex items-center gap-3 p-4 rounded-2xl bg-white/60 dark:bg-slate-700/40 border border-white/30 dark:border-slate-600/50 shadow-sm">
-      <div className={`p-2 rounded-xl ${activityColorClasses[color]}`}><Icon className="w-5 h-5" /></div>
+    <div className="flex items-center gap-3 py-3 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+      <Icon className="w-4 h-4 text-gray-400 shrink-0" />
       <div>
-        <p className="font-medium text-gray-900 dark:text-slate-100">{title}</p>
-        <span className="text-xs text-gray-500 dark:text-slate-400">{time}</span>
+        <p className="text-sm font-medium text-gray-900 dark:text-slate-100">{title}</p>
+        <span className="text-xs text-gray-500">{time}</span>
       </div>
     </div>
   );
 }
 
 function PendingItem({ title, priority }: { title: string; priority: "high" | "medium" | "low" }) {
+  const priorityLabels = {
+    high: "Urgent",
+    medium: "Open",
+    low: "Review",
+  };
   const priorityColors = {
-    high: "bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-300 border-red-200 dark:border-red-800",
-    medium: "bg-orange-100 dark:bg-orange-900/40 text-orange-700 dark:text-orange-300 border-orange-200 dark:border-orange-800",
-    low: "bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 border-blue-200 dark:border-blue-800",
+    high: "text-red-700 bg-red-50",
+    medium: "text-orange-700 bg-orange-50",
+    low: "text-blue-700 bg-blue-50",
   };
   return (
-    <div className="flex items-center justify-between p-4 rounded-2xl hover:bg-white/10 dark:hover:bg-slate-700/30 transition-all duration-300 border border-white/20 dark:border-slate-600/50 hover:border-white/40 dark:hover:border-slate-500/50">
-      <p className="text-sm font-semibold text-gray-900 dark:text-slate-100">{title}</p>
-      <span className={`text-xs font-medium px-3 py-1.5 rounded-full border shadow-sm ${priorityColors[priority]}`}>{priority}</span>
+    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+      <p className="text-sm text-gray-900 dark:text-slate-100">{title}</p>
+      <span className={`text-xs font-medium px-2 py-1 rounded-full ${priorityColors[priority]}`}>
+        {priorityLabels[priority]}
+      </span>
     </div>
   );
 }

@@ -14,7 +14,7 @@ type RamsDoc = { id: string; title?: string; companyId?: string; status?: string
 export default function SiteInductionClient({
   siteId,
   siteName,
-  mainContractorId,
+  mainContractorId: _mainContractorId,
   operatives: initialOperatives,
   companyOptions,
 }: {
@@ -28,6 +28,7 @@ export default function SiteInductionClient({
   const [status, setStatus] = useState<StatusFilter>("all");
   const [companyId, setCompanyId] = useState<CompanyFilter>("all");
   const [myCompanyId, setMyCompanyId] = useState<string | null>(null);
+  const [role, setRole] = useState("");
   const [companyOperatives, setCompanyOperatives] = useState<Operative[]>([]);
   const [addOperativeId, setAddOperativeId] = useState("");
   const [adding, setAdding] = useState(false);
@@ -41,7 +42,10 @@ export default function SiteInductionClient({
   useEffect(() => {
     fetch("/api/me", { credentials: "include" })
       .then((r) => r.json())
-      .then((d) => setMyCompanyId(d?.companyId ?? null));
+      .then((d) => {
+        setMyCompanyId(d?.companyId ?? null);
+        setRole(String(d?.role ?? "").toLowerCase());
+      });
   }, []);
 
   useEffect(() => {
@@ -81,7 +85,7 @@ export default function SiteInductionClient({
     () => companyOperatives.filter((o) => !assignedIds.has(o.id)),
     [companyOperatives, assignedIds]
   );
-  const isMainContractor = myCompanyId && mainContractorId && myCompanyId === mainContractorId;
+  const canAddOperatives = ["superuser", "admin", "supervisor", "site_admin"].includes(role);
 
   async function handleAddOperative() {
     if (!addOperativeId || !myCompanyId) return;
@@ -149,9 +153,9 @@ export default function SiteInductionClient({
       <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-sm">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Operatives on site</h3>
         <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
-          Add operatives from your company so they can work on this site. Induction and RAMS status are shown in the table below.
+          Add operatives from your company so they can see this site in the app and complete induction. Super Admins and Supervisors can add people here.
         </p>
-        {isMainContractor && (
+        {canAddOperatives && (
           <div className="flex flex-wrap items-end gap-3 mb-4">
             <div className="flex-1 min-w-[200px]">
               <label className="block text-sm font-medium text-gray-700 dark:text-slate-300 mb-1">Add operative</label>
@@ -222,18 +226,12 @@ export default function SiteInductionClient({
           onCompanyChange={setCompanyId}
         />
       </div>
-      {filtered.length === 0 ? (
-        <p className="py-8 text-gray-500 rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 text-center text-gray-500 dark:text-slate-400">
-          No operatives match the filters.
-        </p>
-      ) : (
-        <SiteInductionTable
-          siteId={siteId}
-          rows={filtered}
-          myCompanyId={myCompanyId}
-          onRemoveOperative={handleRemoveOperative}
-        />
-      )}
+      <SiteInductionTable
+        siteId={siteId}
+        rows={filtered}
+        myCompanyId={myCompanyId}
+        onRemoveOperative={handleRemoveOperative}
+      />
     </div>
   );
 }

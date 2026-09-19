@@ -71,12 +71,11 @@ export default function CompanySwitcher() {
 
   return (
     <div
-      className={`flex items-center gap-1.5 rounded-xl border-2 transition-all ${
+      className={`flex items-center gap-1.5 rounded-lg border px-1 ${
         impersonating
-          ? "border-amber-400 bg-amber-50/80 shadow-md shadow-amber-200/40"
-          : "border-blue-200 bg-gradient-to-r from-white via-blue-50 to-white"
+          ? "border-amber-300 bg-amber-50"
+          : "border-gray-200 bg-white"
       }`}
-      style={impersonating ? { boxShadow: "0 2px 12px 0 rgba(251,191,36,0.2)" } : { boxShadow: "0 2px 12px 0 rgba(59,130,246,0.07)" }}
     >
       <div className="relative flex-1 min-w-[180px]">
         <CompanyPicker

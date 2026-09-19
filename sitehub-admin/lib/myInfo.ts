@@ -75,6 +75,44 @@ function bOrNull(v: unknown): boolean | null {
   return b(v);
 }
 
+function isTruthyYes(value: unknown): boolean {
+  if (value === true) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "true" || v === "yes" || v === "y" || v === "1";
+  }
+  if (typeof value === "number") return value === 1;
+  return false;
+}
+
+function isFalseNo(value: unknown): boolean {
+  if (value === false) return true;
+  if (typeof value === "string") {
+    const v = value.trim().toLowerCase();
+    return v === "false" || v === "no" || v === "n" || v === "0";
+  }
+  if (typeof value === "number") return value === 0;
+  return false;
+}
+
+/** Same completeness rule as My Info / pre-induction: not just a declaration string. */
+export function isMedicalInfoComplete(medical: {
+  medicalDeclaration?: string | null;
+  fitToWork?: boolean | null | unknown;
+  hasMedicalIssues?: boolean | null | unknown;
+  medicalCertificateUrl?: string | null;
+  medicalVerified?: boolean | unknown;
+  allergies?: string | null;
+  medication?: string | null;
+} | null | undefined): boolean {
+  if (!medical) return false;
+  const noIssues = isFalseNo(medical.hasMedicalIssues) || isTruthyYes(medical.fitToWork);
+  const hasCert = !!s(medical.medicalCertificateUrl);
+  const hasDeclaration = !!s(medical.medicalDeclaration);
+  const hasAnswers = !!s(medical.allergies) || !!s(medical.medication);
+  return b(medical.medicalVerified) || noIssues || hasCert || hasDeclaration || hasAnswers;
+}
+
 // --- Read -------------------------------------------------------------------
 
 export async function readMyInfo(userId: string): Promise<MyInfoPayload> {

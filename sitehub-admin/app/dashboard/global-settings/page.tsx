@@ -4,7 +4,7 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
-import { Palette, ToggleLeft, Megaphone, Sparkles, MessageSquare, Package, WifiOff, Award, ExternalLink, Mail } from "lucide-react";
+import { Palette, ToggleLeft, Megaphone, Sparkles, MessageSquare, Package, Award, ExternalLink, Mail } from "lucide-react";
 
 export default function GlobalSettingsPage() {
   const [branding, setBranding] = useState({ appName: "Construction Runner", supportEmail: "" });
@@ -95,7 +95,6 @@ export default function GlobalSettingsPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
 
       <PageHeader
         title="Global settings"
@@ -255,7 +254,7 @@ export default function GlobalSettingsPage() {
           </div>
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Modules</h3>
-            <p className="text-sm text-gray-600">Messaging, assets, offline sync, and operative qualifications — all active.</p>
+            <p className="text-sm text-gray-600">Messaging, assets, and operative qualifications — all active.</p>
           </div>
         </div>
         <ul className="space-y-3">
@@ -285,18 +284,6 @@ export default function GlobalSettingsPage() {
           </li>
           <li className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50/80 border border-emerald-100">
             <div className="flex items-center gap-3 min-w-0">
-              <WifiOff className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div>
-                <span className="font-medium text-gray-900">Offline working</span>
-                <p className="text-xs text-gray-500">Add items offline; sync when back online.</p>
-              </div>
-            </div>
-            <Link href="/dashboard/offline" className="shrink-0 text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              Open <ExternalLink size={14} />
-            </Link>
-          </li>
-          <li className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50/80 border border-emerald-100">
-            <div className="flex items-center gap-3 min-w-0">
               <Award className="w-5 h-5 text-emerald-600 shrink-0" />
               <div>
                 <span className="font-medium text-gray-900">Operative qualifications</span>
@@ -308,7 +295,7 @@ export default function GlobalSettingsPage() {
             </Link>
           </li>
         </ul>
-        <p className="text-xs text-gray-500 mt-4">All modules are active. Use the sidebar to access Messages, Assets, Offline, and Certifications.</p>
+        <p className="text-xs text-gray-500 mt-4">All modules are active. Use the sidebar to access Messages, Assets, and Certifications.</p>
       </div>
     </div>
   );

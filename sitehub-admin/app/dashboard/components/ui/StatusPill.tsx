@@ -30,7 +30,7 @@ export function StatusPill({ status, label, className = "" }: StatusPillProps) {
   const variant = variants[status] ?? variants.default;
   const displayLabel = label ?? defaultLabels[status] ?? status;
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-[20px] text-[13px] font-medium ${variant} ${className}`}>
+    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[13px] font-medium ${variant} ${className}`}>
       {displayLabel}
     </span>
   );

@@ -5,6 +5,7 @@ import { formatDate } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
 import { PortalOverlay } from "../components/PortalOverlay";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
@@ -198,7 +199,7 @@ export default function CompaniesPage() {
     !!createAddress.trim();
 
   const columns = [
-    { header: "Name", accessor: "name", render: (row: Company) => row.name || "—" },
+    { header: "Name", accessor: "name", render: (row: Company) => <TableNameCell icon={Building2} label={row.name || "—"} /> },
     {
       header: "Invite code",
       accessor: "inviteCode",
@@ -230,12 +231,12 @@ export default function CompaniesPage() {
       accessor: "status",
       render: (row: Company) => (
         <span
-          className={`inline-flex px-2.5 py-1 rounded-lg text-xs font-medium border ${
+          className={`status-chip ${
             row.status === "Active"
-              ? "bg-green-50 text-green-700 border-green-200/60"
+              ? "status-chip--ok"
               : row.status === "Archived"
-                ? "bg-gray-100 text-gray-700 border-gray-200/60"
-                : "bg-amber-50 text-amber-700 border-amber-200/60"
+                ? "status-chip--muted"
+                : "status-chip--info"
           }`}
         >
           {row.status || "Active"}
@@ -291,7 +292,6 @@ export default function CompaniesPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-20 right-20 w-96 h-96 bg-gradient-to-br from-blue-400/10 to-cyan-400/10 rounded-full blur-3xl -z-10" />
 
       <PageHeader
         title="Companies"
@@ -317,35 +317,13 @@ export default function CompaniesPage() {
         />
       </div>
 
-      <div className="card">
-        <div className="flex items-center gap-3 mb-4">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-            <Building2 className="w-5 h-5 text-blue-600" />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">All companies</h3>
-            <p className="text-sm text-gray-600">{companies.length} companies</p>
-          </div>
-        </div>
-        {loading ? (
-          <div className="py-12 flex items-center justify-center">
-            <div className="animate-spin rounded-full h-10 w-10 border-2 border-blue-500 border-t-transparent" />
-          </div>
-        ) : companies.length === 0 ? (
-          <div className="py-12 text-center text-gray-500">
-            <Building2 className="w-12 h-12 mx-auto mb-3 opacity-50" />
-            <p>No companies yet. Create one to get started.</p>
-            <Button className="mt-4" onClick={() => setCreateOpen(true)}>
-              Create company
-            </Button>
-          </div>
-        ) : (
-          <Table
-            columns={columns}
-            data={companyFilter ? companies.filter((c) => c.id === companyFilter) : companies}
-          />
-        )}
-      </div>
+      <Table
+        title="All companies"
+        subtitle={`${companies.length} companies`}
+        columns={columns}
+        data={loading ? [] : companyFilter ? companies.filter((c) => c.id === companyFilter) : companies}
+        emptyMessage={loading ? "Loading…" : "No companies yet. Create one to get started."}
+      />
 
       {createOpen && (
         <PortalOverlay>

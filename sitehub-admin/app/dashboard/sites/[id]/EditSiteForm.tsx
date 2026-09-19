@@ -8,6 +8,7 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import MapPicker from "../MapPicker";
 import { updateSite } from "../actions";
+import { SiteManagerSelect } from "../SiteManagerSelect";
 
 export default function EditSiteForm({ site }: { site: any }) {
   const router = useRouter();
@@ -29,6 +30,7 @@ export default function EditSiteForm({ site }: { site: any }) {
         : "",
     showOnMap: site.showOnMap !== false && site.show_on_map !== false,
     inductionRequired: site.inductionRequired === true,
+    managerId: String(site.managerId ?? site.manager_id ?? ""),
   });
 
   const [polygon, setPolygon] = useState<{ lat: number; lng: number }[]>(
@@ -80,6 +82,7 @@ export default function EditSiteForm({ site }: { site: any }) {
 
     payload.showOnMap = !!form.showOnMap;
     payload.inductionRequired = !!form.inductionRequired;
+    payload.managerId = form.managerId.trim() || null;
 
     try {
       setLoading(true);
@@ -108,6 +111,12 @@ export default function EditSiteForm({ site }: { site: any }) {
           label="Address (optional)"
           value={form.address}
           onChange={(e: any) => setForm({ ...form, address: e.target.value })}
+        />
+
+        <SiteManagerSelect
+          variant="form"
+          value={form.managerId}
+          onChange={(id) => setForm((prev) => ({ ...prev, managerId: id }))}
         />
 
         <details className="bg-white/5 rounded-md p-3 text-sm">

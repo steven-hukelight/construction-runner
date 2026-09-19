@@ -20,7 +20,6 @@ export default async function COSHHPage() {
 
   return (
     <div className="relative space-y-8">
-      <div className="absolute top-40 right-40 w-80 h-80 bg-gradient-to-br from-purple-400/10 to-violet-400/10 rounded-full blur-3xl -z-10" />
       <PageHeader
         title="COSHH Assessments"
         description="Control of Substances Hazardous to Health. Manage hazard symbols and PPE requirements."

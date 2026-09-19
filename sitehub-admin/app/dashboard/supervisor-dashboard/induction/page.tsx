@@ -83,13 +83,7 @@ export default function QuickInductionPage() {
       ) : data ? (
         <>
           <QuickInductionSummary summary={data.summary} />
-          {data.operatives.length === 0 ? (
-            <p className="py-8 text-gray-500 rounded-xl border border-gray-200 bg-white text-center">
-              No operatives assigned to this site.
-            </p>
-          ) : (
-            <QuickInductionTable siteId={data.site.id} rows={operativesWithDate} />
-          )}
+          <QuickInductionTable siteId={data.site.id} rows={operativesWithDate} />
         </>
       ) : siteId ? (
         <p className="py-8 text-gray-500 rounded-xl border border-gray-200 bg-white text-center">

@@ -76,7 +76,7 @@ async function resolveSendAuth(req: Request): Promise<{
 
 export async function POST(req: Request) {
   try {
-    const { companyId, userId, role, error } = await resolveSendAuth(req);
+    const { companyId, userId, error } = await resolveSendAuth(req);
     if (error) return error;
 
     const body = await req.json().catch(() => ({}));
@@ -104,18 +104,8 @@ export async function POST(req: Request) {
       .eq("user_id", userId)
       .maybeSingle();
 
-    const roleLower = (role ?? "").toLowerCase();
-    const isAdminOrSupervisor = ["admin", "supervisor", "sub_admin", "superuser"].includes(roleLower);
-
     if (!inThread) {
-      if (isAdminOrSupervisor && (thread as { company_id: string }).company_id === companyId) {
-        await supabaseAdmin.from("message_recipients").upsert(
-          { thread_id: threadId, user_id: userId },
-          { onConflict: "thread_id,user_id" }
-        );
-      } else {
-        return NextResponse.json({ error: "Not a participant" }, { status: 403 });
-      }
+      return NextResponse.json({ error: "Not a participant" }, { status: 403 });
     }
 
     const { data, error: insertError } = await supabaseAdmin

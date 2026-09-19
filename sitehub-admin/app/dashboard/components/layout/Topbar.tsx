@@ -87,7 +87,7 @@ export default function Topbar() {
 
         <button
           onClick={handleProfile}
-          className="inline-flex h-12 w-10 items-center justify-center rounded-[1.15rem] bg-blue-600 text-white shadow-[0_8px_18px_rgba(37,99,235,0.24)] transition-all duration-300 hover:-translate-y-0.5 hover:bg-blue-700 hover:shadow-[0_12px_24px_rgba(37,99,235,0.3)] focus:outline-none focus:ring-4 focus:ring-blue-200"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
           title="Open profile settings"
           aria-label="Open profile settings"
         >

@@ -5,7 +5,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import EditSiteForm from "./EditSiteForm";
 import SiteSubcontractorsTab from "./SiteSubcontractorsTab";
-import { MapPin, Building2, ClipboardCheck } from "lucide-react";
+import { MapPin, Building2, ClipboardCheck, ShieldCheck } from "lucide-react";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 export default function SiteDetailTabs({ site }: { site: any }) {
@@ -22,6 +22,7 @@ export default function SiteDetailTabs({ site }: { site: any }) {
     }
   }, [site?.id]);
   const isInductionPage = pathname === `/dashboard/sites/${site.id}/induction`;
+  const isSafetyPage = pathname === `/dashboard/sites/${site.id}/safety`;
 
   return (
     <div className="space-y-6">
@@ -60,6 +61,17 @@ export default function SiteDetailTabs({ site }: { site: any }) {
         >
           <ClipboardCheck size={18} />
           Induction
+        </Link>
+        <Link
+          href={`/dashboard/sites/${site.id}/safety`}
+          className={`flex items-center gap-2 px-4 py-3 text-sm font-medium rounded-t-xl border-b-2 -mb-px transition ${
+            isSafetyPage
+              ? "border-blue-600 text-blue-600 bg-blue-50/50"
+              : "border-transparent text-gray-600 hover:text-gray-900"
+          }`}
+        >
+          <ShieldCheck size={18} />
+          Safety info
         </Link>
       </div>
 

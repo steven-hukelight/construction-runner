@@ -1,8 +1,8 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { updatePreInductionStatus, getMissingSections } from "@/app/api/pre-induction/[userId]/_utils/status";
-import { getRamsStatusForSite, isRamsCompliant, type RamsTrainingData } from "@/lib/ramsCompliance";
+import { canAssignOperativesToSites } from "@/lib/auth/roles";
+import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
 
 function cid(x: { company_id?: string | null; main_contractor_id?: string | null }): string | null {
   return (x.main_contractor_id ?? x.company_id ?? null) as string | null;
@@ -12,8 +12,17 @@ async function canManageSite(siteId: string): Promise<{ ok: boolean; error?: Nex
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
   const companyId = cookieStore.get("companyId")?.value;
+  const uid = cookieStore.get("uid")?.value;
+  if (!canAssignOperativesToSites(role)) {
+    return { ok: false, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+  }
   if (role === "superuser") return { ok: true };
   if (!companyId) return { ok: false, error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
+
+  const restricted = await getRestrictedSiteIds(role, uid);
+  if (restricted && !restricted.includes(siteId)) {
+    return { ok: false, error: NextResponse.json({ error: "You can only add people to your assigned sites." }, { status: 403 }) };
+  }
 
   const { data: site } = await supabaseAdmin.from("sites").select("*").eq("id", siteId).single();
   if (!site) return { ok: false, error: NextResponse.json({ error: "Site not found" }, { status: 404 }) };
@@ -71,49 +80,9 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
     return NextResponse.json({ error: "operativeId and company_id (or companyId) required" }, { status: 400 });
   }
 
-  const { data: user } = await supabaseAdmin.from("users").select("*").eq("id", operativeId).single();
   const { data: site } = await supabaseAdmin.from("sites").select("rams_version, ramsversion").eq("id", siteId).single();
   const siteRamsVersion = (site?.rams_version ?? site?.ramsversion ?? null) as string | null;
   const siteHasRams = !!siteRamsVersion;
-
-  if (user) {
-    const override = (user as Record<string, unknown>).admin_pre_induction_override ?? (user as Record<string, unknown>).adminPreInductionOverride === true;
-    if (!override) {
-      await updatePreInductionStatus(operativeId);
-      const { data: freshUser } = await supabaseAdmin.from("users").select("pre_induction_status").eq("id", operativeId).single();
-      const status = (freshUser?.pre_induction_status ?? "not_started") as string;
-      if (status !== "complete") {
-        const [p, r, c, m, t, d] = await Promise.all([
-          supabaseAdmin.from("pre_induction_personal").select("*").eq("user_id", operativeId).maybeSingle(),
-          supabaseAdmin.from("pre_induction_right_to_work").select("*").eq("user_id", operativeId).maybeSingle(),
-          supabaseAdmin.from("pre_induction_certifications").select("*").eq("user_id", operativeId).maybeSingle(),
-          supabaseAdmin.from("pre_induction_medical").select("*").eq("user_id", operativeId).maybeSingle(),
-          supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", operativeId).maybeSingle(),
-          supabaseAdmin.from("pre_induction_declarations").select("*").eq("user_id", operativeId).maybeSingle(),
-        ]);
-        const sectionData = [p.data, r.data, c.data, m.data, t.data, d.data];
-        const missing = getMissingSections(sectionData as Array<Record<string, unknown> | undefined>);
-        return NextResponse.json(
-          { error: "pre_induction_required", missing, message: "This operative must complete their Pre-Induction Profile before being assigned to a new site." },
-          { status: 403 }
-        );
-      }
-
-      const { data: training } = await supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", operativeId).maybeSingle();
-      const trainingData = training as RamsTrainingData | null;
-      const ramsCompliant = isRamsCompliant(
-        { training: trainingData, siteRamsVersion, siteHasRams },
-        { adminPreInductionOverride: false }
-      );
-      if (!ramsCompliant) {
-        const ramsStatus = getRamsStatusForSite(trainingData, siteId, siteRamsVersion);
-        return NextResponse.json(
-          { error: "rams_required", ramsStatus, message: "RAMS acceptance is required for this site. The operative must accept the current RAMS version before being assigned." },
-          { status: 403 }
-        );
-      }
-    }
-  }
 
   const { data: existing } = await supabaseAdmin
     .from("assigned_operatives")

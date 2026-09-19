@@ -2,8 +2,10 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
+import { UserRound } from "lucide-react";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import { SitePicker } from "../components/ui/SitePicker";
 import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
 import { leftSiteAutoSignOutReasonSuffix } from "./live/sessionNotesFormat";
@@ -406,14 +408,7 @@ export default function RoleCall({
     {
       header: "Name",
       accessor: "name",
-      render: (row: PersonStatus) => (
-        <div className="flex items-center gap-3">
-          <div className="w-8 h-8 rounded-full bg-slate-200 flex items-center justify-center text-slate-600 text-xs font-medium">
-            {row.name?.[0]?.toUpperCase() || "?"}
-          </div>
-          <span className="text-sm font-medium text-slate-900">{row.name}</span>
-        </div>
-      ),
+      render: (row: PersonStatus) => <TableNameCell icon={UserRound} label={row.name} />,
     },
     {
       header: "Last Action",
@@ -421,13 +416,7 @@ export default function RoleCall({
       render: (row: PersonStatus) => {
         const isIn = row.lastActionNormalized === "sign_in";
         return (
-          <span
-            className={`inline-flex items-center rounded-full px-3 py-1 text-xs font-semibold ${
-              isIn
-                ? "bg-emerald-50 text-emerald-700"
-                : "bg-rose-50 text-rose-700"
-            }`}
-          >
+          <span className={`status-chip ${isIn ? "status-chip--ok" : "status-chip--muted"}`}>
             {isIn ? "Signed in" : "Signed out"}
           </span>
         );
@@ -457,21 +446,39 @@ export default function RoleCall({
   ];
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between gap-3 flex-wrap">
-        <div className="flex items-center gap-3 flex-wrap">
-          <div>
-            <h3 className="text-sm font-semibold text-slate-900 dark:text-slate-100">Role Call</h3>
-            <p className="text-xs text-slate-500 dark:text-slate-400">
-              Fire roll call — signed-in operatives first; signed-out on the other tab.
-            </p>
+    <Table
+      title="Role call"
+      subtitle="Fire roll call — signed-in operatives first; signed-out on the other tab."
+      actions={
+        people.length > 0 ? (
+          <div className="flex flex-wrap items-center gap-2">
+            <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV} disabled={!displayedPeople.length}>
+              Export CSV
+            </Button>
+            <Button size="sm" type="button" onClick={handleExportPDF} disabled={!displayedPeople.length}>
+              Export PDF
+            </Button>
+            <Button
+              variant="secondary"
+              size="sm"
+              type="button"
+              onClick={handleArchiveAndClear}
+              disabled={archiving}
+              className="text-amber-700 hover:bg-amber-50"
+            >
+              {archiving ? "Archiving…" : "Archive & Clear Day"}
+            </Button>
           </div>
+        ) : null
+      }
+      extra={
+        <div className="flex flex-wrap items-center gap-3 pt-1">
           {selectedDateProp == null && (
             <div className="flex items-center gap-2">
               <label className="text-xs text-slate-600">Date</label>
               <input
                 type="date"
-                className="input text-xs"
+                className="table-toolbar-input text-xs"
                 value={selectedDate}
                 onChange={(e) => setLocalDate(e.target.value || todayStr())}
               />
@@ -488,71 +495,53 @@ export default function RoleCall({
             placeholder="All sites"
             className="w-52"
           />
-        </div>
-        {people.length > 0 && (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-              Date: {formatDate(new Date(`${selectedDate}T12:00:00`))}
-            </span>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">Site: {selectedSiteName}</span>
-            <span className="inline-flex items-center rounded-full px-2.5 py-1 text-xs bg-slate-100 text-slate-700 dark:bg-slate-700 dark:text-slate-200">
-              {displayedPeople.length} {displayedPeople.length === 1 ? "person" : "people"}
-            </span>
-            <Button variant="secondary" size="sm" type="button" onClick={handleExportCSV} disabled={!displayedPeople.length}>Export CSV</Button>
-            <Button size="sm" type="button" onClick={handleExportPDF} disabled={!displayedPeople.length}>Export PDF</Button>
-            <Button
-              variant="secondary"
-              size="sm"
+          {people.length > 0 && (
+            <>
+              <span className="status-chip status-chip--muted">Date: {formatDate(new Date(`${selectedDate}T12:00:00`))}</span>
+              <span className="status-chip status-chip--muted">Site: {selectedSiteName}</span>
+              <span className="status-chip status-chip--info">
+                {displayedPeople.length} {displayedPeople.length === 1 ? "person" : "people"}
+              </span>
+            </>
+          )}
+          <div className="inline-flex gap-1 rounded-xl border border-blue-100 bg-[#f7fafc] p-1">
+            <button
               type="button"
-              onClick={handleArchiveAndClear}
-              disabled={archiving}
-              className="text-amber-700 hover:bg-amber-50"
+              onClick={() => setStatusTab("signed_in")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                statusTab === "signed_in"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              }`}
             >
-              {archiving ? "Archiving…" : "Archive & Clear Day"}
-            </Button>
+              Signed in ({signedInPeople.length})
+            </button>
+            <button
+              type="button"
+              onClick={() => setStatusTab("signed_out")}
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+                statusTab === "signed_out"
+                  ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
+                  : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
+              }`}
+            >
+              Signed out ({signedOutPeople.length})
+            </button>
           </div>
-        )}
-      </div>
-
-      <div className="bg-slate-100/80 dark:bg-slate-900/40 border border-slate-200/80 dark:border-slate-600 rounded-xl p-1 inline-flex gap-1">
-        <button
-          type="button"
-          onClick={() => setStatusTab("signed_in")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            statusTab === "signed_in"
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-          }`}
-        >
-          Signed in ({signedInPeople.length})
-        </button>
-        <button
-          type="button"
-          onClick={() => setStatusTab("signed_out")}
-          className={`px-3 py-1.5 rounded-lg text-xs font-semibold transition-all ${
-            statusTab === "signed_out"
-              ? "bg-white dark:bg-slate-700 text-slate-900 dark:text-slate-100 shadow-sm"
-              : "text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-slate-100"
-          }`}
-        >
-          Signed out ({signedOutPeople.length})
-        </button>
-      </div>
-
-      {people.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {isToday ? "No attendance activity yet." : `No archived attendance for ${selectedDate}.`}
-        </p>
-      ) : displayedPeople.length === 0 ? (
-        <p className="text-sm text-slate-500 dark:text-slate-400">
-          {statusTab === "signed_in"
+        </div>
+      }
+      columns={columns}
+      data={displayedPeople}
+      emptyMessage={
+        people.length === 0
+          ? isToday
+            ? "No attendance activity yet."
+            : `No archived attendance for ${selectedDate}.`
+          : statusTab === "signed_in"
             ? "No one is signed in."
-            : "No one has signed out yet."}
-        </p>
-      ) : (
-        <Table columns={columns} data={displayedPeople} />
-      )}
-    </div>
+            : "No one has signed out yet."
+      }
+    />
   );
 }
 

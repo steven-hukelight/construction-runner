@@ -46,7 +46,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
 
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeBody, setComposeBody] = useState("");
-  const [composeMode, setComposeMode] = useState<"broadcast" | "pick">("broadcast");
+  const [composeMode, setComposeMode] = useState<"broadcast" | "pick">("pick");
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
   const [loadingComposeUsers, setLoadingComposeUsers] = useState(false);
   const [myUserId, setMyUserId] = useState<string | null>(null);
@@ -277,7 +277,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         setComposeOpen(false);
         setComposeBody("");
         setSelectedRecipientIds([]);
-        setComposeMode("broadcast");
+        setComposeMode("pick");
         await fetchThreads();
         await openThread(data.id as string);
       }
@@ -339,7 +339,9 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
               <h2 id="compose-thread-title" className="text-lg font-semibold text-gray-900">
                 New conversation
               </h2>
-              <p className="text-sm text-slate-500 mt-1">Message everyone in your company, or choose specific people.</p>
+              <p className="text-sm text-slate-500 mt-1">
+                Pick who should see this conversation. Broadcast still sends to everyone in the company.
+              </p>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-4">
               <div className="space-y-2">
@@ -349,19 +351,19 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
                     <input
                       type="radio"
                       name="composeMode"
-                      checked={composeMode === "broadcast"}
-                      onChange={() => setComposeMode("broadcast")}
+                      checked={composeMode === "pick"}
+                      onChange={() => setComposeMode("pick")}
                     />
-                    Broadcast to all company users
+                    Choose one or more recipients
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="radio"
                       name="composeMode"
-                      checked={composeMode === "pick"}
-                      onChange={() => setComposeMode("pick")}
+                      checked={composeMode === "broadcast"}
+                      onChange={() => setComposeMode("broadcast")}
                     />
-                    Choose one or more recipients
+                    Broadcast to all company users
                   </label>
                 </div>
               </div>

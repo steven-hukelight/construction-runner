@@ -5,11 +5,11 @@ import { Plus } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import {
   getCoshhAssessmentVisual,
-  getDominantCoshhVisual,
 } from "@/lib/coshhAssessmentVisual";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
+import { DataTableShell } from "../../components/ui/TableChrome";
 import TableActions from "../../components/ui/TableActions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
@@ -74,9 +74,6 @@ export default function COSHHTemplate() {
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
 
-  const headerVisual = getDominantCoshhVisual(items);
-  const HeaderIcon = headerVisual.Icon;
-
   const formPreviewVisual = getCoshhAssessmentVisual({
     title: form.title,
     substance: form.substance,
@@ -134,30 +131,17 @@ export default function COSHHTemplate() {
   ];
 
   return (
-    <div className="card">
-      <div className="flex items-center justify-between mb-6">
-        <div className="flex items-center gap-3">
-          <div
-            className={`p-2 rounded-lg ${headerVisual.containerClass}`}
-            title={headerVisual.label}
-            aria-label={headerVisual.label}
-          >
-            <HeaderIcon className={`w-5 h-5 ${headerVisual.iconClass}`} aria-hidden />
-          </div>
-          <div>
-            <h3 className="text-lg font-semibold text-slate-900">COSHH Assessments</h3>
-            <p className="text-sm text-slate-600">
-              Hazard symbols and PPE requirements for hazardous substances.
-            </p>
-          </div>
-        </div>
+    <DataTableShell
+      title="COSHH assessments"
+      subtitle="Hazard symbols and PPE requirements for hazardous substances."
+      actions={
         <Button size="sm" onClick={() => setAdding(true)}>
           <Plus size={18} /> Add Assessment
         </Button>
-      </div>
-
-      {adding && (
-        <div className="mb-6 p-6 rounded-xl border border-purple-200 bg-purple-50/30 space-y-4">
+      }
+      extra={
+        adding ? (
+        <div className="rounded-2xl border border-purple-200 bg-purple-50/30 p-4 space-y-4">
           <div className="flex items-center gap-3">
             <div
               className={`p-2 rounded-lg ${formPreviewVisual.containerClass}`}
@@ -212,9 +196,10 @@ export default function COSHHTemplate() {
             </Button>
           </div>
         </div>
-      )}
-
-      <Table columns={columns} data={items} />
-    </div>
+        ) : null
+      }
+    >
+      <Table embedded columns={columns} data={items} />
+    </DataTableShell>
   );
 }
