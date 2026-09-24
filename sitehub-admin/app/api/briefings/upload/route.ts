@@ -71,14 +71,38 @@ export async function POST(req: Request) {
   });
 
   const userIds = await userIdsForSiteContent(companyId, siteId.trim());
+  let push: { recipients: number; sent: boolean; error?: string } = {
+    recipients: userIds.length,
+    sent: false,
+  };
   if (userIds.length > 0) {
-    sendPushToUsers(
-      userIds,
-      `New Briefing: ${title.trim() || file.name}`,
-      "New toolbox talk / briefing added",
-      { type: "briefing", screen: "briefings" }
-    ).catch((e) => console.error("Briefing push failed:", e));
+    try {
+      // Await so Vercel does not freeze the function before OneSignal is called.
+      const result = await sendPushToUsers(
+        userIds,
+        `New Briefing: ${title.trim() || file.name}`,
+        "New toolbox talk / briefing added",
+        { type: "briefing", screen: "briefings" },
+      );
+      push = {
+        recipients: userIds.length,
+        sent: Boolean(result.sent),
+        error: result.error,
+      };
+      if (!result.sent) {
+        console.error("Briefing push failed:", result.error, { recipients: userIds.length });
+      }
+    } catch (e) {
+      console.error("Briefing push failed:", e);
+      push = {
+        recipients: userIds.length,
+        sent: false,
+        error: e instanceof Error ? e.message : "push failed",
+      };
+    }
+  } else {
+    console.warn("Briefing upload: no push recipients for site", siteId.trim());
   }
 
-  return NextResponse.json({ success: true });
+  return NextResponse.json({ success: true, push });
 }

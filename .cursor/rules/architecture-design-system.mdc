@@ -1,0 +1,36 @@
+---
+description: Architecture guardrails for Flutter mobile, Next.js admin, and Supabase
+alwaysApply: true
+---
+
+# Architecture Guardrails
+
+Construction Runner: field workers (mobile) and office managers (web). Prefer matching existing patterns over introducing new ones.
+
+| Layer | Location | Stack |
+|-------|----------|--------|
+| Mobile | `sitehub_worker_Ready/` | Flutter (Dart), device APIs |
+| Web | `sitehub-admin/` | Next.js, TypeScript, Tailwind |
+| Backend | `supabase/` | PostgreSQL, RLS, Realtime, Storage |
+
+## Flutter (`sitehub_worker_Ready/`)
+
+- Match the existing state-management approach on new screens—**never mix** architectures.
+- Keep widgets modular; extract shared UI when reused.
+- Camera, GPS, and offline paths: handle async errors clearly; cache where the codebase already does for poor connectivity.
+
+## Next.js (`sitehub-admin/`)
+
+- Follow existing App Router / client-boundary patterns in nearby files; do not refactor working pages to Server Components unless asked.
+- Use Tailwind and existing component patterns already used on the page you edit.
+
+## Supabase
+
+- Web: prefer `@supabase/ssr` helpers already used in the project. Mobile: `supabase_flutter`.
+- Client / browser code must not use the service role. Server API routes may use the service role when authorization is enforced in code (existing admin pattern).
+- Prefer typed models/interfaces aligned to the schema over untyped JSON maps for domain data.
+
+## Assistant output
+
+- Production-ready, modular code—no `// TODO: implement later` placeholders.
+- Do not redesign polished screens or invent extra UI unless the user asks.

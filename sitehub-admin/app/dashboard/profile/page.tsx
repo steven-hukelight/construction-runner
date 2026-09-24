@@ -1,8 +1,7 @@
 "use client";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
-import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink, CircleUser, Activity } from "lucide-react";
-import { CardSelect } from "../components/ui/CardSelect";
+import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
 import PageHeader from "../components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
 import SuperuserSelfOverrideSection from "../induction-compliance/components/SuperuserSelfOverrideSection";
@@ -11,6 +10,8 @@ import Link from "next/link";
 import { formatDate, formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { useClientSession } from "../components/ClientSessionProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
+import { roleDisplayName } from "@/lib/auth/roles";
+import RoleBadge from "../components/RoleBadge";
 
 type TabType = "personal" | "activity" | "certifications" | "medical" | "induction" | "privacy";
 
@@ -171,17 +172,48 @@ export default function ProfilePage() {
     try {
       const uid = profileUserId || userId;
       if (!uid) return;
-      const medRes = await fetch(`/api/users/${encodeURIComponent(uid)}/medical`, { credentials: "include" }).catch(() => null);
-      if (!medRes) return;
-      const data = medRes.ok ? await medRes.json().catch(() => []) : [];
-      setMedical((Array.isArray(data) ? data : []).map((d: Record<string, unknown>) => ({
-        id: String(d.id ?? ""),
-        title: (d.title as string) ?? undefined,
-        notes: (d.notes as string) ?? undefined,
-        fileUrl: (d.file_url as string) ?? (d.fileUrl as string),
-        fileName: (d.file_name as string) ?? (d.fileName as string),
-        createdAt: (d.created_at as string) ?? (d.createdAt as string),
-      })));
+      const [medRes, myInfoRes] = await Promise.all([
+        fetch(`/api/users/${encodeURIComponent(uid)}/medical`, { credentials: "include" }).catch(() => null),
+        fetch("/api/me/info", { credentials: "include" }).catch(() => null),
+      ]);
+      const fileRecords = medRes?.ok
+        ? await medRes.json().catch(() => [])
+        : [];
+      const mappedFiles = (Array.isArray(fileRecords) ? fileRecords : []).map(
+        (d: Record<string, unknown>) => ({
+          id: String(d.id ?? ""),
+          title: (d.title as string) ?? undefined,
+          notes: (d.notes as string) ?? undefined,
+          fileUrl: (d.file_url as string) ?? (d.fileUrl as string),
+          fileName: (d.file_name as string) ?? (d.fileName as string),
+          createdAt: (d.created_at as string) ?? (d.createdAt as string),
+        }),
+      );
+
+      const myInfo = myInfoRes?.ok ? await myInfoRes.json().catch(() => null) : null;
+      const medical = (myInfo?.medical ?? null) as Record<string, unknown> | null;
+      const declaration = String(medical?.medicalDeclaration ?? medical?.medical_declaration ?? "").trim();
+      const hasIssues = medical?.hasMedicalIssues ?? medical?.has_medical_issues;
+      const myInfoRows: MedicalRecord[] = [];
+      if (declaration || hasIssues != null) {
+        myInfoRows.push({
+          id: "my-info-medical",
+          title: "Medical declaration",
+          notes:
+            [
+              hasIssues === true
+                ? "Has medical issues: Yes"
+                : hasIssues === false
+                  ? "Has medical issues: No"
+                  : null,
+              declaration || null,
+            ]
+              .filter(Boolean)
+              .join("\n") || "Record on file",
+        });
+      }
+
+      setMedical([...myInfoRows, ...mappedFiles]);
     } catch (error) {
       console.error("Error loading medical records:", error);
     }
@@ -762,7 +794,9 @@ export default function ProfilePage() {
               </div>
               <div className="w-full">
                 <h3 className="font-semibold text-slate-900 text-lg">{displayName}</h3>
-                <p className="text-xs text-slate-500 uppercase tracking-wider mt-1">{profile.role}</p>
+                <div className="mt-2 flex justify-center">
+                  <RoleBadge role={profile.role} />
+                </div>
               </div>
             </div>
 
@@ -913,31 +947,24 @@ export default function ProfilePage() {
                   </div>
 
                   <div>
-                    <CardSelect
-                      items={[
-                        { id: "ADMIN", name: "Admin" },
-                        { id: "SUPERVISOR", name: "Supervisor" },
-                        { id: "OPERATIVE", name: "Operative" },
-                      ]}
-                      value={profile.role}
-                      onChange={(id) => updateProfile({ role: id })}
-                      icon={CircleUser}
-                      fieldLabel="Role"
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Role</label>
+                    <div className="flex items-center gap-2">
+                      <RoleBadge role={profile.role} />
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Your role is set by a Super Admin. Shown as {roleDisplayName(profile.role)}.
+                    </p>
                   </div>
                   
                   <div>
-                    <CardSelect
-                      items={[
-                        { id: "Active", name: "Active" },
-                        { id: "Inactive", name: "Inactive" },
-                        { id: "Pending", name: "Pending" },
-                      ]}
-                      value={profile.status}
-                      onChange={(id) => updateProfile({ status: id })}
-                      icon={Activity}
-                      fieldLabel="Status"
-                    />
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Status</label>
+                    <div className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-medium bg-emerald-100 text-emerald-700">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                      {profile.status || "Active"}
+                    </div>
+                    <p className="mt-1.5 text-xs text-slate-500">
+                      Account status is managed by administrators on the Users page — you can’t change it here.
+                    </p>
                   </div>
                 </div>
               </div>
@@ -1408,7 +1435,12 @@ export default function ProfilePage() {
                       <FileText size={24} className="text-slate-400" />
                     </div>
                     <p className="text-slate-500 mb-2">No medical records found</p>
-                    <p className="text-sm text-slate-400">Medical records are managed by administrators in the Operatives section</p>
+                    <p className="text-sm text-slate-400 mb-4">
+                      Your medical declaration lives in My Info / induction. Uploaded medical files are managed by administrators.
+                    </p>
+                    <Link href="/dashboard/profile" className="text-sm text-blue-600 hover:underline" onClick={() => setActiveTab("induction")}>
+                      Open induction / My Info
+                    </Link>
                   </div>
                 ) : (
                   <div className="space-y-4">

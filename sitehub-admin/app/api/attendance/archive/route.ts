@@ -33,7 +33,10 @@ async function normalizeArchiveRows(rows: Record<string, unknown>[]): Promise<Re
     const sid = r.site_id as string;
     const user = uid ? userMap.get(String(uid)) : null;
     const site = sid ? siteMap.get(String(sid)) : null;
-    const name = user?.name || user?.display_name || (user?.email ? String(user.email).split("@")[0] : null);
+    const name =
+      (user?.display_name && String(user.display_name).trim()) ||
+      (user?.name && !String(user.name).includes("@") ? String(user.name).trim() : "") ||
+      (user?.email ? String(user.email).split("@")[0] : null);
     const rowCompanyId = r.company_id as string | undefined;
     const companyId = (rowCompanyId && String(rowCompanyId).trim()) ? rowCompanyId : (user?.company_id ? String(user.company_id) : undefined);
     return enrichAttendanceApiFields({

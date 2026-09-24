@@ -1,8 +1,13 @@
 import type { jsPDF } from "jspdf";
 import type { LogoForPdf } from "./fetchCompanyLogoForPdf";
 
-/** Top-right logo, max ~42×16 mm (portrait/landscape). */
-export function drawLogoOnPdf(doc: jsPDF, logo: LogoForPdf, pageWidth: number, margin: number) {
+/** @deprecated Prefer documentChrome header; kept for one-off placements. */
+export function drawLogoOnPdf(
+  doc: jsPDF,
+  logo: LogoForPdf,
+  pageWidth: number,
+  margin: number,
+) {
   const maxW = 42;
   const maxH = 16;
   try {
@@ -14,8 +19,12 @@ export function drawLogoOnPdf(doc: jsPDF, logo: LogoForPdf, pageWidth: number, m
     const w = iw * ratio;
     const h = ih * ratio;
     const x = pageWidth - margin - w;
-    doc.addImage(logo.base64, logo.format, x, margin, w, h);
+    doc.addImage(logo.base64, logo.format, x, ySafe(margin), w, h);
   } catch {
     /* optional */
   }
+}
+
+function ySafe(margin: number) {
+  return margin;
 }

@@ -14,11 +14,10 @@ type NotificationItem =
   | { type: "briefing"; id: string; title: string; href: string; createdAt?: string }
   | { type: "delivery"; id: string; title: string; href: string; createdAt?: string };
 
-// Poll every 60s while the tab is visible. Previously 5s which fanned out to
-// ~5 heavy API calls (RAMS/briefings/deliveries/…) per user per interval — the
-// dominant cause of dashboard-wide sluggishness. Polling pauses entirely when
-// the tab is hidden, and a fresh fetch runs on visibilitychange back to visible.
-const NOTIFICATION_REFRESH_MS = 60_000;
+// Fetch the heavy fan-out only when the bell is opened (and at most every
+// NOTIFICATION_REFRESH_MS while open). Previously this ran on every page after
+// 1.5s and competed with the dashboard's own data loads.
+const NOTIFICATION_REFRESH_MS = 120_000;
 /** Show dashboard bell items from the last 7 days (RAMS, briefings, etc.). */
 const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
 const SEEN_KEY = "sitehub_notif_seen";
@@ -66,14 +65,22 @@ export default function NotificationDropdown() {
   );
 
   const [resolvedCompanyId, setResolvedCompanyId] = useState<string | null>(() => getCompanyIdFromClient());
+  const lastFetchAtRef = useRef(0);
+  const fetchInFlightRef = useRef(false);
 
-  useEffect(() => {
+  const fetchNotifications = useCallback(async (opts?: { force?: boolean }) => {
     const role = getRoleFromClient();
-    const companyId = getCompanyIdFromClient();
     if (!role) return;
+    if (fetchInFlightRef.current) return;
+    const now = Date.now();
+    if (!opts?.force && lastFetchAtRef.current && now - lastFetchAtRef.current < NOTIFICATION_REFRESH_MS) {
+      return;
+    }
 
+    const companyId = getCompanyIdFromClient();
     const ensureCompanyId = async () => {
       if (companyId) return companyId;
+      if (resolvedCompanyId) return resolvedCompanyId;
       try {
         const res = await fetch("/api/me", { credentials: "include" });
         if (res.ok) {
@@ -94,189 +101,158 @@ export default function NotificationDropdown() {
     };
     const isAdminOrSupervisor = ["admin", "supervisor", "sub_admin", "superuser"].includes((role ?? "").toLowerCase());
 
-    let isFirst = true;
-    const fetchNotifications = async () => {
+    fetchInFlightRef.current = true;
+    setLoading(true);
+    try {
       const cid = companyId ?? resolvedCompanyId ?? (await ensureCompanyId());
-      if (isFirst) {
-        setLoading(true);
-        isFirst = false;
-      }
-      try {
-        const dayAgo = Date.now() - RECENT_MS;
-        const fetches: Promise<Response>[] = [
-          cid ? fetch(`/api/messages/threads?companyId=${encodeURIComponent(cid)}`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-        ];
-        if (isAdminOrSupervisor) {
-          fetches.push(
-            fetch(`${qs("/api/near-miss", cid)}${qs("/api/near-miss", cid).includes("?") ? "&" : "?"}unreviewed=true&limit=10`, { cache: "no-store", credentials: "include" }),
-            fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
-            cid ? fetch(qs("/api/rams", cid), { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-            cid ? fetch(qs("/api/briefings", cid), { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-            cid ? fetch(qs("/api/deliveries", cid) + "&limit=20", { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-          );
-        } else {
-          fetches.push(
-            cid ? fetch(qs("/api/rams", cid), { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-            cid ? fetch(qs("/api/briefings", cid), { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-            cid ? fetch(qs("/api/deliveries", cid) + (qs("/api/deliveries", cid).includes("?") ? "&" : "?") + "limit=20", { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
-          );
-        }
-
-        const [threadsRes, ...rest] = await Promise.all(fetches);
-        const nearMissRes = isAdminOrSupervisor ? rest[0] : null;
-        const regsRes = isAdminOrSupervisor ? rest[1] : null;
-        const ramsRes = isAdminOrSupervisor ? rest[2] : rest[0];
-        const briefingsRes = isAdminOrSupervisor ? rest[3] : rest[1];
-        const deliveriesRes = isAdminOrSupervisor ? rest[4] : rest[2];
-
-        const threads = threadsRes.ok ? await threadsRes.json() : [];
-        const nearMisses = nearMissRes?.ok ? await nearMissRes.json() : [];
-        const regs = regsRes?.ok ? await regsRes.json() : [];
-        const rams = ramsRes?.ok ? await ramsRes.json() : [];
-        const briefings = briefingsRes?.ok ? await briefingsRes.json() : [];
-        const deliveries = deliveriesRes?.ok ? await deliveriesRes.json() : [];
-
-        const list: NotificationItem[] = [];
-
-        if (Array.isArray(nearMisses)) {
-          nearMisses.forEach((m: { id: string; description?: string; created_at?: string }) => {
-            list.push({
-              type: "near_miss",
-              id: m.id,
-              title: (m.description || "Near miss report").slice(0, 60) + ((m.description?.length ?? 0) > 60 ? "…" : ""),
-              href: `/dashboard/health-and-safety/near-miss/${m.id}`,
-              createdAt: m.created_at,
-            });
-          });
-        }
-        if (Array.isArray(regs)) {
-          regs.slice(0, 5).forEach((r: { id: string; data?: { email?: string; name?: string } }) => {
-            const email = r.data?.email ?? "Unknown";
-            list.push({
-              type: "registration",
-              id: r.id,
-              title: `Registration pending: ${email}`,
-              href: "/dashboard/users",
-              createdAt: undefined,
-            });
-          });
-        }
-        if (Array.isArray(threads) && threads.length > 0) {
-          threads
-            .filter((t: { lastAt?: string; unread?: boolean; inThread?: boolean }) => {
-              if (!t.lastAt || new Date(t.lastAt).getTime() <= dayAgo) return false;
-              // Prefer true unread; fall back to any recent thread for roles without last_read.
-              return t.unread === true || t.unread == null;
-            })
-            .slice(0, 5)
-            .forEach((t: { id: string; lastMessage?: string; lastAt?: string }) => {
-              const preview = (t.lastMessage || "New conversation").slice(0, 50) + ((t.lastMessage?.length ?? 0) > 50 ? "…" : "");
-              list.push({
-                type: "message",
-                id: t.id,
-                title: preview,
-                href: `/dashboard/messages/${t.id}`,
-                createdAt: t.lastAt,
-              });
-            });
-        }
-        if (Array.isArray(rams)) {
-          rams
-            .filter((r: { created_at?: string; createdAt?: string }) => {
-              const ts = r.created_at ?? r.createdAt;
-              if (!ts) return true;
-              return new Date(ts).getTime() > dayAgo;
-            })
-            .slice(0, 15)
-            .forEach((r: { id: string; title?: string; created_at?: string; createdAt?: string }) => {
-              list.push({
-                type: "rams",
-                id: r.id,
-                title: (r.title || "New RAMS").slice(0, 50),
-                href: "/dashboard/health-and-safety/rams",
-                createdAt: r.created_at ?? r.createdAt,
-              });
-            });
-        }
-        if (Array.isArray(briefings)) {
-          briefings
-            .filter((b: { created_at?: string; createdAt?: string }) => {
-              const ts = b.created_at ?? b.createdAt;
-              if (!ts) return true;
-              return new Date(ts).getTime() > dayAgo;
-            })
-            .slice(0, 15)
-            .forEach((b: { id: string; title?: string; created_at?: string; createdAt?: string }) => {
-              list.push({
-                type: "briefing",
-                id: b.id,
-                title: (b.title || "New briefing").slice(0, 50),
-                href: "/dashboard/health-and-safety/briefings",
-                createdAt: b.created_at ?? b.createdAt,
-              });
-            });
-        }
-        if (Array.isArray(deliveries)) {
-          deliveries
-            .filter((d: { created_at?: string; createdAt?: string }) => {
-              const ts = d.created_at ?? d.createdAt;
-              if (!ts) return true;
-              return new Date(ts).getTime() > dayAgo;
-            })
-            .slice(0, 15)
-            .forEach((d: { id: string; reference?: string; created_at?: string; createdAt?: string }) => {
-              list.push({
-                type: "delivery",
-                id: d.id,
-                title: `Delivery: ${(d.reference || "New").slice(0, 40)}`,
-                href: "/dashboard/deliveries",
-                createdAt: d.created_at ?? d.createdAt,
-              });
-            });
-        }
-        setItems(list);
-      } catch {
-        setItems([]);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    fetchNotifications();
-    let interval: ReturnType<typeof setInterval> | null = null;
-    const startPolling = () => {
-      if (interval != null) return;
-      interval = setInterval(fetchNotifications, NOTIFICATION_REFRESH_MS);
-    };
-    const stopPolling = () => {
-      if (interval == null) return;
-      clearInterval(interval);
-      interval = null;
-    };
-    startPolling();
-
-    // Pause polling while the tab is hidden; re-fetch immediately on return so
-    // the badge is up to date. Cuts idle-tab background API load to zero.
-    const handleVisibility = () => {
-      if (typeof document === "undefined") return;
-      if (document.visibilityState === "hidden") {
-        stopPolling();
+      const dayAgo = Date.now() - RECENT_MS;
+      const fetches: Promise<Response>[] = [
+        cid ? fetch(`/api/messages/threads?companyId=${encodeURIComponent(cid)}`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+      ];
+      if (isAdminOrSupervisor) {
+        fetches.push(
+          fetch(`${qs("/api/near-miss", cid)}${qs("/api/near-miss", cid).includes("?") ? "&" : "?"}unreviewed=true&limit=10`, { cache: "no-store", credentials: "include" }),
+          fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
+          cid ? fetch(`${qs("/api/rams", cid)}${qs("/api/rams", cid).includes("?") ? "&" : "?"}limit=20`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+          cid ? fetch(`${qs("/api/briefings", cid)}${qs("/api/briefings", cid).includes("?") ? "&" : "?"}limit=20`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+          cid ? fetch(qs("/api/deliveries", cid) + (qs("/api/deliveries", cid).includes("?") ? "&" : "?") + "limit=20", { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+        );
       } else {
-        fetchNotifications();
-        startPolling();
+        fetches.push(
+          cid ? fetch(`${qs("/api/rams", cid)}${qs("/api/rams", cid).includes("?") ? "&" : "?"}limit=20`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+          cid ? fetch(`${qs("/api/briefings", cid)}${qs("/api/briefings", cid).includes("?") ? "&" : "?"}limit=20`, { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+          cid ? fetch(qs("/api/deliveries", cid) + (qs("/api/deliveries", cid).includes("?") ? "&" : "?") + "limit=20", { cache: "no-store", credentials: "include" }) : Promise.resolve(new Response("[]")),
+        );
       }
-    };
-    if (typeof document !== "undefined") {
-      document.addEventListener("visibilitychange", handleVisibility);
-    }
 
-    return () => {
-      stopPolling();
-      if (typeof document !== "undefined") {
-        document.removeEventListener("visibilitychange", handleVisibility);
+      const [threadsRes, ...rest] = await Promise.all(fetches);
+      const nearMissRes = isAdminOrSupervisor ? rest[0] : null;
+      const regsRes = isAdminOrSupervisor ? rest[1] : null;
+      const ramsRes = isAdminOrSupervisor ? rest[2] : rest[0];
+      const briefingsRes = isAdminOrSupervisor ? rest[3] : rest[1];
+      const deliveriesRes = isAdminOrSupervisor ? rest[4] : rest[2];
+
+      const threads = threadsRes.ok ? await threadsRes.json() : [];
+      const nearMisses = nearMissRes?.ok ? await nearMissRes.json() : [];
+      const regs = regsRes?.ok ? await regsRes.json() : [];
+      const rams = ramsRes?.ok ? await ramsRes.json() : [];
+      const briefings = briefingsRes?.ok ? await briefingsRes.json() : [];
+      const deliveries = deliveriesRes?.ok ? await deliveriesRes.json() : [];
+
+      const list: NotificationItem[] = [];
+
+      if (Array.isArray(nearMisses)) {
+        nearMisses.forEach((m: { id: string; description?: string; created_at?: string }) => {
+          list.push({
+            type: "near_miss",
+            id: m.id,
+            title: (m.description || "Near miss report").slice(0, 60) + ((m.description?.length ?? 0) > 60 ? "…" : ""),
+            href: `/dashboard/health-and-safety/near-miss/${m.id}`,
+            createdAt: m.created_at,
+          });
+        });
       }
-    };
+      if (Array.isArray(regs)) {
+        regs.slice(0, 5).forEach((r: { id: string; data?: { email?: string; name?: string }; email?: string }) => {
+          const email = r.data?.email ?? r.email ?? "Unknown";
+          list.push({
+            type: "registration",
+            id: r.id,
+            title: `Registration pending: ${email}`,
+            href: "/dashboard/users",
+            createdAt: undefined,
+          });
+        });
+      }
+      if (Array.isArray(threads) && threads.length > 0) {
+        threads
+          .filter((t: { lastAt?: string; unread?: boolean; inThread?: boolean }) => {
+            if (!t.lastAt || new Date(t.lastAt).getTime() <= dayAgo) return false;
+            return t.unread === true || t.unread == null;
+          })
+          .slice(0, 5)
+          .forEach((t: { id: string; lastMessage?: string; lastAt?: string }) => {
+            const preview = (t.lastMessage || "New conversation").slice(0, 50) + ((t.lastMessage?.length ?? 0) > 50 ? "…" : "");
+            list.push({
+              type: "message",
+              id: t.id,
+              title: preview,
+              href: `/dashboard/messages/${t.id}`,
+              createdAt: t.lastAt,
+            });
+          });
+      }
+      if (Array.isArray(rams)) {
+        rams
+          .filter((r: { created_at?: string; createdAt?: string }) => {
+            const ts = r.created_at ?? r.createdAt;
+            if (!ts) return true;
+            return new Date(ts).getTime() > dayAgo;
+          })
+          .slice(0, 15)
+          .forEach((r: { id: string; title?: string; created_at?: string; createdAt?: string }) => {
+            list.push({
+              type: "rams",
+              id: r.id,
+              title: (r.title || "New RAMS").slice(0, 50),
+              href: "/dashboard/health-and-safety/rams",
+              createdAt: r.created_at ?? r.createdAt,
+            });
+          });
+      }
+      if (Array.isArray(briefings)) {
+        briefings
+          .filter((b: { created_at?: string; createdAt?: string }) => {
+            const ts = b.created_at ?? b.createdAt;
+            if (!ts) return true;
+            return new Date(ts).getTime() > dayAgo;
+          })
+          .slice(0, 15)
+          .forEach((b: { id: string; title?: string; created_at?: string; createdAt?: string }) => {
+            list.push({
+              type: "briefing",
+              id: b.id,
+              title: (b.title || "New briefing").slice(0, 50),
+              href: "/dashboard/health-and-safety/briefings",
+              createdAt: b.created_at ?? b.createdAt,
+            });
+          });
+      }
+      if (Array.isArray(deliveries)) {
+        deliveries
+          .filter((d: { created_at?: string; createdAt?: string }) => {
+            const ts = d.created_at ?? d.createdAt;
+            if (!ts) return true;
+            return new Date(ts).getTime() > dayAgo;
+          })
+          .slice(0, 15)
+          .forEach((d: { id: string; reference?: string; created_at?: string; createdAt?: string }) => {
+            list.push({
+              type: "delivery",
+              id: d.id,
+              title: `Delivery: ${(d.reference || "New").slice(0, 40)}`,
+              href: "/dashboard/deliveries",
+              createdAt: d.created_at ?? d.createdAt,
+            });
+          });
+      }
+      setItems(list);
+      lastFetchAtRef.current = Date.now();
+    } catch {
+      setItems([]);
+    } finally {
+      fetchInFlightRef.current = false;
+      setLoading(false);
+    }
   }, [resolvedCompanyId]);
+
+  // Load (and poll) only while the dropdown is open — never on every page load.
+  useEffect(() => {
+    if (!open) return;
+    void fetchNotifications();
+    const interval = setInterval(() => void fetchNotifications({ force: true }), NOTIFICATION_REFRESH_MS);
+    return () => clearInterval(interval);
+  }, [open, fetchNotifications]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {

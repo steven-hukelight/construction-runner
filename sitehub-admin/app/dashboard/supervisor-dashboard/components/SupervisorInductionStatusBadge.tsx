@@ -4,13 +4,13 @@ import React from "react";
 import type { SupervisorOperativeStatus } from "../utils/buildSupervisorComplianceDataset";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 
-const STATUS_STYLES: Record<SupervisorOperativeStatus, { bg: string; text: string }> = {
-  Inducted: { bg: "bg-emerald-100", text: "text-emerald-800" },
-  Grandfathered: { bg: "bg-blue-100", text: "text-blue-800" },
-  "Pre-Induction Required": { bg: "bg-amber-100", text: "text-amber-800" },
-  "Pre-Induction Override": { bg: "bg-purple-100", text: "text-purple-800" },
-  "Induction Required": { bg: "bg-gray-100", text: "text-gray-700" },
-  Expired: { bg: "bg-red-100", text: "text-red-800" },
+const STATUS_CHIP: Record<SupervisorOperativeStatus, string> = {
+  Inducted: "status-chip--ok",
+  Grandfathered: "status-chip--info",
+  "Pre-Induction Required": "status-chip--warn",
+  "Pre-Induction Override": "status-chip--role-superuser",
+  "Induction Required": "status-chip--muted",
+  Expired: "status-chip--danger",
 };
 
 // When the pre-induction UI is disabled site-wide we still receive the
@@ -39,13 +39,7 @@ type Props = {
 };
 
 export default function SupervisorInductionStatusBadge({ status }: Props) {
-  const s = STATUS_STYLES[status] ?? { bg: "bg-gray-100", text: "text-gray-700" };
+  const chip = STATUS_CHIP[status] ?? "status-chip--muted";
   const label = DISPLAY_LABELS[status] ?? status;
-  return (
-    <span
-      className={`inline-flex px-2 py-0.5 text-xs font-medium rounded-md whitespace-nowrap ${s.bg} ${s.text}`}
-    >
-      {label}
-    </span>
-  );
+  return <span className={`status-chip ${chip}`}>{label}</span>;
 }

@@ -59,6 +59,21 @@ export default function BriefingsUploadModal() {
         const err = await res.json().catch(() => ({}));
         throw new Error(err.error || "Upload failed");
       }
+      const json = (await res.json().catch(() => ({}))) as {
+        push?: { recipients?: number; sent?: boolean; error?: string };
+      };
+      const push = json.push;
+      if (push && push.recipients && push.recipients > 0 && !push.sent) {
+        alert(
+          `Briefing saved, but the push notification may not have reached devices${
+            push.error ? `: ${push.error}` : "."
+          }`,
+        );
+      } else if (push && (!push.recipients || push.recipients === 0)) {
+        alert(
+          "Briefing saved. No one is assigned to that site yet, so no push was sent.",
+        );
+      }
       setOpen(false);
       setFile(null);
       setTitle("");

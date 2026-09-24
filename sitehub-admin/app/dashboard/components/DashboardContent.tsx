@@ -19,7 +19,6 @@ const DashboardCharts = dynamic(
     ),
   }
 );
-import { supabase } from "@/supabase/auth/client";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 import type { DashboardDataSite, DashboardDataRams, DashboardDataUser, DashboardDataTask } from "./dashboardTypes";
@@ -68,10 +67,9 @@ export function DashboardContent({
   users,
   tasks,
 }: DashboardContentProps) {
-  const [liveSites, setLiveSites] = useState<DashboardDataSite[] | null>(null);
-  const [liveRAMS, setLiveRAMS] = useState<DashboardDataRams[] | null>(null);
-  const [liveUsers, setLiveUsers] = useState<DashboardDataUser[] | null>(null);
-  const [liveTasks, setLiveTasks] = useState<DashboardDataTask[] | null>(null);
+  // Trust SSR props for the heavy lists — previously this client re-fetched
+  // sites/rams/users/tasks on mount (duplicate of the server round-trip) and
+  // again on every Realtime event, which made the home dashboard feel slow.
   const [pendingRegistrations, setPendingRegistrations] = useState<unknown[] | null>(null);
   const [unreviewedNearMiss, setUnreviewedNearMiss] = useState<number>(0);
 
@@ -81,64 +79,39 @@ export function DashboardContent({
     if (!role) return;
 
     const qs = (base: string) => {
-      if (role === "superuser" && companyId) return `${base}?companyId=${encodeURIComponent(companyId)}`;
       if (companyId) return `${base}?companyId=${encodeURIComponent(companyId)}`;
       return base;
     };
 
-    const fetchAll = async () => {
+    const fetchAttentionCounts = async () => {
       try {
-        const [sitesRes, ramsRes, usersRes, tasksRes, regsRes, nearMissRes] = await Promise.all([
-          fetch(qs("/api/sites"), { cache: "no-store", credentials: "include" }),
-          fetch(qs("/api/rams"), { cache: "no-store", credentials: "include" }),
-          fetch(qs("/api/users"), { cache: "no-store", credentials: "include" }),
-          fetch(qs("/api/tasks"), { cache: "no-store", credentials: "include" }),
+        const [regsRes, nearMissRes] = await Promise.all([
           fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
-          fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, { cache: "no-store", credentials: "include" }),
+          fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
         ]);
-        const sitesData = sitesRes.ok ? await sitesRes.json() : null;
-        const ramsData = ramsRes.ok ? await ramsRes.json() : null;
-        const usersData = usersRes.ok ? await usersRes.json() : null;
-        const tasksData = tasksRes.ok ? await tasksRes.json() : null;
         const regsData = regsRes.ok ? await regsRes.json() : null;
-        if (Array.isArray(sitesData)) setLiveSites(sitesData);
-        if (Array.isArray(ramsData)) setLiveRAMS(ramsData);
-        if (Array.isArray(usersData)) setLiveUsers(usersData);
-        if (Array.isArray(tasksData)) setLiveTasks(tasksData);
         if (Array.isArray(regsData)) setPendingRegistrations(regsData);
         if (nearMissRes?.ok) {
           const nm = await nearMissRes.json();
           setUnreviewedNearMiss(typeof nm?.count === "number" ? nm.count : 0);
         }
       } catch {
-        /* ignore init errors */
+        /* ignore */
       }
     };
 
-    fetchAll();
-
-    // Realtime: filter by company_id for non-superusers
-    const filterCol = "company_id";
-    const useFilter = role !== "superuser" && companyId;
-    const realtimeFilter = useFilter ? `${filterCol}=eq.${companyId}` : undefined;
-    const channel = supabase
-      .channel("dashboard-realtime")
-      .on("postgres_changes", { event: "*", schema: "public", table: "sites", filter: realtimeFilter }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "rams", filter: realtimeFilter }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "users", filter: realtimeFilter }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "tasks", filter: realtimeFilter }, () => fetchAll())
-      .on("postgres_changes", { event: "*", schema: "public", table: "near_miss", filter: realtimeFilter }, () => fetchAll())
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
+    void fetchAttentionCounts();
+    const interval = setInterval(fetchAttentionCounts, 120_000);
+    return () => clearInterval(interval);
   }, []);
 
-  const effSites = liveSites ?? sites;
-  const effRAMS = liveRAMS ?? rams;
-  const effUsers = liveUsers ?? users;
-  const effTasks = liveTasks ?? tasks;
+  const effSites = sites;
+  const effRAMS = rams;
+  const effUsers = users;
+  const effTasks = tasks;
 
   const effTotalSites = Array.isArray(effSites) ? effSites.length : totalSites;
   const effActiveRAMS = Array.isArray(effRAMS)

@@ -8,6 +8,10 @@ import Button from "../../components/ui/Button";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import AssetInspectionModal from "../AssetInspectionModal";
 import AssetStatusUpdate from "../AssetStatusUpdate";
+import {
+  ASSET_INSPECTION_INTERVAL_PRESETS,
+  assetInspectionDueStatus,
+} from "@/lib/assets/inspectionSchedule";
 
 interface Asset {
   id: string;
@@ -17,6 +21,11 @@ interface Asset {
   description?: string;
   site_id?: string;
   created_at?: string;
+  inspection_interval_days?: number | null;
+  last_inspected_at?: string | null;
+  next_inspection_due?: string | null;
+  inspection_reminder_days_before?: number | null;
+  inspection_required?: boolean | null;
 }
 
 interface Assignment {
@@ -61,6 +70,10 @@ export default function AssetDetailClient({
   const [assignModal, setAssignModal] = useState(false);
   const [users, setUsers] = useState<{ id: string; email?: string; display_name?: string }[]>([]);
   const [selectedUserId, setSelectedUserId] = useState("");
+  const [scheduleSaving, setScheduleSaving] = useState(false);
+  const [intervalDraft, setIntervalDraft] = useState("");
+  const [exporting, setExporting] = useState(false);
+  const [reminding, setReminding] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const load = useCallback(async () => {
@@ -82,6 +95,11 @@ export default function AssetDetailClient({
 
       if (aData?.id) {
         setAsset(aData);
+        setIntervalDraft(
+          aData.inspection_interval_days != null
+            ? String(aData.inspection_interval_days)
+            : "",
+        );
       } else if (Array.isArray(aData) && aData.length > 0) {
         setAsset(aData.find((x: Asset) => x.id === assetId) ?? aData[0]);
       } else {
@@ -119,18 +137,32 @@ export default function AssetDetailClient({
     }
   }
 
-  function handleExportAsset() {
-    const payload = {
-      asset: asset ? { id: asset.id, name: asset.name, type: asset.type, status: asset.status, description: asset.description } : null,
-      images: images.map((i) => ({ url: i.file_url, created_at: i.created_at })),
-      exported_at: new Date().toISOString(),
-    };
-    const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
-    const a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = `asset-${assetId}-${Date.now()}.json`;
-    a.click();
-    URL.revokeObjectURL(a.href);
+  async function handleExportAsset() {
+    if (exporting) return;
+    setExporting(true);
+    try {
+      const res = await fetch(`/api/assets/${assetId}/export`, {
+        credentials: "include",
+      });
+      if (!res.ok) throw new Error("Export failed");
+      const blob = await res.blob();
+      const cd = res.headers.get("Content-Disposition") ?? "";
+      const match = /filename="([^"]+)"/.exec(cd);
+      const filename =
+        match?.[1] ??
+        `asset-${(asset?.name ?? assetId).toString().replace(/[^a-z0-9]+/gi, "-").toLowerCase()}-${new Date().toISOString().slice(0, 10)}.pdf`;
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = filename;
+      a.click();
+      URL.revokeObjectURL(url);
+    } catch (e) {
+      console.error("Export failed:", e);
+      alert("Export failed. Please try again.");
+    } finally {
+      setExporting(false);
+    }
   }
 
   useEffect(() => {
@@ -169,6 +201,76 @@ export default function AssetDetailClient({
     } catch (e) {
       console.error(e);
       alert("Failed to remove assignment");
+    }
+  }
+
+  async function saveInspectionSchedule() {
+    setScheduleSaving(true);
+    try {
+      const res = await fetch(`/api/assets/${assetId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          inspection_interval_days: intervalDraft.trim()
+            ? Number(intervalDraft)
+            : null,
+          inspection_required: Boolean(intervalDraft.trim()),
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        alert(err?.error ?? "Failed to save schedule");
+        return;
+      }
+      await load();
+    } finally {
+      setScheduleSaving(false);
+    }
+  }
+
+  function canSendInspectionReminder(): boolean {
+    const due = (asset?.next_inspection_due ?? "").toString().slice(0, 10);
+    if (!due) return false;
+    const today = new Date();
+    const todayUtc = Date.UTC(
+      today.getUTCFullYear(),
+      today.getUTCMonth(),
+      today.getUTCDate(),
+    );
+    const dueUtc = Date.parse(`${due}T00:00:00.000Z`);
+    if (!Number.isFinite(dueUtc)) return false;
+    const daysUntil = Math.round((dueUtc - todayUtc) / 86_400_000);
+    const status = assetInspectionDueStatus({
+      nextDue: due,
+      reminderDaysBefore: asset?.inspection_reminder_days_before,
+      inspectionRequired: asset?.inspection_required,
+    });
+    return status === "overdue" || status === "due_soon" || (daysUntil >= 0 && daysUntil <= 2);
+  }
+
+  async function handleSendReminder() {
+    if (reminding) return;
+    setReminding(true);
+    try {
+      const res = await fetch(`/api/assets/${assetId}/remind`, {
+        method: "POST",
+        credentials: "include",
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        alert(json?.error ?? "Failed to send reminder");
+        return;
+      }
+      alert(
+        json?.success
+          ? `Reminder sent to ${json.recipients ?? 0} recipient(s).`
+          : `Reminder attempted but may not have delivered${json?.error ? `: ${json.error}` : "."}`,
+      );
+    } catch (e) {
+      console.error(e);
+      alert("Failed to send reminder");
+    } finally {
+      setReminding(false);
     }
   }
 
@@ -213,6 +315,60 @@ export default function AssetDetailClient({
             <AssetStatusUpdate asset={asset} onUpdate={() => load()} />
           </div>
           <div>
+            <h3 className="font-semibold mb-2">Inspection schedule</h3>
+            {(() => {
+              const due = assetInspectionDueStatus({
+                nextDue: asset.next_inspection_due,
+                reminderDaysBefore: asset.inspection_reminder_days_before,
+                inspectionRequired: asset.inspection_required,
+              });
+              const dueLabel =
+                due === "overdue"
+                  ? "Overdue"
+                  : due === "due_soon"
+                    ? "Due soon"
+                    : due === "ok"
+                      ? "On schedule"
+                      : "No schedule";
+              return (
+                <p className="text-sm text-slate-600 mb-3">
+                  {dueLabel}
+                  {asset.next_inspection_due
+                    ? ` · next due ${asset.next_inspection_due}`
+                    : ""}
+                  {asset.last_inspected_at
+                    ? ` · last ${formatDate(asset.last_inspected_at)}`
+                    : ""}
+                </p>
+              );
+            })()}
+            <div className="flex flex-wrap gap-2 items-center">
+              <select
+                className="input"
+                value={intervalDraft}
+                onChange={(e) => setIntervalDraft(e.target.value)}
+              >
+                <option value="">No schedule</option>
+                {ASSET_INSPECTION_INTERVAL_PRESETS.map((p) => (
+                  <option key={p.days} value={String(p.days)}>
+                    Every {p.label}
+                  </option>
+                ))}
+              </select>
+              <Button
+                size="sm"
+                variant="secondary"
+                disabled={scheduleSaving}
+                onClick={() => void saveInspectionSchedule()}
+              >
+                {scheduleSaving ? "Saving…" : "Save"}
+              </Button>
+            </div>
+            <p className="text-xs text-slate-500 mt-2">
+              Completing an inspection rolls the next due date forward by this interval.
+            </p>
+          </div>
+          <div>
             <h3 className="font-semibold mb-2">Actions</h3>
             <div className="flex flex-wrap gap-2">
               <Button size="sm" variant="secondary" onClick={() => setInspectionOpen(true)}>
@@ -232,9 +388,24 @@ export default function AssetDetailClient({
               <Button size="sm" variant="secondary" onClick={() => fileInputRef.current?.click()} disabled={uploading}>
                 {uploading ? "Uploading…" : "Add Images"}
               </Button>
-              <Button size="sm" variant="secondary" onClick={handleExportAsset}>
-                Export Asset
+              <Button
+                size="sm"
+                variant="secondary"
+                onClick={() => void handleExportAsset()}
+                disabled={exporting}
+              >
+                {exporting ? "Exporting…" : "Export PDF"}
               </Button>
+              {canSendInspectionReminder() && (
+                <Button
+                  size="sm"
+                  variant="secondary"
+                  onClick={() => void handleSendReminder()}
+                  disabled={reminding}
+                >
+                  {reminding ? "Sending…" : "Send reminder"}
+                </Button>
+              )}
             </div>
           </div>
         </div>

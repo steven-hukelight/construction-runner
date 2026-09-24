@@ -12,9 +12,9 @@ import { SitePicker } from "../../components/ui/SitePicker";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
 const SEVERITIES = [
-  { id: "info", label: "Info", class: "bg-blue-100 text-blue-800" },
-  { id: "warning", label: "Warning", class: "bg-amber-100 text-amber-800" },
-  { id: "critical", label: "Critical", class: "bg-red-100 text-red-800" },
+  { id: "info", label: "Info", class: "status-chip--info" },
+  { id: "warning", label: "Warning", class: "status-chip--warn" },
+  { id: "critical", label: "Critical", class: "status-chip--danger" },
 ] as const;
 
 type AlertItem = {

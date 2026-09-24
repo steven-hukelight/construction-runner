@@ -76,9 +76,7 @@ export default function ComplianceCards({
             <ComplianceStatusBadge status={row.status} siteId={row.siteId} />
             <RAMSStatusBadge status={row.ramsStatus} />
             {row.adminPreInductionOverride && (
-              <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 text-purple-800">
-                Override
-              </span>
+              <span className="status-chip status-chip--role-superuser">Override</span>
             )}
             <ComplianceMissingItemsIcon items={row.missingItems} />
             <ComplianceExpiryWarnings items={row.expiryWarnings} />

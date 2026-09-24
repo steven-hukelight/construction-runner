@@ -1,98 +1,83 @@
-import { jsPDF } from "jspdf";
-import { formatPdfDateTime } from "@/lib/pdf/formatPdfDateTime";
-import { drawLogoOnPdf } from "@/lib/pdf/drawLogoOnPdf";
+import { createReportPdf } from "@/lib/pdf/createReportPdf";
 import type { LogoForPdf } from "@/lib/pdf/fetchCompanyLogoForPdf";
+import { PDF_THEME } from "@/lib/pdf/documentChrome";
 import type { ComplianceExportRow } from "./buildComplianceDataset";
 
 const ROW_HEIGHT = 8;
-const HEADER_HEIGHT = 10;
-const MARGIN = 20;
-const FOOTER_HEIGHT = 20;
+const MARGIN = 16;
 
 export function buildPdfDocument(
   dataset: ComplianceExportRow[],
-  options?: { logo?: LogoForPdf | null }
+  options?: { logo?: LogoForPdf | null; companyName?: string | null },
 ): Buffer {
-  const doc = new jsPDF({ orientation: "landscape", unit: "mm", format: "a4" });
+  const report = createReportPdf({
+    title: "Induction Compliance Report",
+    subtitle: `${dataset.length} operative${dataset.length === 1 ? "" : "s"}`,
+    branding: {
+      companyName: options?.companyName,
+      logo: options?.logo,
+    },
+    footerLabel: "Construction Runner — compliance report",
+    orientation: "landscape",
+  });
 
-  const pageWidth = doc.internal.pageSize.getWidth();
-  const pageHeight = doc.internal.pageSize.getHeight();
+  const { doc } = report;
+  const pageWidth = report.pageWidth();
   const contentWidth = pageWidth - MARGIN * 2;
 
-  if (options?.logo) {
-    drawLogoOnPdf(doc, options.logo, pageWidth, MARGIN);
-  }
-
-  doc.setFontSize(18);
-  doc.setFont("helvetica", "bold");
-  doc.text("Induction Compliance Report", MARGIN, MARGIN + 8);
-
-  doc.setFontSize(10);
-  doc.setFont("helvetica", "normal");
-  doc.text(`Generated: ${formatPdfDateTime(new Date())}`, MARGIN, MARGIN + 16);
-
-  const tableTop = MARGIN + 22;
   const colWidths = [
-    contentWidth * 0.1,  // Operative
-    contentWidth * 0.1,  // Company
-    contentWidth * 0.08, // Site
-    contentWidth * 0.1, // Status
-    contentWidth * 0.05, // Score
-    contentWidth * 0.06, // RAMS
-    contentWidth * 0.12, // Missing
-    contentWidth * 0.1,  // Expiring
-    contentWidth * 0.05, // Override
-    contentWidth * 0.06, // Grandfathered
+    contentWidth * 0.1,
+    contentWidth * 0.1,
+    contentWidth * 0.08,
+    contentWidth * 0.1,
+    contentWidth * 0.05,
+    contentWidth * 0.06,
+    contentWidth * 0.12,
+    contentWidth * 0.1,
+    contentWidth * 0.05,
+    contentWidth * 0.06,
   ];
-  const cols = ["Operative", "Company", "Site", "Status", "Score", "RAMS", "Missing", "Expiring", "Override", "Grandfathered"];
+  const cols = [
+    "Operative",
+    "Company",
+    "Site",
+    "Status",
+    "Score",
+    "RAMS",
+    "Missing",
+    "Expiring",
+    "Override",
+    "Grandfathered",
+  ];
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  let x = MARGIN;
-  cols.forEach((col, i) => {
-    doc.text(col, x + 1, tableTop + 5);
-    x += colWidths[i];
+  const headerCols = cols.map((label, i) => {
+    let x = MARGIN;
+    for (let j = 0; j < i; j++) x += colWidths[j];
+    return { label, x: x + 1 };
   });
-
-  doc.setDrawColor(200, 200, 200);
-  doc.line(MARGIN, tableTop, pageWidth - MARGIN, tableTop);
-  doc.line(MARGIN, tableTop + HEADER_HEIGHT, pageWidth - MARGIN, tableTop + HEADER_HEIGHT);
-
-  x = MARGIN;
-  colWidths.forEach((w) => {
-    doc.line(x, tableTop, x, tableTop + HEADER_HEIGHT);
-    x += w;
-  });
-  doc.line(x, tableTop, x, tableTop + HEADER_HEIGHT);
+  report.tableHeader(headerCols);
 
   doc.setFont("helvetica", "normal");
-
-  let y = tableTop + HEADER_HEIGHT + ROW_HEIGHT / 2;
-  let firstRowOnPage = true;
+  doc.setFontSize(8);
 
   dataset.forEach((row) => {
-    if (y + ROW_HEIGHT > pageHeight - MARGIN - FOOTER_HEIGHT) {
-      doc.addPage("a4", "landscape");
-      doc.setFontSize(9);
-      y = MARGIN + ROW_HEIGHT / 2;
-      firstRowOnPage = true;
-    }
+    report.ensureSpace(ROW_HEIGHT + 2);
+    const y = report.y;
 
-    if (!firstRowOnPage) {
-      doc.setDrawColor(240, 240, 240);
-      doc.line(MARGIN, y - ROW_HEIGHT / 2, pageWidth - MARGIN, y - ROW_HEIGHT / 2);
-    }
-    firstRowOnPage = false;
-
-    const missingStr = row.missingItems.join("; ").slice(0, 30) + (row.missingItems.join("; ").length > 30 ? "…" : "");
-    const expiringStr = row.expiringItems.join("; ").slice(0, 30) + (row.expiringItems.join("; ").length > 30 ? "…" : "");
+    const missingStr =
+      row.missingItems.join("; ").slice(0, 30) +
+      (row.missingItems.join("; ").length > 30 ? "…" : "");
+    const expiringStr =
+      row.expiringItems.join("; ").slice(0, 30) +
+      (row.expiringItems.join("; ").length > 30 ? "…" : "");
     const ramsStr = row.ramsStatus || "—";
 
     const cells = [
       row.name.slice(0, 18) + (row.name.length > 18 ? "…" : ""),
       row.companyName.slice(0, 16) + (row.companyName.length > 16 ? "…" : ""),
       row.siteName.slice(0, 12) + (row.siteName.length > 12 ? "…" : ""),
-      row.inductionStatus.slice(0, 12) + (row.inductionStatus.length > 12 ? "…" : ""),
+      row.inductionStatus.slice(0, 12) +
+        (row.inductionStatus.length > 12 ? "…" : ""),
       row.complianceScore != null ? String(row.complianceScore) : "—",
       ramsStr.slice(0, 8) + (ramsStr.length > 8 ? "…" : ""),
       missingStr || "—",
@@ -101,28 +86,18 @@ export function buildPdfDocument(
       row.grandfathered ? "Yes" : "—",
     ];
 
-    x = MARGIN;
+    doc.setTextColor(...PDF_THEME.text);
+    let x = MARGIN;
     cells.forEach((cell, i) => {
       doc.text(cell, x + 1, y, { maxWidth: colWidths[i] - 2 });
       x += colWidths[i];
     });
 
-    y += ROW_HEIGHT;
+    doc.setDrawColor(...PDF_THEME.rule);
+    doc.setLineWidth(0.15);
+    doc.line(MARGIN, y + 3, pageWidth - MARGIN, y + 3);
+    report.setY(y + ROW_HEIGHT);
   });
 
-  const pageCount = doc.getNumberOfPages();
-  for (let p = 1; p <= pageCount; p++) {
-    doc.setPage(p);
-    doc.setFontSize(8);
-    doc.setFont("helvetica", "normal");
-    doc.text(
-      "Generated by Construction Runner Compliance Engine",
-      pageWidth / 2,
-      pageHeight - 8,
-      { align: "center" }
-    );
-    doc.text(`Page ${p} of ${pageCount}`, pageWidth - MARGIN - 20, pageHeight - 8);
-  }
-
-  return Buffer.from(doc.output("arraybuffer"));
+  return report.toBuffer();
 }

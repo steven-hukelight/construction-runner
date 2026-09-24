@@ -17,6 +17,8 @@ function toTime(a: unknown): number {
 export async function GET(req: Request) {
   try {
     const { searchParams } = new URL(req.url);
+    const limitRaw = parseInt(searchParams.get("limit") || "", 10);
+    const listLimit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 500) : 500;
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value;
     let companyId = cookieStore.get("companyId")?.value;
@@ -39,7 +41,7 @@ export async function GET(req: Request) {
           .select("*")
           .eq("company_id", companyId)
           .order("created_at", { ascending: false })
-          .limit(500);
+          .limit(listLimit);
         if (siteScope !== "all") q = q.in("site_id", siteScope);
         const { data, error } = await q;
         if (error) {
@@ -52,7 +54,7 @@ export async function GET(req: Request) {
         .from("rams")
         .select("*")
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(listLimit);
       if (error) {
         console.error("GET /api/rams (superuser all):", error.message);
         return NextResponse.json({ error: error.message }, { status: 500 });
@@ -68,7 +70,7 @@ export async function GET(req: Request) {
         .select("*")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(listLimit);
       if (siteScope !== "all") ownQuery = ownQuery.in("site_id", siteScope);
       const { data: ownRams, error: ownErr } = await ownQuery;
       if (ownErr) {
@@ -91,7 +93,7 @@ export async function GET(req: Request) {
         .select("*")
         .in("site_id", mainSiteIds)
         .order("created_at", { ascending: false })
-        .limit(500);
+        .limit(listLimit);
       if (siteErr) {
         console.error("GET /api/rams (by site):", siteErr.message);
         return NextResponse.json({ error: siteErr.message }, { status: 500 });
@@ -103,7 +105,7 @@ export async function GET(req: Request) {
         rams.push({ id: doc.id, ...doc });
       }
       rams.sort((a, b) => toTime(b.created_at ?? b.createdAt) - toTime(a.created_at ?? a.createdAt));
-      return NextResponse.json(rams);
+      return NextResponse.json(rams.slice(0, listLimit));
     }
     return NextResponse.json([], { status: 200 });
   } catch (e: unknown) {

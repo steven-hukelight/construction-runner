@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { assertInspectionAssetAccess } from "@/app/api/assets/_utils/inspectionAccess";
+import { rollAssetInspectionSchedule } from "@/lib/assets/rollInspectionSchedule";
 
 export async function POST(req: Request) {
   try {
@@ -59,6 +60,14 @@ export async function POST(req: Request) {
       const { error: imgErr } = await supabaseAdmin.from("asset_inspection_images").insert(rows);
       if (imgErr) {
         console.error("POST /api/assets/inspection images:", imgErr);
+      }
+    }
+
+    if (status === "completed") {
+      try {
+        await rollAssetInspectionSchedule(String(assetId));
+      } catch (e) {
+        console.error("rollAssetInspectionSchedule:", e);
       }
     }
 

@@ -5,6 +5,10 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess";
 import { getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import {
+  computeNextInspectionDue,
+  parseIntervalDays,
+} from "@/lib/assets/inspectionSchedule";
 
 function getQueryCompanyId(req: Request): string | null {
   try {
@@ -105,7 +109,9 @@ export async function GET(req: Request) {
 
     let query = supabaseAdmin
       .from("assets")
-      .select("id, name, type, serial_number, status, site_id, company_id, created_at")
+      .select(
+        "id, name, type, serial_number, status, site_id, company_id, created_at, inspection_interval_days, last_inspected_at, next_inspection_due, inspection_reminder_days_before, inspection_required",
+      )
       .order("created_at", { ascending: false });
 
     if (companyId) {
@@ -237,6 +243,34 @@ export async function POST(req: Request) {
     };
     if (serialNumber) insertPayload.serial_number = serialNumber;
     if (body?.description != null) insertPayload.description = String(body.description).trim();
+
+    const intervalDays = parseIntervalDays(
+      body?.inspection_interval_days ?? body?.inspectionIntervalDays,
+    );
+    if (intervalDays != null) {
+      insertPayload.inspection_interval_days = intervalDays;
+      const explicitDue = body?.next_inspection_due ?? body?.nextInspectionDue;
+      if (explicitDue != null && String(explicitDue).trim() !== "") {
+        insertPayload.next_inspection_due = String(explicitDue).trim().slice(0, 10);
+      } else {
+        insertPayload.next_inspection_due = computeNextInspectionDue({
+          intervalDays,
+          from: new Date(),
+        });
+      }
+    }
+    if (body?.inspection_required === false || body?.inspectionRequired === false) {
+      insertPayload.inspection_required = false;
+    }
+    if (body?.inspection_required === true || body?.inspectionRequired === true) {
+      insertPayload.inspection_required = true;
+    }
+    const remind = parseIntervalDays(
+      body?.inspection_reminder_days_before ?? body?.inspectionReminderDaysBefore,
+    );
+    if (remind != null) {
+      insertPayload.inspection_reminder_days_before = remind;
+    }
 
     const { data, error: insertErr } = await supabaseAdmin
       .from("assets")

@@ -12,16 +12,23 @@ export async function userIdsForSiteContent(companyId: string, siteId: string): 
     .eq("company_id", companyId);
   for (const u of staff ?? []) {
     const role = normalizeRole((u as { role?: string }).role);
-    if (role === "admin" || role === "superuser") {
+    // Company-wide staff who should hear about site H&S content.
+    if (
+      role === "admin" ||
+      role === "superuser" ||
+      role === "supervisor" ||
+      role === "site_admin" ||
+      role === "sub_admin"
+    ) {
       ids.add(String((u as { id: string }).id));
     }
   }
 
-  const { data: siteAdmins } = await supabaseAdmin
+  const { data: siteUsers } = await supabaseAdmin
     .from("user_sites")
     .select("user_id")
     .eq("site_id", siteId);
-  for (const row of siteAdmins ?? []) {
+  for (const row of siteUsers ?? []) {
     if (row.user_id) ids.add(String(row.user_id));
   }
 

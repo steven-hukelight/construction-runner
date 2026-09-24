@@ -113,32 +113,47 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
   async function handleExportPDF() {
     if (!rows.length) return;
 
-    // Dynamic import to reduce bundle size
-    const { default: jsPDF } = await import('jspdf');
-    
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text("Tasks", 14, 16);
-    doc.setFontSize(10);
+    const [{ createReportPdf }, branding] = await Promise.all([
+      import("@/lib/pdf/createReportPdf"),
+      import("@/lib/pdf/fetchPdfBrandingClient").then((m) =>
+        m.fetchPdfBrandingClient(),
+      ),
+    ]);
 
-    let y = 26;
-    const lineHeight = 7;
-
-    rows.forEach((r: any, index: number) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      const assigned = Array.isArray(r.assigned_to_names)
-        ? r.assigned_to_names.join(", ")
-        : (r.assigned_to ?? r.assignedTo ?? "-");
-      const site = r.site_name ?? r.site_id ?? r.siteId ?? "-";
-      const line = `${index + 1}. ${r.title || "(no title)"}  •  ${site}  •  ${assigned}  •  ${r.due_date ?? r.dueDate ?? ""}  •  ${r.status || ""}`;
-      doc.text(line, 14, y);
-      y += lineHeight;
+    const report = createReportPdf({
+      title: "Tasks",
+      metaLines: [`${rows.length} task${rows.length === 1 ? "" : "s"}`],
+      branding,
+      footerLabel: "Construction Runner — tasks",
     });
 
-    doc.save(`tasks-${new Date().toISOString().slice(0, 10)}.pdf`);
+    const { doc, margin } = report;
+    rows.forEach((r: any, index: number) => {
+      report.ensureSpace(12);
+      let y = report.y;
+      const assigned = Array.isArray(r.assigned_to_names)
+        ? r.assigned_to_names.join(", ")
+        : (r.assigned_to ?? r.assignedTo ?? "—");
+      const site = r.site_name ?? r.site_id ?? r.siteId ?? "—";
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(28, 32, 38);
+      doc.text(`${index + 1}.  ${r.title || "(no title)"}`, margin, y);
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 110, 124);
+      doc.text(
+        `${site}  ·  ${assigned}  ·  ${r.due_date ?? r.dueDate ?? "—"}  ·  ${r.status || "—"}`,
+        margin + 4,
+        y,
+        { maxWidth: report.pageWidth() - margin * 2 - 4 },
+      );
+      report.setY(y + 7);
+    });
+
+    report.applyFooters();
+    report.doc.save(`tasks-${new Date().toISOString().slice(0, 10)}.pdf`);
   }
 
   const columns = [

@@ -85,12 +85,14 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const acknowledgements = (acks ?? []).map((a) => {
       const u = userMap.get(a.user_id);
+      const sig = (a.signature_url ?? "").toString().trim();
       return {
         userId: a.user_id,
         name: u?.name ?? "—",
         email: u?.email ?? "—",
         acknowledgedAt: a.acknowledged_at,
-        hasSignature: Boolean(a.signature_url),
+        hasSignature: Boolean(sig),
+        signatureUrl: sig || null,
       };
     });
 

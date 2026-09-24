@@ -211,7 +211,7 @@ export default function AllUsersPage() {
     {
       header: "Role",
       accessor: "role",
-      render: (row: UserRow) => <RoleBadge role={row.role} className="px-2.5 py-1 rounded-lg" />,
+      render: (row: UserRow) => <RoleBadge role={row.role} />,
     },
     { header: "Company", accessor: "company_id", render: (row: UserRow) => { const cid = row.company_id ?? row.companyId; return cid ? (companyMap[cid] ?? cid) : "—"; } },
     {

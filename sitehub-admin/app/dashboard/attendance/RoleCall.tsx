@@ -16,6 +16,7 @@ type AttendanceLog = {
   timestamp?: TimestampLike;
   name?: string;
   displayName?: string;
+  display_name?: string;
   operativeName?: string;
   userId?: string;
   user_id?: string;
@@ -347,29 +348,45 @@ export default function RoleCall({
   const handleExportPDF = async () => {
     if (!displayedPeople.length) return;
 
-    const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text(statusTab === "signed_in" ? "Role Call — Signed in" : "Role Call — Signed out", 14, 16);
-    doc.setFontSize(10);
+    const [{ createReportPdf }, branding] = await Promise.all([
+      import("@/lib/pdf/createReportPdf"),
+      import("@/lib/pdf/fetchPdfBrandingClient").then((m) =>
+        m.fetchPdfBrandingClient(),
+      ),
+    ]);
 
-    let y = 26;
-    const lineHeight = 7;
-
-    displayedPeople.forEach((p, index) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      doc.text(
-        `${index + 1}. ${p.name}  •  ${p.lastActionNormalized === "sign_in" ? "Signed in" : "Signed out"}  •  ${p.lastTime}`,
-        14,
-        y
-      );
-      y += lineHeight;
+    const report = createReportPdf({
+      title:
+        statusTab === "signed_in"
+          ? "Role call — Signed in"
+          : "Role call — Signed out",
+      subtitle: `Date: ${selectedDate}`,
+      metaLines: [`${displayedPeople.length} people`],
+      branding,
+      footerLabel: "Construction Runner — role call",
     });
 
-    doc.save(`role-call-${statusTab === "signed_in" ? "signed-in" : "signed-out"}-${selectedDate}.pdf`);
+    const { doc, margin } = report;
+    displayedPeople.forEach((p, index) => {
+      report.ensureSpace(8);
+      const y = report.y;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(9.5);
+      doc.setTextColor(28, 32, 38);
+      doc.text(`${index + 1}.  ${p.name}`, margin, y);
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 110, 124);
+      const status =
+        p.lastActionNormalized === "sign_in" ? "Signed in" : "Signed out";
+      doc.text(`${status}  ·  ${p.lastTime}`, margin + 6, y + 4.5);
+      doc.setTextColor(28, 32, 38);
+      report.setY(y + 10);
+    });
+
+    report.applyFooters();
+    doc.save(
+      `role-call-${statusTab === "signed_in" ? "signed-in" : "signed-out"}-${selectedDate}.pdf`,
+    );
   };
 
   const handleArchiveAndClear = async () => {
@@ -546,19 +563,35 @@ export default function RoleCall({
 }
 
 function resolveName(uid: string, data: AttendanceLog, users: User[], profiles: Profile[]): string {
+  const looksLikeEmail = (s: string) => s.includes("@");
+  const pick = (...vals: unknown[]): string | null => {
+    for (const v of vals) {
+      const s = String(v ?? "").trim();
+      if (s && !looksLikeEmail(s)) return s;
+    }
+    return null;
+  };
+
   const trimmedUid = String(uid || "").trim();
   if (trimmedUid) {
     const p = profiles.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
-    if (p?.displayName && String(p.displayName).trim()) return String(p.displayName);
     const u = users.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
-    if (u?.name && String(u.name).trim()) return String(u.name);
-    if (u?.email && String(u.email).includes("@")) return String(u.email).split("@")[0];
+    const fromDirectory = pick(
+      p?.displayName,
+      p?.display_name,
+      u?.displayName,
+      u?.display_name,
+      u?.name,
+    );
+    if (fromDirectory) return fromDirectory;
+    const email = String(u?.email ?? "").trim();
+    if (email.includes("@")) return email.split("@")[0] || email;
   }
-  // Fall back to API-enriched or stamped values
-  if (data.name && String(data.name).trim()) return String(data.name);
-  if (data.displayName && String(data.displayName).trim()) return String(data.displayName);
-  if (data.operativeName && String(data.operativeName).trim()) return String(data.operativeName);
-  if (data.email && String(data.email).includes("@")) return String(data.email).split("@")[0];
+
+  const fromLog = pick(data.displayName, data.display_name, data.operativeName, data.name);
+  if (fromLog) return fromLog;
+  const email = String(data.email ?? "").trim();
+  if (email.includes("@")) return email.split("@")[0] || email;
   if (data.operativeId && String(data.operativeId).trim()) return String(data.operativeId);
   return "Unknown";
 }

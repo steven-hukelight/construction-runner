@@ -28,7 +28,9 @@ export async function GET(req: Request) {
     // Select only base columns – category/serial_number/condition may not exist yet
     const { data: assets, error } = await supabaseAdmin
       .from("assets")
-      .select("id, name, description, type, status, site_id")
+      .select(
+        "id, name, description, type, status, site_id, inspection_interval_days, last_inspected_at, next_inspection_due, inspection_reminder_days_before, inspection_required",
+      )
       .in("id", assetIds);
 
     if (error) {

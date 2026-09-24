@@ -123,7 +123,14 @@ export default function Sidebar({ role }: SidebarProps) {
   useEffect(() => {
     fetchNearMissBadge();
     fetchPendingApprovalsBadge();
-  }, [pathname, fetchNearMissBadge, fetchPendingApprovalsBadge]);
+    // Poll occasionally; do NOT refetch on every client navigation — that was
+    // doubling API load across the whole dashboard shell.
+    const interval = setInterval(() => {
+      fetchNearMissBadge();
+      fetchPendingApprovalsBadge();
+    }, 120_000);
+    return () => clearInterval(interval);
+  }, [fetchNearMissBadge, fetchPendingApprovalsBadge]);
 
   useEffect(() => {
     window.addEventListener("near-miss-reviewed", fetchNearMissBadge);

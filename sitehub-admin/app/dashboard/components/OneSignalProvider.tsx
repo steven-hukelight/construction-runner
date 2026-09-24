@@ -21,37 +21,42 @@ export default function OneSignalProvider() {
       FALLBACK_ONESIGNAL_APP_ID;
     if (!appId?.trim()) return;
 
-    initRef.current = true;
-
-    OneSignal.init({
-      appId: appId.trim(),
-      allowLocalhostAsSecureOrigin: true,
-      promptOptions: {
-        slidedown: {
-          prompts: [
-            {
-              type: "push",
-              autoPrompt: true,
-              delay: { pageViews: 1, timeDelay: 2 },
-              text: {
-                actionMessage: "Enable push notifications for briefings and task updates.",
-                acceptButton: "Allow",
-                cancelButton: "Not now",
+    // Defer so first paint / dashboard APIs aren't competing with the SDK.
+    const boot = window.setTimeout(() => {
+      if (initRef.current) return;
+      initRef.current = true;
+      OneSignal.init({
+        appId: appId.trim(),
+        allowLocalhostAsSecureOrigin: true,
+        promptOptions: {
+          slidedown: {
+            prompts: [
+              {
+                type: "push",
+                autoPrompt: true,
+                delay: { pageViews: 1, timeDelay: 2 },
+                text: {
+                  actionMessage: "Enable push notifications for briefings and task updates.",
+                  acceptButton: "Allow",
+                  cancelButton: "Not now",
+                },
               },
-            },
-          ],
+            ],
+          },
         },
-      },
-    })
-      .then(() => {
-        const uid = getUidFromCookie();
-        if (uid) {
-          OneSignal.login(uid);
-        }
       })
-      .catch((e) => {
-        console.warn("[OneSignal] init error:", e);
-      });
+        .then(() => {
+          const uid = getUidFromCookie();
+          if (uid) {
+            OneSignal.login(uid);
+          }
+        })
+        .catch((e) => {
+          console.warn("[OneSignal] init error:", e);
+        });
+    }, 4000);
+
+    return () => window.clearTimeout(boot);
   }, []);
 
   return null;

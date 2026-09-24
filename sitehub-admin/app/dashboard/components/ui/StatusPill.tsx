@@ -3,12 +3,12 @@
 type StatusVariant = "reviewed" | "pending" | "approved" | "rejected" | "received" | "default";
 
 const variants: Record<StatusVariant, string> = {
-  reviewed: "bg-[var(--status-reviewed,#E6F4EA)] text-[#0d6832] dark:bg-emerald-900/40 dark:text-emerald-300",
-  approved: "bg-[var(--status-reviewed,#E6F4EA)] text-[#0d6832] dark:bg-emerald-900/40 dark:text-emerald-300",
-  received: "bg-[var(--status-reviewed,#E6F4EA)] text-[#0d6832] dark:bg-emerald-900/40 dark:text-emerald-300",
-  pending: "bg-[var(--status-pending,#FFF4E5)] text-[#9a6700] dark:bg-amber-900/40 dark:text-amber-300",
-  rejected: "bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-300",
-  default: "bg-gray-100 text-gray-700 dark:bg-slate-700 dark:text-slate-300",
+  reviewed: "status-chip--ok",
+  approved: "status-chip--ok",
+  received: "status-chip--ok",
+  pending: "status-chip--warn",
+  rejected: "status-chip--danger",
+  default: "status-chip--muted",
 };
 
 type StatusPillProps = {
@@ -30,7 +30,7 @@ export function StatusPill({ status, label, className = "" }: StatusPillProps) {
   const variant = variants[status] ?? variants.default;
   const displayLabel = label ?? defaultLabels[status] ?? status;
   return (
-    <span className={`inline-flex items-center px-2.5 py-1 rounded-full text-[13px] font-medium ${variant} ${className}`}>
+    <span className={`status-chip ${variant} ${className}`.trim()}>
       {displayLabel}
     </span>
   );
@@ -39,8 +39,8 @@ export function StatusPill({ status, label, className = "" }: StatusPillProps) {
 export function statusToVariant(s: string | undefined): StatusVariant {
   if (!s) return "default";
   const lower = s.toLowerCase();
-  if (["reviewed", "approved", "received", "complete"].includes(lower)) return "received";
-  if (["pending", "scheduled"].includes(lower)) return "pending";
-  if (["rejected", "cancelled"].includes(lower)) return "rejected";
+  if (["reviewed", "approved", "received", "complete", "completed", "done"].includes(lower)) return "received";
+  if (["pending", "scheduled", "open", "todo"].includes(lower)) return "pending";
+  if (["rejected", "cancelled", "canceled"].includes(lower)) return "rejected";
   return "default";
 }

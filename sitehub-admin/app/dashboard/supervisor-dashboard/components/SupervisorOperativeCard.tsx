@@ -41,14 +41,10 @@ export default function SupervisorOperativeCard({ operative, onClick }: Props) {
       <div className="mt-3 flex flex-wrap items-center gap-2">
         <SupervisorInductionStatusBadge status={operative.inductionStatus} />
         {operative.grandfathered && (
-          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-blue-100 text-blue-800">
-            Grandfathered
-          </span>
+          <span className="status-chip status-chip--info">Grandfathered</span>
         )}
         {operative.overrideApplied && (
-          <span className="inline-flex px-2 py-0.5 text-xs font-medium rounded-md bg-purple-100 text-purple-800">
-            Override
-          </span>
+          <span className="status-chip status-chip--role-superuser">Override</span>
         )}
         {preInductionUiEnabled && (
           <span className="text-xs text-gray-500">

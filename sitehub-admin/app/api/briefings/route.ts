@@ -28,7 +28,10 @@ export async function GET(req: Request) {
     const siteScope = siteIdsForFilter(restricted, explicitSiteId);
     if (siteScope === "none") return NextResponse.json([]);
 
-    let query = supabaseAdmin.from("briefings").select("*").order("created_at", { ascending: false }).limit(500);
+    let query = supabaseAdmin.from("briefings").select("*").order("created_at", { ascending: false });
+    const limitRaw = parseInt(searchParams.get("limit") || "", 10);
+    const limit = Number.isFinite(limitRaw) && limitRaw > 0 ? Math.min(limitRaw, 500) : 500;
+    query = query.limit(limit);
     if (companyId) query = query.eq("company_id", companyId);
     if (siteScope !== "all") query = query.in("site_id", siteScope);
     const { data } = await query;

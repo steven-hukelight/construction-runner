@@ -46,7 +46,7 @@ export async function GET(req: Request) {
 
     const cookieStore = await cookies();
     const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
-    const isPrivilegedRole = ["admin", "supervisor", "superuser"].includes(role);
+    const isPrivilegedRole = ["admin", "supervisor", "superuser", "site_admin", "sub_admin"].includes(role);
     if (!isPrivilegedRole) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
@@ -64,15 +64,22 @@ export async function GET(req: Request) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // 1. Users in scope. Optional site filter via attendance/site_operatives assignments.
+    // 1. Active users in scope (skip inactive — no point chasing left company).
     let userQuery = supabaseAdmin
       .from("users")
       .select("id, email, display_name, role, company_id, status");
     if (role !== "superuser" && companyId) {
       userQuery = userQuery.eq("company_id", companyId);
     }
-    const { data: allUsers, error: usersErr } = await userQuery;
+    const { data: allUsersRaw, error: usersErr } = await userQuery;
     if (usersErr) throw new Error(`users query: ${usersErr.message}`);
+
+    const allUsers = (allUsersRaw ?? []).filter((u) => {
+      const status = String((u as { status?: string | null }).status ?? "")
+        .toLowerCase()
+        .trim();
+      return status !== "inactive" && status !== "disabled" && status !== "rejected";
+    });
 
     let userIds = (allUsers ?? []).map((u) => String(u.id));
     if (userIds.length === 0) {

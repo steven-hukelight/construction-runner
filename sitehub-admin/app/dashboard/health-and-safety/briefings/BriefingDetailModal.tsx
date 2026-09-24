@@ -3,7 +3,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { X, FileDown, Users } from "lucide-react";
 import Button from "../../components/ui/Button";
-import { DataTableShell } from "../../components/ui/TableChrome";
 import { PortalOverlay } from "../../components/PortalOverlay";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
@@ -24,6 +23,7 @@ type AckRow = {
   email: string;
   acknowledgedAt: string | null;
   hasSignature: boolean;
+  signatureUrl?: string | null;
 };
 
 export default function BriefingDetailModal({
@@ -132,8 +132,8 @@ export default function BriefingDetailModal({
     <PortalOverlay>
     <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
       <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={onClose} aria-hidden />
-      <div className="relative z-10 w-full max-w-3xl card shadow-2xl max-h-[90vh] overflow-y-auto">
-        <div className="flex items-start justify-between gap-4 mb-6">
+      <div className="relative z-10 flex w-full max-w-3xl max-h-[90vh] flex-col overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-2xl dark:border-slate-600 dark:bg-slate-800">
+        <div className="flex shrink-0 items-start justify-between gap-4 border-b border-slate-100 px-6 py-4 dark:border-slate-700">
           <h3 className="text-lg font-semibold text-slate-900 dark:text-slate-100">
             {briefing.title || "Untitled Briefing"}
           </h3>
@@ -147,6 +147,7 @@ export default function BriefingDetailModal({
           </button>
         </div>
 
+        <div className="min-h-0 flex-1 overflow-y-auto px-6 py-5">
         {briefing.body && (
           <div className="mb-6">
             <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Description</h4>
@@ -168,7 +169,7 @@ export default function BriefingDetailModal({
         )}
 
         {canViewAcknowledgements && companyId && (
-          <div className="border-t border-slate-200 dark:border-slate-600 pt-6">
+          <div className="border-t border-slate-200 dark:border-slate-600 pt-6 pb-2">
             <div className="flex flex-wrap items-center justify-between gap-3 mb-3">
               <h4 className="text-sm font-semibold text-slate-800 dark:text-slate-200 flex items-center gap-2">
                 <Users className="w-4 h-4" />
@@ -221,45 +222,61 @@ export default function BriefingDetailModal({
               <p className="text-sm text-slate-500 dark:text-slate-400">No acknowledgements yet.</p>
             )}
             {!loading && acks.length > 0 && (
-              <DataTableShell>
-                <div className="overflow-x-auto">
-                  <table className="data-table w-full text-sm">
-                    <thead>
-                      <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
-                        <th className="px-5 py-3">Name</th>
-                        <th className="px-5 py-3">Email</th>
-                        <th className="px-5 py-3">Acknowledged</th>
-                        <th className="px-5 py-3">Signature</th>
+              <div className="overflow-x-auto rounded-xl border border-slate-200 dark:border-slate-600">
+                <table className="w-full min-w-[36rem] text-sm">
+                  <thead>
+                    <tr className="border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
+                      <th className="px-4 py-3">Name</th>
+                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Acknowledged</th>
+                      <th className="px-4 py-3">Signature</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {acks.map((r) => (
+                      <tr
+                        key={r.userId}
+                        className="border-b border-slate-100/90 text-slate-800 last:border-b-0 dark:border-slate-700/80 dark:text-slate-200"
+                      >
+                        <td className="max-w-[10rem] truncate px-4 py-3 font-semibold" title={r.name}>
+                          {r.name}
+                        </td>
+                        <td className="max-w-[14rem] truncate px-4 py-3" title={r.email}>
+                          {r.email}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3">
+                          {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}
+                        </td>
+                        <td className="px-4 py-3">
+                          {r.hasSignature ? (
+                            r.signatureUrl ? (
+                              <button
+                                type="button"
+                                className="status-chip status-chip--ok"
+                                onClick={() => openDocumentUrl(r.signatureUrl!)}
+                                title="View signature"
+                              >
+                                Yes
+                              </button>
+                            ) : (
+                              <span className="status-chip status-chip--ok">Yes</span>
+                            )
+                          ) : (
+                            <span className="status-chip status-chip--muted">—</span>
+                          )}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {acks.map((r) => (
-                        <tr
-                          key={r.userId}
-                          className="data-table-row border-b border-slate-100/90 text-slate-800 last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/80 dark:text-slate-200"
-                        >
-                          <td className="px-5 py-3 font-semibold">{r.name}</td>
-                          <td className="px-5 py-3">{r.email}</td>
-                          <td className="whitespace-nowrap px-5 py-3">
-                            {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}
-                          </td>
-                          <td className="px-5 py-3">
-                            <span className={`status-chip ${r.hasSignature ? "status-chip--ok" : "status-chip--muted"}`}>
-                              {r.hasSignature ? "Yes" : "—"}
-                            </span>
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              </DataTableShell>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             )}
-            <p className="text-xs text-slate-500 dark:text-slate-400 mt-3">
+            <p className="mt-4 text-xs leading-relaxed text-slate-500 dark:text-slate-400">
               PDF includes your company logo (from Settings → Company) and acknowledgement list. CSV opens in Excel or Numbers.
             </p>
           </div>
         )}
+        </div>
       </div>
     </div>
     </PortalOverlay>

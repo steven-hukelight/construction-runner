@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Download, HeartPulse, UserRound } from "lucide-react";
+import { Bell, Download, HeartPulse, UserRound } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
+import RoleBadge from "../components/RoleBadge";
+import Button from "../components/ui/Button";
 
 type Row = {
   userId: string;
@@ -23,6 +25,8 @@ export default function MissingInfoTable() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "emergency" | "medical" | "both">("all");
+  const [remindingId, setRemindingId] = useState<string | null>(null);
+  const [remindingAll, setRemindingAll] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -30,7 +34,7 @@ export default function MissingInfoTable() {
       const res = await fetch("/api/admin/missing-info", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as Row[];
-      setRows(data);
+      setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       toast.error(e instanceof Error ? e.message : "Failed to load report");
     } finally {
@@ -51,6 +55,63 @@ export default function MissingInfoTable() {
     return true;
   });
 
+  async function remindOne(userId: string) {
+    if (remindingId || remindingAll) return;
+    setRemindingId(userId);
+    try {
+      const res = await fetch("/api/admin/missing-info/remind", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Remind failed");
+      if (json.pushSent) {
+        toast.success("Reminder sent");
+      } else {
+        toast.success(
+          json.emailed
+            ? "Email reminder sent (push may be unavailable on their device)"
+            : "Reminder attempted — check they have the app installed and notifications on",
+        );
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Remind failed");
+    } finally {
+      setRemindingId(null);
+    }
+  }
+
+  async function remindAllVisible() {
+    if (remindingAll || remindingId || filtered.length === 0) return;
+    if (
+      !confirm(
+        `Send a reminder to ${filtered.length} worker${filtered.length === 1 ? "" : "s"} to complete their profile info?`,
+      )
+    ) {
+      return;
+    }
+    setRemindingAll(true);
+    try {
+      const res = await fetch("/api/admin/missing-info/remind", {
+        method: "POST",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ userIds: filtered.map((r) => r.userId) }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (!res.ok) throw new Error(json?.error || "Remind failed");
+      toast.success(
+        `Reminded ${json.recipients ?? filtered.length} worker${(json.recipients ?? filtered.length) === 1 ? "" : "s"}`,
+      );
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Remind failed");
+    } finally {
+      setRemindingAll(false);
+    }
+  }
+
   return (
     <Table
       title="Missing info"
@@ -60,9 +121,21 @@ export default function MissingInfoTable() {
           : `${filtered.length} of ${rows.length} worker${rows.length === 1 ? "" : "s"}`
       }
       actions={
-        <a href="/api/admin/missing-info?format=csv" className="table-link inline-flex items-center gap-2">
-          <Download className="h-4 w-4" /> Export CSV
-        </a>
+        <div className="flex flex-wrap items-center gap-3">
+          <Button
+            size="sm"
+            variant="secondary"
+            type="button"
+            disabled={loading || remindingAll || filtered.length === 0}
+            onClick={() => void remindAllVisible()}
+          >
+            <Bell className="h-4 w-4 mr-1.5 inline" />
+            {remindingAll ? "Sending…" : "Remind all"}
+          </Button>
+          <a href="/api/admin/missing-info?format=csv" className="table-link inline-flex items-center gap-2">
+            <Download className="h-4 w-4" /> Export CSV
+          </a>
+        </div>
       }
       extra={
         <div className="flex flex-wrap items-center gap-3 pt-1">
@@ -97,7 +170,11 @@ export default function MissingInfoTable() {
           accessor: "name",
           render: (r: Row) => <TableNameCell icon={UserRound} label={r.name || "—"} detail={r.email} />,
         },
-        { header: "Role", accessor: "role", render: (r: Row) => r.role ?? "—" },
+        {
+          header: "Role",
+          accessor: "role",
+          render: (r: Row) => <RoleBadge role={r.role} />,
+        },
         {
           header: "Missing",
           accessor: "missing",
@@ -112,9 +189,19 @@ export default function MissingInfoTable() {
           header: "Actions",
           accessor: "actions",
           render: (r: Row) => (
-            <Link href={`/dashboard/users/${r.userId}/my-info`} className="table-link">
-              Fill in
-            </Link>
+            <div className="flex flex-wrap items-center gap-3">
+              <button
+                type="button"
+                className="table-link"
+                disabled={remindingId === r.userId || remindingAll}
+                onClick={() => void remindOne(r.userId)}
+              >
+                {remindingId === r.userId ? "Sending…" : "Remind"}
+              </button>
+              <Link href={`/dashboard/users/${r.userId}/my-info`} className="table-link">
+                Fill in
+              </Link>
+            </div>
           ),
         },
       ]}

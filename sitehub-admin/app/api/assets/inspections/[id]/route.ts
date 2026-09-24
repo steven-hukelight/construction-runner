@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { assertInspectionRecordAccess } from "@/app/api/assets/_utils/inspectionAccess";
+import { rollAssetInspectionSchedule } from "@/lib/assets/rollInspectionSchedule";
 
 /** GET /api/assets/inspections/[id] — single inspection with images & comments. */
 export async function GET(
@@ -123,10 +124,32 @@ export async function PATCH(
       return NextResponse.json({ error: "No valid updates" }, { status: 400 });
     }
 
-    const { error } = await supabaseAdmin.from("asset_inspections").update(updates).eq("id", inspectionId);
+    const { data: before } = await supabaseAdmin
+      .from("asset_inspections")
+      .select("asset_id, status")
+      .eq("id", inspectionId)
+      .maybeSingle();
+
+    const { error } = await supabaseAdmin
+      .from("asset_inspections")
+      .update(updates)
+      .eq("id", inspectionId);
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
+
+    const prevStatus = ((before as { status?: string } | null)?.status ?? "").toLowerCase();
+    if (statusRaw === "completed" && prevStatus !== "completed") {
+      const assetId = (before as { asset_id?: string } | null)?.asset_id;
+      if (assetId) {
+        try {
+          await rollAssetInspectionSchedule(assetId);
+        } catch (e) {
+          console.error("rollAssetInspectionSchedule:", e);
+        }
+      }
+    }
+
     return NextResponse.json({ success: true });
   } catch (e) {
     console.error("PATCH /api/assets/inspections/[id]:", e);

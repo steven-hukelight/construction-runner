@@ -634,33 +634,87 @@ textarea.input{padding:10px 14px;min-height:90px;border-radius:8px}
 .status-chip {
   display: inline-flex;
   align-items: center;
-  padding: 5px 11px;
-  border-radius: 999px;
-  font-size: 12px;
+  gap: 0.35rem;
+  padding: 0.28rem 0.65rem;
+  border-radius: 0.55rem;
+  border: 1px solid transparent;
+  font-size: 11px;
   font-weight: 600;
-  letter-spacing: 0.01em;
-  line-height: 1.2;
+  letter-spacing: 0.02em;
+  line-height: 1.25;
   white-space: nowrap;
+  box-shadow: none;
+}
+.status-chip::before {
+  content: "";
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: currentColor;
+  opacity: 0.85;
+  flex-shrink: 0;
 }
 .status-chip--ok {
-  background: #e6f6ee;
-  color: #0f7a3e;
+  background: rgba(16, 185, 129, 0.12);
+  color: #0f766e;
+  border-color: rgba(16, 185, 129, 0.22);
 }
 .status-chip--info {
-  background: #e8f1fe;
+  background: rgba(37, 99, 235, 0.1);
   color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.2);
 }
 .status-chip--muted {
-  background: #eef2f6;
-  color: #64748b;
+  background: rgba(148, 163, 184, 0.14);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.28);
 }
 .status-chip--warn {
-  background: #fff4e5;
-  color: #9a6700;
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
 }
 .status-chip--danger {
-  background: #fde8e8;
-  color: #b42318;
+  background: rgba(239, 68, 68, 0.1);
+  color: #b91c1c;
+  border-color: rgba(239, 68, 68, 0.22);
+}
+.status-chip--role-superuser {
+  background: rgba(124, 58, 237, 0.1);
+  color: #6d28d9;
+  border-color: rgba(124, 58, 237, 0.22);
+}
+.status-chip--role-admin {
+  background: rgba(37, 99, 235, 0.1);
+  color: #1d4ed8;
+  border-color: rgba(37, 99, 235, 0.22);
+}
+.status-chip--role-site-admin,
+.status-chip--role-site_admin {
+  background: rgba(14, 165, 233, 0.12);
+  color: #0369a1;
+  border-color: rgba(14, 165, 233, 0.24);
+}
+.status-chip--role-sub-admin,
+.status-chip--role-sub_admin {
+  background: rgba(79, 70, 229, 0.1);
+  color: #4338ca;
+  border-color: rgba(79, 70, 229, 0.22);
+}
+.status-chip--role-supervisor {
+  background: rgba(245, 158, 11, 0.12);
+  color: #b45309;
+  border-color: rgba(245, 158, 11, 0.24);
+}
+.status-chip--role-operative {
+  background: rgba(16, 185, 129, 0.12);
+  color: #0f766e;
+  border-color: rgba(16, 185, 129, 0.22);
+}
+.status-chip--role-default {
+  background: rgba(148, 163, 184, 0.14);
+  color: #475569;
+  border-color: rgba(148, 163, 184, 0.28);
 }
 .table-link {
   display: inline-flex;
@@ -1054,24 +1108,61 @@ a {
 }
 
 [data-theme="dark"] .status-chip--ok {
-  background: rgba(16, 185, 129, 0.18);
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(16, 185, 129, 0.28);
   color: #6ee7b7;
 }
 [data-theme="dark"] .status-chip--info {
-  background: rgba(37, 99, 235, 0.22);
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(37, 99, 235, 0.32);
   color: #93c5fd;
 }
 [data-theme="dark"] .status-chip--muted {
-  background: #334155;
+  background: rgba(51, 65, 85, 0.9);
+  border-color: rgba(100, 116, 139, 0.45);
   color: #94a3b8;
 }
 [data-theme="dark"] .status-chip--warn {
-  background: rgba(245, 158, 11, 0.18);
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(245, 158, 11, 0.28);
   color: #fbbf24;
 }
 [data-theme="dark"] .status-chip--danger {
-  background: rgba(239, 68, 68, 0.18);
+  background: rgba(239, 68, 68, 0.16);
+  border-color: rgba(239, 68, 68, 0.28);
   color: #fca5a5;
+}
+[data-theme="dark"] .status-chip--role-superuser {
+  background: rgba(124, 58, 237, 0.2);
+  border-color: rgba(167, 139, 250, 0.35);
+  color: #c4b5fd;
+}
+[data-theme="dark"] .status-chip--role-admin {
+  background: rgba(37, 99, 235, 0.2);
+  border-color: rgba(96, 165, 250, 0.35);
+  color: #93c5fd;
+}
+[data-theme="dark"] .status-chip--role-site-admin,
+[data-theme="dark"] .status-chip--role-site_admin {
+  background: rgba(14, 165, 233, 0.18);
+  border-color: rgba(56, 189, 248, 0.35);
+  color: #7dd3fc;
+}
+[data-theme="dark"] .status-chip--role-sub-admin,
+[data-theme="dark"] .status-chip--role-sub_admin {
+  background: rgba(79, 70, 229, 0.2);
+  border-color: rgba(129, 140, 248, 0.35);
+  color: #a5b4fc;
+}
+[data-theme="dark"] .status-chip--role-supervisor {
+  background: rgba(245, 158, 11, 0.16);
+  border-color: rgba(251, 191, 36, 0.32);
+  color: #fbbf24;
+}
+[data-theme="dark"] .status-chip--role-operative {
+  background: rgba(16, 185, 129, 0.16);
+  border-color: rgba(52, 211, 153, 0.32);
+  color: #6ee7b7;
 }
 [data-theme="dark"] .table-link {
   color: #93c5fd;

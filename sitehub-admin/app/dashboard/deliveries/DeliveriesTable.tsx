@@ -120,26 +120,43 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   const handleExportPDF = useCallback(async () => {
     if (!rows.length) return;
 
-    const { default: jsPDF } = await import("jspdf");
-    const doc = new jsPDF();
-    doc.setFontSize(14);
-    doc.text("Deliveries", 14, 16);
-    doc.setFontSize(10);
+    const [{ createReportPdf }, branding] = await Promise.all([
+      import("@/lib/pdf/createReportPdf"),
+      import("@/lib/pdf/fetchPdfBrandingClient").then((m) =>
+        m.fetchPdfBrandingClient(),
+      ),
+    ]);
 
-    let y = 26;
-    const lineHeight = 7;
-
-    rows.forEach((r, index: number) => {
-      if (y > 280) {
-        doc.addPage();
-        y = 20;
-      }
-      const line = `${index + 1}. ${r.reference || r.wholesaler || "(no ref)"}  •  ${r.site || r.siteId || "-"}  •  ${formatDate(r) || "-"}  •  ${r.status || ""}`;
-      doc.text(line, 14, y);
-      y += lineHeight;
+    const report = createReportPdf({
+      title: "Deliveries",
+      metaLines: [`${rows.length} deliver${rows.length === 1 ? "y" : "ies"}`],
+      branding,
+      footerLabel: "Construction Runner — deliveries",
     });
 
-    doc.save(`deliveries-${new Date().toISOString().slice(0, 10)}.pdf`);
+    const { doc, margin } = report;
+    rows.forEach((r, index: number) => {
+      report.ensureSpace(12);
+      let y = report.y;
+      const ref = r.reference || r.wholesaler || "(no ref)";
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(9.5);
+      doc.setTextColor(28, 32, 38);
+      doc.text(`${index + 1}.  ${ref}`, margin, y);
+      y += 5;
+      doc.setFont("helvetica", "normal");
+      doc.setFontSize(8.5);
+      doc.setTextColor(100, 110, 124);
+      doc.text(
+        `${r.site || r.siteId || "—"}  ·  ${formatDate(r) || "—"}  ·  ${r.status || "—"}`,
+        margin + 4,
+        y,
+      );
+      report.setY(y + 7);
+    });
+
+    report.applyFooters();
+    report.doc.save(`deliveries-${new Date().toISOString().slice(0, 10)}.pdf`);
   }, [rows]);
 
   const filteredRows = useMemo(() => {

@@ -9,6 +9,10 @@ import { CardSelect } from "../components/ui/CardSelect";
 import { SitePicker } from "../components/ui/SitePicker";
 import Table from "../components/ui/Table";
 import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
+import {
+  ASSET_INSPECTION_INTERVAL_PRESETS,
+  assetInspectionDueStatus,
+} from "@/lib/assets/inspectionSchedule";
 
 interface Asset {
   id: string;
@@ -20,6 +24,11 @@ interface Asset {
   condition?: string;
   site_id?: string;
   assigned_to?: string | null;
+  inspection_interval_days?: number | null;
+  next_inspection_due?: string | null;
+  inspection_reminder_days_before?: number | null;
+  inspection_required?: boolean | null;
+  last_inspected_at?: string | null;
 }
 
 interface User {
@@ -28,17 +37,54 @@ interface User {
   email?: string;
 }
 
+function InspectionDuePill({ asset }: { asset: Asset }) {
+  const status = assetInspectionDueStatus({
+    nextDue: asset.next_inspection_due,
+    reminderDaysBefore: asset.inspection_reminder_days_before,
+    inspectionRequired: asset.inspection_required,
+  });
+  if (status === "none") {
+    return <span className="text-slate-400 text-sm">—</span>;
+  }
+  const due = asset.next_inspection_due ?? "";
+  const label =
+    status === "overdue"
+      ? `Overdue${due ? ` · ${due}` : ""}`
+      : status === "due_soon"
+        ? `Due soon${due ? ` · ${due}` : ""}`
+        : due || "Scheduled";
+  const cls =
+    status === "overdue"
+      ? "bg-red-100 text-red-800"
+      : status === "due_soon"
+        ? "bg-amber-100 text-amber-900"
+        : "bg-emerald-50 text-emerald-800";
+  return (
+    <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${cls}`}>
+      {label}
+    </span>
+  );
+}
+
 export default function AssetsContent({ companyId }: { companyId: string }) {
   const [assets, setAssets] = useState<Asset[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
-  const [newAsset, setNewAsset] = useState({ name: "", category: "equipment", serial_number: "", condition: "good" });
+  const [newAsset, setNewAsset] = useState({
+    name: "",
+    category: "equipment",
+    serial_number: "",
+    condition: "good",
+    inspection_interval_days: "" as string,
+    next_inspection_due: "" as string,
+  });
   const [assignModal, setAssignModal] = useState<{ assetId: string; assetName: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
   const [uploading, setUploading] = useState(false);
   const [filterSite, setFilterSite] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
+  const [filterDue, setFilterDue] = useState("");
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -67,6 +113,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     if (!newAsset.name.trim()) return;
     setLoading(true);
     try {
+      const intervalRaw = newAsset.inspection_interval_days.trim();
       await fetch("/api/assets", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -75,9 +122,24 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
           category: newAsset.category,
           serial_number: newAsset.serial_number.trim() || null,
           condition: newAsset.condition,
+          ...(intervalRaw
+            ? {
+                inspection_interval_days: Number(intervalRaw),
+                ...(newAsset.next_inspection_due.trim()
+                  ? { next_inspection_due: newAsset.next_inspection_due.trim() }
+                  : {}),
+              }
+            : {}),
         }),
       });
-      setNewAsset({ name: "", category: "equipment", serial_number: "", condition: "good" });
+      setNewAsset({
+        name: "",
+        category: "equipment",
+        serial_number: "",
+        condition: "good",
+        inspection_interval_days: "",
+        next_inspection_due: "",
+      });
       const res = await fetch("/api/assets");
       const a = await res.json();
       setAssets(Array.isArray(a) ? a : []);
@@ -153,6 +215,8 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
       "serial_number",
       "site_id",
       "assigned_to",
+      "inspection_interval_days",
+      "next_inspection_due",
     ];
 
     const lines = [
@@ -166,6 +230,8 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
           a.serial_number ?? "",
           a.site_id ?? "",
           a.assigned_to ?? "",
+          a.inspection_interval_days ?? "",
+          a.next_inspection_due ?? "",
         ]
           .map(esc)
           .join(",")
@@ -191,9 +257,20 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
       if (filterStatus && st !== filterStatus) return false;
       if (filterType && tp !== filterType) return false;
       if (filterSite && site !== filterSite) return false;
+      if (filterDue) {
+        const due = assetInspectionDueStatus({
+          nextDue: a.next_inspection_due,
+          reminderDaysBefore: a.inspection_reminder_days_before,
+          inspectionRequired: a.inspection_required,
+        });
+        if (filterDue === "overdue" && due !== "overdue") return false;
+        if (filterDue === "due_soon" && due !== "due_soon" && due !== "overdue") return false;
+        if (filterDue === "scheduled" && due !== "ok") return false;
+        if (filterDue === "none" && due !== "none") return false;
+      }
       return true;
     });
-  }, [assets, filterStatus, filterType, filterSite]);
+  }, [assets, filterStatus, filterType, filterSite, filterDue]);
 
   const siteOptions = useMemo(() => {
     const ids = [
@@ -262,6 +339,23 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
               noneLabel="All status"
               className="w-40"
             />
+            <CardSelect
+              items={[
+                { id: "overdue", name: "Overdue" },
+                { id: "due_soon", name: "Due soon / overdue" },
+                { id: "scheduled", name: "On schedule" },
+                { id: "none", name: "No schedule" },
+              ]}
+              value={filterDue}
+              onChange={setFilterDue}
+              icon={Boxes}
+              fieldLabel="Inspection"
+              variant="compact"
+              allowNone
+              noneValue=""
+              noneLabel="All inspections"
+              className="w-44"
+            />
             {siteOptions.length > 0 ? (
               <SitePicker
                 sites={siteOptions.map((s) => ({ id: s.id, name: s.label }))}
@@ -312,6 +406,32 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
               <option value="poor">Poor</option>
               <option value="damaged">Damaged</option>
             </select>
+            <select
+              className="table-toolbar-input w-36"
+              value={newAsset.inspection_interval_days}
+              onChange={(e) =>
+                setNewAsset({ ...newAsset, inspection_interval_days: e.target.value })
+              }
+              title="Inspection interval"
+            >
+              <option value="">No schedule</option>
+              {ASSET_INSPECTION_INTERVAL_PRESETS.map((p) => (
+                <option key={p.days} value={String(p.days)}>
+                  Inspect every {p.label}
+                </option>
+              ))}
+            </select>
+            {newAsset.inspection_interval_days ? (
+              <input
+                type="date"
+                className="table-toolbar-input w-40"
+                title="First inspection due"
+                value={newAsset.next_inspection_due}
+                onChange={(e) =>
+                  setNewAsset({ ...newAsset, next_inspection_due: e.target.value })
+                }
+              />
+            ) : null}
             <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()} size="sm">
               Add Asset
             </Button>
@@ -338,6 +458,11 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
               render: (a: Asset) => <TaskStatusPill status={a.status ?? a.condition} />,
             },
             { header: "Assigned to", accessor: "assigned_to", render: (a: Asset) => a.assigned_to ?? "—" },
+            {
+              header: "Inspection",
+              accessor: "next_inspection_due",
+              render: (a: Asset) => <InspectionDuePill asset={a} />,
+            },
             {
               header: "Actions",
               accessor: "actions",
