@@ -9,7 +9,6 @@ import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
-import { getRoleFromClient } from "@/lib/utils/cookies";
 import { Archive, Ban, Building2, LayoutDashboard, Pencil, Plus, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
 import { CompanyPicker } from "../components/ui/SitePicker";
 
@@ -54,15 +53,16 @@ export default function CompaniesPage() {
 
   async function handleEnterDashboard(companyId: string) {
     if (typeof window === "undefined") return;
-    const role = getRoleFromClient();
-    if (role === "superuser") {
-      const res = await fetch("/api/impersonate", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ companyId }),
-        credentials: "include",
-      });
-      if (!res.ok) return;
+    const res = await fetch("/api/impersonate", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ company_id: companyId }),
+      credentials: "include",
+    });
+    if (!res.ok) {
+      const data = await res.json().catch(() => ({}));
+      toast.error(typeof data?.error === "string" ? data.error : "Could not open company dashboard.");
+      return;
     }
     window.location.href = "/dashboard";
   }

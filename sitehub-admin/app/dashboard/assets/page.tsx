@@ -2,18 +2,19 @@ import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import PageHeader from "../components/PageHeader";
 import AssetsContent from "./AssetsContent";
+import SuperuserCompanyGate from "../components/SuperuserCompanyGate";
 
 export default async function AssetsPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
     return (
-      <div className="relative space-y-8">
-        <PageHeader title="Assets" description="Select a company to manage assets, assignments, and inspections." />
-        <div className="text-center text-gray-500 py-12">Impersonate a company to view assets.</div>
-      </div>
+      <SuperuserCompanyGate
+        title="Assets"
+        description="Select a company to manage assets, assignments, and inspections."
+      />
     );
   }
 

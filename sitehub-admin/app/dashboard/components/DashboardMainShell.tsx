@@ -48,7 +48,7 @@ export function DashboardMainShell({ children }: { children: ReactNode }) {
           />
         </div>
       ) : null}
-      <div className="relative z-[1] flex min-h-full flex-1 flex-col">{children}</div>
+      <div className="relative z-[1]">{children}</div>
     </main>
   );
 }

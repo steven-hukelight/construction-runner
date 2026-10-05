@@ -29,7 +29,7 @@ describe("Auth regression tests", () => {
       const { POST } = await import("@/app/api/impersonate/route");
       const req = jsonRequest("http://test/api/impersonate", {
         method: "POST",
-        body: { company_id: "other-company" },
+        body: { company_id: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee" },
       });
       const res = await POST(req);
       expect(res.status).toBe(403);
@@ -37,10 +37,11 @@ describe("Auth regression tests", () => {
 
     it("should allow impersonate when superuser", async () => {
       setMockCookies({ role: "superuser" });
+      mockSupabaseResponseQueue.push({ data: { id: "4z4X06S76kEDueYPZxKg" }, error: null });
       const { POST } = await import("@/app/api/impersonate/route");
       const req = jsonRequest("http://test/api/impersonate", {
         method: "POST",
-        body: { company_id: "target-company-id" },
+        body: { company_id: "4z4X06S76kEDueYPZxKg" },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);
@@ -48,7 +49,7 @@ describe("Auth regression tests", () => {
       expect(json.ok).toBe(true);
       const setCookie = res.headers.get("set-cookie") || "";
       expect(setCookie).toContain("impersonating=true");
-      expect(setCookie).toContain("companyId=target-company-id");
+      expect(setCookie).toContain("companyId=4z4X06S76kEDueYPZxKg");
     });
 
     it("should reject impersonate without company_id", async () => {

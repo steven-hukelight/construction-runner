@@ -10,6 +10,7 @@ import {
   jsonRequest,
 } from "./helpers";
 import { setMockCookies, clearMockCookies } from "../regression/helpers";
+import { mockSupabaseResponseQueue } from "../mocks/supabase";
 
 const runIntegration = hasIntegrationEnv();
 const runApiIntegration = hasApiIntegrationEnv();
@@ -52,7 +53,10 @@ const runApiIntegration = hasApiIntegrationEnv();
 (runApiIntegration ? describe : describe.skip)(
   "Superuser impersonation (API integration)",
   () => {
-    beforeEach(() => clearMockCookies());
+    beforeEach(() => {
+      clearMockCookies();
+      mockSupabaseResponseQueue.length = 0;
+    });
 
     it("should start impersonation when superuser", async () => {
       const ctx = await getAuthContext();
@@ -61,11 +65,13 @@ const runApiIntegration = hasApiIntegrationEnv();
       }
       applyAuthContext(ctx);
       setMockCookies({ role: "superuser" });
+      const companyId = ctx.companyId || "4z4X06S76kEDueYPZxKg";
+      mockSupabaseResponseQueue.push({ data: { id: companyId }, error: null });
 
       const { POST } = await import("@/app/api/impersonate/route");
       const req = jsonRequest("http://test/api/impersonate", {
         method: "POST",
-        body: { company_id: ctx.companyId || "any-company-uuid" },
+        body: { company_id: companyId },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);
@@ -111,10 +117,12 @@ const runApiIntegration = hasApiIntegrationEnv();
       if ((ctx.role ?? "").toLowerCase() !== "superuser") return;
 
       setMockCookies({ role: "superuser" });
+      const companyId = ctx.companyId || "4z4X06S76kEDueYPZxKg";
+      mockSupabaseResponseQueue.push({ data: { id: companyId }, error: null });
       const { POST } = await import("@/app/api/impersonate/route");
       const req = jsonRequest("http://test/api/impersonate", {
         method: "POST",
-        body: { company_id: ctx.companyId || "any-uuid" },
+        body: { company_id: companyId },
       });
       const res = await POST(req);
       expect(res.status).toBe(200);

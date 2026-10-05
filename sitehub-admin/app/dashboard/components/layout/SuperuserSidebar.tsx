@@ -14,35 +14,13 @@ import {
   Menu,
   X,
   LayoutGrid,
-  MapPin,
-  ClipboardCheck,
 } from "lucide-react";
-import { preInductionUiEnabled } from "@/lib/featureFlags";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-/* OPTION A: Single sidebar. Modules removed; use CompanySwitcher then regular Sidebar for Messaging and Assets */
 const navItems = [
   { name: "Superuser dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
   { name: "Multi-company admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
-  { name: "Sites", href: "/dashboard/sites", icon: MapPin },
-  // Induction compliance is primarily a pre-induction dashboard. When pre-induction
-  // UI is disabled it is replaced by the slim Missing info report.
-  ...(preInductionUiEnabled
-    ? [
-        {
-          name: "Induction compliance",
-          href: "/dashboard/induction-compliance",
-          icon: ClipboardCheck,
-        },
-      ]
-    : [
-        {
-          name: "Missing info",
-          href: "/dashboard/missing-info",
-          icon: ClipboardCheck,
-        },
-      ]),
   { name: "All users", href: "/dashboard/all-users", icon: Users },
   { name: "System logs", href: "/dashboard/system-logs", icon: FileText },
   { name: "Global settings", href: "/dashboard/global-settings", icon: Settings },

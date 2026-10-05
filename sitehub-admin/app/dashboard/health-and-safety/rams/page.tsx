@@ -5,20 +5,15 @@ import { fetchRAMS } from "../../rams/actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import SuperuserCompanyGate from "../../components/SuperuserCompanyGate";
 
 export default async function RAMSPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-2xl font-bold mb-4">Superuser: No Company Selected</h1>
-        <p className="mb-6">You must impersonate a company to view RAMS.</p>
-        <p className="text-gray-500">Use the sidebar to select a company to impersonate.</p>
-      </div>
-    );
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
+    return <SuperuserCompanyGate title="RAMS" description="Select a company to view RAMS." />;
   }
 
   let companyId = cookieStore.get("companyId")?.value;

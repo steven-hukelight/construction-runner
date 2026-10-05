@@ -5,6 +5,7 @@ import BriefingsUploadModal from "./BriefingsUploadModal";
 import BriefingsDownloadReportButton from "./BriefingsDownloadReportButton";
 import { fetchBriefings } from "./actions";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import SuperuserCompanyGate from "../../components/SuperuserCompanyGate";
 
 export const dynamic = "force-dynamic";
 
@@ -14,13 +15,8 @@ export default async function BriefingsPage() {
   const companyId = cookieStore.get("companyId")?.value;
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-2xl font-bold mb-4">Superuser: No Company Selected</h1>
-        <p className="mb-6">Impersonate a company to manage briefings.</p>
-      </div>
-    );
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
+    return <SuperuserCompanyGate title="Briefings" description="Select a company to manage briefings." />;
   }
 
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");

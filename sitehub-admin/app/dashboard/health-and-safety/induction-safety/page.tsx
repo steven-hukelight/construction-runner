@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import PageHeader from "../../components/PageHeader";
 import CompanySafetyPackClient from "./CompanySafetyPackClient";
 import { canEditCompanySafetyPack } from "@/lib/auth/roles";
+import SuperuserCompanyGate from "../../components/SuperuserCompanyGate";
 
 export const dynamic = "force-dynamic";
 
@@ -11,12 +12,12 @@ export default async function InductionSafetyPage() {
   const role = cookieStore.get("role")?.value;
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-2xl font-bold mb-4">Superuser: No Company Selected</h1>
-        <p className="mb-6">Impersonate a company to edit the default safety pack.</p>
-      </div>
+      <SuperuserCompanyGate
+        title="Induction safety"
+        description="Select a company to edit the default safety pack."
+      />
     );
   }
 

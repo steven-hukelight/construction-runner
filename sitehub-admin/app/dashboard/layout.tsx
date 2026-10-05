@@ -79,7 +79,8 @@ export default async function DashboardLayout({ children }: { children: React.Re
     redirect("/admin/login?blocked=operative");
   }
 
-  // If superuser and impersonating (has companyId), show company Sidebar with effective role "admin" so they see Sites, Users, etc.
+  // Superuser home uses SuperuserSidebar. After impersonating a company they
+  // get the company sidebar (Sites through Settings).
   const effectiveRole = isSuperuser && impersonating && companyId ? "admin" : role;
   const showSidebar = isSuperuser && impersonating && companyId
     ? <Sidebar role={effectiveRole} />

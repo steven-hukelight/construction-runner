@@ -6,7 +6,7 @@ import NotificationDropdown from "../NotificationDropdown";
 import FeedbackLink from "@/app/components/FeedbackLink";
 import { usePathname, useRouter } from "next/navigation";
 import dynamic from "next/dynamic";
-import { getRoleFromClient, getUserEmailFromCookie } from "@/lib/utils/cookies";
+import { useClientSession } from "../ClientSessionProvider";
 
 const CompanySwitcher = dynamic(() => import("../CompanySwitcher"), { ssr: false });
 
@@ -28,31 +28,24 @@ function getInitials(value: string): string {
 export default function Topbar() {
   const pathname = usePathname();
   const router = useRouter();
+  const { role, email } = useClientSession();
+  const isSuperuser = role?.toLowerCase() === "superuser";
 
   function handleProfile() {
     router.push("/dashboard/profile");
   }
 
-  // Resolve isSuperuser only after mount to avoid hydration mismatch (server has no cookies)
-  const [isSuperuser, setIsSuperuser] = useState(false);
-  const [profileInitials, setProfileInitials] = useState("U");
+  const [profileInitials, setProfileInitials] = useState(() => getInitials(email || "U"));
   useEffect(() => {
     let cancelled = false;
-    const emailFromCookie = getUserEmailFromCookie() ?? "";
-    queueMicrotask(() => {
-      if (cancelled) return;
-      setIsSuperuser(getRoleFromClient()?.toLowerCase() === "superuser");
-      if (emailFromCookie) {
-        setProfileInitials(getInitials(emailFromCookie));
-      }
-    });
+    if (email) setProfileInitials(getInitials(email));
 
     fetch("/api/profiles/me", { cache: "no-store", credentials: "include" })
       .then((res) => (res.ok ? res.json() : null))
       .then((json) => {
         if (cancelled || !json) return;
         const me = Array.isArray(json) && json.length ? json[0] : json;
-        const label = String(me?.displayName || me?.name || me?.email || emailFromCookie || "").trim();
+        const label = String(me?.displayName || me?.name || me?.email || email || "").trim();
         if (label) {
           setProfileInitials(getInitials(label));
         }
@@ -62,7 +55,7 @@ export default function Topbar() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [email]);
 
   // Clean cache-bust param from URL after company switch (keeps URL clean)
   useEffect(() => {

@@ -78,6 +78,8 @@ export default function Sidebar({ role }: SidebarProps) {
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const { impersonating, role: sessionRole } = useClientSession();
+  const isSuperuserSession = (sessionRole ?? role ?? "").toLowerCase() === "superuser";
+  const inCompanyView = !isSuperuserSession || impersonating;
   const rawNearMissCount = useNearMissCount();
   const nearMissCount = canRoleViewNearMiss(sessionRole) ? rawNearMissCount : 0;
   const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
@@ -107,7 +109,9 @@ export default function Sidebar({ role }: SidebarProps) {
     };
   }, [fetchPendingApprovalsBadge]);
 
-  const showAdminNav = ["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "");
+  const showAdminNav =
+    inCompanyView &&
+    ["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "");
 
   const healthAndSafetyLink = (
     <Link
@@ -183,6 +187,7 @@ export default function Sidebar({ role }: SidebarProps) {
 
         {/* Nav: fills remaining space and scrolls so tabs are never behind help */}
         <nav className="sidebar-nav flex-1 min-h-0 overflow-y-auto pr-2">
+          {inCompanyView && (
           <Link
             href="/dashboard"
             className={
@@ -193,27 +198,6 @@ export default function Sidebar({ role }: SidebarProps) {
             <LayoutDashboard size={20} strokeWidth={2.5} />
             <span>{t("Dashboard")}</span>
           </Link>
-          {(role === "superuser" || role === "SUPERUSER") && (
-            <Link
-              href="/dashboard/pending-approvals"
-              className={
-                pathname === "/dashboard/pending-approvals" || pathname?.startsWith("/dashboard/pending-approvals/")
-                  ? "active"
-                  : ""
-              }
-              onClick={() => setMobileMenuOpen(false)}
-            >
-              <UserCheck size={20} strokeWidth={2.5} />
-              <span className="flex-1 min-w-0">{t("Pending approvals")}</span>
-              {pendingApprovalsBadge > 0 && (
-                <span
-                  className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
-                  aria-label={`${pendingApprovalsBadge} pending approvals`}
-                >
-                  {pendingApprovalsBadge > 99 ? "99+" : pendingApprovalsBadge}
-                </span>
-              )}
-            </Link>
           )}
           {role === "sub_admin" && preInductionUiEnabled && (
             <Link
@@ -275,7 +259,8 @@ export default function Sidebar({ role }: SidebarProps) {
               )}
             </>
           ) : null}
-          {topLevelItems.slice(1, 5).map((item) => {
+          {inCompanyView &&
+            topLevelItems.slice(1, 5).map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
             return (
@@ -290,8 +275,9 @@ export default function Sidebar({ role }: SidebarProps) {
               </Link>
             );
           })}
-          {!showAdminNav && healthAndSafetyLink}
-          {topLevelItems.slice(5, 7).map((item) => {
+          {inCompanyView && !showAdminNav && healthAndSafetyLink}
+          {inCompanyView &&
+            topLevelItems.slice(5, 7).map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;
             return (

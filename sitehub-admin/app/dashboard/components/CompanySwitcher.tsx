@@ -23,12 +23,6 @@ export default function CompanySwitcher() {
 
   if (!isSuperuser) return null;
 
-  function navigate() {
-    const url = new URL(window.location.href);
-    url.searchParams.set("_t", String(Date.now()));
-    window.location.href = url.toString();
-  }
-
   async function handleChange(val: string) {
     setError("");
     setSelected(val || null);
@@ -39,7 +33,7 @@ export default function CompanySwitcher() {
         setError("Could not leave company view.");
         return;
       }
-      navigate();
+      window.location.href = "/dashboard/superuser-dashboard";
       return;
     }
 
@@ -50,10 +44,11 @@ export default function CompanySwitcher() {
       credentials: "include",
     });
     if (!res.ok) {
-      setError("Could not switch company.");
+      const data = await res.json().catch(() => ({}));
+      setError(typeof data?.error === "string" ? data.error : "Could not switch company.");
       return;
     }
-    navigate();
+    window.location.href = "/dashboard";
   }
 
   async function handleClear() {
@@ -64,7 +59,7 @@ export default function CompanySwitcher() {
       return;
     }
     setSelected(null);
-    navigate();
+    window.location.href = "/dashboard/superuser-dashboard";
   }
 
   if (!companies.length) return null;

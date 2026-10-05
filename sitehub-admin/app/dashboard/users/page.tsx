@@ -6,6 +6,7 @@ import { fetchProfiles } from "./profileActions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import SuperuserCompanyGate from "../components/SuperuserCompanyGate";
 
 export default async function UsersPage() {
   const cookieStore = await cookies();
@@ -21,14 +22,8 @@ export default async function UsersPage() {
   }
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
-    return (
-      <div className="flex flex-col items-center justify-center min-h-[60vh] text-center">
-        <h1 className="text-2xl font-bold mb-4">Superuser: No Company Selected</h1>
-        <p className="mb-6">You must impersonate a company to view the Users page.</p>
-        <p className="text-gray-500">Use the sidebar to select a company to impersonate.</p>
-      </div>
-    );
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
+    return <SuperuserCompanyGate title="Users" description="Select a company to view and manage users." />;
   }
 
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");

@@ -4,6 +4,7 @@ import PageHeader from "@/app/dashboard/components/PageHeader";
 import { getComplianceData } from "./server";
 import ComplianceClient from "./components/ComplianceClient";
 import SuperuserSelfOverrideBlock from "./components/SuperuserSelfOverrideBlock";
+import SuperuserCompanyGate from "@/app/dashboard/components/SuperuserCompanyGate";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 export default async function InductionCompliancePage() {
@@ -19,19 +20,14 @@ export default async function InductionCompliancePage() {
   const companyId = cookieStore.get("companyId")?.value;
   const impersonating = cookieStore.get("impersonating")?.value === "true";
 
-  if (role === "superuser" && !impersonating) {
+  if ((role ?? "").toLowerCase() === "superuser" && !impersonating) {
     return (
       <div className="space-y-6">
-        <PageHeader
-          title="Induction compliance"
-          description="Induction status across users and sites."
-        />
         <SuperuserSelfOverrideBlock />
-        <div className="flex flex-col items-center justify-center min-h-[40vh] text-center rounded-xl border border-gray-200 dark:border-slate-600 bg-gray-50/50 dark:bg-slate-800/60 p-8">
-          <h2 className="text-xl font-semibold text-gray-900 dark:text-slate-100 mb-2">Superuser: No Company Selected</h2>
-          <p className="text-gray-600 dark:text-slate-400 mb-4">You must impersonate a company to view induction compliance.</p>
-          <p className="text-gray-500 dark:text-slate-500 text-sm">Use the sidebar to select a company to impersonate.</p>
-        </div>
+        <SuperuserCompanyGate
+          title="Induction compliance"
+          description="Select a company to view induction status across users and sites."
+        />
       </div>
     );
   }

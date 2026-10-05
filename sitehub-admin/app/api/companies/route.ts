@@ -12,6 +12,7 @@ export async function GET() {
   try {
     const cookieStore = await cookies();
     let role = cookieStore.get("role")?.value;
+    if ((role ?? "").toLowerCase() === "superuser") role = "superuser";
     // Fallback for mobile: verify superuser via user lookup when role cookie missing
     if (role !== "superuser") {
       const userEmail = cookieStore.get("user_email")?.value?.trim();
@@ -94,7 +95,7 @@ const emailLooksValid = (raw: string) => /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(raw.t
 export async function POST(req: Request) {
   try {
     const role = (await cookies()).get("role")?.value;
-    if (role !== "superuser") {
+    if ((role ?? "").toLowerCase() !== "superuser") {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 

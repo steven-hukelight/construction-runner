@@ -11,6 +11,9 @@ function getCookieStore() {
     },
     getAll: () =>
       Object.entries(mockCookieStore).map(([name, value]) => ({ name, value: String(value) })),
+    set: (name: string, value: string) => {
+      mockCookieStore[name] = value;
+    },
   };
 }
 
