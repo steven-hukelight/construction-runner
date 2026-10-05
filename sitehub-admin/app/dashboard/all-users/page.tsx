@@ -13,6 +13,12 @@ import Link from "next/link";
 import { Users, UserCog, Building2, Trash2, KeyRound, MoreHorizontal, CheckCircle, Circle, User } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import { CompanyPicker } from "../components/ui/SitePicker";
+import {
+  ACTION_MENU_ITEM_CLASS,
+  ACTION_MENU_ITEM_DANGER_CLASS,
+  ACTION_MENU_PANEL_CLASS,
+  ACTION_MENU_WIDTH,
+} from "../components/ui/TableActions";
 
 const ROLES = ["ADMIN", "SUPERVISOR", "VIEWER", "OPERATIVE"] as const;
 
@@ -42,7 +48,7 @@ export default function AllUsersPage() {
   const [saving, setSaving] = useState(false);
   const [resetSentId, setResetSentId] = useState<string | null>(null);
   const [actionsOpenId, setActionsOpenId] = useState<string | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<{ top: number; left: number } | null>(null);
+  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null);
   const [companyFilter, setCompanyFilter] = useState<string>("");
 
   const companyMap = companies.reduce<Record<string, string>>((acc, c) => {
@@ -279,7 +285,7 @@ export default function AllUsersPage() {
                 setActionsOpenId(null);
                 setMenuAnchor(null);
               } else {
-                setMenuAnchor({ top: rect.bottom, left: rect.left });
+                setMenuAnchor({ top: rect.bottom, right: rect.right });
                 setActionsOpenId(row.id);
               }
             }}
@@ -295,51 +301,63 @@ export default function AllUsersPage() {
               <>
                 <div className="fixed inset-0 z-40" onClick={() => { setActionsOpenId(null); setMenuAnchor(null); }} aria-hidden />
                 <div
-                  className="fixed z-50 min-w-[180px] py-1 bg-white border border-gray-200 rounded-lg shadow-lg"
+                  role="menu"
+                  className={`${ACTION_MENU_PANEL_CLASS} overflow-y-auto`}
                   style={{
-                    bottom: `${window.innerHeight - menuAnchor.top + 8}px`,
-                    left: menuAnchor.left,
+                    position: "fixed",
+                    zIndex: 50,
+                    top: menuAnchor.top + 4,
+                    left: Math.max(8, menuAnchor.right - ACTION_MENU_WIDTH),
+                    width: ACTION_MENU_WIDTH,
+                    height: "fit-content",
+                    maxHeight: "calc(100vh - 16px)",
                   }}
                 >
                   <Link
                     href={`/dashboard/users/${row.id}`}
                     onClick={() => { setActionsOpenId(null); setMenuAnchor(null); }}
-                    className="flex w-full items-center gap-2 px-3 py-2 text-left text-sm hover:bg-gray-100"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    role="menuitem"
                   >
-                    <User className="w-3.5 h-3.5" /> View profile
+                    <User className="h-4 w-4 shrink-0 text-gray-400" /> View profile
                   </Link>
                   <button
                     type="button"
                     onClick={() => { setRoleModal({ user: row }); setNewRole(row.role || "VIEWER"); setActionsOpenId(null); setMenuAnchor(null); }}
                     disabled={saving}
-                    className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    role="menuitem"
                   >
-                    <UserCog className="w-3.5 h-3.5" /> Change role
+                    <UserCog className="h-4 w-4 shrink-0 text-gray-400" /> Change role
                   </button>
                   <button
                     type="button"
                     onClick={() => { setCompanyModal({ user: row }); setNewCompanyId((row.company_id ?? row.companyId) || ""); setActionsOpenId(null); setMenuAnchor(null); }}
                     disabled={saving}
-                    className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    role="menuitem"
                   >
-                    <Building2 className="w-3.5 h-3.5" /> Move to company
+                    <Building2 className="h-4 w-4 shrink-0 text-gray-400" /> Move to company
                   </button>
                   <button
                     type="button"
                     onClick={() => { handleSendPasswordReset(row); setActionsOpenId(null); setMenuAnchor(null); }}
                     disabled={saving || !row.email}
                     title={!row.email ? "No email" : undefined}
-                    className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-gray-100 disabled:opacity-50"
+                    className={ACTION_MENU_ITEM_CLASS}
+                    role="menuitem"
                   >
-                    <KeyRound className="w-3.5 h-3.5" /> {resetSentId === row.id ? "Sent" : "Send reset email"}
+                    <KeyRound className="h-4 w-4 shrink-0 text-gray-400" /> {resetSentId === row.id ? "Sent" : "Send reset email"}
                   </button>
+                  <div className="my-1 border-t border-gray-100 dark:border-slate-600" />
                   <button
                     type="button"
                     onClick={() => { handleDelete(row); setActionsOpenId(null); setMenuAnchor(null); }}
                     disabled={saving}
-                    className="w-full px-3 py-2 text-left text-sm flex items-center gap-2 hover:bg-red-50 text-red-600"
+                    className={ACTION_MENU_ITEM_DANGER_CLASS}
+                    role="menuitem"
                   >
-                    <Trash2 className="w-3.5 h-3.5" /> Delete
+                    <Trash2 className="h-4 w-4 shrink-0 text-red-600" /> Delete user
                   </button>
                 </div>
               </>,

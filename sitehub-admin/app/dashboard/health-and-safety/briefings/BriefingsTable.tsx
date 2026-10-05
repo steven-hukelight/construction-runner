@@ -1,7 +1,7 @@
 "use client";
 
 import { useMemo, useState } from "react";
-import { MessageSquare } from "lucide-react";
+import { FileText, MessageSquare, Trash2 } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import Table from "../../components/ui/Table";
 import { DataTableShell } from "../../components/ui/TableChrome";
@@ -164,9 +164,9 @@ export default function BriefingsTable({
         <TableActions
           items={[
             ...(pdf
-              ? [{ label: "View PDF", onClick: () => openDocumentUrl(pdf) }]
+              ? [{ label: "View PDF", icon: FileText, onClick: () => openDocumentUrl(pdf) }]
               : []),
-            { label: "Delete", onClick: () => handleDelete(row.id), variant: "danger" as const },
+            { label: "Delete", icon: Trash2, onClick: () => handleDelete(row.id), variant: "danger" as const },
           ]}
         />
         );

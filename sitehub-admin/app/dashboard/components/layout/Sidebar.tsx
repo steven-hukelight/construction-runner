@@ -309,7 +309,7 @@ export default function Sidebar({ role }: SidebarProps) {
         </nav>
 
         {/* Help block: fixed at bottom, never overlaps nav */}
-        <div className="shrink-0 pt-4 space-y-2 px-1">
+        <div className="shrink-0 space-y-2 px-1 pt-4">
           <a
             href="mailto:info@construction-runner.com?subject=Construction Runner Support Request"
             className="block text-xs text-gray-600 dark:text-slate-400 hover:text-blue-600 dark:hover:text-blue-400 hover:underline"

@@ -27,6 +27,7 @@ export function CardSelect({
   searchPlaceholder = "Search",
   variant = "default",
   className,
+  menuPlacement = "down",
 }: {
   items: CardSelectItem[];
   value: string;
@@ -42,6 +43,7 @@ export function CardSelect({
   searchPlaceholder?: string;
   variant?: "default" | "compact";
   className?: string;
+  menuPlacement?: "down" | "up";
 }) {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
@@ -101,7 +103,7 @@ export function CardSelect({
   }
 
   return (
-    <div className={clsx("relative", compact && "min-w-[11rem]", className)} ref={rootRef}>
+    <div className={clsx("relative", compact && "min-w-0", className)} ref={rootRef}>
       <button
         type="button"
         disabled={disabled}
@@ -151,7 +153,14 @@ export function CardSelect({
       </button>
 
       {open && !disabled ? (
-        <div className="relative z-30 mt-2 overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-600 dark:bg-slate-900">
+        <div
+          className={clsx(
+            "z-50 overflow-hidden rounded-lg border border-gray-200 bg-white shadow-xl dark:border-slate-600 dark:bg-slate-900",
+            menuPlacement === "up"
+              ? "absolute bottom-full left-0 mb-1 w-full"
+              : "relative mt-2"
+          )}
+        >
           {showSearch ? (
             <div className="border-b border-slate-100 p-2 dark:border-slate-700">
               <label className="flex items-center gap-2 rounded-xl bg-slate-50 px-3 py-2 dark:bg-slate-800">
@@ -203,7 +212,7 @@ export function CardSelect({
                         active && "bg-blue-50 dark:bg-blue-500/15"
                       )}
                     >
-                      {Icon ? (
+                      {Icon && !compact ? (
                       <span
                         className={clsx(
                           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",

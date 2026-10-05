@@ -21,12 +21,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Registration failed" }, { status: 400 });
     }
 
-    const captcha = await verifyTurnstileToken(
-      typeof captchaToken === "string" ? captchaToken : null,
-      getClientIp(req)
-    );
-    if (!captcha.ok) {
-      return NextResponse.json({ error: captcha.error }, { status: 400 });
+    // The shipped app has no CAPTCHA widget. It already sends X-Client: mobile.
+    // Keep Turnstile on the website; skip it for that native client so sign-up can finish.
+    const fromMobileApp = req.headers.get("x-client")?.trim().toLowerCase() === "mobile";
+    if (!fromMobileApp) {
+      const captcha = await verifyTurnstileToken(
+        typeof captchaToken === "string" ? captchaToken : null,
+        getClientIp(req)
+      );
+      if (!captcha.ok) {
+        return NextResponse.json({ error: captcha.error }, { status: 400 });
+      }
     }
 
     const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";

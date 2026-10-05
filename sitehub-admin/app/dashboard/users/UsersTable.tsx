@@ -4,7 +4,8 @@ import React, { useCallback, useEffect, useMemo, useRef, useState } from "react"
 import Link from "next/link";
 import Table from "../components/ui/Table";
 import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
-import TableActions from "../components/ui/TableActions";
+import TableActions, { type TableActionItem } from "../components/ui/TableActions";
+import { HeartPulse, Mail, MapPin, Trash2, User } from "lucide-react";
 import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
 import { supabase } from "@/supabase/auth/client";
@@ -339,25 +340,35 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
       render: (row: UserRow) => {
         const roleLower = (currentUserRole ?? "").toLowerCase();
         const canChangeRole = roleLower === "admin" || roleLower === "superuser" || roleLower === "sub_admin";
-        const items: { label: string; onClick: () => void; variant?: "default" | "danger" }[] = [
-          { label: "View profile", onClick: () => window.location.assign(`/dashboard/users/${row.id}`) },
-          { label: "Medical records", onClick: () => window.location.assign(`/dashboard/operatives/${row.id}`) },
+        const items: TableActionItem[] = [
+          { label: "View profile", icon: User, onClick: () => window.location.assign(`/dashboard/users/${row.id}`) },
+          { label: "Medical records", icon: HeartPulse, onClick: () => window.location.assign(`/dashboard/operatives/${row.id}`) },
         ];
         if (canChangeRole) {
           if (canAssignSuperAdminRole(currentUserRole)) {
-            items.push({ label: "Set role → Super Admin", onClick: () => handleRoleChange(row.id, "admin", row) });
+            items.push({
+              label: "Super Admin",
+              heading: "Set role",
+              onClick: () => handleRoleChange(row.id, "admin", row),
+            });
           }
           items.push(
-            { label: "Set role → Site Admin", onClick: () => handleRoleChange(row.id, "site_admin", row) },
-            { label: "Set role → Supervisor", onClick: () => handleRoleChange(row.id, "supervisor", row) },
-            { label: "Set role → Operative", onClick: () => handleRoleChange(row.id, "operative", row) }
+            {
+              label: "Site Admin",
+              heading: canAssignSuperAdminRole(currentUserRole) ? undefined : "Set role",
+              onClick: () => handleRoleChange(row.id, "site_admin", row),
+            },
+            { label: "Supervisor", onClick: () => handleRoleChange(row.id, "supervisor", row) },
+            { label: "Operative", onClick: () => handleRoleChange(row.id, "operative", row) }
           );
           if (usesAssignedSites(row.role)) {
-            items.push({ label: "Assign sites…", onClick: () => { void openAssignSites(row); } });
+            items.push({ label: "Assign sites…", icon: MapPin, divider: true, onClick: () => { void openAssignSites(row); } });
+            items.push({ label: "Send reset email", icon: Mail, onClick: () => handleSendPasswordReset(row) });
+          } else {
+            items.push({ label: "Send reset email", icon: Mail, divider: true, onClick: () => handleSendPasswordReset(row) });
           }
-          items.push({ label: "Send reset email", onClick: () => handleSendPasswordReset(row) });
         }
-        items.push({ label: "Delete user", onClick: () => handleDelete(row.id), variant: "danger" });
+        items.push({ label: "Delete user", icon: Trash2, onClick: () => handleDelete(row.id), variant: "danger" });
         return <TableActions items={items} />;
       },
     },

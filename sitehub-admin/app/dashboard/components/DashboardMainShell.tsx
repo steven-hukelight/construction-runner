@@ -1,6 +1,6 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useEffect, type ReactNode } from "react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import { useTheme } from "@/app/ThemeProvider";
 
@@ -11,6 +11,15 @@ export function DashboardMainShell({ children }: { children: ReactNode }) {
     dashboardBackgroundOverlay,
   } = useDisplayPreferences();
   const { resolvedTheme } = useTheme();
+
+  useEffect(() => {
+    document.documentElement.classList.add("dashboard-lock");
+    document.body.classList.add("dashboard-lock");
+    return () => {
+      document.documentElement.classList.remove("dashboard-lock");
+      document.body.classList.remove("dashboard-lock");
+    };
+  }, []);
 
   const url = dashboardBackgroundImageUrl?.trim() ?? "";
   const hasBg = url.length > 0;
@@ -39,7 +48,7 @@ export function DashboardMainShell({ children }: { children: ReactNode }) {
           />
         </div>
       ) : null}
-      <div className="relative z-[1] flex flex-col flex-1 min-h-0">{children}</div>
+      <div className="relative z-[1] flex min-h-full flex-1 flex-col">{children}</div>
     </main>
   );
 }

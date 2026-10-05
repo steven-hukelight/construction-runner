@@ -12,7 +12,7 @@ alwaysApply: false
 - Borders `gray-200` (#e5e7eb), dividers `gray-100`. Page bg `#f3f7fb`, surfaces `bg-white`.
 - Danger: `text-red-600`, `bg-red-50`; destructive fill `bg-red-600 hover:bg-red-700`. Warning: `text-amber-700`, `bg-amber-50`. Success: `text-emerald-700`, `bg-emerald-50`.
 - Dark: `dark:bg-slate-800`, `dark:border-slate-600`, `dark:text-slate-100` / `dark:text-slate-400`.
-- Colour means status, except roles. Status uses `StatusPill` / `.status-chip--{ok,info,warn,danger,muted}`. Role chips and role avatars use `lib/ui/roleStyles.ts` only: operative slate, supervisor cyan, site admin blue, Super Admin and Superuser violet, subcontractor admin fuchsia. Never red, amber, or green for a role. Never colour icons or tiles for decoration.
+- Colour means status, except roles. Status uses `StatusPill` / `.status-chip--{ok,info,warn,danger,muted}`. Role chips use the 100-tint map in `lib/ui/roleStyles.ts`; role avatars use the matching 600 solid fill with white text. Never red, amber, or green for a role. Never colour icons or tiles for decoration.
 - Font: inherit SF Pro from `body` (`--font-sans`); never set `font-family`. Weights 400 / 500 / 600 only.
 - Type scale: `text-xs` 12 meta, `text-sm` 14 default UI, `text-base` 16 body, `text-lg` 18 section titles, `text-2xl` 24 page titles.
 - Radius: `rounded-lg` (8px) controls and menus, `rounded-xl` (12px) cards and modals, `rounded-full` pills/avatars only.
@@ -20,7 +20,7 @@ alwaysApply: false
 - Cards: `rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]` on page bg `#f3f7fb`.
 - Page headers (`PageHeader`, `WelcomeBanner`): card + `p-5` (no accent border); title `text-2xl font-semibold text-gray-900`, subtitle `text-sm text-gray-500`, action right.
 - Shadows: card shadow above; `shadow-xl` on floating layers only (menus, modals, toasts). No coloured shadows.
-- Icons: `lucide-react` only; inline `h-4 w-4 text-gray-400`. Icon tile (stat cards, quick actions): `h-9 w-9 rounded-lg bg-blue-50` + `text-blue-600` icon; one tint only.
+- Icons: `lucide-react` only; inline `h-4 w-4 text-gray-400`. Stat/quick-action tint: `h-9 w-9 rounded-lg bg-blue-50` + `text-blue-600`. Table name-cell icons and initials: solid `bg-blue-600 text-white` (or `roleAvatarClass` when a role is known). One flat fill, no gradient.
 - Rows needing action: status chip plus `bg-red-50` (urgent) or `bg-amber-50` (pending). Charts: series `#2563eb` / `#60a5fa` / `#bfdbfe`; status colours only for status data.
 - Uppercase only in table column headers; no small all-caps eyebrow labels or `border-l-4` accent bars.
 - Use flat fills for all backgrounds and text. No gradients, `bg-clip-text`, or `backdrop-blur` decoration.

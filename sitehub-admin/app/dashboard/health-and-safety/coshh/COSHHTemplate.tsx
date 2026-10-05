@@ -2,7 +2,7 @@
 import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
-import { Plus } from "lucide-react";
+import { Eye, Plus, Trash2 } from "lucide-react";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import {
   getCoshhAssessmentVisual,
@@ -122,9 +122,9 @@ export default function COSHHTemplate() {
         <TableActions
           items={[
             ...(row.fileUrl
-              ? [{ label: "View", onClick: () => openDocumentUrl(row.fileUrl!) }]
+              ? [{ label: "View", icon: Eye, onClick: () => openDocumentUrl(row.fileUrl!) }]
               : []),
-            { label: "Delete", onClick: () => remove(row.id), variant: "danger" as const },
+            { label: "Delete", icon: Trash2, onClick: () => remove(row.id), variant: "danger" as const },
           ]}
         />
       ),

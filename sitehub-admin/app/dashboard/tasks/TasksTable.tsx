@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useEffect, useMemo, useState } from "react";
 import { createPortal } from "react-dom";
-import { ListTodo } from "lucide-react";
+import { Circle, ListTodo, LoaderCircle, CircleCheck, Trash2 } from "lucide-react";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
@@ -225,10 +225,10 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
       render: (row: any) => (
         <TableActions
           items={[
-            { label: "Set status → Open", onClick: () => handleStatus(row.id, "OPEN") },
-            { label: "Set status → In progress", onClick: () => handleStatus(row.id, "IN_PROGRESS") },
-            { label: "Set status → Done", onClick: () => handleStatus(row.id, "DONE") },
-            { label: "Delete task", onClick: () => handleDelete(row.id), variant: "danger" },
+            { label: "Open", icon: Circle, heading: "Set status", onClick: () => handleStatus(row.id, "OPEN") },
+            { label: "In progress", icon: LoaderCircle, onClick: () => handleStatus(row.id, "IN_PROGRESS") },
+            { label: "Done", icon: CircleCheck, onClick: () => handleStatus(row.id, "DONE") },
+            { label: "Delete task", icon: Trash2, onClick: () => handleDelete(row.id), variant: "danger" },
           ]}
         />
       ),

@@ -39,7 +39,7 @@ export function SafetyRecordCard({
   const body = (
     <>
       {initials ? (
-        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600 dark:bg-blue-500/15 dark:text-blue-300" aria-hidden>
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-600 text-xs font-semibold text-white" aria-hidden>
           {initials}
         </span>
       ) : Icon ? (

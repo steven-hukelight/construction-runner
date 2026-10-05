@@ -210,24 +210,23 @@ h1, h2, h3, h4, h5, h6 {
   }
 }
 
-.app-root{display:flex;min-height:100vh;background:#d5e2ef}
+.app-root {
+  display: flex;
+  height: 100dvh;
+  overflow: hidden;
+  background: #f3f7fb;
+}
 .sidebar{
   width: var(--sidebar-width);
-  position: fixed;
-  left: 16px;
-  top: 16px;
-  bottom: 16px;
+  flex-shrink: 0;
+  height: 100dvh;
+  position: relative;
   z-index: 40;
   padding: 20px 16px;
   background: #eef3fa;
-  border-right: 1px solid #d7e2ee;
+  border-right: 1px solid #e5e7eb;
   box-shadow: none;
-  border-radius: 20px 0 0 20px;
-  --radius-md: 0.75rem;
-  --radius-lg: 0.75rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1rem;
-  --radius-3xl: 1.25rem;
+  border-radius: 0;
 }
 
 .sidebar .logo{
@@ -310,25 +309,21 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
-/* Below .sidebar (z-index 40): main is a full-width flex item when sidebar is fixed, so without this
-   the main layer sits on top of the sidebar and steals clicks / scroll. */
+/* Main column scrolls; sidebar stays in the flex shell. */
 .main-content{
   flex: 1;
   min-width: 0;
+  min-height: 0;
+  height: 100dvh;
+  overflow-x: hidden;
+  overflow-y: auto;
   position: relative;
   z-index: 0;
-  margin: 16px 16px 16px 0;
-  min-height: calc(100vh - 32px);
+  margin: 0;
   padding: 24px 28px;
-  padding-left: calc(var(--sidebar-width) + 16px + 28px);
   background: #f3f7fb;
-  border-radius: 0 20px 20px 0;
-  box-shadow: 0 16px 48px rgba(37, 76, 128, 0.1);
-  --radius-md: 0.75rem;
-  --radius-lg: 1rem;
-  --radius-xl: 1rem;
-  --radius-2xl: 1.25rem;
-  --radius-3xl: 1.5rem;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 /* Custom dashboard photo background: let layers behind content show through */
@@ -487,8 +482,13 @@ h1, h2, h3, h4, h5, h6 {
 }
 
 .row-menu-button:hover {
-  background: #f3f4f6;
-  color: #374151;
+  background: #eff6ff;
+  color: #2563eb;
+}
+
+.row-menu-button[aria-expanded="true"] {
+  background: #eff6ff;
+  color: #1d4ed8;
 }
 
 .row-menu-button:focus-visible {
@@ -883,15 +883,20 @@ a {
 /* responsive */
 @media (max-width:768px){ 
   .mobile-menu-btn{display:block}
-  .app-root{padding:0;background:#d5e2ef}
+  .app-root{padding:0;background:#f3f7fb;height:100dvh;overflow:hidden}
   .sidebar{
+    position:fixed;
     transform:translateX(-100%);
     transition:transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
     z-index:40;
     top:0;left:0;bottom:0;
+    height:100dvh;
     border-radius:0;
   }
-  .main-content{margin:0;padding:20px;padding-left:20px;padding-top:80px;border-radius:0;min-height:100vh;box-shadow:none}
+  .sidebar.mobile-menu-open {
+    transform: translateX(0);
+  }
+  .main-content{margin:0;padding:20px;padding-left:20px;padding-top:80px;border-radius:0;height:100dvh;min-height:0;box-shadow:none}
   .search{min-width:auto;width:100%}
   .topbar{gap:16px;flex-direction:column;align-items:flex-start}
   .topbar h1{font-size:24px}
@@ -942,6 +947,28 @@ a {
   color-scheme: dark;
 }
 
+html.dashboard-lock,
+html.dashboard-lock body {
+  height: 100%;
+  overflow: hidden;
+  background: #f3f7fb;
+}
+
+html.dashboard-lock .app-body {
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
+}
+
+#table-actions-root [data-table-actions-menu] {
+  height: fit-content;
+}
+
+html.dashboard-lock[data-theme="dark"],
+html.dashboard-lock[data-theme="dark"] body {
+  background: #0f172a;
+}
+
 [data-theme="dark"] html {
   background: #0f172a;
 }
@@ -958,7 +985,6 @@ a {
 
 [data-theme="dark"] .main-content {
   background: #111827;
-  min-height: 100%;
 }
 
 [data-theme="dark"] .main-content.main-content--custom-bg {

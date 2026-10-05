@@ -8,9 +8,11 @@ import { APP_LOCALES } from "@/lib/i18n/catalog";
 export function LanguageSwitcher({
   compact = false,
   className,
+  menuPlacement = "down",
 }: {
   compact?: boolean;
   className?: string;
+  menuPlacement?: "down" | "up";
 }) {
   const { locale, setLocale, t } = useDisplayPreferences();
   const items = [
@@ -27,7 +29,8 @@ export function LanguageSwitcher({
         icon={Languages}
         fieldLabel={t("Language")}
         variant={compact ? "compact" : "default"}
-        className={compact ? "w-52" : "w-full max-w-xs"}
+        menuPlacement={menuPlacement}
+        className={compact ? "w-full min-w-0" : "w-full max-w-xs"}
       />
     </div>
   );

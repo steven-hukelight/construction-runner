@@ -10,7 +10,7 @@ import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
-import { Building2, Plus, Copy, Check } from "lucide-react";
+import { Archive, Ban, Building2, LayoutDashboard, Pencil, Plus, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
 import { CompanyPicker } from "../components/ui/SitePicker";
 
 type Company = {
@@ -252,22 +252,25 @@ export default function CompaniesPage() {
       render: (row: Company) => {
         const hasData = (row.userCount ?? 0) > 0 || (row.siteCount ?? 0) > 0;
         const menuItems = [
-          { label: "Enter dashboard", onClick: () => handleEnterDashboard(row.id) },
+          { label: "Enter dashboard", icon: LayoutDashboard, onClick: () => handleEnterDashboard(row.id) },
           {
             label: regeneratingId === row.id ? "Regenerating…" : "Regenerate invite code",
+            icon: RefreshCw,
             onClick: () => handleRegenerateInviteCode(row.id),
           },
           {
             label: "Edit name",
+            icon: Pencil,
             onClick: () => {
               setEditModal(row);
               setEditName(row.name || "");
             },
           },
-          ...(row.status !== "Disabled" ? [{ label: "Disable", onClick: () => handleSetStatus(row.id, "Disabled") }] : []),
-          ...(row.status !== "Archived" ? [{ label: "Archive", onClick: () => handleSetStatus(row.id, "Archived") }] : []),
+          ...(row.status !== "Disabled" ? [{ label: "Disable", icon: Ban, onClick: () => handleSetStatus(row.id, "Disabled") }] : []),
+          ...(row.status !== "Archived" ? [{ label: "Archive", icon: Archive, onClick: () => handleSetStatus(row.id, "Archived") }] : []),
           {
             label: "Delete company",
+            icon: Trash2,
             onClick: () => {
               if (!window.confirm(hasData ? `Delete "${row.name || row.id}"? This company has users/sites. Use "Delete (force)" to delete anyway.` : `Delete "${row.name || row.id}"?`)) return;
               handleDeleteCompany(row, hasData);

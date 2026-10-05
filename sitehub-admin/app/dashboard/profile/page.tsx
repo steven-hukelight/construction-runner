@@ -13,7 +13,7 @@ import { useClientSession } from "../components/ClientSessionProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { roleDisplayName } from "@/lib/auth/roles";
 import RoleBadge from "../components/RoleBadge";
-import { roleChipClass } from "@/lib/ui/roleStyles";
+import { roleAvatarClass } from "@/lib/ui/roleStyles";
 
 type TabType = "personal" | "activity" | "certifications" | "medical" | "induction" | "privacy";
 
@@ -789,7 +789,7 @@ export default function ProfilePage() {
           <div className="card">
             <div className="flex flex-col items-center text-center space-y-4">
               <div
-                className={`flex items-center justify-center rounded-full text-xl font-semibold ${roleChipClass(profile.role)}`}
+                className={`flex items-center justify-center rounded-full text-xl font-semibold ${roleAvatarClass(profile.role)}`}
                 style={{ width: "100px", height: "100px" }}
               >
                 {initials}

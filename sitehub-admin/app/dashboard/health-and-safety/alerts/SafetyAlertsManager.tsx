@@ -2,7 +2,7 @@
 import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
-import { AlertTriangle, Plus } from "lucide-react";
+import { AlertTriangle, Plus, Trash2 } from "lucide-react";
 import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import Table from "../../components/ui/Table";
@@ -97,7 +97,7 @@ export default function SafetyAlertsManager() {
       render: (row: AlertItem) => (
         <TableActions
           items={[
-            { label: "Delete", onClick: () => remove(row.id), variant: "danger" as const },
+            { label: "Delete", icon: Trash2, onClick: () => remove(row.id), variant: "danger" as const },
           ]}
         />
       ),

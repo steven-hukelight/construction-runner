@@ -100,7 +100,7 @@ export default function SuperuserSidebar() {
           })}
         </nav>
 
-        <div className="shrink-0 pt-4 space-y-2 px-1">
+        <div className="shrink-0 space-y-2 px-1 pt-4">
           <p className="text-xs text-gray-500 dark:text-slate-400">{t("Superuser panel")}</p>
           <a
             href="/legal/terms"

@@ -51,7 +51,7 @@ export default function RootLayout({ children }: any) {
         <link rel="apple-touch-icon" href="/Logo.png?v=3" />
       </head>
       <body className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-300 min-h-screen flex flex-col font-sf">
-        <div className="flex-1 flex flex-col">
+        <div className="app-body flex-1 flex flex-col">
           <Providers>
             <AuthErrorHandler />
             {children}

@@ -2,7 +2,7 @@
 
 import React, { useCallback, useMemo, useState } from "react";
 import Link from "next/link";
-import { Package } from "lucide-react";
+import { Check, Package, Trash2 } from "lucide-react";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
@@ -235,8 +235,8 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       render: (row: Delivery) => (
         <TableActions
           items={[
-            { label: "Mark received", onClick: () => handleStatus(row.id, "RECEIVED") },
-            { label: "Delete delivery", onClick: () => handleDelete(row.id), variant: "danger" },
+            { label: "Mark received", icon: Check, onClick: () => handleStatus(row.id, "RECEIVED") },
+            { label: "Delete delivery", icon: Trash2, onClick: () => handleDelete(row.id), variant: "danger" },
           ]}
         />
       ),

@@ -3,7 +3,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useMemo } from "react";
 import Link from "next/link";
-import { FileText } from "lucide-react";
+import { Check, FileText, Trash2, X } from "lucide-react";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import { StatusPill, statusToVariant } from "../components/ui/StatusPill";
@@ -123,10 +123,10 @@ export default function RAMSTable({ data }: any) {
         return (
         <TableActions
           items={[
-            ...(docUrl ? [{ label: "View file", onClick: () => openDocumentUrl(docUrl) }] : []),
-            { label: "Approve", onClick: () => handleStatus(row.id, "APPROVED") },
-            { label: "Reject", onClick: () => handleStatus(row.id, "REJECTED") },
-            { label: "Delete", onClick: () => handleDelete(row.id), variant: "danger" as const },
+            ...(docUrl ? [{ label: "View file", icon: FileText, onClick: () => openDocumentUrl(docUrl) }] : []),
+            { label: "Approve", icon: Check, onClick: () => handleStatus(row.id, "APPROVED") },
+            { label: "Reject", icon: X, onClick: () => handleStatus(row.id, "REJECTED") },
+            { label: "Delete", icon: Trash2, onClick: () => handleDelete(row.id), variant: "danger" as const },
           ]}
         />
         );
