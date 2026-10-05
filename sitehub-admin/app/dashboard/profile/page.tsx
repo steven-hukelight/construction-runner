@@ -13,6 +13,7 @@ import { useClientSession } from "../components/ClientSessionProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { roleDisplayName } from "@/lib/auth/roles";
 import RoleBadge from "../components/RoleBadge";
+import { roleChipClass } from "@/lib/ui/roleStyles";
 
 type TabType = "personal" | "activity" | "certifications" | "medical" | "induction" | "privacy";
 
@@ -787,9 +788,9 @@ export default function ProfilePage() {
         <div className="lg:col-span-1">
           <div className="card">
             <div className="flex flex-col items-center text-center space-y-4">
-              <div 
-                className="rounded-full bg-blue-600 flex items-center justify-center font-bold"
-                style={{ width: '100px', height: '100px', fontSize: '20px', color: '#ffffff' }}
+              <div
+                className={`flex items-center justify-center rounded-full text-xl font-semibold ${roleChipClass(profile.role)}`}
+                style={{ width: "100px", height: "100px" }}
               >
                 {initials}
               </div>

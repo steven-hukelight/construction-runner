@@ -92,7 +92,7 @@ export default function ApprovalsSection() {
             header: "Name",
             accessor: "name",
             render: (reg: Registration) => (
-              <TableNameCell initials={initialsFromLabel(reg.name || "—")} label={reg.name || "—"} />
+              <TableNameCell initials={initialsFromLabel(reg.name || "—")} label={reg.name || "—"} role={reg.role} />
             ),
           },
           { header: "Email", accessor: "email" },

@@ -66,7 +66,7 @@ export default function ComplianceTable({
                 onClick={() => onRowClick(row.userId)}
               >
                 <td className={density.td}>
-                  <TableNameCell initials={initialsFromLabel(row.userName)} label={row.userName} detail={row.trade} />
+                  <TableNameCell initials={initialsFromLabel(row.userName)} label={row.userName} detail={row.trade} role={row.userRole} />
                 </td>
                 <td className={density.td}>
                   <RoleBadge role={row.userRole ?? "OPERATIVE"} />

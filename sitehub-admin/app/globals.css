@@ -293,6 +293,15 @@ h1, h2, h3, h4, h5, h6 {
   color: #4b5563;
 }
 
+.sidebar a:focus {
+  outline: none;
+}
+
+.sidebar a:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .sidebar a.active,
 .sidebar a.active:hover {
   background: #eff6ff;
@@ -594,26 +603,27 @@ textarea.input{padding:10px 14px;min-height:90px;border-radius:8px}
 }
 .data-table-row {
   position: relative;
+  transition: background-color 120ms, color 120ms;
 }
 .data-table-row:hover {
-  background: rgba(239, 246, 255, 0.85);
+  background: rgba(239, 246, 255, 0.5);
 }
 .data-table-header th,
 .data-table-wrapper thead th {
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 500;
   letter-spacing: 0.04em;
   text-transform: uppercase;
   color: #64748b;
   line-height: 1.4;
-  background: #eef4fa;
+  background: #f1f5f9;
 }
 .data-table-wrapper tbody tr {
   background: #fff;
   border-bottom: 1px solid rgba(241, 245, 249, 0.9);
 }
 .data-table-wrapper tbody tr:hover {
-  background: rgba(239, 246, 255, 0.85);
+  background: rgba(239, 246, 255, 0.5);
 }
 .table-toolbar-input {
   height: 36px;

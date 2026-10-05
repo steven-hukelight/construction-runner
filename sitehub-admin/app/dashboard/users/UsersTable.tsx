@@ -9,7 +9,8 @@ import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
-import { canAssignSuperAdminRole, usesAssignedSites } from "@/lib/auth/roles";
+import { canAssignSuperAdminRole, roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
+import { rolePrivilege, roleStyleKey } from "@/lib/ui/roleStyles";
 
 type UserRow = {
   id: string;
@@ -50,6 +51,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   const [usersError, setUsersError] = useState(false);
   const reloadUsersRef = useRef<(() => void) | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
+  const [roleSort, setRoleSort] = useState<"high" | "low" | null>(null);
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [assignSitesFor, setAssignSitesFor] = useState<UserRow | null>(null);
   const [companySites, setCompanySites] = useState<{ id: string; name: string }[]>([]);
@@ -283,7 +285,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
     }
   }
 
-  type Column = { header: string; accessor: string; render?: (row: UserRow) => React.ReactNode };
+  type Column = { header: React.ReactNode; accessor: string; render?: (row: UserRow) => React.ReactNode };
 
   const columns: Column[] = [
     {
@@ -294,6 +296,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
         return (
           <TableNameCell
             initials={initialsFromLabel(label)}
+            role={row.role}
             label={
               <Link
                 href={`/dashboard/users/${row.id}`}
@@ -317,7 +320,16 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
       },
     },
     {
-      header: "Role",
+      header: (
+        <button
+          type="button"
+          onClick={() => setRoleSort((current) => (current === "high" ? "low" : "high"))}
+          className="inline-flex items-center gap-1 font-medium uppercase tracking-[0.04em] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        >
+          Role
+          {roleSort === "high" ? " ↓" : roleSort === "low" ? " ↑" : ""}
+        </button>
+      ),
       accessor: "role",
       render: (row: UserRow) => <RoleBadge role={row.role} />,
     },
@@ -351,32 +363,57 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
     },
   ];
 
+  const roleCounts = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const row of rows) {
+      const key = roleStyleKey(row.role);
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return [...counts.entries()].sort((a, b) => rolePrivilege(a[0]) - rolePrivilege(b[0]));
+  }, [rows]);
+
   const displayedRows = useMemo(() => {
-    if (roleFilter === "all") return rows;
-    return rows.filter((row) => String(row.role ?? "").toUpperCase().replace(/-/g, "_") === roleFilter);
-  }, [rows, roleFilter]);
+    const filtered =
+      roleFilter === "all" ? rows : rows.filter((row) => roleStyleKey(row.role) === roleFilter);
+    if (!roleSort) return filtered;
+    const direction = roleSort === "high" ? 1 : -1;
+    return [...filtered].sort((a, b) => (rolePrivilege(a.role) - rolePrivilege(b.role)) * direction);
+  }, [rows, roleFilter, roleSort]);
 
   return (
     <>
       <Table
         title="All users"
         subtitle={`${displayedRows.length}${roleFilter === "all" ? ` of ${rows.length}` : ""} people`}
-        actions={
-          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
-            <span>Role</span>
-            <select
-              value={roleFilter}
-              onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-9 w-52 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-none transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+        extra={
+          <div className="flex flex-wrap gap-2" role="group" aria-label="Filter by role">
+            <button
+              type="button"
+              onClick={() => setRoleFilter("all")}
+              className={`rounded-full px-3 py-1 text-sm font-medium transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                roleFilter === "all"
+                  ? "bg-blue-600 text-white"
+                  : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+              }`}
             >
-              <option value="all">All roles</option>
-              <option value="OPERATIVE">Operative</option>
-              <option value="SUPERVISOR">Supervisor</option>
-              <option value="SITE_ADMIN">Site Admin</option>
-              <option value="ADMIN">Super Admin</option>
-              <option value="SUB_ADMIN">Subcontractor admin</option>
-            </select>
-          </label>
+              All {rows.length}
+            </button>
+            {roleCounts.map(([key, count]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setRoleFilter(key)}
+                className={`rounded-full px-3 py-1 text-sm font-medium transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 ${
+                  roleFilter === key
+                    ? "bg-blue-600 text-white"
+                    : "border border-gray-300 bg-white text-gray-700 hover:bg-gray-50"
+                }`}
+              >
+                {roleDisplayName(key)} {count}
+              </button>
+            ))}
+          </div>
         }
         columns={columns}
         data={displayedRows}

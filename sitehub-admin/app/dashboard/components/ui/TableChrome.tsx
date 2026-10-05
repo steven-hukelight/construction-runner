@@ -1,6 +1,7 @@
 "use client";
 
 import type { ComponentType, ReactNode } from "react";
+import { roleChipClass } from "@/lib/ui/roleStyles";
 
 export function TableToolbar({
   title,
@@ -48,26 +49,30 @@ export function TableNameCell({
   initials,
   label,
   detail,
-  wellClass = "bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300",
+  role,
+  wellClass,
 }: {
   icon?: ComponentType<{ className?: string }>;
   /** Shown in a circular avatar instead of the icon. */
   initials?: string;
   label: ReactNode;
   detail?: ReactNode;
+  /** When set, the initials circle uses this role's colour. */
+  role?: string | null;
   wellClass?: string;
 }) {
+  const tone = wellClass ?? (role ? roleChipClass(role) : "bg-slate-100 text-slate-700");
   return (
     <div className="flex min-w-0 items-center gap-3">
       {initials ? (
         <span
-          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${wellClass}`}
+          className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-full text-xs font-semibold ${tone}`}
           aria-hidden
         >
           {initials}
         </span>
       ) : Icon ? (
-        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${wellClass}`}>
+        <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl ${tone}`}>
           <Icon className="h-4 w-4" aria-hidden />
         </span>
       ) : null}

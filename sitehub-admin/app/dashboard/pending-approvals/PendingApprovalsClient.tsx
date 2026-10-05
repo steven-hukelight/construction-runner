@@ -99,7 +99,9 @@ export default function PendingApprovalsClient() {
         {
           header: "Name",
           accessor: "name",
-          render: (r: Reg) => <TableNameCell initials={initialsFromLabel(r.name ?? "—")} label={r.name ?? "—"} />,
+          render: (r: Reg) => (
+            <TableNameCell initials={initialsFromLabel(r.name ?? "—")} label={r.name ?? "—"} role={r.role} />
+          ),
         },
         { header: "Email", accessor: "email", render: (r: Reg) => r.email ?? "—" },
         { header: "Company", accessor: "companyName", render: (r: Reg) => r.companyName ?? "—" },

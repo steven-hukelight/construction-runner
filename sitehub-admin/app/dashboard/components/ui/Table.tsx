@@ -112,9 +112,9 @@ function Table({
 		<div className="max-h-[calc(100vh-220px)] min-h-[160px] overflow-x-auto overflow-y-auto">
 			<table className={`data-table w-full table-auto ${textSize}`}>
 				<thead className="sticky top-0 z-10">
-					<tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] dark:border-slate-600 dark:bg-slate-900/90">
+					<tr className="data-table-header border-b border-gray-200 bg-slate-100 dark:border-slate-600 dark:bg-slate-900/90">
 						{visibleCols.map(({ col, j }) => (
-							<th key={j} className={`${cellPad} ${rowPad} text-left text-[12px] font-semibold tracking-[0.04em] text-slate-500 dark:text-slate-400 uppercase`}>
+							<th key={j} className={`${cellPad} ${rowPad} text-left text-[12px] font-medium tracking-[0.04em] text-slate-500 uppercase dark:text-slate-400`}>
 								{col.header || col.label || col.key}
 							</th>
 						))}
@@ -138,7 +138,7 @@ function Table({
 						data.map((row: any, i: number) => (
 							<tr
 								key={i}
-								className={`data-table-row group ${rowMinH} ${rowClassName?.(row) ?? "bg-white dark:bg-slate-800"} hover:bg-blue-50/70 dark:hover:bg-slate-700/80 border-b border-slate-100/90 dark:border-slate-700/60 last:border-b-0`}
+								className={`data-table-row group ${rowMinH} ${rowClassName?.(row) ?? "bg-white dark:bg-slate-800"} border-b border-slate-100/90 transition-colors duration-[120ms] last:border-b-0 hover:bg-blue-50/50 dark:border-slate-700/60 dark:hover:bg-slate-700/80`}
 							>
 								{visibleCols.map(({ col, j }) => {
 									const content = cells[i][j];

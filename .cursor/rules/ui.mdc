@@ -12,7 +12,7 @@ alwaysApply: false
 - Borders `gray-200` (#e5e7eb), dividers `gray-100`. Page bg `#f3f7fb`, surfaces `bg-white`.
 - Danger: `text-red-600`, `bg-red-50`; destructive fill `bg-red-600 hover:bg-red-700`. Warning: `text-amber-700`, `bg-amber-50`. Success: `text-emerald-700`, `bg-emerald-50`.
 - Dark: `dark:bg-slate-800`, `dark:border-slate-600`, `dark:text-slate-100` / `dark:text-slate-400`.
-- Colour means status. Use `StatusPill` / `.status-chip--{ok,info,warn,danger,muted}`; never colour icons or tiles for decoration.
+- Colour means status, except roles. Status uses `StatusPill` / `.status-chip--{ok,info,warn,danger,muted}`. Role chips and role avatars use `lib/ui/roleStyles.ts` only: operative slate, supervisor cyan, site admin blue, Super Admin and Superuser violet, subcontractor admin fuchsia. Never red, amber, or green for a role. Never colour icons or tiles for decoration.
 - Font: inherit SF Pro from `body` (`--font-sans`); never set `font-family`. Weights 400 / 500 / 600 only.
 - Type scale: `text-xs` 12 meta, `text-sm` 14 default UI, `text-base` 16 body, `text-lg` 18 section titles, `text-2xl` 24 page titles.
 - Radius: `rounded-lg` (8px) controls and menus, `rounded-xl` (12px) cards and modals, `rounded-full` pills/avatars only.

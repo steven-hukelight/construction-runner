@@ -168,7 +168,7 @@ export default function MissingInfoTable() {
           header: "Worker",
           accessor: "name",
           render: (r: Row) => (
-            <TableNameCell initials={initialsFromLabel(r.name || "—")} label={r.name || "—"} detail={r.email} />
+            <TableNameCell initials={initialsFromLabel(r.name || "—")} label={r.name || "—"} detail={r.email} role={r.role} />
           ),
         },
         {

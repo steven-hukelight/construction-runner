@@ -6,7 +6,7 @@ import { createPortal } from "react-dom";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import PageHeader from "../components/PageHeader";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 import Link from "next/link";
@@ -207,7 +207,10 @@ export default function AllUsersPage() {
   }
 
   const columns = [
-    { header: "Name", accessor: "name", render: (row: UserRow) => <TableNameCell icon={User} label={row.name || row.email || "—"} /> },
+    { header: "Name", accessor: "name", render: (row: UserRow) => {
+        const label = row.name || row.email || "—";
+        return <TableNameCell initials={initialsFromLabel(label)} label={label} role={row.role} />;
+      } },
     { header: "Email", accessor: "email", render: (row: UserRow) => row.email || "—" },
     {
       header: "Role",
