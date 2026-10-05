@@ -57,7 +57,7 @@ function formatFenceLoggedDisplay(meta: AutoSignOutNoteMeta): string | null {
 }
 
 /**
- * Parenthetical after "Left site: HH:mm" — same wording as the Flutter
+ * Parenthetical after "Left site: HH:mm", same wording as the Flutter
  * live / role-call cards so supervisors see one vocabulary on both surfaces.
  */
 export function leftSiteAutoSignOutReasonSuffix(reason: string | undefined): string {
@@ -79,16 +79,16 @@ export function leftSiteAutoSignOutReasonSuffix(reason: string | undefined): str
 export function describeAttendanceAutoSignOutReason(reason: string | undefined): string {
   const r = (reason ?? "").toLowerCase().trim();
   if (r === "fallback_stale_outside") {
-    return `Server fallback — no recent ping for ${ATTENDANCE_FALLBACK_STALE_MINUTES} minutes while last known position was outside the site boundary.`;
+    return `Server fallback, no recent ping for ${ATTENDANCE_FALLBACK_STALE_MINUTES} minutes while last known position was outside the site boundary.`;
   }
   if (r === "fallback_max_shift") {
-    return "Server fallback — open shift exceeded 12 hours with no confirmed site exit (last GPS was still on-site or the phone went silent).";
+    return "Server fallback, open shift exceeded 12 hours with no confirmed site exit (last GPS was still on-site or the phone went silent).";
   }
   if (r === "geofence_exit_immediate") {
-    return "Trusted geofence exit ping — server confirmed coordinates beyond the outside threshold and closed the session immediately.";
+    return "Trusted geofence exit ping, server confirmed coordinates beyond the outside threshold and closed the session immediately.";
   }
   if (r === "fallback") {
-    return "Server check — signed out after location looked off-site without a recent on-site ping.";
+    return "Server check, signed out after location looked off-site without a recent on-site ping.";
   }
   if (r === "native_geofence" || r.includes("native_geofence")) {
     return "Device reported leaving the site boundary (geofence).";
@@ -110,7 +110,7 @@ function refinedAutoSignOutBody(meta: AutoSignOutNoteMeta): string {
   return lines.join("\n");
 }
 
-/** Same DB row can supply sign-in + sign-out; notes get merged twice — breaks JSON.parse on the whole string. */
+/** Same DB row can supply sign-in + sign-out; notes get merged twice, breaks JSON.parse on the whole string. */
 function dedupeRepeatedNoteBlocks(s: string): string {
   const parts = s
     .split(/\n\n+/)
@@ -192,7 +192,7 @@ export function formatAttendanceNotesDisplay(notes: string | undefined): NotesDi
     };
   }
 
-  // Last resort: last paragraph only is auto JSON (e.g. odd wrapping) — still show refined, not raw.
+  // Last resort: last paragraph only is auto JSON (e.g. odd wrapping), still show refined, not raw.
   const blocks = raw.split(/\n\n+/).map((b) => b.trim()).filter(Boolean);
   if (blocks.length >= 1) {
     const last = blocks[blocks.length - 1]!;

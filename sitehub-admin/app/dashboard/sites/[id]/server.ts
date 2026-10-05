@@ -36,5 +36,5 @@ async function fetchSiteImpl(id: string): Promise<any> {
   return null;
 }
 
-/** One HTTP load per request (layout + page both call this). Never throws — avoids production RSC digest crashes. */
+/** One HTTP load per request (layout + page both call this). Never throws, avoids production RSC digest crashes. */
 export const fetchSite = cache(fetchSiteImpl);

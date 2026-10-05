@@ -102,7 +102,7 @@ function RegisterPageContent() {
         setVerifyMessage(
           res.ok
             ? "We sent a 6-digit code to your email. Enter it below to continue."
-            : "Account started, but email may not have sent — use Resend code."
+            : "Account started, but email may not have sent, use Resend code."
         );
         setNewCompanyName("");
         setNewAdminName("");
@@ -150,7 +150,7 @@ function RegisterPageContent() {
         setVerifyMessage(
           res.ok
             ? "We sent a 6-digit code to your email. Enter it below to continue."
-            : "Account started, but email may not have sent — use Resend code."
+            : "Account started, but email may not have sent, use Resend code."
         );
         setInviteName("");
         setInviteEmail("");
@@ -207,7 +207,7 @@ function RegisterPageContent() {
         body: JSON.stringify({ registrationId: verifyRegId }),
       });
       const json = await res.json().catch(() => ({}));
-      setVerifyMessage(res.ok ? "New code sent — check your inbox." : json?.error || "Could not resend");
+      setVerifyMessage(res.ok ? "New code sent, check your inbox." : json?.error || "Could not resend");
     } catch {
       setVerifyMessage("Network error");
     } finally {
@@ -367,7 +367,7 @@ function RegisterPageContent() {
           </button>
         </div>
 
-        {/* Honeypot — hidden from users */}
+        {/* Honeypot, hidden from users */}
         <label className="sr-only" aria-hidden="true">
           Website
           <input

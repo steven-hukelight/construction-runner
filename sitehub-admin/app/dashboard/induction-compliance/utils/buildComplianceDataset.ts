@@ -366,7 +366,7 @@ export async function buildComplianceDataset(
       if (siteRamsVersion && siteRamsUpdatedAt && ramsStatus !== "accepted" && ramsStatus !== "not_required") {
         const sevenDays = 7 * day;
         if (now.getTime() - siteRamsUpdatedAt.getTime() < sevenDays) {
-          rowExpiringItems.push("RAMS updated recently — acceptance required");
+          rowExpiringItems.push("RAMS updated recently, acceptance required");
         }
       }
 

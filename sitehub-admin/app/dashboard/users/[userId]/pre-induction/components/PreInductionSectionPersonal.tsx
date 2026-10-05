@@ -103,7 +103,7 @@ export default function PreInductionSectionPersonal({
           />
         </div>
         <div className="sm:col-span-2">
-          <label className="block text-sm font-medium text-gray-700">Address (optional — only if required by contractor)</label>
+          <label className="block text-sm font-medium text-gray-700">Address (optional, only if required by contractor)</label>
           <textarea
             value={form.address}
             onChange={(e) => setForm((f) => ({ ...f, address: e.target.value }))}

@@ -16,7 +16,7 @@ function formatCompletedAt(completedAt: Date | null): string {
   return d.toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" });
 }
 
-// Neutral status labels — the "Pre-Induction Required" / "Pre-Induction Override"
+// Neutral status labels, the "Pre-Induction Required" / "Pre-Induction Override"
 // legacy labels are mapped to plain "Induction Required" / "Override Applied" so
 // pre-induction language never leaks to supervisors after the My Info reflow.
 const STATUS_CHIP: Record<string, string> = {

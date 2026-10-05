@@ -964,7 +964,7 @@ export default function ProfilePage() {
                       {profile.status || "Active"}
                     </div>
                     <p className="mt-1.5 text-xs text-slate-500">
-                      Account status is managed by administrators on the Users page — you can’t change it here.
+                      Account status is managed by administrators on the Users page, you can’t change it here.
                     </p>
                   </div>
                 </div>
@@ -1328,7 +1328,7 @@ export default function ProfilePage() {
 
           {activeTab === "privacy" && (
             <div className="card space-y-6">
-              <h3 className="font-semibold text-slate-900">GDPR — Your Data Rights</h3>
+              <h3 className="font-semibold text-slate-900">GDPR. Your Data Rights</h3>
               <p className="text-sm text-slate-600">
                 Your data is collected solely for the purposes of site access, safety compliance, induction, RAMS acceptance, and legal health &amp; safety obligations. It is not used for marketing or profiling.
               </p>

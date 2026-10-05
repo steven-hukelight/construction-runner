@@ -187,7 +187,7 @@ export function isActiveWorkSession(session: AttendanceSession): boolean {
   return getSessionEndDate(session) == null;
 }
 
-/** Prefer sign-in, then sign-out, then absent row — for company / name resolution */
+/** Prefer sign-in, then sign-out, then absent row, for company / name resolution */
 export function getPrimaryAttendanceLog(session: AttendanceSession): AttendanceLog | null {
   return session.signInLog ?? session.signOutLog ?? session.absentLog;
 }

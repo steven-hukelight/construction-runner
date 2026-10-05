@@ -33,7 +33,7 @@ export default async function InductionSafetyPage() {
     <div className="relative space-y-8">
       <PageHeader
         title="Induction safety"
-        description="Company default safety pack (PPE, emergency, welfare, access, hazards). Copied onto each new site and shown first in induction. This is not the same as Site rules — those are discrete per-site rules accepted later in the flow. Edit a site’s copy under Sites → Safety info."
+        description="Company default safety pack (PPE, emergency, welfare, access, hazards). Copied onto each new site and shown first in induction. This is not the same as Site rules, those are discrete per-site rules accepted later in the flow. Edit a site’s copy under Sites → Safety info."
       />
       <CompanySafetyPackClient canEdit={canEditCompanySafetyPack(role)} />
     </div>

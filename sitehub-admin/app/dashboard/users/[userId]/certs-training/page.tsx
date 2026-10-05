@@ -15,7 +15,7 @@ export default async function CertsTrainingPage({
 }: {
   params: Promise<{ userId: string }>;
 }) {
-  // Backed by pre-induction data — redirect to user profile when hidden.
+  // Backed by pre-induction data, redirect to user profile when hidden.
   if (!preInductionUiEnabled) {
     const { userId: userIdEarly } = await params;
     redirect(`/dashboard/users/${userIdEarly}`);

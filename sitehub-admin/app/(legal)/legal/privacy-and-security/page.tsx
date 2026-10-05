@@ -5,7 +5,7 @@ import { Shield, ArrowLeft, Lock } from "lucide-react";
 import MarketingShell from "@/app/components/marketing/MarketingShell";
 
 /**
- * Construction Runner — Privacy & Security Master Policy
+ * Construction Runner. Privacy & Security Master Policy
  * Combined policy covering data protection (GDPR) and security practices.
  */
 export default function PrivacyAndSecurityPage() {
@@ -144,7 +144,7 @@ export default function PrivacyAndSecurityPage() {
           {/* Contact */}
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              8. Contact — Data Protection
+              8. Contact. Data Protection
             </h2>
             <p className="text-sm leading-relaxed">
               For privacy or security queries, contact your company&apos;s data protection officer or the Construction Runner

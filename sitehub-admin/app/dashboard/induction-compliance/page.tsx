@@ -9,7 +9,7 @@ import { preInductionUiEnabled } from "@/lib/featureFlags";
 export default async function InductionCompliancePage() {
   // Induction Compliance is largely a Pre-Induction dashboard; when the
   // feature is hidden site-wide, send users somewhere useful. All backing
-  // data still exists — flip `preInductionUiEnabled` back to `true` to
+  // data still exists, flip `preInductionUiEnabled` back to `true` to
   // restore the page.
   if (!preInductionUiEnabled) {
     redirect("/dashboard");

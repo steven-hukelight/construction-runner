@@ -68,7 +68,7 @@ export function DashboardContent({
   users,
   tasks,
 }: DashboardContentProps) {
-  // Trust SSR props for the heavy lists — previously this client re-fetched
+  // Trust SSR props for the heavy lists, previously this client re-fetched
   // sites/rams/users/tasks on mount (duplicate of the server round-trip) and
   // again on every Realtime event, which made the home dashboard feel slow.
   const [pendingRegistrations, setPendingRegistrations] = useState<unknown[] | null>(null);
@@ -132,20 +132,59 @@ export function DashboardContent({
 
   return (
     <div className="space-y-8">
-      {unreviewedNearMiss > 0 && (
-        <Link
-          href="/dashboard/health-and-safety/near-miss?unreviewed=true"
-          className="block rounded-xl border border-red-200 bg-red-50 p-4 hover:bg-red-100 transition-colors duration-[120ms] dark:border-red-900/40 dark:bg-red-900/20"
-        >
-          <p className="flex items-center gap-2 font-semibold text-red-900 dark:text-red-200">
-            <span className="status-chip status-chip--danger tabular-nums">{unreviewedNearMiss}</span>
-            new near miss{unreviewedNearMiss === 1 ? "" : "es"} reported
-          </p>
-          <p className="mt-1 text-sm text-red-800 dark:text-red-300">
-            Review in Health & Safety → Near Miss
-          </p>
-        </Link>
-      )}
+      <EnhancedCard>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Needs attention</h3>
+          <p className="text-sm text-gray-500">Approvals, reviews and outstanding work</p>
+        </div>
+        <div className="space-y-3">
+          {(() => {
+            const pendingRAMS = effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING")?.length ?? 0;
+            return pendingRAMS > 0 ? (
+              <PendingItem title={`${pendingRAMS} RAMS waiting for review`} priority="high" />
+            ) : null;
+          })()}
+          {unreviewedNearMiss > 0 && (
+            <Link href="/dashboard/health-and-safety/near-miss?unreviewed=true">
+              <PendingItem
+                title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? "" : "es"} to review`}
+                priority="high"
+              />
+            </Link>
+          )}
+          {(() => {
+            const openTasks =
+              effTasks?.filter((t) => {
+                const s = (t.status ?? "").toUpperCase();
+                return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
+              }).length ?? effOpenTasks;
+            return openTasks > 0 ? (
+              <PendingItem title={`${openTasks} site task${openTasks === 1 ? "" : "s"} still open`} priority="medium" />
+            ) : null;
+          })()}
+          {(() => {
+            const pendingCount = pendingRegistrations?.length ?? 0;
+            return pendingCount > 0 ? (
+              <PendingItem
+                title={`${pendingCount} registration${pendingCount === 1 ? "" : "s"} waiting for approval`}
+                priority="low"
+              />
+            ) : null;
+          })()}
+          {(effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
+            unreviewedNearMiss === 0 &&
+            (pendingRegistrations?.length ?? 0) === 0 &&
+            (effTasks?.filter((t) => {
+              const s = (t.status ?? "").toUpperCase();
+              return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
+            }).length ?? 0) === 0 && (
+              <p className="py-4">
+                <span className="status-chip status-chip--ok">Nothing waiting. You&apos;re clear for now.</span>
+              </p>
+            )}
+        </div>
+      </EnhancedCard>
+
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <StatCard title="Sites" value={effTotalSites} icon={MapPin} color="blue" />
         <StatCard title="Approved RAMS" value={effActiveRAMS} icon={FileText} color="green" />
@@ -161,93 +200,38 @@ export function DashboardContent({
         tasks={effTasks}
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <EnhancedCard>
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Latest on the job</h3>
-            <p className="text-sm text-gray-500">Most recent site, RAMS and person activity</p>
-          </div>
-          <div className="space-y-3">
-            {effSites && effSites[0] && (
-              <ActivityItem
-                icon={MapPin}
-                title={`Site set up: ${effSites[0].name}`}
-                time={getRelativeTime(effSites[0].created_at ?? effSites[0].createdAt)}
-              />
-            )}
-            {effRAMS && effRAMS[0] && (
-              <ActivityItem
-                icon={FileText}
-                title={`RAMS ${String(effRAMS[0].status ?? "added").toLowerCase()}: ${effRAMS[0].title || "Untitled"}`}
-                time={getRelativeTime(effRAMS[0].created_at ?? effRAMS[0].createdAt)}
-              />
-            )}
-            {effUsers && effUsers[0] && (
-              <ActivityItem
-                icon={Users}
-                title={`Joined: ${effUsers[0].name ?? effUsers[0].display_name ?? "Team member"}`}
-                time={getRelativeTime(effUsers[0].created_at ?? effUsers[0].createdAt)}
-              />
-            )}
-            {(!effSites?.[0] && !effRAMS?.[0] && !effUsers?.[0]) && (
-              <p className="py-4 text-sm text-gray-500">Nothing to show yet — add a site or invite people to get started.</p>
-            )}
-          </div>
-        </EnhancedCard>
-
-        <EnhancedCard>
-          <div className="mb-4">
-            <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Needs attention</h3>
-            <p className="text-sm text-gray-500">Approvals, reviews and outstanding work</p>
-          </div>
-          <div className="space-y-3">
-            {(() => {
-              const pendingRAMS = effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING")?.length ?? 0;
-              return pendingRAMS > 0 ? (
-                <PendingItem title={`${pendingRAMS} RAMS waiting for review`} priority="high" />
-              ) : null;
-            })()}
-            {unreviewedNearMiss > 0 && (
-              <Link href="/dashboard/health-and-safety/near-miss?unreviewed=true">
-                <PendingItem
-                  title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? "" : "es"} to review`}
-                  priority="high"
-                />
-              </Link>
-            )}
-            {(() => {
-              const openTasks =
-                effTasks?.filter((t) => {
-                  const s = (t.status ?? "").toUpperCase();
-                  return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
-                }).length ?? effOpenTasks;
-              return openTasks > 0 ? (
-                <PendingItem title={`${openTasks} site task${openTasks === 1 ? "" : "s"} still open`} priority="medium" />
-              ) : null;
-            })()}
-            {(() => {
-              const pendingCount = pendingRegistrations?.length ?? 0;
-              return pendingCount > 0 ? (
-                <PendingItem
-                  title={`${pendingCount} registration${pendingCount === 1 ? "" : "s"} waiting for approval`}
-                  priority="low"
-                />
-              ) : null;
-            })()}
-            {(effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
-              unreviewedNearMiss === 0 &&
-              (pendingRegistrations?.length ?? 0) === 0 &&
-              (effTasks?.filter((t) => {
-                const s = (t.status ?? "").toUpperCase();
-                return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
-              }).length ?? 0) === 0 && (
-                <p className="py-4">
-                  <span className="status-chip status-chip--ok">Nothing waiting — you&apos;re clear for now.</span>
-                </p>
-              )}
-          </div>
-        </EnhancedCard>
-      </div>
+      <EnhancedCard>
+        <div className="mb-4">
+          <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Latest on the job</h3>
+          <p className="text-sm text-gray-500">Most recent site, RAMS and person activity</p>
+        </div>
+        <div className="space-y-3">
+          {effSites && effSites[0] && (
+            <ActivityItem
+              icon={MapPin}
+              title={`Site set up: ${effSites[0].name}`}
+              time={getRelativeTime(effSites[0].created_at ?? effSites[0].createdAt)}
+            />
+          )}
+          {effRAMS && effRAMS[0] && (
+            <ActivityItem
+              icon={FileText}
+              title={`RAMS ${String(effRAMS[0].status ?? "added").toLowerCase()}: ${effRAMS[0].title || "Untitled"}`}
+              time={getRelativeTime(effRAMS[0].created_at ?? effRAMS[0].createdAt)}
+            />
+          )}
+          {effUsers && effUsers[0] && (
+            <ActivityItem
+              icon={Users}
+              title={`Joined: ${effUsers[0].name ?? effUsers[0].display_name ?? "Team member"}`}
+              time={getRelativeTime(effUsers[0].created_at ?? effUsers[0].createdAt)}
+            />
+          )}
+          {(!effSites?.[0] && !effRAMS?.[0] && !effUsers?.[0]) && (
+            <p className="py-4 text-sm text-gray-500">Nothing to show yet. Add a site or invite people to get started.</p>
+          )}
+        </div>
+      </EnhancedCard>
     </div>
   );
 }

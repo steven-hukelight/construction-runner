@@ -131,7 +131,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       title: "Deliveries",
       metaLines: [`${rows.length} deliver${rows.length === 1 ? "y" : "ies"}`],
       branding,
-      footerLabel: "Construction Runner — deliveries",
+      footerLabel: "Construction Runner, deliveries",
     });
 
     const { doc, margin } = report;

@@ -7,7 +7,7 @@ import { SitePicker as SharedSitePicker } from "../components/ui/SitePicker";
 
 type Site = { id: string; name?: string };
 
-/** Card-style site list — avoids native `<select>` (Chrome breaks in modals). */
+/** Card-style site list, avoids native `<select>` (Chrome breaks in modals). */
 export function SitePicker({
   sites,
   value,
@@ -30,7 +30,7 @@ export function SitePicker({
 
 const WEEK = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"] as const;
 
-/** Month grid of buttons — works in Chrome inside modals (no native selects). */
+/** Month grid of buttons, works in Chrome inside modals (no native selects). */
 export function DueDateCalendar({
   valueYmd,
   onChangeYmd,
@@ -140,7 +140,7 @@ export function DueDateCalendar({
           </div>
         ))}
       </div>
-      {/* Implicit rows must be fixed height — Chrome expands auto-rows in nested flex/modals. */}
+      {/* Implicit rows must be fixed height. Chrome expands auto-rows in nested flex/modals. */}
       <div className="grid w-full grid-cols-7 grid-flow-row gap-x-0.5 gap-y-0.5 [grid-auto-rows:2rem]">
         {cells.map(({ day, key }) =>
           day == null ? (
@@ -166,7 +166,7 @@ export function DueDateCalendar({
       </div>
       <div className="mt-1.5 flex flex-wrap items-center justify-between gap-1.5 border-t border-slate-200/60 pt-1.5 dark:border-slate-600">
         <p className="text-xs text-slate-500 dark:text-slate-400">
-          {valueYmd ? `Selected: ${valueYmd}` : "Optional — tap a day"}
+          {valueYmd ? `Selected: ${valueYmd}` : "Optional, tap a day"}
         </p>
         {valueYmd ? (
           <button

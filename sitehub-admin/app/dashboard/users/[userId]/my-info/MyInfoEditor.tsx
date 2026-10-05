@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MyInfoEditor — admin/supervisor-facing editor for a worker's My Info.
+ * MyInfoEditor, admin/supervisor-facing editor for a worker's My Info.
  *
  * Consolidates the 4 sections that survived the reflow:
  *   - Medical
@@ -14,7 +14,7 @@
  *
  * Section widgets are inlined here rather than reused from the legacy
  * pre-induction section files so we don't have to preserve the old status/
- * completeness gate wiring — this UI intentionally has no attendance gate.
+ * completeness gate wiring, this UI intentionally has no attendance gate.
  */
 
 import { useEffect, useState, useCallback } from "react";

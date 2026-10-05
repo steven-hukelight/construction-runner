@@ -393,7 +393,7 @@ export default function CompaniesPage() {
                     value={createAddress}
                     onChange={(e) => setCreateAddress(e.target.value)}
                     className="input w-full min-h-[88px] py-2.5 resize-y"
-                    placeholder="Registered or principal address — building, street, town, postcode, country"
+                    placeholder="Registered or principal address, building, street, town, postcode, country"
                     rows={3}
                     autoComplete="street-address"
                   />

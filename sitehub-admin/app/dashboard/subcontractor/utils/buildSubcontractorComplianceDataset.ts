@@ -131,7 +131,7 @@ export async function buildSubcontractorComplianceDataset(companyId: string): Pr
           if (siteRamsUpdatedAt) {
             const sevenDays = RAMS_EXPIRY_DAYS * dayMs;
             if (now.getTime() - siteRamsUpdatedAt.getTime() < sevenDays) {
-              expiringItems.push("RAMS updated recently — acceptance required");
+              expiringItems.push("RAMS updated recently, acceptance required");
               ramsExpiryAdded = true;
             }
           }

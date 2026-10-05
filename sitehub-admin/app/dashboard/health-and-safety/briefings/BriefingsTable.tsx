@@ -24,7 +24,7 @@ export default function BriefingsTable({
     fileUrl?: string;
     createdAt?: unknown;
   }>;
-  /** From server cookies — must match SSR so table columns hydrate without mismatch. */
+  /** From server cookies, must match SSR so table columns hydrate without mismatch. */
   canViewAcknowledgements: boolean;
   companyId?: string | null;
 }) {

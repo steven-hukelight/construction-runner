@@ -57,7 +57,7 @@ export default function SuperuserSelfOverrideBlock() {
           <p className="font-medium text-gray-900 dark:text-slate-100">Pre-Induction Self-Override</p>
           <p className="text-sm text-gray-600 dark:text-slate-400">
             {overrideOn
-              ? "Override is on — you can access site login and assess induction flows."
+              ? "Override is on, you can access site login and assess induction flows."
               : "Enable override to access site login without completing pre-induction."}
           </p>
         </div>

@@ -5,7 +5,7 @@ import { ArrowLeft, Scale } from "lucide-react";
 import MarketingShell from "@/app/components/marketing/MarketingShell";
 
 /**
- * Construction Runner — Terms of Service
+ * Construction Runner. Terms of Service
  * Includes confidentiality (NDA-style) and IP / trade mark / copyright.
  */
 export default function TermsOfServicePage() {
@@ -65,7 +65,7 @@ export default function TermsOfServicePage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-2">
-              2. Confidentiality — non-disclosure
+              2. Confidentiality, non-disclosure
             </h2>
             <p className="text-sm leading-relaxed mb-2">
               The Service may give you access to confidential information belonging to Construction

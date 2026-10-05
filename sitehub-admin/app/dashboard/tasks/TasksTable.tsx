@@ -124,7 +124,7 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
       title: "Tasks",
       metaLines: [`${rows.length} task${rows.length === 1 ? "" : "s"}`],
       branding,
-      footerLabel: "Construction Runner — tasks",
+      footerLabel: "Construction Runner, tasks",
     });
 
     const { doc, margin } = report;

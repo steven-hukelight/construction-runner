@@ -20,7 +20,7 @@ function safeMetadataBase(): URL {
 export const metadata = {
   metadataBase: safeMetadataBase(),
   title: "Construction Runner",
-  description: "The modern platform for construction site management. Geo-verified attendance, induction compliance, and real-time site control.",
+  description: "Attendance, induction and RAMS sign-off for construction sites.",
   icons: {
     icon: '/Logo.png',
     shortcut: '/Logo.png',
@@ -28,7 +28,7 @@ export const metadata = {
   },
   openGraph: {
     title: "Construction Runner",
-    description: "The modern platform for construction site management.",
+    description: "Attendance, induction and RAMS sign-off for construction sites.",
     images: ['/Logo.png'],
   },
   other: {

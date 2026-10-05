@@ -198,7 +198,7 @@ export default function GlobalSettingsPage() {
                 className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
               />
               <span className="text-sm font-medium text-gray-900">
-                Send email when a new operative registers (pending approval) — company admins/supervisors and info@construction-runner.com
+                Send email when a new operative registers (pending approval), company admins/supervisors and info@construction-runner.com
               </span>
             </label>
             <Button size="sm" onClick={() => handleSave("emailNotifications")} disabled={saving === "emailNotifications"}>
@@ -233,7 +233,7 @@ export default function GlobalSettingsPage() {
           <p className="text-sm text-gray-600">
             Login is limited to 10 attempts per minute per IP. Web idle logout is 30 minutes. Password
             reset and first-time setup links expire after 1 hour. Two-factor authentication, password
-            expiry, and account lockout are not available in beta — those toggles were removed so they
+            expiry, and account lockout are not available in beta, those toggles were removed so they
             cannot be saved as if they were live.
           </p>
         </div>
@@ -244,7 +244,7 @@ export default function GlobalSettingsPage() {
           <Sparkles className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Modules</h3>
-            <p className="text-sm text-gray-600">Messaging, assets, and operative qualifications — all active.</p>
+            <p className="text-sm text-gray-600">Messaging, assets, and operative qualifications, all active.</p>
           </div>
         </div>
         <ul className="space-y-3">

@@ -50,7 +50,7 @@ export type ComplianceRow = {
   siteId: string;
   siteName: string;
   status: ComplianceFilterStatus;
-  /** ISO — serializable from RSC → client */
+  /** ISO, serializable from RSC → client */
   completedAt: string | null;
   adminPreInductionOverride: boolean;
   missingItems: string[];
@@ -305,7 +305,7 @@ export async function getComplianceData(
       if (siteRamsVersion && siteRamsUpdatedAt && ramsStatus !== "accepted" && ramsStatus !== "not_required") {
         const sevenDays = 7 * 24 * 60 * 60 * 1000;
         if (now.getTime() - siteRamsUpdatedAt.getTime() < sevenDays) {
-          rowExpiryWarnings.push({ type: "rams", label: "RAMS updated recently — acceptance required", expiry: siteRamsUpdatedAt });
+          rowExpiryWarnings.push({ type: "rams", label: "RAMS updated recently, acceptance required", expiry: siteRamsUpdatedAt });
         }
       }
 

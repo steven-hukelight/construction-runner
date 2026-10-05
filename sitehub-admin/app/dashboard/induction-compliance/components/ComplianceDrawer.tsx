@@ -297,7 +297,7 @@ export default function ComplianceDrawer({
                       isSubcontractorAdmin={isSubcontractorAdmin}
                     />
                   ) : (
-                    <p className="text-gray-500 dark:text-slate-400 text-sm">Medical certificate not required — no medical issues declared.</p>
+                    <p className="text-gray-500 dark:text-slate-400 text-sm">Medical certificate not required, no medical issues declared.</p>
                   )}
                 </div>
               ) : (

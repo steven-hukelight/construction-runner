@@ -246,7 +246,7 @@ export default function NotificationDropdown() {
     }
   }, [resolvedCompanyId]);
 
-  // Load (and poll) only while the dropdown is open — never on every page load.
+  // Load (and poll) only while the dropdown is open, never on every page load.
   useEffect(() => {
     if (!open) return;
     void fetchNotifications();

@@ -20,7 +20,7 @@ import {
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-/* OPTION A: Single sidebar — Modules removed; use CompanySwitcher then regular Sidebar for Messaging and Assets */
+/* OPTION A: Single sidebar. Modules removed; use CompanySwitcher then regular Sidebar for Messaging and Assets */
 const navItems = [
   { name: "Superuser Dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
   { name: "Multi-company Admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },

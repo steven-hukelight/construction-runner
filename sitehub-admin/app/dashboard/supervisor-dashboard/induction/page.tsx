@@ -57,7 +57,7 @@ export default function QuickInductionPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Induction Status — Current Site"
+        title="Induction Status. Current Site"
         description="View and manage induction status for operatives assigned to the selected site."
         action={
           <Link

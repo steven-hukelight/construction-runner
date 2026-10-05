@@ -128,7 +128,7 @@ export default function PrivacyPolicyPage() {
 
           <section>
             <h2 className="text-lg font-semibold text-gray-900 mb-2">
-              9. Contact — Data Protection
+              9. Contact. Data Protection
             </h2>
             <p className="text-sm leading-relaxed">
               For privacy queries or to exercise your rights, contact your company&apos;s data protection

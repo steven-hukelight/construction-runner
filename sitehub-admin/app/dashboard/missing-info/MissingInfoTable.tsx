@@ -73,7 +73,7 @@ export default function MissingInfoTable() {
         toast.success(
           json.emailed
             ? "Email reminder sent (push may be unavailable on their device)"
-            : "Reminder attempted — check they have the app installed and notifications on",
+            : "Reminder attempted, check they have the app installed and notifications on",
         );
       }
     } catch (e) {

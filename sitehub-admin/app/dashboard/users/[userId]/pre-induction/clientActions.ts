@@ -52,7 +52,7 @@ export async function openPreInductionFile(path: string | null | undefined): Pro
 }
 
 export async function savePersonal(userId: string, form: Record<string, unknown>): Promise<void> {
-  // Admin dashboard uses cookie auth, not Supabase Auth — browser anon client has no auth.uid(),
+  // Admin dashboard uses cookie auth, not Supabase Auth, browser anon client has no auth.uid(),
   // so RLS on pre_induction_personal blocks direct upserts. Use API + service role instead.
   const dateOfBirth = form.dateOfBirth ? normalizeDate(form.dateOfBirth as string) : null;
   const res = await fetch(`/api/pre-induction/${encodeURIComponent(userId)}/personal`, {

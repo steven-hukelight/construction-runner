@@ -25,7 +25,7 @@ export default async function SuperuserDashboardPage() {
   const cards = [
     {
       title: "Multi-company Admin",
-      description: "Companies, users, sites, registrations, activity — unfiltered",
+      description: "Companies, users, sites, registrations, activity, unfiltered",
       href: "/dashboard/superuser-admin",
       icon: LayoutGrid,
     },

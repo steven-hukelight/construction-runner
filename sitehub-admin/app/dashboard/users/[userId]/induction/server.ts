@@ -6,7 +6,7 @@ export type InductionRow = {
   siteId: string;
   siteName: string;
   status: "completed" | "not_started" | "expired";
-  /** ISO string — safe to pass from Server Component → client */
+  /** ISO string, safe to pass from Server Component → client */
   completedAt: string | null;
 };
 

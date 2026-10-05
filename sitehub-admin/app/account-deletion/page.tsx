@@ -28,7 +28,7 @@ export default function AccountDeletionRequestPage() {
               Request data or account deletion
             </h1>
             <p className="text-sm text-gray-500">
-              Construction Runner — request deletion of specific data or your
+              Construction Runner, request deletion of specific data or your
               whole account
             </p>
           </div>

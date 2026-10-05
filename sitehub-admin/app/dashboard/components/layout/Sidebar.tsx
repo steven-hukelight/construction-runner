@@ -94,7 +94,7 @@ export default function Sidebar({ role }: SidebarProps) {
 
   useEffect(() => {
     fetchPendingApprovalsBadge();
-    // Poll occasionally; do NOT refetch on every client navigation — that was
+    // Poll occasionally; do NOT refetch on every client navigation, that was
     // doubling API load across the whole dashboard shell.
     const interval = setInterval(fetchPendingApprovalsBadge, 120_000);
     return () => clearInterval(interval);
@@ -155,7 +155,7 @@ export default function Sidebar({ role }: SidebarProps) {
         }`}
         style={mobileMenuOpen ? { transform: 'translateX(0)' } : {}}
       >
-        {/* Top: logo + back button + label — no scroll */}
+        {/* Top: logo + back button + label, no scroll */}
         <div className="shrink-0">
           <div className="logo flex items-center gap-3 mb-6 pb-4 border-b border-gray-200">
             <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="h-12 w-12 shrink-0 object-contain" unoptimized />

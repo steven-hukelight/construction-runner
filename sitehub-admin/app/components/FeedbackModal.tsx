@@ -133,7 +133,7 @@ export default function FeedbackModal({ open, onClose, tone = "dashboard" }: Pro
 
         {done ? (
           <div className="py-10 text-center">
-            <p className={`text-lg font-medium ${headingClass}`}>Thanks — we received your feedback.</p>
+            <p className={`text-lg font-medium ${headingClass}`}>Thanks, we received your feedback.</p>
             <p className={`mt-2 text-sm ${mutedClass}`}>You can close this window.</p>
           </div>
         ) : (
@@ -143,7 +143,7 @@ export default function FeedbackModal({ open, onClose, tone = "dashboard" }: Pro
                 Send feedback
               </h2>
               <p className={`mt-1 text-sm ${mutedClass}`}>
-                Tell us what we should improve. This goes to our team at {FEEDBACK_EMAIL} — no mail app opens.
+                Tell us what we should improve. This goes to our team at {FEEDBACK_EMAIL}, no mail app opens.
               </p>
             </div>
 
@@ -209,7 +209,7 @@ export default function FeedbackModal({ open, onClose, tone = "dashboard" }: Pro
               />
             </div>
 
-            {/* Honeypot — leave hidden from users */}
+            {/* Honeypot, leave hidden from users */}
             <div className="hidden" aria-hidden="true">
               <label htmlFor="feedback-website">Website</label>
               <input

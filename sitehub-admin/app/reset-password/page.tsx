@@ -87,7 +87,7 @@ function ResetPasswordPage() {
         }
       }
 
-      // Supabase error in hash (e.g. otp_expired) — only if we had no token_hash to try.
+      // Supabase error in hash (e.g. otp_expired), only if we had no token_hash to try.
       if (errorCode || hashParams.get("error")) {
         setError("Reset link expired or invalid. Request a new one.");
         setReady(true);
@@ -112,7 +112,7 @@ function ResetPasswordPage() {
         }
       }
 
-      // Implicit flow: tokens in hash — detectSessionInUrl processes async
+      // Implicit flow: tokens in hash, detectSessionInUrl processes async
       if (hasRecoveryHash) {
         await new Promise((r) => setTimeout(r, 800)); // Let detectSessionInUrl run
         if (!mounted) return;
@@ -148,7 +148,7 @@ function ResetPasswordPage() {
         return;
       }
 
-      // No recovery params — check for existing session (e.g. from callback redirect)
+      // No recovery params, check for existing session (e.g. from callback redirect)
       const { data: { session: s3 } } = await supabase.auth.getSession();
       if (s3) {
         setHasValidLink(true);

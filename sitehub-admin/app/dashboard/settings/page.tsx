@@ -69,7 +69,7 @@ function PersonalInformationSettings() {
       <h2 className="text-xl font-bold text-gray-900 mb-6">Personal Information</h2>
       <p className="text-sm text-gray-600 mb-6">
         Edit your name, email, phone, address, emergency contact, NI number, and other personal details in your Profile.
-        This is the single place for your account details — used across the app.
+        This is the single place for your account details, used across the app.
       </p>
       <a
         href="/dashboard/profile"
@@ -319,7 +319,7 @@ function CompanySettings() {
             ) : inviteCode ? (
               <span className="font-mono bg-gray-100 px-3 py-1 rounded text-lg">{inviteCode}</span>
             ) : companyId ? (
-              <span className="text-gray-500">No invite code yet — click Regenerate to create one</span>
+              <span className="text-gray-500">No invite code yet, click Regenerate to create one</span>
             ) : (
               <span className="text-gray-500">Sign in with a company to view your invite code</span>
             )}
@@ -596,12 +596,12 @@ function DisplaySettings() {
                 Upload image
               </label>
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
-                PNG, JPEG, WebP, or GIF — max 1.5&nbsp;MB. Stored in this browser only.
+                PNG, JPEG, WebP, or GIF, max 1.5&nbsp;MB. Stored in this browser only.
               </p>
               <p className="text-xs text-gray-500 dark:text-slate-500 mb-2 leading-relaxed">
                 <span className="font-semibold text-gray-600 dark:text-slate-400">Suggested size:</span> about{" "}
                 <strong>1920 × 1080 px</strong> (landscape), or any wide photo with a similar aspect ratio. The
-                image is scaled to fill the main area and blurred, so you don’t need 4K — but very small images
+                image is scaled to fill the main area and blurred, so you don’t need 4K, but very small images
                 (under ~1280&nbsp;px wide) can look soft or pixelated after blur.
               </p>
               <input

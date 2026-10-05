@@ -237,7 +237,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
       <EnhancedCard>
         <ChartHeader
           title="RAMS status"
-          description="How method statements stand today — approved, waiting for review, or rejected."
+          description="How method statements stand today, approved, waiting for review, or rejected."
         />
         <div className="admin-tabs mb-4">
           <button type="button" onClick={() => setRamsView("pie")} className={ramsView === "pie" ? "active" : ""}>

@@ -16,7 +16,7 @@ export type SiteInductionOperative = {
   companyId: string;
   companyName: string;
   status: SiteInductionStatus;
-  /** ISO string — required for Server Component → client serialization */
+  /** ISO string, required for Server Component → client serialization */
   completedAt: string | null;
 };
 

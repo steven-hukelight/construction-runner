@@ -173,7 +173,7 @@ export async function buildSupervisorComplianceDataset(
     const ramsUpdatedAt = toDate(siteData?.rams_updated_at ?? siteData?.ramsUpdatedAt);
     if (ramsUpdatedAt && siteRamsVersion && ramsStatus !== "accepted") {
       const sevenDays = 7 * day;
-      if (now.getTime() - ramsUpdatedAt.getTime() < sevenDays) expiringItems.push("RAMS updated recently — acceptance required");
+      if (now.getTime() - ramsUpdatedAt.getTime() < sevenDays) expiringItems.push("RAMS updated recently, acceptance required");
     }
 
     const preInductionStatus = (userData.pre_induction_status ?? userData.preInductionStatus ?? "not_started") as string;

@@ -367,12 +367,12 @@ export default function RoleCall({
     const report = createReportPdf({
       title:
         statusTab === "signed_in"
-          ? "Role call — Signed in"
-          : "Role call — Signed out",
+          ? "Role call. Signed in"
+          : "Role call. Signed out",
       subtitle: `Date: ${selectedDate}`,
       metaLines: [`${displayedPeople.length} people`],
       branding,
-      footerLabel: "Construction Runner — role call",
+      footerLabel: "Construction Runner, role call",
     });
 
     const { doc, margin } = report;
@@ -474,7 +474,7 @@ export default function RoleCall({
   return (
     <Table
       title="Role call"
-      subtitle="Fire roll call — signed-in operatives first; signed-out on the other tab."
+      subtitle="Fire roll call, signed-in operatives first; signed-out on the other tab."
       actions={
         people.length > 0 ? (
           <div className="flex flex-wrap items-center gap-2">

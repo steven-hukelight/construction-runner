@@ -157,7 +157,7 @@ export default function PreInductionSectionRightToWork({
     <div className="space-y-6">
       <h3 className="text-lg font-semibold text-gray-900">Right to Work</h3>
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-        <FileField label="Passport (optional — store file + expiry only)" field="passportUrl" value={form.passportUrl} />
+        <FileField label="Passport (optional, store file + expiry only)" field="passportUrl" value={form.passportUrl} />
         <div>
           <label className="block text-sm font-medium text-gray-700">Passport expiry</label>
           <input

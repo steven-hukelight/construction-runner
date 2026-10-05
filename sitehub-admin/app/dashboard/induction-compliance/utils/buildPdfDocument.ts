@@ -17,7 +17,7 @@ export function buildPdfDocument(
       companyName: options?.companyName,
       logo: options?.logo,
     },
-    footerLabel: "Construction Runner — compliance report",
+    footerLabel: "Construction Runner, compliance report",
     orientation: "landscape",
   });
 
