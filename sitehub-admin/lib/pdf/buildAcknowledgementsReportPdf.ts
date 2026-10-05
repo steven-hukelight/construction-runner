@@ -5,7 +5,7 @@ import { PDF_THEME } from "./documentChrome";
 
 export type AckPdfRow = {
   name: string;
-  email: string;
+  role: string;
   acknowledgedAt: string | null;
   hasSignature: boolean;
 };
@@ -42,13 +42,13 @@ export function buildAcknowledgementsReportPdf(input: AckPdfInput): Buffer {
   const { doc, margin } = report;
   const pageWidth = report.pageWidth();
   const colName = margin;
-  const colEmail = margin + 42;
-  const colAck = margin + 92;
-  const colSig = margin + 132;
+  const colRole = margin + 52;
+  const colAck = margin + 100;
+  const colSig = margin + 140;
 
   report.tableHeader([
     { label: "Name", x: colName },
-    { label: "Email", x: colEmail },
+    { label: "Role", x: colRole },
     { label: "Acknowledged", x: colAck },
     { label: "Signature", x: colSig },
   ]);
@@ -62,8 +62,8 @@ export function buildAcknowledgementsReportPdf(input: AckPdfInput): Buffer {
     doc.setTextColor(...PDF_THEME.text);
     const ack = row.acknowledgedAt ? formatPdfDateTime(row.acknowledgedAt) : "—";
     const sig = row.hasSignature ? "Yes" : "—";
-    doc.text((row.name || "—").slice(0, 42), colName, y, { maxWidth: 38 });
-    doc.text((row.email || "—").slice(0, 40), colEmail, y, { maxWidth: 46 });
+    doc.text((row.name || "—").slice(0, 42), colName, y, { maxWidth: 48 });
+    doc.text((row.role || "—").slice(0, 30), colRole, y, { maxWidth: 44 });
     doc.text(ack.slice(0, 22), colAck, y, { maxWidth: 36 });
     doc.text(sig, colSig, y);
     y += rowH;

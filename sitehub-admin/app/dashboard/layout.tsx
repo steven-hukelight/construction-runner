@@ -7,9 +7,11 @@ import SuperuserSidebar from "./components/layout/SuperuserSidebar";
 import Topbar from "./components/layout/Topbar";
 import SessionTimeoutHandler from "./components/SessionTimeoutHandler";
 import GlobalBanner from "./components/GlobalBanner";
+import NativeDatePickerOpener from "./components/NativeDatePickerOpener";
 import OneSignalProvider from "./components/OneSignalProvider";
 import { DashboardMainShell } from "./components/DashboardMainShell";
 import { ClientSessionProvider } from "./components/ClientSessionProvider";
+import { NearMissCountProvider } from "./components/NearMissCountProvider";
 import type { ClientSessionSnapshot } from "@/lib/utils/cookies";
 import {
   validateSession,
@@ -98,16 +100,19 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   return (
     <ClientSessionProvider initial={clientSession}>
-      <div className="app-root">
-        <OneSignalProvider />
-        <SessionTimeoutHandler />
-        {showSidebar}
-        <DashboardMainShell>
-          <GlobalBanner />
-          <Topbar />
-          {children}
-        </DashboardMainShell>
-      </div>
+      <NearMissCountProvider>
+        <div className="app-root">
+          <OneSignalProvider />
+          <SessionTimeoutHandler />
+          <NativeDatePickerOpener />
+          {showSidebar}
+          <DashboardMainShell>
+            <GlobalBanner />
+            <Topbar />
+            {children}
+          </DashboardMainShell>
+        </div>
+      </NearMissCountProvider>
     </ClientSessionProvider>
   );
 }

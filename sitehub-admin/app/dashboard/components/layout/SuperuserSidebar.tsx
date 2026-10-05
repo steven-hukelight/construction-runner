@@ -80,9 +80,6 @@ export default function SuperuserSidebar() {
             <Image src="/icon.png?v=3" alt="Construction Runner logo" width={48} height={48} className="h-12 w-12 shrink-0 object-contain" unoptimized />
             <span>Construction<br />Runner</span>
           </div>
-          <div className="px-3 mb-3">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.12em]">Main menu</p>
-          </div>
         </div>
 
         <nav className="flex-1 min-h-0 overflow-y-auto pr-2">

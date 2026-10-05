@@ -249,20 +249,26 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       subtitle={`${rows.length} deliveries tracked`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
-          <input
-            type="date"
-            className="table-toolbar-input"
-            value={dateFrom}
-            onChange={(e) => setDateFrom(e.target.value)}
-            placeholder="From"
-          />
-          <input
-            type="date"
-            className="table-toolbar-input"
-            value={dateTo}
-            onChange={(e) => setDateTo(e.target.value)}
-            placeholder="To"
-          />
+          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+            From
+            <input
+              type="date"
+              className="table-toolbar-input cursor-pointer"
+              value={dateFrom}
+              max={dateTo || undefined}
+              onChange={(e) => setDateFrom(e.target.value)}
+            />
+          </label>
+          <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">
+            To
+            <input
+              type="date"
+              className="table-toolbar-input cursor-pointer"
+              value={dateTo}
+              min={dateFrom || undefined}
+              onChange={(e) => setDateTo(e.target.value)}
+            />
+          </label>
           <Button variant="secondary" size="sm" type="button" onClick={() => mutate()}>
             Refresh
           </Button>

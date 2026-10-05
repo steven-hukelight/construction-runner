@@ -18,7 +18,7 @@ export function EnhancedCard({
   return (
     <div
       className={cn(
-        "relative rounded-2xl border border-blue-100/80 bg-white p-5 shadow-[0_8px_24px_rgba(37,76,128,0.07)] dark:border-slate-600 dark:bg-slate-800",
+        "relative rounded-xl border border-gray-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-slate-600 dark:bg-slate-800",
         className
       )}
     >

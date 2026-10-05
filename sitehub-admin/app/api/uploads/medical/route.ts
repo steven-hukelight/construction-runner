@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { scanBufferWithClam } from "@/lib/clamav";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
 
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
 const ALLOWED_EXT = [".pdf", ".png", ".jpg", ".jpeg"];
@@ -13,9 +14,13 @@ function ext(name: string) {
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { operativeId, title, notes, fileName, fileBase64 } = body;
-    if (!operativeId || !fileName || !fileBase64)
+    const { title, notes, fileName, fileBase64 } = body;
+    if (!body.operativeId || !fileName || !fileBase64)
       return NextResponse.json({ error: "missing" }, { status: 400 });
+
+    const access = await authorizeActingOnUser(req, String(body.operativeId));
+    if (!access.ok) return access.response;
+    const operativeId = access.targetUserId;
 
     const extension = ext(fileName);
     if (!ALLOWED_EXT.includes(extension))

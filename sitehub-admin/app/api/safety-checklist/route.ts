@@ -13,6 +13,7 @@ const DEFAULT_ITEMS = [
 export async function GET(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const companyId = auth.companyId;
     if (!companyId) {
       return NextResponse.json({ defaultItems: DEFAULT_ITEMS, recent: [] });
@@ -47,6 +48,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const companyId = auth.companyId;
     if (!companyId) {
       return NextResponse.json({ error: "Company required" }, { status: 400 });

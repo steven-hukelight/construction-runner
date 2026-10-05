@@ -17,7 +17,7 @@ export default function SupervisorOperativeCard({ operative, onClick }: Props) {
   return (
     <div
       onClick={onClick}
-      className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:shadow-md hover:border-blue-200 transition-all cursor-pointer"
+      className="rounded-xl border border-gray-200 bg-white p-4 hover:border-blue-200 transition-colors duration-[120ms] cursor-pointer"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0 flex-1">

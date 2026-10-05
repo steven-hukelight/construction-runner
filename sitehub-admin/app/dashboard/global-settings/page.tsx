@@ -110,9 +110,7 @@ export default function GlobalSettingsPage() {
       <div className="grid gap-6 sm:grid-cols-1 lg:grid-cols-2">
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Palette className="w-5 h-5 text-blue-600" />
-            </div>
+            <Palette className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Branding</h3>
               <p className="text-sm text-gray-600">App name and support contact</p>
@@ -146,9 +144,7 @@ export default function GlobalSettingsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <ToggleLeft className="w-5 h-5 text-blue-600" />
-            </div>
+            <ToggleLeft className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Feature toggles</h3>
               <p className="text-sm text-gray-600">Enable or disable platform features</p>
@@ -185,9 +181,7 @@ export default function GlobalSettingsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Mail className="w-5 h-5 text-blue-600" />
-            </div>
+            <Mail className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Email notifications</h3>
               <p className="text-sm text-gray-600">Requires RESEND_API_KEY, SENDGRID_API_KEY, or SMTP in production</p>
@@ -215,9 +209,7 @@ export default function GlobalSettingsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-6">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Megaphone className="w-5 h-5 text-blue-600" />
-            </div>
+            <Megaphone className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">System-wide announcements</h3>
               <p className="text-sm text-gray-600">Banner message for all users</p>
@@ -249,9 +241,7 @@ export default function GlobalSettingsPage() {
 
       <div className="card">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 border border-emerald-200/40">
-            <Sparkles className="w-5 h-5 text-emerald-600" />
-          </div>
+          <Sparkles className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
           <div>
             <h3 className="text-lg font-semibold text-gray-900">Modules</h3>
             <p className="text-sm text-gray-600">Messaging, assets, and operative qualifications — all active.</p>

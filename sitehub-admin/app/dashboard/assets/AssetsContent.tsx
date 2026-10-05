@@ -53,17 +53,24 @@ function InspectionDuePill({ asset }: { asset: Asset }) {
       : status === "due_soon"
         ? `Due soon${due ? ` · ${due}` : ""}`
         : due || "Scheduled";
-  const cls =
+  const chip =
     status === "overdue"
-      ? "bg-red-100 text-red-800"
+      ? "status-chip--danger"
       : status === "due_soon"
-        ? "bg-amber-100 text-amber-900"
-        : "bg-emerald-50 text-emerald-800";
-  return (
-    <span className={`inline-flex px-2 py-0.5 rounded-md text-xs font-medium ${cls}`}>
-      {label}
-    </span>
-  );
+        ? "status-chip--warn"
+        : "status-chip--ok";
+  return <span className={`status-chip ${chip}`}>{label}</span>;
+}
+
+function inspectionRowClass(asset: Asset): string | undefined {
+  const status = assetInspectionDueStatus({
+    nextDue: asset.next_inspection_due,
+    reminderDaysBefore: asset.inspection_reminder_days_before,
+    inspectionRequired: asset.inspection_required,
+  });
+  if (status === "overdue") return "bg-red-50 dark:bg-red-900/20";
+  if (status === "due_soon") return "bg-amber-50 dark:bg-amber-900/20";
+  return undefined;
 }
 
 export default function AssetsContent({ companyId }: { companyId: string }) {
@@ -440,6 +447,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
       >
         <Table
           embedded
+          rowClassName={inspectionRowClass}
           columns={[
             {
               header: "Name",

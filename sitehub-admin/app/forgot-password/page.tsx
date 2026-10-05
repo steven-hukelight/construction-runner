@@ -35,14 +35,14 @@ export default function ForgotPasswordPage() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-[#f3f7fb]">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 p-8 max-w-md w-full"
       >
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-gradient-to-br from-blue-500 to-purple-600 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600 flex items-center justify-center">
             <Mail className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Forgot password?</h2>
@@ -84,15 +84,13 @@ export default function ForgotPasswordPage() {
                 autoComplete="email"
               />
             </div>
-            <motion.button
+            <button
               type="submit"
               disabled={loading}
-              whileHover={{ scale: loading ? 1 : 1.02 }}
-              whileTap={{ scale: loading ? 1 : 0.98 }}
-              className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Sending..." : "Send reset link"}
-            </motion.button>
+            </button>
             <Link
               href="/admin/login"
               className="block w-full text-center text-sm text-gray-600 hover:text-gray-900 py-2"

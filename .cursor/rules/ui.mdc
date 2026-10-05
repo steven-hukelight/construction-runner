@@ -1,0 +1,55 @@
+---
+description: UI conventions for the sitehub-admin web app (tokens, structure, interaction, states, copy, layout). Use when writing or editing React components or CSS.
+globs: **/*.tsx,**/*.jsx,**/*.css
+alwaysApply: false
+---
+
+# UI conventions (sitehub-admin)
+
+## Design tokens (use only these)
+- Primary: `blue-600` (#2563eb) fill/text, `hover:bg-blue-700` (#1d4ed8), tint `bg-blue-50` (#eff6ff).
+- Text: `gray-900` (#111827) primary, `gray-700` (#374151) body, `gray-500` (#6b7280) secondary. Never raw hex text classes.
+- Borders `gray-200` (#e5e7eb), dividers `gray-100`. Page bg `#f3f7fb`, surfaces `bg-white`.
+- Danger: `text-red-600`, `bg-red-50`; destructive fill `bg-red-600 hover:bg-red-700`. Warning: `text-amber-700`, `bg-amber-50`. Success: `text-emerald-700`, `bg-emerald-50`.
+- Dark: `dark:bg-slate-800`, `dark:border-slate-600`, `dark:text-slate-100` / `dark:text-slate-400`.
+- Colour means status. Use `StatusPill` / `.status-chip--{ok,info,warn,danger,muted}`; never colour icons or tiles for decoration.
+- Font: inherit SF Pro from `body` (`--font-sans`); never set `font-family`. Weights 400 / 500 / 600 only.
+- Type scale: `text-xs` 12 meta, `text-sm` 14 default UI, `text-base` 16 body, `text-lg` 18 section titles, `text-2xl` 24 page titles.
+- Radius: `rounded-lg` (8px) controls and menus, `rounded-xl` (12px) cards and modals, `rounded-full` pills/avatars only.
+- Spacing: Tailwind steps 1, 2, 3, 4, 6, 8 only (4–32px). Controls `px-3`/`px-4 py-2`; containers `p-4`/`p-6`; stacks `gap-2`/`gap-3`/`gap-4`.
+- Cards: `rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]` on page bg `#f3f7fb`.
+- Page headers (`PageHeader`, `WelcomeBanner`): card + `p-5` (no accent border); title `text-2xl font-semibold text-gray-900`, subtitle `text-sm text-gray-500`, action right.
+- Shadows: card shadow above; `shadow-xl` on floating layers only (menus, modals, toasts). No coloured shadows.
+- Icons: `lucide-react` only; inline `h-4 w-4 text-gray-400`. Icon tile (stat cards, quick actions): `h-9 w-9 rounded-lg bg-blue-50` + `text-blue-600` icon; one tint only.
+- Rows needing action: status chip plus `bg-red-50` (urgent) or `bg-amber-50` (pending). Charts: series `#2563eb` / `#60a5fa` / `#bfdbfe`; status colours only for status data.
+- Uppercase only in table column headers; no small all-caps eyebrow labels or `border-l-4` accent bars.
+- Use flat fills for all backgrounds and text. No gradients, `bg-clip-text`, or `backdrop-blur` decoration.
+
+## Structure
+- Use semantic elements: `<main>`, `<nav>`, `<section>`, `<header>`, `<table>` for tabular data, `<label>` for every input.
+- Use `<button type="button">` for actions and `<a>`/`next/link` for navigation; never `div onClick` (backdrops get `aria-hidden`).
+- Reuse before creating: `Button`, `Input`, `Modal`, `Card`, `ui/Table`, `DataTableShell`/`TableToolbar`/`TableNameCell`, `TableActions`, `StatusPill`, `RoleBadge`, `Skeleton`, `StatCard`, `PageHeader`, `Pagination`, `SitePicker`/`PersonPicker`/`CompanyPicker`, `CardSelect`, `react-hot-toast`.
+- Extend an existing component with a prop before forking a near-copy.
+
+## Interaction
+- Every interactive element gets `focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`.
+- Every interactive element has a hover state (shift colour one step) and `disabled:opacity-50 disabled:cursor-not-allowed`.
+- One transition: `transition-colors duration-[120ms]` (colour, background, border only). Never `transition-all`.
+- Keep elements still on hover: no `scale`, `translate`, `hover:shadow-*`, glow, or framer-motion `whileHover`/`whileTap`.
+- Support the keyboard fully: Tab order follows reading order, Enter/Space activate, Esc closes modals and menus, focus returns to the trigger.
+
+## States
+- Every data view renders loading (`Skeleton` shaped like the content, not "Loading..."), empty, and error states.
+- Empty state: one sentence saying what is missing plus the next action (e.g. "No sites yet." + `Add site` button).
+- Error state: say what failed in plain words plus a `Try again` button that re-runs the fetch.
+- Long text: `truncate` or `line-clamp-2` with `title`, `min-w-0` on flex children, `break-words` for user content.
+
+## Copy
+- Write plain, specific, sentence-case text ("Save changes", "Site not found").
+- No exclamation marks, emoji, or marketing words ("seamless", "unlock", "elevate", "supercharge").
+- Buttons are verbs naming the result: "Approve", "Export PDF", "Delete site". Confirm via toast, not `alert()`.
+
+## Layout
+- One primary (`Button variant="primary"`) action per screen; secondary actions use `variant="secondary"` or text links.
+- Choose layout by task: tables for lists, single-column forms for input, two-column detail for one record.
+- Use a card grid only for a few summary stats (`StatCard`); never as the default list layout.

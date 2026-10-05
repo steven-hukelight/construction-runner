@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"></head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../screenshots/icon.png" alt=""> Construction Runner</div>
+    <div class="nav">
+      <a>Dashboard</a>
+      <div class="group">SITE CONTROL</div>
+      <a>Sites</a>
+      <a>Missing Info</a>
+      <a>Users</a>
+      <a class="active">Pending approvals</a>
+      <a>Attendance</a>
+      <div class="group">OPERATIONS</div>
+      <a>Tasks</a>
+      <a>Messages</a>
+      <div class="group">SAFETY</div>
+      <a>RAMS</a>
+      <a>Induction safety</a>
+      <a>Site Rules</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <h1>Pending approvals</h1>
+        <p class="sub">Approve or reject users who have registered. Until approved, they cannot sign in to the web admin or mobile app.</p>
+      </div>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Requested</th><th>Assign role</th><th>Sites</th><th></th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Alex Morgan</td>
+            <td>alex@contractor.com</td>
+            <td><span class="status-chip status-chip--role-operative">Operative</span></td>
+            <td>
+              <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px 10px;background:#fff">Supervisor ▾</div>
+            </td>
+            <td>
+              <div style="border:1px solid #e5e7eb;border-radius:10px;padding:8px 10px;font-size:12px;text-align:left">
+                <div style="font-weight:600;margin-bottom:6px;color:#475569">Sites they can access (tick all that apply)</div>
+                <div><span class="check"></span>Kidbrooke Village</div>
+                <div style="margin-top:4px"><span class="check"></span>PWT</div>
+                <div style="margin-top:4px"><span class="check off"></span>LSQ — Woolwich</div>
+              </div>
+            </td>
+            <td>
+              <button class="btn" style="margin-bottom:6px">Approve</button>
+              <div style="font-size:12px;color:#64748b;text-align:center">Reject</div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div class="card" style="margin-top:16px;background:#eff6ff;border-color:#bfdbfe">
+      <strong>Roles you can assign</strong>
+      <p class="sub" style="margin-top:8px">Operative · Supervisor · Site Admin · Super Admin (Super Admin can only be granted by a Super Admin).</p>
+    </div>
+  </main>
+</div>
+</body></html>

@@ -38,7 +38,7 @@ function fieldBlock(label: string, value: ReactNode | null | undefined) {
   if (typeof value === "string" && !String(value).trim()) return null;
   return (
     <div>
-      <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">{label}</dt>
+      <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</dt>
       <dd className="mt-1 text-sm text-slate-800 dark:text-slate-200">{value}</dd>
     </div>
   );
@@ -218,7 +218,7 @@ export default function SessionDetailsDrawer({
                 )}
                 {session.kind === "work_session" ? (
                   <div>
-                    <dt className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+                    <dt className="text-xs font-semibold text-slate-500 dark:text-slate-400">
                       Exit type
                     </dt>
                     <dd className="mt-1">
@@ -230,7 +230,7 @@ export default function SessionDetailsDrawer({
 
               {mergedNotes && notesDisplay.main !== "—" ? (
                 <div>
-                  <h3 className="text-[11px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400 mb-2">
+                  <h3 className="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-2">
                     Notes
                   </h3>
                   <div className="rounded-lg border border-slate-200/80 dark:border-slate-600 bg-slate-50/80 dark:bg-slate-800/50 px-3 py-2 text-sm text-slate-800 dark:text-slate-200 whitespace-pre-wrap">

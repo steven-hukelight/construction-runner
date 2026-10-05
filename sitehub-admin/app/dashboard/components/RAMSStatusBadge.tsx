@@ -1,6 +1,7 @@
 "use client";
 
 import type { RamsStatus } from "@/lib/ramsCompliance";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 
 const STYLES: Record<RamsStatus, { chip: string; label: string }> = {
   accepted: { chip: "status-chip--ok", label: "Accepted" },
@@ -21,7 +22,7 @@ export default function RAMSStatusBadge({ status, className = "" }: Props) {
       className={`status-chip ${style.chip} ${className}`.trim()}
       title={status}
     >
-      {style.label}
+      {toSentenceCase(style.label)}
     </span>
   );
 }

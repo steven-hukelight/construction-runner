@@ -1,44 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { createSignedUrl } from "@/supabase/storage/storageClient";
-import { resolvePreInductionAuth } from "../_utils/mobileAuth";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
+import { hasTraversalSegment } from "../_utils/storagePath";
 
 const BUCKET = "pre-induction";
-const ADMIN_ROLES = ["admin", "ADMIN", "supervisor", "SUPERVISOR", "superuser", "SUPERUSER"];
-
-/** Can current user view pre-induction files for target userId? Own docs: yes. Others: admin/supervisor/superuser + same company only. */
-async function canViewPreInductionFiles(
-  req: Request,
-  targetUserId: string,
-  uidFromQuery?: string | null,
-): Promise<{ ok: boolean; error?: string; status?: number }> {
-  const auth = await resolvePreInductionAuth({ req, uidFromQuery });
-  const { uid, role, companyId, userEmail } = auth;
-
-  if (!role && !userEmail && !uid) {
-    return { ok: false, error: "Unauthorized", status: 401 };
-  }
-
-  if (role === "superuser") return { ok: true };
-
-  if (uid && uid === targetUserId) return { ok: true };
-  if (userEmail) {
-    const { data: me } = await supabaseAdmin.from("users").select("id").eq("email", userEmail.trim()).maybeSingle();
-    if (me?.id === targetUserId) return { ok: true };
-  }
-
-  const roleLower = (role ?? "").toLowerCase();
-  if (!ADMIN_ROLES.includes(roleLower)) {
-    return { ok: false, error: "Only admins and supervisors can view other users' documents", status: 403 };
-  }
-
-  const { data: target } = await supabaseAdmin.from("users").select("company_id").eq("id", targetUserId).maybeSingle();
-  if (!target) return { ok: false, error: "User not found", status: 404 };
-  const targetCompanyId = (target.company_id ?? "") as string;
-  if (companyId && companyId === targetCompanyId) return { ok: true };
-
-  return { ok: false, error: "Forbidden", status: 403 };
-}
 
 /** Extract storage path from a Supabase pre-induction storage URL. Returns null if invalid. */
 function extractPathFromUrl(url: string): { path: string; userId: string } | null {
@@ -94,14 +59,14 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Missing url or path parameter" }, { status: 400 });
     }
 
-    if (!path.startsWith(userId + "/")) {
+    if (!path.startsWith(userId + "/") || hasTraversalSegment(path)) {
       return NextResponse.json({ error: "Invalid path" }, { status: 400 });
     }
 
-    const uidQuery = url.searchParams.get("uid");
-    const access = await canViewPreInductionFiles(req, userId, uidQuery);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error ?? "Forbidden" }, { status: access.status ?? 403 });
+    const access = await authorizeActingOnUser(req, userId);
+    if (!access.ok) return access.response;
+    if (access.targetUserId !== userId) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
     }
 
     const signedUrl = await createSignedUrl(BUCKET, path, 3600);

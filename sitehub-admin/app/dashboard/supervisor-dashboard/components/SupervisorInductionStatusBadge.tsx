@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import type { SupervisorOperativeStatus } from "../utils/buildSupervisorComplianceDataset";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 
@@ -41,5 +42,5 @@ type Props = {
 export default function SupervisorInductionStatusBadge({ status }: Props) {
   const chip = STATUS_CHIP[status] ?? "status-chip--muted";
   const label = DISPLAY_LABELS[status] ?? status;
-  return <span className={`status-chip ${chip}`}>{label}</span>;
+  return <span className={`status-chip ${chip}`}>{toSentenceCase(label)}</span>;
 }

@@ -1,12 +1,10 @@
 "use client";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
-import { CheckCircle, Circle, Filter, UserRound } from "lucide-react";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import TableActions from "../components/ui/TableActions";
 import RoleBadge from "../components/RoleBadge";
-import { CardSelect } from "../components/ui/CardSelect";
 import { updateUserRole, deleteUser } from "./actions";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
@@ -45,7 +43,16 @@ type MeResponse = {
   role?: string;
 };
 
-export default function UsersTable({ data, profiles, currentUserRole }: UsersTableProps) {
+function initialsFor(label: string): string {
+  const source = label.includes("@") ? label.split("@")[0] : label;
+  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0 || label === "—") return "?";
+  const first = parts[0].charAt(0);
+  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
+  return (first + last).toUpperCase();
+}
+
+export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
   const [roleFilter, setRoleFilter] = useState("all");
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
@@ -157,15 +164,6 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
     };
   }, [mergeCurrentUser]);
 
-  const profileMap = useMemo(() => {
-    const map = new Map<string, Profile>();
-    (profiles ?? []).forEach((p: Profile) => {
-      const key = p.id || p.userId;
-      if (key) map.set(key, p);
-    });
-    return map;
-  }, [profiles]);
-
   async function handleRoleChange(id: string, role: string, row?: UserRow) {
     const result = await updateUserRole(id, role);
     if (result.success) {
@@ -270,9 +268,22 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
     {
       header: "Name",
       accessor: "name",
-      render: (row: UserRow) => (
-        <TableNameCell icon={UserRound} label={row.name || row.email || "—"} />
-      ),
+      render: (row: UserRow) => {
+        const label = row.name || row.email || "—";
+        return (
+          <TableNameCell
+            initials={initialsFor(label)}
+            label={
+              <Link
+                href={`/dashboard/users/${row.id}`}
+                className="rounded hover:text-blue-700 hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
+                {label}
+              </Link>
+            }
+          />
+        );
+      },
     },
     { header: "Email", accessor: "email" },
     {
@@ -288,32 +299,6 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
       header: "Role",
       accessor: "role",
       render: (row: UserRow) => <RoleBadge role={row.role} />,
-    },
-    {
-      header: "Profile",
-      accessor: "profile",
-      render: (row: UserRow) => {
-        const profile = profileMap.get(row.id);
-        const hasPhoneOrAvatar = profile && (profile.phone?.trim?.() || profile.avatar?.trim?.());
-        return (
-          <div className="flex items-center gap-2 flex-wrap">
-            <span className="inline-flex items-center gap-1.5" title={hasPhoneOrAvatar ? "Profile completed" : "Blank"}>
-              {hasPhoneOrAvatar ? (
-                <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden />
-              ) : (
-                <Circle className="w-4 h-4 text-gray-300 shrink-0" aria-hidden />
-              )}
-              <span className="text-xs text-gray-600">{hasPhoneOrAvatar ? "Complete" : "Blank"}</span>
-            </span>
-            <Link
-              href={`/dashboard/users/${row.id}`}
-              className="table-link"
-            >
-              View profile
-            </Link>
-          </div>
-        );
-      },
     },
     {
       header: "Actions",
@@ -356,24 +341,21 @@ export default function UsersTable({ data, profiles, currentUserRole }: UsersTab
         title="All users"
         subtitle={`${displayedRows.length}${roleFilter === "all" ? ` of ${rows.length}` : ""} people`}
         actions={
-          <CardSelect
-            items={[
-              { id: "OPERATIVE", name: "Operative" },
-              { id: "SUPERVISOR", name: "Supervisor" },
-              { id: "SITE_ADMIN", name: "Site Admin" },
-              { id: "ADMIN", name: "Super Admin" },
-              { id: "SUB_ADMIN", name: "Subcontractor admin" },
-            ]}
-            value={roleFilter}
-            onChange={setRoleFilter}
-            icon={Filter}
-            fieldLabel="Role"
-            variant="compact"
-            allowNone
-            noneValue="all"
-            noneLabel="All roles"
-            className="w-52"
-          />
+          <label className="flex items-center gap-2 text-sm text-gray-700 dark:text-slate-300">
+            <span>Role</span>
+            <select
+              value={roleFilter}
+              onChange={(e) => setRoleFilter(e.target.value)}
+              className="h-9 w-52 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 transition-colors duration-[120ms] hover:border-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+            >
+              <option value="all">All roles</option>
+              <option value="OPERATIVE">Operative</option>
+              <option value="SUPERVISOR">Supervisor</option>
+              <option value="SITE_ADMIN">Site Admin</option>
+              <option value="ADMIN">Super Admin</option>
+              <option value="SUB_ADMIN">Subcontractor admin</option>
+            </select>
+          </label>
         }
         columns={columns}
         data={displayedRows}

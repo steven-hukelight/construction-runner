@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
 import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
@@ -37,7 +38,7 @@ function StatusBadge({ status }: { status: SiteInductionOperative["status"] }) {
           : status === "Pre-Induction Required" || status === "Induction Required"
             ? "status-chip--warn"
             : "status-chip--muted";
-  return <span className={`status-chip ${chip}`}>{label}</span>;
+  return <span className={`status-chip ${chip}`}>{toSentenceCase(label)}</span>;
 }
 
 const CAN_MARK_INDUCTED = ["Induction Required", "Pre-Induction Required", "Pre-Induction Override"];

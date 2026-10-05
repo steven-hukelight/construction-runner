@@ -77,7 +77,7 @@ export default function TableActions({ items }: { items: TableActionItem[] }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className="inline-flex h-8 w-8 items-center justify-center rounded-full bg-slate-100 text-slate-500 transition-colors hover:bg-blue-50 hover:text-blue-700 dark:bg-slate-700 dark:text-slate-300 dark:hover:bg-slate-600 dark:hover:text-slate-100"
+        className="inline-flex h-8 w-8 items-center justify-center rounded-lg text-gray-500 transition-colors duration-[120ms] hover:bg-gray-100 hover:text-gray-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:text-slate-300 dark:hover:bg-slate-700 dark:hover:text-slate-100"
         aria-label="Actions"
       >
         <span className="sr-only">Actions</span>

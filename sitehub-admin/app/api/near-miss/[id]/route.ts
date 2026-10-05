@@ -1,37 +1,21 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
-import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { authorizeNearMissReport } from "@/lib/auth/nearMissAccess";
 
-function cid(x: { company_id?: string | null }): string | null {
-  return (x.company_id ?? null) as string | null;
-}
-
-async function canAccessNearMiss(req: Request, id: string): Promise<NextResponse | null> {
-  const auth = await resolveMobileApiAuth(req);
-  if (auth.isSuperuser) return null;
-
-  const { data: doc } = await supabaseAdmin.from("near_miss_reports").select("*").eq("id", id).single();
-  if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!auth.companyId || cid(doc) !== auth.companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  return null;
-}
-
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const forbid = await canAccessNearMiss(_req, id);
-  if (forbid) return forbid;
+  const access = await authorizeNearMissReport(req, id);
+  if (!access.ok) return access.response;
 
-  const { data, error } = await supabaseAdmin.from("near_miss_reports").select("*").eq("id", id).single();
-  if (error || !data) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  return NextResponse.json(data, {
+  return NextResponse.json(access.report, {
     headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
   });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const forbid = await canAccessNearMiss(req, id);
-  if (forbid) return forbid;
+  const access = await authorizeNearMissReport(req, id);
+  if (!access.ok) return access.response;
   const body = await req.json();
 
   const update: Record<string, unknown> = { updated_at: new Date().toISOString() };
@@ -52,10 +36,10 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   return NextResponse.json({ success: true });
 }
 
-export async function DELETE(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function DELETE(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const forbid = await canAccessNearMiss(_req, id);
-  if (forbid) return forbid;
+  const access = await authorizeNearMissReport(req, id);
+  if (!access.ok) return access.response;
 
   const { error } = await supabaseAdmin.from("near_miss_reports").delete().eq("id", id);
   if (error) {

@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { fetchCompanyLogoForPdf } from "@/lib/pdf/fetchCompanyLogoForPdf";
 import { buildAcknowledgementsReportPdf } from "@/lib/pdf/buildAcknowledgementsReportPdf";
+import { loadAcknowledgementPeople } from "@/lib/acknowledgementPeople";
 
 export const dynamic = "force-dynamic";
 
@@ -50,47 +51,40 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
-    const { data: acks } = await supabaseAdmin
+    const acksPromise = supabaseAdmin
       .from("briefing_acknowledgements")
       .select("user_id, acknowledged_at, signature_url")
       .eq("briefing_id", briefingId)
       .order("acknowledged_at", { ascending: false });
-
-    const userIds = [...new Set((acks ?? []).map((a) => a.user_id).filter(Boolean))];
-    const { data: users } = userIds.length
-      ? await supabaseAdmin.from("users").select("id, name, display_name, email").in("id", userIds)
-      : { data: [] };
-
-    const userMap = new Map(
-      (users ?? []).map((u) => [
-        u.id,
-        {
-          name: (u.display_name ?? u.name ?? u.email ?? "—").toString(),
-          email: (u.email ?? "—").toString(),
-        },
-      ])
+    const peoplePromise = acksPromise.then(({ data }) =>
+      loadAcknowledgementPeople((data ?? []).map((a) => a.user_id))
     );
-
-    let siteName: string | null = null;
-    if (briefing.site_id) {
-      const { data: site } = await supabaseAdmin.from("sites").select("name").eq("id", briefing.site_id).maybeSingle();
-      siteName = site?.name ? String(site.name) : null;
-    }
-
-    const { data: companyRow } = await supabaseAdmin
+    const sitePromise = briefing.site_id
+      ? supabaseAdmin.from("sites").select("name").eq("id", briefing.site_id).maybeSingle()
+      : Promise.resolve({ data: null });
+    const companyPromise = supabaseAdmin
       .from("companies")
       .select("name, logo_url")
       .eq("id", companyId)
       .maybeSingle();
+    const logoPromise = companyPromise.then(({ data }) =>
+      fetchCompanyLogoForPdf((data as { logo_url?: string | null } | null)?.logo_url ?? null)
+    );
 
-    const logoUrl = (companyRow as { logo_url?: string | null } | null)?.logo_url ?? null;
-    const logo = await fetchCompanyLogoForPdf(logoUrl);
+    const [{ data: acks }, people, { data: site }, { data: companyRow }, logo] = await Promise.all([
+      acksPromise,
+      peoplePromise,
+      sitePromise,
+      companyPromise,
+      logoPromise,
+    ]);
+    const siteName = site?.name ? String(site.name) : null;
 
     const rows = (acks ?? []).map((a) => {
-      const u = userMap.get(a.user_id);
+      const p = people.get(a.user_id);
       return {
-        name: u?.name ?? "—",
-        email: u?.email ?? "—",
+        name: p?.name ?? "—",
+        role: p?.role ?? "—",
         acknowledgedAt: a.acknowledged_at,
         hasSignature: Boolean(a.signature_url),
       };

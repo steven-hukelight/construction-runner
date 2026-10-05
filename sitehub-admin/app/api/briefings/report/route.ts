@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { loadAcknowledgementPeople } from "@/lib/acknowledgementPeople";
 
 export const dynamic = "force-dynamic";
 
@@ -54,7 +55,7 @@ export async function GET(req: Request) {
     const { data: briefings } = await briefingsQuery;
 
     if (!briefings?.length) {
-      const header = "Briefing Title,Briefing Created,Site,User Name,User Email,Acknowledged At,Has Signature\n";
+      const header = "Briefing Title,Briefing Created,Site,User Name,Role,Acknowledged At,Has Signature\n";
       const noData = singleBriefingId ? "No briefing or acknowledgements for this item\n" : "No briefings or acknowledgements\n";
       const csv = header + noData;
       const slug = singleBriefingId ? `briefing-${singleBriefingId.slice(0, 8)}` : `briefings-report-${companyId}`;
@@ -72,23 +73,7 @@ export async function GET(req: Request) {
       .select("briefing_id, user_id, acknowledged_at, signature_url")
       .in("briefing_id", briefingIds);
 
-    const userIds = [...new Set((acks ?? []).map((a) => a.user_id).filter(Boolean))];
-    const { data: users } = userIds.length
-      ? await supabaseAdmin
-          .from("users")
-          .select("id, name, display_name, email")
-          .in("id", userIds)
-      : { data: [] };
-
-    const userMap = new Map(
-      (users ?? []).map((u) => [
-        u.id,
-        {
-          name: (u.display_name ?? u.name ?? u.email ?? "—").toString(),
-          email: (u.email ?? "—").toString(),
-        },
-      ])
-    );
+    const userMap = await loadAcknowledgementPeople((acks ?? []).map((a) => a.user_id));
 
     const siteIds = [...new Set(briefings.map((b) => b.site_id).filter(Boolean))] as string[];
     const { data: sites } =
@@ -109,7 +94,7 @@ export async function GET(req: Request) {
     );
 
     const rows: string[][] = [
-      ["Briefing Title", "Briefing Created", "Site", "User Name", "User Email", "Acknowledged At", "Has Signature"],
+      ["Briefing Title", "Briefing Created", "Site", "User Name", "Role", "Acknowledged At", "Has Signature"],
     ];
 
     for (const a of acks ?? []) {
@@ -124,7 +109,7 @@ export async function GET(req: Request) {
         escapeCsv(createdStr),
         escapeCsv(b.site_name ?? ""),
         escapeCsv(u?.name ?? "—"),
-        escapeCsv(u?.email ?? "—"),
+        escapeCsv(u?.role ?? "—"),
         escapeCsv(ackStr),
         escapeCsv(a.signature_url ? "Yes" : "No"),
       ]);

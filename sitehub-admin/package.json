@@ -42,6 +42,7 @@
     "react-hot-toast": "^2.6.0",
     "react-onesignal": "^3.5.1",
     "recharts": "^3.7.0",
+    "sharp": "^0.34.5",
     "swr": "^2.3.0",
     "tailwind-merge": "^3.4.0",
     "tailwindcss": "^4.1.18"

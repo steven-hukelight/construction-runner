@@ -436,7 +436,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
               <div
                 key={t.id}
                 className={`group/row flex items-center gap-2 border-b border-gray-100 hover:bg-gray-50 ${
-                  selectedThread?.id === t.id ? "bg-blue-50 border-l-4 border-l-blue-600" : ""
+                  selectedThread?.id === t.id ? "bg-blue-50" : ""
                 }`}
               >
                 <button

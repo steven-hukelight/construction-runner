@@ -2,17 +2,18 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useEffect, useState } from "react";
-import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
+import { useNearMissCount } from "../components/NearMissCountProvider";
+import { useClientSession } from "../components/ClientSessionProvider";
+import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
 
 const subTabs = [
-  { name: "RAMS", href: "/dashboard/health-and-safety/rams", countKey: "rams" as const },
-  { name: "Briefings", href: "/dashboard/health-and-safety/briefings", countKey: "briefings" as const },
-  { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", countKey: null },
-  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", countKey: null },
-  { name: "COSHH", href: "/dashboard/health-and-safety/coshh", countKey: null },
-  { name: "Alerts", href: "/dashboard/health-and-safety/alerts", countKey: "alerts" as const },
-  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", countKey: "nearMiss" as const },
+  { name: "RAMS", href: "/dashboard/health-and-safety/rams", showNearMissCount: false },
+  { name: "Briefings", href: "/dashboard/health-and-safety/briefings", showNearMissCount: false },
+  { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", showNearMissCount: false },
+  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
+  { name: "COSHH", href: "/dashboard/health-and-safety/coshh", showNearMissCount: false },
+  { name: "Alerts", href: "/dashboard/health-and-safety/alerts", showNearMissCount: false },
+  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", showNearMissCount: true },
 ];
 
 export default function HealthAndSafetyLayout({
@@ -21,26 +22,16 @@ export default function HealthAndSafetyLayout({
   children: React.ReactNode;
 }) {
   const pathname = usePathname();
-  const [counts, setCounts] = useState<{ nearMiss?: number }>({});
-
-  useEffect(() => {
-    const role = getRoleFromClient();
-    const companyId = getCompanyIdFromClient();
-    if (!role || role === "operative") return;
-    const params = new URLSearchParams({ unreviewed: "true" });
-    if (companyId) params.set("companyId", companyId);
-    fetch(`/api/near-miss?${params}`)
-      .then((r) => r.json())
-      .then((arr) => setCounts({ nearMiss: Array.isArray(arr) ? arr.length : 0 }))
-      .catch(() => {});
-  }, [pathname]);
+  const nearMissCount = useNearMissCount();
+  const canViewNearMiss = canRoleViewNearMiss(useClientSession().role);
+  const tabs = canViewNearMiss ? subTabs : subTabs.filter((tab) => tab.href !== "/dashboard/health-and-safety/near-miss");
 
   return (
     <div className="space-y-6">
       <div className="admin-tabs">
-        {subTabs.map((tab) => {
+        {tabs.map((tab) => {
           const isActive = pathname === tab.href || pathname.startsWith(tab.href + "/");
-          const badge = tab.countKey === "nearMiss" && (counts.nearMiss ?? 0) > 0 ? counts.nearMiss : null;
+          const badge = tab.showNearMissCount && nearMissCount > 0 ? nearMissCount : null;
           return (
             <Link
               key={tab.href}

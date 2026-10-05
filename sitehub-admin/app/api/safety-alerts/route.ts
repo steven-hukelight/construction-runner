@@ -16,6 +16,7 @@ export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const countOnly = url.searchParams.get("count");
     const severity = url.searchParams.get("severity");
     const sort = url.searchParams.get("sort") || "newest";
@@ -108,6 +109,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json();
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const companyId = auth.companyId;
   if (!companyId)
     return NextResponse.json({ error: "Company required" }, { status: 400 });

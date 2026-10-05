@@ -1,0 +1,84 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"></head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../screenshots/icon.png" alt=""> Construction Runner</div>
+    <div class="nav">
+      <a>Dashboard</a>
+      <div class="group">SITE CONTROL</div>
+      <a class="active">Sites</a>
+      <a>Subcontractors</a>
+      <a>Missing Info</a>
+      <a>Users</a>
+      <a>Pending approvals</a>
+      <a>Attendance</a>
+      <div class="group">OPERATIONS</div>
+      <a>Tasks</a>
+      <a>Deliveries</a>
+      <a>Assets</a>
+      <a>Messages</a>
+      <div class="group">SAFETY</div>
+      <a>RAMS</a>
+      <a>Briefings</a>
+      <a>Induction safety</a>
+      <a>Site Rules</a>
+      <a>Alerts</a>
+      <a>Near Miss</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <h1>Sites</h1>
+        <p class="sub">Manage all active sites in your organisation. Each site has its own documents, tasks and briefings.</p>
+      </div>
+      <button class="btn">Add New Site</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Active</th><th>Location</th><th>Geofence</th><th>Visible</th><th>Induction</th></tr></thead>
+        <tbody>
+          <tr>
+            <td><strong>Kidbrooke Village KV3G/F</strong></td>
+            <td><span class="status-chip status-chip--ok">Active</span></td>
+            <td>London SE3</td>
+            <td>150 m</td>
+            <td><span class="status-chip status-chip--info">On map</span></td>
+            <td><span class="status-chip status-chip--warn">Required</span></td>
+          </tr>
+          <tr>
+            <td><strong>Plumstead West Thamesmead (PWT)</strong></td>
+            <td><span class="status-chip status-chip--ok">Active</span></td>
+            <td>London SE28</td>
+            <td>180 m</td>
+            <td><span class="status-chip status-chip--info">On map</span></td>
+            <td><span class="status-chip status-chip--warn">Required</span></td>
+          </tr>
+          <tr>
+            <td><strong>LSQ — Woolwich</strong></td>
+            <td><span class="status-chip status-chip--ok">Active</span></td>
+            <td>London SE18</td>
+            <td>120 m</td>
+            <td><span class="status-chip status-chip--info">On map</span></td>
+            <td><span class="status-chip status-chip--warn">Required</span></td>
+          </tr>
+          <tr>
+            <td><strong>LSQ — Bermondsey</strong></td>
+            <td><span class="status-chip status-chip--muted">Inactive</span></td>
+            <td>London SE16</td>
+            <td>120 m</td>
+            <td><span class="status-chip status-chip--muted">Hidden</span></td>
+            <td><span class="status-chip status-chip--muted">Optional</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px;margin-top:16px">
+      <div class="card"><strong>Site Name</strong><p class="sub">Use the name people will recognise on the app.</p></div>
+      <div class="card"><strong>Geofence radius</strong><p class="sub">GPS boundary for mobile Sign In / Sign Out.</p></div>
+      <div class="card"><strong>Induction required</strong><p class="sub">Operatives complete site induction before signing in.</p></div>
+    </div>
+  </main>
+</div>
+</body></html>

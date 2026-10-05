@@ -5,6 +5,8 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { Suspense } from "react";
+import PasswordRequirements from "@/app/components/PasswordRequirements";
+import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 function ResetPasswordPage() {
   const router = useRouter();
@@ -171,8 +173,8 @@ function ResetPasswordPage() {
       return;
     }
 
-    if (newPassword.length < 6) {
-      setError("Password must be at least 6 characters.");
+    if (!isPasswordValid(newPassword)) {
+      setError(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
 
@@ -198,7 +200,7 @@ function ResetPasswordPage() {
   const showForm = ready && (hasValidLink || success);
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className="min-h-screen flex items-center justify-center bg-[#f3f7fb]">
       <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 p-8 max-w-md w-full">
         <h2 className="text-2xl font-bold mb-4 text-center">Reset Password</h2>
 
@@ -232,9 +234,10 @@ function ResetPasswordPage() {
                   value={newPassword}
                   onChange={(e) => setNewPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={PASSWORD_MIN_LENGTH}
                   autoComplete="new-password"
                 />
+                <PasswordRequirements password={newPassword} />
               </div>
 
               <div>
@@ -245,14 +248,14 @@ function ResetPasswordPage() {
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
                   required
-                  minLength={6}
+                  minLength={PASSWORD_MIN_LENGTH}
                   autoComplete="new-password"
                 />
               </div>
 
               <button
                 type="submit"
-                className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white font-semibold py-3 rounded-xl hover:from-blue-700 hover:to-purple-700 transition-all shadow-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 {loading ? "Resetting..." : "Reset Password"}

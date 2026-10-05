@@ -94,10 +94,31 @@ export async function GET(req: Request) {
       }
     }
     const mapped = (users || []).map((u: Record<string, unknown>) => {
-      const name = (nameMap[u.id as string] ?? u.name ?? u.display_name ?? u.email) as string;
+      const personalName = nameMap[u.id as string];
+      const displayName =
+        (typeof u.display_name === "string" && u.display_name.trim()) ||
+        (typeof personalName === "string" && personalName.trim()) ||
+        (typeof u.name === "string" && u.name.trim() && !String(u.name).includes("@")
+          ? String(u.name).trim()
+          : "") ||
+        "";
+      const name =
+        displayName ||
+        personalName ||
+        (typeof u.name === "string" ? u.name : "") ||
+        (typeof u.email === "string" ? u.email : "");
       const phone = (u.phone ?? phoneMap[u.id as string] ?? "") as string;
       const lastLogin = u.last_login ?? u.lastLogin ?? null;
-      return { ...u, name: name || u.name, phone: phone || u.phone, lastLogin, company_id: u.company_id, companyId: u.company_id };
+      return {
+        ...u,
+        name: name || u.name,
+        display_name: displayName || u.display_name || null,
+        displayName: displayName || undefined,
+        phone: phone || u.phone,
+        lastLogin,
+        company_id: u.company_id,
+        companyId: u.company_id,
+      };
     });
     return NextResponse.json(mapped);
   } catch (e: unknown) {

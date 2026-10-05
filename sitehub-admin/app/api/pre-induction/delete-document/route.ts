@@ -1,32 +1,9 @@
 import { NextResponse } from "next/server";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { deleteFile } from "@/supabase/storage/storageClient";
-import { resolvePreInductionAuth } from "../_utils/mobileAuth";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
+import { hasTraversalSegment } from "../_utils/storagePath";
 
 const BUCKET = "pre-induction";
-const ADMIN_ROLES = ["admin", "ADMIN", "supervisor", "SUPERVISOR", "superuser", "SUPERUSER"];
-
-async function canDeletePreInductionFiles(
-  req: Request,
-  targetUserId: string,
-  uidFromBody?: string | null,
-): Promise<{ ok: boolean; error?: string; status?: number }> {
-  const auth = await resolvePreInductionAuth({ req, uidFromBody });
-  const { uid, role, companyId } = auth;
-
-  if (!role && !uid) return { ok: false, error: "Unauthorized", status: 401 };
-  if (uid && uid === targetUserId) return { ok: true };
-  if (role === "superuser") return { ok: true };
-
-  const roleLower = (role ?? "").toLowerCase();
-  if (!ADMIN_ROLES.includes(roleLower)) {
-    return { ok: false, error: "Only admins and supervisors can delete other users' documents", status: 403 };
-  }
-  const { data: target } = await supabaseAdmin.from("users").select("company_id").eq("id", targetUserId).maybeSingle();
-  if (!target) return { ok: false, error: "User not found", status: 404 };
-  if (companyId && companyId === (target.company_id ?? "")) return { ok: true };
-  return { ok: false, error: "Forbidden", status: 403 };
-}
 
 function extractPathFromUrl(url: string): { path: string; userId: string } | null {
   try {
@@ -67,7 +44,7 @@ function parsePathOrUrl(value: string, userId: string): { path: string } | null 
   return extracted && extracted.path.startsWith(userId + "/") ? { path: extracted.path } : null;
 }
 
-/** POST body: { url?: string, path?: string, userId: string, uid?: string } - deletes file from storage */
+/** POST body: { url?: string, path?: string, userId: string } - deletes file from storage */
 export async function POST(req: Request) {
   try {
     const body = await req.json();
@@ -87,12 +64,13 @@ export async function POST(req: Request) {
       );
     }
     const { path } = parsed;
-    if (!path.startsWith(userId + "/")) {
+    if (!path.startsWith(userId + "/") || hasTraversalSegment(path)) {
       return NextResponse.json({ error: "Invalid path" }, { status: 400 });
     }
-    const access = await canDeletePreInductionFiles(req, userId, body.uid);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error ?? "Forbidden" }, { status: access.status ?? 403 });
+    const access = await authorizeActingOnUser(req, String(userId));
+    if (!access.ok) return access.response;
+    if (access.targetUserId !== userId) {
+      return NextResponse.json({ error: "Invalid path" }, { status: 400 });
     }
     await deleteFile(BUCKET, path);
     return NextResponse.json({ ok: true });

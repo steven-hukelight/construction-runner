@@ -28,7 +28,7 @@ interface RAMS {
 type AckRow = {
   userId: string;
   name: string;
-  email: string;
+  role: string;
   acknowledgedAt: string | null;
   hasSignature: boolean;
 };
@@ -184,7 +184,7 @@ export default function RAMSDetailClient({
       <div className="card p-6">
         <div className="flex items-start justify-between gap-4 mb-6">
           <div className="min-w-0">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-1">
+            <p className="text-xs font-semibold text-slate-500 mb-1">
               Document title
             </p>
             <h2 className="text-2xl font-bold text-gray-900 dark:text-slate-100 break-words">
@@ -210,7 +210,7 @@ export default function RAMSDetailClient({
 
         {(rams.description ?? "").trim() ? (
           <div className="mb-6 pb-6 border-b border-slate-200 dark:border-slate-700">
-            <p className="text-xs font-semibold uppercase tracking-wide text-slate-500 mb-2">Details</p>
+            <p className="text-xs font-semibold text-slate-500 mb-2">Details</p>
             <p className="text-slate-700 dark:text-slate-300 whitespace-pre-wrap text-sm leading-relaxed">
               {rams.description}
             </p>
@@ -302,7 +302,7 @@ export default function RAMSDetailClient({
                 <thead>
                   <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
                     <th className="px-5 py-3">Name</th>
-                    <th className="px-5 py-3">Email</th>
+                    <th className="px-5 py-3">Role</th>
                     <th className="px-5 py-3">Acknowledged</th>
                     <th className="px-5 py-3">Signature</th>
                   </tr>
@@ -314,7 +314,7 @@ export default function RAMSDetailClient({
                       className="data-table-row border-b border-slate-100/90 text-slate-800 last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/80 dark:text-slate-200"
                     >
                       <td className="px-5 py-3 font-semibold">{r.name}</td>
-                      <td className="px-5 py-3">{r.email}</td>
+                      <td className="px-5 py-3">{r.role}</td>
                       <td className="whitespace-nowrap px-5 py-3">
                         {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}
                       </td>

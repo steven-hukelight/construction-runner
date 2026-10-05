@@ -61,10 +61,20 @@ async function normalizeAttendanceRows(rows: Record<string, unknown>[]): Promise
   const userIds = [...new Set(rows.map((r) => r.user_id as string).filter(Boolean))];
   const siteIds = [...new Set(rows.map((r) => r.site_id as string).filter(Boolean))];
 
-  const [usersRes, sitesRes] = await Promise.all([
+  const [usersRes, sitesRes, personalRes] = await Promise.all([
     userIds.length > 0 ? supabaseAdmin.from("users").select("id, name, display_name, email, company_id").in("id", userIds) : { data: [] },
     siteIds.length > 0 ? supabaseAdmin.from("sites").select("id, name").in("id", siteIds) : { data: [] },
+    userIds.length > 0
+      ? supabaseAdmin.from("pre_induction_personal").select("user_id, full_name").in("user_id", userIds)
+      : { data: [] },
   ]);
+
+  const personalNameByUser = new Map<string, string>();
+  for (const p of personalRes.data ?? []) {
+    const uid = String((p as { user_id?: string }).user_id ?? "");
+    const fn = String((p as { full_name?: string }).full_name ?? "").trim();
+    if (uid && fn) personalNameByUser.set(uid, fn);
+  }
 
   const userMap = new Map<string, { name?: string; display_name?: string; email?: string; company_id?: string }>();
   (usersRes.data ?? []).forEach((u: Record<string, unknown>) => {
@@ -80,9 +90,14 @@ async function normalizeAttendanceRows(rows: Record<string, unknown>[]): Promise
       const sid = r.site_id as string;
       const user = uid ? userMap.get(String(uid)) : null;
       const site = sid ? siteMap.get(String(sid)) : null;
+      const personal = uid ? personalNameByUser.get(String(uid)) : undefined;
+      const display = (user?.display_name && String(user.display_name).trim()) || "";
+      const userName =
+        user?.name && !String(user.name).includes("@") ? String(user.name).trim() : "";
       const name =
-        (user?.display_name && String(user.display_name).trim()) ||
-        (user?.name && !String(user.name).includes("@") ? String(user.name).trim() : "") ||
+        personal ||
+        display ||
+        userName ||
         (user?.email ? String(user.email).split("@")[0] : null);
       const siteName = site?.name;
       const rowCompanyId = (r.company_id ?? r.companyid) as string | undefined;
@@ -287,10 +302,7 @@ export async function POST(req: Request) {
       if (!operativeId) {
         return NextResponse.json({ error: "operativeId required" }, { status: 400 });
       }
-      const mobileAuthPing = await resolvePreInductionAuth({
-        req,
-        uidFromBody: typeof operativeId === "string" ? operativeId : String(operativeId),
-      });
+      const mobileAuthPing = await resolvePreInductionAuth({ req });
       const authHeaderPing = req.headers.get("authorization");
       const hasBearerPing = authHeaderPing?.toLowerCase().startsWith("bearer ");
       if (hasBearerPing && mobileAuthPing.uid && String(operativeId) !== String(mobileAuthPing.uid)) {
@@ -369,10 +381,7 @@ export async function POST(req: Request) {
     const email = body.email;
     if (!operativeId || !action) return NextResponse.json({ error: "operativeId and action required" }, { status: 400 });
 
-    const mobileAuth = await resolvePreInductionAuth({
-      req,
-      uidFromBody: typeof operativeId === "string" ? operativeId : String(operativeId),
-    });
+    const mobileAuth = await resolvePreInductionAuth({ req });
     const authHeader = req.headers.get("authorization");
     const hasBearer = authHeader?.toLowerCase().startsWith("bearer ");
     if (hasBearer && mobileAuth.uid && String(operativeId) !== String(mobileAuth.uid)) {
@@ -797,6 +806,7 @@ export async function POST(req: Request) {
             String(operativeId),
             "native_geofence",
             String(lastFull.id),
+            { clientNotified: body.client_notified === true },
           ).catch((err) =>
             console.error("[push] attendance auto sign-out (native override):", err)
           );
@@ -944,6 +954,7 @@ export async function POST(req: Request) {
         String(operativeId),
         pushReason,
         inserted?.id ? String(inserted.id) : null,
+        { clientNotified: body.client_notified === true },
       ).catch((err) =>
         console.error("[push] attendance auto sign-out (client insert):", err)
       );

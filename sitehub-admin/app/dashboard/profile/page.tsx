@@ -787,7 +787,7 @@ export default function ProfilePage() {
           <div className="card">
             <div className="flex flex-col items-center text-center space-y-4">
               <div 
-                className="rounded-full bg-gradient-to-br from-[#58a5f0] to-[#2d8ae8] flex items-center justify-center font-bold shadow-lg"
+                className="rounded-full bg-blue-600 flex items-center justify-center font-bold"
                 style={{ width: '100px', height: '100px', fontSize: '20px', color: '#ffffff' }}
               >
                 {initials}

@@ -25,10 +25,6 @@ export async function POST(req: Request) {
     const lat = body.lat ?? body.latitude;
     const lng = body.lng ?? body.longitude ?? body.lon;
     const operativeIdLog = body.operativeId ?? body.operative_id ?? null;
-    const operativeIdForAuth =
-      operativeIdLog != null && String(operativeIdLog).trim() !== ""
-        ? String(operativeIdLog).trim()
-        : null;
     const siteIdLog = body.siteId ?? body.site_id ?? null;
 
     if (!attendanceId || lat == null || lng == null) {
@@ -38,17 +34,13 @@ export async function POST(req: Request) {
       );
     }
 
-    // Same pattern as POST /api/attendance: mobile often has no dashboard cookies but sends operativeId in body.
-    const mobileAuth = await resolvePreInductionAuth({
-      req,
-      uidFromBody: operativeIdForAuth,
-    });
+    const mobileAuth = await resolvePreInductionAuth({ req });
     const authHeader = req.headers.get("authorization");
     const hasBearer = authHeader?.toLowerCase().startsWith("bearer ") ?? false;
 
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from("attendance")
-      .select("id, user_id, action")
+      .select("id, user_id, action, timestamp, created_at")
       .eq("id", String(attendanceId))
       .maybeSingle();
 
@@ -59,7 +51,6 @@ export async function POST(req: Request) {
     const uid = String((row as { user_id: string }).user_id);
 
     if (hasBearer) {
-      // With uidFromBody, invalid/expired Bearer still yields mobileAuth.uid from body (same trust as POST /attendance).
       if (!mobileAuth.uid) {
         return NextResponse.json(
           {
@@ -82,8 +73,8 @@ export async function POST(req: Request) {
         if (!me?.id || String(me.id) !== uid) {
           return NextResponse.json({ error: "Forbidden" }, { status: 403 });
         }
-      } else if (operativeIdForAuth && uid === operativeIdForAuth) {
-        // Mobile without Authorization header: body operative id must match this attendance row.
+      } else if (mobileAuth.uid && uid === String(mobileAuth.uid)) {
+        // Signed-in non-operative (e.g. supervisor on the app) posting for their own session.
       } else {
         return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
       }
@@ -97,6 +88,30 @@ export async function POST(req: Request) {
         { error: "not_signed_in", message: "That attendance row is not an open sign-in session." },
         { status: 409 }
       );
+    }
+
+    const signInAt =
+      (row as { timestamp?: string | null }).timestamp ??
+      (row as { created_at?: string | null }).created_at ??
+      null;
+    if (signInAt) {
+      const { data: laterRows } = await supabaseAdmin
+        .from("attendance")
+        .select("id, action")
+        .eq("user_id", uid)
+        .neq("id", String(row.id))
+        .gte("created_at", signInAt)
+        .limit(20);
+      const hasLaterSignOut = (laterRows ?? []).some((r) => {
+        const n = normalizeAttendanceAction((r as { action?: string }).action);
+        return n === "SIGN_OUT" || n === "OUT" || n === "SIGNOUT" || n === "CHECKOUT";
+      });
+      if (hasLaterSignOut) {
+        return NextResponse.json(
+          { error: "not_signed_in", message: "This session has already been signed out." },
+          { status: 409 }
+        );
+      }
     }
 
     const acc = body.accuracy != null && body.accuracy !== "" ? Number(body.accuracy) : null;

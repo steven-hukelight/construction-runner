@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function POST(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     if (!auth.uid) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }

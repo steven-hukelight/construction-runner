@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { useRouter } from "next/navigation";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "@/app/dashboard/components/ui/Table";
@@ -30,7 +31,7 @@ function StatusBadge({ status }: { status: InductionRow["status"] }) {
   };
   const chip =
     status === "completed" ? "status-chip--ok" : status === "expired" ? "status-chip--danger" : "status-chip--muted";
-  return <span className={`status-chip ${chip}`}>{labels[status]}</span>;
+  return <span className={`status-chip ${chip}`}>{toSentenceCase(labels[status])}</span>;
 }
 
 export default function InductionTable({

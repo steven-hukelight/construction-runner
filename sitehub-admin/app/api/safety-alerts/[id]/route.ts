@@ -16,6 +16,7 @@ function severityBucket(raw: string | null | undefined): string {
 
 async function canAccessAlert(req: Request, id: string): Promise<NextResponse | null> {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   if (auth.isSuperuser) return null;
 
   const { data: doc } = await supabaseAdmin

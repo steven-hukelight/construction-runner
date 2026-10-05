@@ -48,6 +48,7 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
 export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id: taskId } = await params;
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const forbid = await ensureTaskReadAccess(req, taskId);
   if (forbid) return forbid;
 

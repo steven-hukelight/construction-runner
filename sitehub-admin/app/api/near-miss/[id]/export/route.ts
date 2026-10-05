@@ -1,6 +1,6 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
-import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { authorizeNearMissReport } from "@/lib/auth/nearMissAccess";
 import { resolveSignedUrl } from "@/lib/storage/signedUrl";
 import { createReportPdf } from "@/lib/pdf/createReportPdf";
 import { resolveCompanyPdfBranding } from "@/lib/pdf/resolveCompanyPdfBranding";
@@ -39,40 +39,21 @@ function getRawUrl(att: { url?: string; path?: string } | string): string {
   return (att as { url?: string }).url ?? (att as { path?: string }).path ?? "";
 }
 
-async function canAccessNearMissRequest(
-  req: Request,
-  id: string,
-): Promise<NextResponse | null> {
-  const auth = await resolveMobileApiAuth(req);
-  if (auth.isSuperuser) return null;
-
-  const { data: doc } = await supabaseAdmin
-    .from("near_miss_reports")
-    .select("*")
-    .eq("id", id)
-    .single();
-  if (!doc) return NextResponse.json({ error: "Not found" }, { status: 404 });
-  if (!auth.companyId || (doc.company_id ?? null) !== auth.companyId)
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  return null;
-}
-
 export async function GET(
   req: Request,
   { params }: { params: Promise<{ id: string }> },
 ) {
   const { id } = await params;
-  const forbid = await canAccessNearMissRequest(req, id);
-  if (forbid) return forbid;
-
-  const { data: item, error } = await supabaseAdmin
-    .from("near_miss_reports")
-    .select("*")
-    .eq("id", id)
-    .single();
-
-  if (error || !item)
-    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  const access = await authorizeNearMissReport(req, id);
+  if (!access.ok) return access.response;
+  const item = access.report as Record<string, unknown> & {
+    id: string;
+    site_id?: string | null;
+    description?: string | null;
+    created_at?: string | null;
+    reviewed_at?: string | null;
+    attachments?: unknown;
+  };
 
   const reportedById =
     (item as { reported_by?: string }).reported_by ??

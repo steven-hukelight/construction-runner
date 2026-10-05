@@ -386,7 +386,7 @@ export default function NotificationDropdown() {
                           )}
                           <span className="truncate">{item.title}</span>
                           {isUnseen && (
-                            <span className="shrink-0 text-[10px] font-semibold uppercase tracking-wide text-blue-600 dark:text-blue-400">
+                            <span className="shrink-0 text-xs font-semibold text-blue-600 dark:text-blue-400">
                               New
                             </span>
                           )}

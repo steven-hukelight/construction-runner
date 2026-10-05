@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getServerPublicOrigin } from "@/lib/url";
+import { sendApprovalWelcomeEmailToUser } from "@/lib/sendApprovalWelcomeEmail";
 import { findUserByIdOrEmail } from "@/lib/auth/findUser";
 
 export async function GET() {
@@ -88,10 +88,20 @@ export async function POST(req: Request) {
     const { data: regRow } = await supabaseAdmin.from("registrations").select("id, company_id, data").eq("id", id).maybeSingle();
     if (!regRow) return NextResponse.json({ error: "Not found" }, { status: 404 });
 
-    const reg = regRow.data as { email?: string; name?: string; status?: string; role?: string; companyId?: string };
+    const reg = regRow.data as {
+      email?: string;
+      name?: string;
+      status?: string;
+      role?: string;
+      companyId?: string;
+      emailVerified?: boolean;
+    };
     const effectiveCompanyId = regRow.company_id ?? reg.companyId ?? null;
     if (reg.status !== "PENDING" && reg.status !== "COMPANY_ADMIN_PENDING") {
       return NextResponse.json({ error: "Already processed" }, { status: 400 });
+    }
+    if (reg.emailVerified === false) {
+      return NextResponse.json({ error: "Applicant has not verified their email yet" }, { status: 400 });
     }
 
     let approvedSiteIds: string[] = [];
@@ -180,15 +190,7 @@ export async function POST(req: Request) {
       .eq("id", id);
 
     try {
-      const publicBase = getServerPublicOrigin();
-      await fetch(`${publicBase.replace(/\/$/, "")}/api/auth/sendWelcome`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId: authUser.id,
-          ...(appliedTempPassword ? { tempPassword } : {}),
-        }),
-      });
+      await sendApprovalWelcomeEmailToUser(authUser.id, appliedTempPassword ? tempPassword : undefined);
     } catch (e) {
       console.error("welcome email failed", e);
     }

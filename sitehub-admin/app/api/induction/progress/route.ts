@@ -7,6 +7,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const url = new URL(req.url);
     const userId = (url.searchParams.get("userId") ?? auth.uid ?? "").trim();
     const siteId = (url.searchParams.get("siteId") ?? "").trim();

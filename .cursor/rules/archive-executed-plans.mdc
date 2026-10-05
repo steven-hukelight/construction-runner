@@ -1,0 +1,19 @@
+---
+description: Move plans into an "old plans" folder once they have been executed
+alwaysApply: true
+---
+
+# Archive executed plans
+
+When a plan has been fully executed (all its todos done and the user has confirmed or the work is complete), move the plan file into the matching `old plans` folder as the final step of the task:
+
+| Plan location | Archive to |
+|---|---|
+| `~/.cursor/plans/*.plan.md` (Cursor Plan mode) | `~/.cursor/plans/old plans/` |
+| Plan docs in this repo (e.g. `*_PLAN.md` under `docs/`, `markdown_documents/`, `sitehub_worker_Ready/docs/`) | `docs/old plans/` |
+
+- Use `git mv` for files tracked by git, plain `mv` otherwise. Keep the original filename.
+- Only archive plans that were actually executed; leave partially done or not-started plans in place.
+- Never archive these active plans unless the user says so:
+  - `sitehub_worker_Ready/docs/OFFLINE_SIGN_IN_PLAN.md`
+  - `~/.cursor/plans/investor_differentiation_roadmap_f3e86d8d.plan.md`- Mention the move in the final summary to the user.

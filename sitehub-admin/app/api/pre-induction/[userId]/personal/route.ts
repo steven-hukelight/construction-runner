@@ -1,16 +1,15 @@
 import { NextResponse } from "next/server";
 import crypto from "crypto";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { checkPreInductionAccess } from "../_utils/auth";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
 import { updatePreInductionStatus } from "../_utils/status";
 
 export async function POST(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const { userId } = await params;
-    const access = await checkPreInductionAccess(userId, req);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
-    }
+    const { userId: requestedUserId } = await params;
+    const access = await authorizeActingOnUser(req, requestedUserId);
+    if (!access.ok) return access.response;
+    const userId = access.targetUserId;
 
     const body = await req.json();
     const fullName = body.fullName ?? "";

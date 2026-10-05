@@ -59,25 +59,25 @@ export default function InductionSummaryCard({
       </div>
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3">
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
+          <dt className="text-xs font-medium text-gray-500">Role</dt>
           <dd className="mt-0.5">
             <RoleBadge role={user?.role} />
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Sites inducted</dt>
+          <dt className="text-xs font-medium text-gray-500">Sites inducted</dt>
           <dd className="mt-0.5 text-sm font-medium text-gray-900">{summary.totalSitesInducted}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Last induction</dt>
+          <dt className="text-xs font-medium text-gray-500">Last induction</dt>
           <dd className="mt-0.5 text-sm font-medium text-gray-900">{lastFormatted}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Active</dt>
+          <dt className="text-xs font-medium text-gray-500">Active</dt>
           <dd className="mt-0.5 text-sm font-medium text-gray-900">{summary.activeCount}</dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Expired</dt>
+          <dt className="text-xs font-medium text-gray-500">Expired</dt>
           <dd className="mt-0.5 text-sm font-medium text-gray-900">{summary.expiredCount}</dd>
         </div>
       </dl>

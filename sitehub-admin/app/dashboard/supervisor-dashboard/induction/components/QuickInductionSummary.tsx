@@ -26,7 +26,7 @@ export default function QuickInductionSummary({ summary }: { summary: Summary })
           key={c.label}
           className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
         >
-          <p className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <p className="text-xs font-medium text-gray-500">
             {c.label}
           </p>
           <p

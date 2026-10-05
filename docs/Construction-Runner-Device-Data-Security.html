@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <title>Construction Runner — Device &amp; data security</title>
+  <style>
+    @page { size: A4; margin: 14mm 14mm 16mm 14mm; }
+    :root {
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --soft: #f8fafc;
+      --tip: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      font-size: 9.5pt;
+      line-height: 1.4;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      border-bottom: 2.5px solid var(--blue);
+    }
+    .header img {
+      height: 48px;
+      width: auto;
+      max-width: 160px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 10px;
+    }
+    .header .brand { flex: 1; }
+    .header .brand .name {
+      font-size: 12pt;
+      font-weight: 700;
+      color: var(--navy);
+      margin: 0;
+    }
+    .header .brand .tag {
+      font-size: 8pt;
+      color: var(--muted);
+      margin: 2px 0 0;
+    }
+    h1 {
+      font-size: 15pt;
+      color: var(--navy);
+      margin: 0 0 8px;
+      line-height: 1.2;
+    }
+    h2 {
+      font-size: 11pt;
+      color: var(--navy);
+      margin: 14px 0 6px;
+      border-bottom: 1.5px solid var(--blue);
+      padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    h3 {
+      font-size: 10pt;
+      color: var(--navy);
+      margin: 10px 0 4px;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6px; }
+    ul, ol { margin: 0 0 8px; padding-left: 16px; }
+    li { margin: 0 0 3px; }
+    strong { font-weight: 700; }
+    a { color: var(--blue); }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 10px;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    th, td {
+      border: 1px solid var(--line);
+      padding: 5px 7px;
+      text-align: left;
+      vertical-align: top;
+    }
+    th { background: var(--soft); color: var(--navy); }
+    .lede, .audience {
+      background: var(--tip);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 0 0 10px;
+      page-break-inside: avoid;
+    }
+    .audience { background: var(--soft); border-color: var(--line); }
+    .audience .label, .lede .label {
+      font-size: 7.5pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: var(--muted);
+      margin: 0 0 3px;
+    }
+    .footer-note {
+      color: var(--muted);
+      font-size: 7.5pt;
+      margin-top: 12px;
+      border-top: 1px solid var(--line);
+      padding-top: 8px;
+    }
+    .meta {
+      font-size: 8pt;
+      color: var(--muted);
+      margin: 0 0 10px;
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="user-guide/screenshots/logo.png" alt="Construction Runner" />
+    <div class="brand">
+      <p class="name">Construction Runner</p>
+      <p class="tag">www.construction-runner.com</p>
+    </div>
+  </div>
+
+  <h1>Device &amp; data security</h1>
+  <p class="meta">For users on personal phones &nbsp;·&nbsp; September 2026</p>
+
+  <div class="audience">
+    <p class="label">Who this is for</p>
+    <p style="margin:0">People installing Construction Runner on a <strong>personal phone</strong> (bring your own device), and anyone who wants a clear picture of how the app protects their privacy and work data.</p>
+  </div>
+
+  <div class="lede">
+    <p class="label">Short answer</p>
+    <p style="margin:0">Construction Runner is a work app for site attendance and safety. On your phone it runs in its own private space (a sandbox), the same way other official store apps do — so it cannot reach into your other apps or personal files just by being installed. Passwords are hashed (not stored as plain text). Connections use HTTPS. Work data lives in our secured backend and is only available after you sign in. We strongly recommend a <strong>strong unique password</strong> plus <strong>Biometric app lock</strong> (Face ID / fingerprint) so the app asks for biometrics every time it is opened.</p>
+  </div>
+
+  <h2>1. Will this app hack my phone or see my personal data?</h2>
+  <p><strong>No — not in the way people usually fear.</strong></p>
+  <p>On a normal install from the <strong>Google Play Store</strong> or <strong>Apple App Store</strong>:</p>
+  <ul>
+    <li>The app runs in its <strong>own sandbox</strong> (a private space created by the phone’s operating system).</li>
+    <li>It <strong>cannot</strong> open or read other apps’ data (messages, email, photos in other apps, and so on) just because it is installed.</li>
+    <li>It <strong>cannot</strong> “take over” the device or install hidden spyware simply by being installed from the official store.</li>
+  </ul>
+  <p>That protection comes from <strong>Apple and Google</strong>, not from the size of the company that built the app. A small team’s store app and a large brand’s app follow the <strong>same sandbox rules</strong>.</p>
+
+  <h3>What the app <em>can</em> see</h3>
+  <p>Only:</p>
+  <ul>
+    <li>Information you enter or use <strong>inside Construction Runner</strong> (for example name, work email, site attendance, induction, safety documents, photos you take <em>in the app</em>).</li>
+    <li>Device features you <strong>explicitly allow</strong> (for example location for site check-in, camera for a near-miss or delivery photo, notifications).</li>
+  </ul>
+  <p>You can refuse permissions you are uncomfortable with; some features may then be limited.</p>
+
+  <h2>2. “It wasn’t built by a big-name developer — is that a risk?”</h2>
+  <p>It’s reasonable to ask. What matters for phone safety is:</p>
+  <table>
+    <thead>
+      <tr><th>Factor</th><th>Construction Runner</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Distributed via Play Store / App Store</td><td>Yes (install only from the official listing)</td></tr>
+      <tr><td>App sandbox (OS isolation)</td><td>Yes — same as other store apps</td></tr>
+      <tr><td>Encrypted connection (HTTPS)</td><td>Yes</td></tr>
+      <tr><td>Passwords stored hashed</td><td>Yes (via Supabase Auth)</td></tr>
+      <tr><td>Work data behind login</td><td>Yes</td></tr>
+    </tbody>
+  </table>
+  <p>“Not a huge agency” does <strong>not</strong> give an app special power to break Android or iPhone security. Sideloading a random APK from a link <em>would</em> be riskier — please don’t do that. Use the official store only.</p>
+
+  <h2>3. Passwords — are they safe? Are they hashed?</h2>
+  <p><strong>Yes. Passwords are hashed, not stored as readable text.</strong></p>
+  <ul>
+    <li>Sign-in uses <strong>Supabase Auth</strong> (an established authentication platform).</li>
+    <li>Your password is checked using a <strong>one-way hash</strong> (bcrypt). The system stores the hash, not the password itself.</li>
+    <li>We (and the app) <strong>cannot look up</strong> your password.</li>
+    <li>Reset flows use secure reset links — we do not email you your old password.</li>
+  </ul>
+  <p><strong>Please:</strong> use a <strong>strong unique password</strong> (do not reuse the same password you use for other important accounts), keep your phone locked with a PIN or biometrics, and turn on <strong>Biometric app lock</strong> in Construction Runner (see below). Biometrics are an extra layer — they do <strong>not</strong> replace a strong password.</p>
+
+  <h2>4. Biometric app lock (recommended with a strong password)</h2>
+  <p>Construction Runner can require <strong>Face ID</strong> (iPhone) or <strong>fingerprint / device biometrics</strong> (Android) <strong>every time you open the app</strong>, even if you stayed signed in. That helps if someone picks up an unlocked phone and tries to open Construction Runner.</p>
+  <p><strong>Use both together:</strong></p>
+  <ol>
+    <li>A <strong>strong unique password</strong> for your Construction Runner account</li>
+    <li><strong>Biometric app lock</strong> so opening the app needs your face or fingerprint</li>
+  </ol>
+  <p>Biometric app lock protects access <em>to the app on that device</em>. Your password still protects the account itself (sign-in, resets, new devices).</p>
+
+  <h3>How to turn on Biometric app lock</h3>
+  <ol>
+    <li>Open the <strong>Construction Runner</strong> app and sign in with your email and password (first time).</li>
+    <li>Open the menu (⋮ / Profile) and go to <strong>Settings</strong> (sometimes labelled <strong>User Settings</strong>).</li>
+    <li>Find <strong>Biometric app lock</strong> (Android) or <strong>Face ID app lock</strong> (iPhone).</li>
+    <li>Turn the switch <strong>On</strong>.</li>
+    <li>Confirm with your fingerprint or Face ID when asked.</li>
+  </ol>
+  <p>After this is on, each time you open Construction Runner you will be asked for biometrics before you see your work screens.</p>
+  <p>You can also turn on <strong>Use Face ID / device biometrics to sign in</strong> in the same Settings screen for quicker sign-in — that is separate from app lock. For personal-device peace of mind, <strong>Biometric / Face ID app lock</strong> is the setting that locks the app every time it opens.</p>
+  <p><strong>Tip:</strong> Enrol Face ID or a fingerprint in your phone’s system Settings first if you have not already. Construction Runner uses the biometrics already set up on the device.</p>
+
+  <h2>5. Encryption and HTTPS (data in transit)</h2>
+  <ul>
+    <li>The website uses <strong>HTTPS</strong> (<a href="https://www.construction-runner.com">https://www.construction-runner.com</a>).</li>
+    <li>The mobile app talks to our servers over <strong>HTTPS</strong>.</li>
+    <li>Auth and database traffic to our backend provider also uses <strong>HTTPS / TLS</strong>.</li>
+  </ul>
+  <p>That means traffic between your phone and our systems is <strong>encrypted in transit</strong>. Someone on public Wi‑Fi cannot simply read your password or API traffic in plain text.</p>
+
+  <h2>6. Backend security (where work data lives)</h2>
+  <p>After you sign in:</p>
+  <table>
+    <thead>
+      <tr><th>Layer</th><th>Purpose</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>Login</td><td>Confirms it is you (hashed password check).</td></tr>
+      <tr><td>Sessions / tokens</td><td>Keeps you signed in securely; your password is not sent on every request.</td></tr>
+      <tr><td>Row Level Security (RLS)</td><td>Database rules so access is limited to the right company / permissions.</td></tr>
+      <tr><td>Server-only secret key</td><td>Used on our servers only — <strong>never</strong> shipped inside the mobile app.</td></tr>
+      <tr><td>Publishable client key</td><td>May be in the app; <strong>RLS</strong> still limits what data can be reached.</td></tr>
+    </tbody>
+  </table>
+  <p>So protection is not “hope nobody finds the URL.” It is <strong>authentication + encrypted transport + database access rules</strong>.</p>
+  <p>Work information (attendance, induction, RAMS acknowledgements, and so on) is held for your employer’s site operations. It stays inside Construction Runner’s secured systems — separate from your other personal apps.</p>
+
+  <h2>7. Real risks (honest, bounded)</h2>
+  <p>These are the same kinds of risks you already accept with everyday apps on a personal phone — for example <strong>WhatsApp</strong>, <strong>Instagram</strong>, <strong>Facebook</strong>, email (Gmail / Outlook), or a work chat tool like <strong>Teams</strong> or <strong>Slack</strong>:</p>
+  <ol>
+    <li><strong>Data inside Construction Runner</strong> — Work-related information you use in the product is stored in our systems for your employer’s operations (just as WhatsApp holds your chats on its systems, or Instagram holds your account content).</li>
+    <li><strong>Permissions you grant</strong> — Location, camera, notifications, and so on. WhatsApp and Instagram ask for similar permissions when you use camera or location features. Only approve what you need for the job.</li>
+    <li><strong>Unlocked or stolen phone</strong> — Anyone who can unlock your device may open apps that are already signed in, including WhatsApp, Instagram, or Construction Runner. Use a strong <strong>device</strong> lock, turn on <strong>Biometric app lock</strong> in Construction Runner, and sign out if you share the phone.</li>
+    <li><strong>Fake apps</strong> — Only install from the official Play Store / App Store listing for Construction Runner (the same advice as for any well-known app).</li>
+    <li><strong>Shared or weak passwords</strong> — Use a strong unique password for Construction Runner and pair it with biometric app lock — the same good habit as for email or social accounts.</li>
+  </ol>
+  <p>None of this means Construction Runner can break into the rest of your phone or your other apps, any more than Instagram can open WhatsApp or read your email.</p>
+
+  <h2>8. Practical tips for personal devices</h2>
+  <ul>
+    <li>Install <strong>only</strong> from Google Play or the App Store.</li>
+    <li>Use a <strong>strong unique</strong> Construction Runner password.</li>
+    <li>Turn on <strong>Biometric app lock</strong> / <strong>Face ID app lock</strong> in <strong>Settings</strong> so the app asks for biometrics every time you open it (steps in section 4).</li>
+    <li>Keep <strong>device lock</strong> (PIN / fingerprint / Face ID) on for the whole phone.</li>
+    <li>Review <strong>permissions</strong> and allow only what you need.</li>
+    <li>Sign out if you hand the phone to someone else.</li>
+    <li>If your company offers a <strong>work phone</strong> or Android <strong>work profile</strong>, that is an extra comfort option — not because this app bypasses the OS, but because it keeps work and personal apps more separate.</li>
+  </ul>
+
+  <h2>9. Contact</h2>
+  <p>Questions about privacy or how your company uses Construction Runner:</p>
+  <ul>
+    <li><strong>Email:</strong> info@construction-runner.com</li>
+    <li><strong>Website:</strong> <a href="https://www.construction-runner.com">https://www.construction-runner.com</a></li>
+    <li><strong>Privacy:</strong> <a href="https://www.construction-runner.com/legal/privacy-and-security">https://www.construction-runner.com/legal/privacy-and-security</a></li>
+  </ul>
+
+  <p class="footer-note">This note explains how the product is designed to protect users on personal devices. It is not a formal certification or insurance document. Independent audits or company IT policies may add further requirements.</p>
+</body>
+</html>

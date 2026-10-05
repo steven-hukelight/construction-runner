@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { createClient } from "@supabase/supabase-js";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { checkLoginRateLimit } from "@/lib/rateLimit";
+import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 export async function POST(req: Request) {
   const { success, retryAfter } = await checkLoginRateLimit(req);
@@ -25,8 +26,11 @@ export async function POST(req: Request) {
     const tokenHash = String(body.token_hash ?? body.tokenHash ?? "").trim();
     const password = String(body.password ?? "");
 
-    if (!tokenHash || !password || password.length < 8) {
+    if (!tokenHash) {
       return NextResponse.json({ error: "Invalid or expired link." }, { status: 400 });
+    }
+    if (!isPasswordValid(password)) {
+      return NextResponse.json({ error: PASSWORD_REQUIREMENTS_MESSAGE }, { status: 400 });
     }
 
     const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;

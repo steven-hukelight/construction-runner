@@ -1,0 +1,41 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  body { display:flex; align-items:center; justify-content:center; height:900px; width:1440px; background:linear-gradient(180deg,#dbeafe,#f8fafc); }
+  .map { flex:1; background:linear-gradient(180deg,#bfdbfe,#86efac 55%, #bbf7d0); position:relative; }
+  .fence { position:absolute; inset:70px 40px 120px; border:3px dashed #2563eb; border-radius:50%; background:rgba(37,99,235,.12); }
+  .dot { position:absolute; left:48%; top:46%; width:18px; height:18px; background:#2563eb; border:3px solid #fff; border-radius:999px; box-shadow:0 0 0 8px rgba(37,99,235,.25); }
+  .bottom { background:#fff; padding:14px 14px 18px; }
+</style>
+</head>
+<body>
+<div style="display:flex;gap:48px;align-items:center">
+  <div class="phone">
+    <div class="phone-in">
+      <div class="phone-bar"><span class="pill">Select site ▾ Kidbrooke Village</span></div>
+      <div class="map">
+        <div class="fence"></div>
+        <div class="dot"></div>
+        <div style="position:absolute;left:16px;top:16px" class="pill">Inside Site Boundary</div>
+      </div>
+      <div class="bottom">
+        <div class="sub" style="margin-bottom:8px">Background location keeps your sign-out accurate.</div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px">
+          <button class="btn">Sign In</button>
+          <button style="border-radius:10px;border:1px solid #e5e7eb;background:#fff;padding:10px;font-weight:700">Sign Out</button>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:460px">
+    <h1>Check In / Out</h1>
+    <p class="sub" style="font-size:16px;line-height:1.55">Open Home → Check In / Out. Choose the site, wait until the map shows you are inside the blue boundary, then tap Sign In.</p>
+    <ol style="color:#334155;line-height:1.85;padding-left:18px">
+      <li>Set Location to <strong>Always</strong> (iPhone) or <strong>Allow all the time</strong> (Android).</li>
+      <li>Complete site induction if the site requires it.</li>
+      <li>Accept RAMS, then Sign In.</li>
+      <li>Leaving the geofence signs you out automatically.</li>
+    </ol>
+  </div>
+</div>
+</body></html>

@@ -56,6 +56,7 @@ async function ensureCreateAccess(req?: Request): Promise<{
   if (!uid && !userEmail) {
     if (req) {
       const auth = await resolveMobileApiAuth(req);
+      if (auth instanceof NextResponse) return { companyId: null, userId: null, role, error: auth };
       const bearerUid = await resolveUserIdFromAuth(auth);
       if (bearerUid) {
         const authRole = (auth.role ?? "").toLowerCase();
@@ -96,6 +97,7 @@ async function ensureCreateAccess(req?: Request): Promise<{
   let resolvedUid = uid ?? null;
   if (!resolvedUid && req) {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return { companyId: null, userId: null, role, error: auth };
     const bearerUid = await resolveUserIdFromAuth(auth);
     if (bearerUid) resolvedUid = bearerUid;
   }

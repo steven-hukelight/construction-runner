@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { loadAcknowledgementPeople } from "@/lib/acknowledgementPeople";
 
 export const dynamic = "force-dynamic";
 
@@ -62,26 +63,13 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return NextResponse.json({ error: "Failed to load acknowledgements" }, { status: 500 });
     }
 
-    const userIds = [...new Set((acks ?? []).map((a) => a.user_id).filter(Boolean))];
-    const { data: users } = userIds.length
-      ? await supabaseAdmin.from("users").select("id, name, display_name, email").in("id", userIds)
-      : { data: [] };
-
-    const userMap = new Map(
-      (users ?? []).map((u) => [
-        u.id,
-        {
-          name: (u.display_name ?? u.name ?? u.email ?? "—").toString(),
-          email: (u.email ?? "—").toString(),
-        },
-      ])
-    );
-
-    let siteName: string | null = null;
-    if (briefing.site_id) {
-      const { data: site } = await supabaseAdmin.from("sites").select("name").eq("id", briefing.site_id).maybeSingle();
-      siteName = site?.name ? String(site.name) : null;
-    }
+    const [userMap, { data: site }] = await Promise.all([
+      loadAcknowledgementPeople((acks ?? []).map((a) => a.user_id)),
+      briefing.site_id
+        ? supabaseAdmin.from("sites").select("name").eq("id", briefing.site_id).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const siteName = site?.name ? String(site.name) : null;
 
     const acknowledgements = (acks ?? []).map((a) => {
       const u = userMap.get(a.user_id);
@@ -89,7 +77,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       return {
         userId: a.user_id,
         name: u?.name ?? "—",
-        email: u?.email ?? "—",
+        role: u?.role ?? "—",
         acknowledgedAt: a.acknowledged_at,
         hasSignature: Boolean(sig),
         signatureUrl: sig || null,

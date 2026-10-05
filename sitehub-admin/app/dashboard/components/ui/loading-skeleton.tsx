@@ -19,7 +19,7 @@ export function LoadingSkeleton() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-2xl p-6 border border-gray-200 shadow-md"
+            className="bg-white rounded-xl p-6 border border-gray-200"
           >
             <div className="flex items-start justify-between">
               <div className="flex-1 space-y-3">
@@ -41,7 +41,7 @@ export function LoadingSkeleton() {
             initial={{ opacity: 0, scale: 0.95 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-xl p-6 border border-gray-200 shadow-md"
+            className="bg-white rounded-xl p-6 border border-gray-200"
           >
             <div className="h-6 bg-gray-200 rounded w-32 mb-6 shimmer" />
             <div className="h-64 bg-gray-100 rounded-lg shimmer" />
@@ -57,7 +57,7 @@ export function LoadingSkeleton() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: i * 0.1 }}
-            className="bg-white rounded-xl p-6 border border-gray-200 shadow-md"
+            className="bg-white rounded-xl p-6 border border-gray-200"
           >
             <div className="h-6 bg-gray-200 rounded w-40 mb-4 shimmer" />
             <div className="space-y-3">

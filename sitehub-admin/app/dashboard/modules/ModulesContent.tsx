@@ -24,9 +24,9 @@ export default function ModulesContent({ companyId, canDeleteMessages = false }:
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-all ${
+              className={`inline-flex items-center gap-2 px-4 py-2 rounded-xl font-medium transition-colors duration-[120ms] ${
                 tab === t.id
-                  ? "bg-gradient-to-r from-blue-600 to-purple-600 text-white shadow-lg"
+                  ? "bg-blue-600 text-white"
                   : "bg-gray-100 text-gray-700 hover:bg-gray-200"
               }`}
             >

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import Image from "next/image";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
@@ -33,7 +34,7 @@ function StatusBadge({ status }: { status: string }) {
     Expired: "status-chip--danger",
     "Not assigned": "status-chip--muted",
   };
-  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{status}</span>;
+  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{toSentenceCase(status)}</span>;
 }
 
 function PreInductionBadge({ status }: { status: string }) {
@@ -43,7 +44,7 @@ function PreInductionBadge({ status }: { status: string }) {
     not_started: "status-chip--muted",
     in_progress: "status-chip--warn",
   };
-  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{label}</span>;
+  return <span className={`status-chip ${map[status] ?? "status-chip--muted"}`}>{toSentenceCase(label)}</span>;
 }
 
 export default function SubcontractorOperativeTable({

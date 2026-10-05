@@ -6,6 +6,8 @@ import React, { useEffect, useState } from "react";
 import { useTheme } from "@/app/ThemeProvider";
 import PageHeader from "@/app/dashboard/components/PageHeader";
 import { supabase } from "@/supabase/auth/client";
+import PasswordRequirements from "@/app/components/PasswordRequirements";
+import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 // All settings subcomponents are now defined here instead of imported from page.tsx
 
@@ -291,12 +293,118 @@ function NotificationSettings({ saveSettings, saving }: SettingsComponentProps) 
           />
         </div>
         <div className="pt-4 border-t">
-          <button className="button" onClick={() => {}} disabled={saving}>
-            {saving ? "Saving..." : "Save Changes"}
+          <button className="button cursor-not-allowed opacity-60" disabled>
+            Save Changes
           </button>
+          <ComingSoonBadge />
         </div>
       </div>
     </>
+  );
+}
+
+function ComingSoonBadge() {
+  return (
+    <span className="ml-2 inline-flex items-center rounded-full bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-500">
+      Coming soon
+    </span>
+  );
+}
+
+function ChangePasswordForm() {
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmPassword, setConfirmPassword] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState("");
+  const [success, setSuccess] = useState(false);
+
+  async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    setError("");
+    setSuccess(false);
+    if (!isPasswordValid(newPassword)) {
+      setError(PASSWORD_REQUIREMENTS_MESSAGE);
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setError("New passwords do not match.");
+      return;
+    }
+    setSubmitting(true);
+    try {
+      const res = await fetch("/api/auth/change-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ currentPassword, newPassword }),
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        setError(data.error || "Could not change password. Please try again.");
+        return;
+      }
+      setSuccess(true);
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmPassword("");
+    } catch {
+      setError("Network error. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  return (
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
+        <input
+          type="password"
+          className="input w-full"
+          placeholder="••••••••"
+          autoComplete="current-password"
+          value={currentPassword}
+          onChange={(e) => setCurrentPassword(e.target.value)}
+          required
+        />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
+        <input
+          type="password"
+          className="input w-full"
+          placeholder="••••••••"
+          autoComplete="new-password"
+          value={newPassword}
+          onChange={(e) => setNewPassword(e.target.value)}
+          required
+          minLength={PASSWORD_MIN_LENGTH}
+        />
+        <PasswordRequirements password={newPassword} />
+      </div>
+      <div>
+        <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
+        <input
+          type="password"
+          className="input w-full"
+          placeholder="••••••••"
+          autoComplete="new-password"
+          value={confirmPassword}
+          onChange={(e) => setConfirmPassword(e.target.value)}
+          required
+        />
+        {confirmPassword && newPassword !== confirmPassword && (
+          <p className="mt-1 text-xs text-red-600">New passwords do not match.</p>
+        )}
+      </div>
+      {error && <p className="text-sm text-red-600">{error}</p>}
+      {success && <p className="text-sm text-green-600">Your password has been changed.</p>}
+      <div className="pt-2">
+        <button type="submit" className="button" disabled={submitting}>
+          {submitting ? "Updating..." : "Update Password"}
+        </button>
+      </div>
+    </form>
   );
 }
 
@@ -307,40 +415,35 @@ function SecuritySettings({ saveSettings, saving }: SettingsComponentProps) {
       <div className="space-y-6">
         <div>
           <h3 className="font-semibold text-gray-900 mb-3">Change Password</h3>
-          <div className="space-y-4">
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Current Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">New Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <div>
-              <label className="block text-sm font-semibold text-gray-700 mb-2">Confirm New Password</label>
-              <input type="password" className="input w-full" placeholder="••••••••" />
-            </div>
-            <div className="pt-2">
-              <button className="button">Update Password</button>
-            </div>
-          </div>
+          <ChangePasswordForm />
         </div>
         <div className="pt-6 border-t border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-gray-900">Two-Factor Authentication</p>
+              <p className="font-semibold text-gray-900">
+                Two-Factor Authentication
+                <ComingSoonBadge />
+              </p>
               <p className="text-sm text-gray-600">Add an extra layer of security to your account</p>
             </div>
-            <button className="px-4 py-2 text-sm font-medium rounded-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 transition-all">Enable</button>
+            <button
+              disabled
+              className="px-4 py-2 text-sm font-medium rounded-lg bg-white text-gray-400 border border-gray-200 cursor-not-allowed"
+            >
+              Enable
+            </button>
           </div>
         </div>
         <div className="pt-6 border-t border-gray-100">
           <div className="flex items-center justify-between">
             <div>
-              <p className="font-semibold text-gray-900">Session Timeout</p>
+              <p className="font-semibold text-gray-900">
+                Session Timeout
+                <ComingSoonBadge />
+              </p>
               <p className="text-sm text-gray-600">Auto logout after inactivity</p>
             </div>
-            <select className="input">
+            <select className="input cursor-not-allowed opacity-60" disabled>
               <option>15 minutes</option>
               <option>30 minutes</option>
               <option>1 hour</option>
@@ -527,9 +630,9 @@ export default function SettingsClient() {
               <button
                 key={tab.id}
                 onClick={() => setActiveTab(tab.id)}
-                className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-left transition-all mb-0 md:mb-2 last:mb-0 whitespace-nowrap md:whitespace-normal ${
+                className={`flex-shrink-0 md:w-full flex items-center gap-2 md:gap-3 px-3 md:px-4 py-2 md:py-3 rounded-xl text-left transition-colors duration-[120ms] mb-0 md:mb-2 last:mb-0 whitespace-nowrap md:whitespace-normal ${
                   activeTab === tab.id
-                    ? "bg-gradient-to-r from-[#58a5f0] to-[#2d8ae8] shadow-lg shadow-blue-500/20"
+                    ? "bg-blue-600"
                     : "text-slate-700 hover:bg-slate-50"
                 }`}
                 style={activeTab === tab.id ? { color: '#ffffff' } : {}}

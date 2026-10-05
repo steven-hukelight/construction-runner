@@ -10,6 +10,7 @@ function cid(x: { company_id?: string | null }): string | null {
 export async function GET(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const url = new URL(req.url);
     const companyId = auth.companyId;
     const category = url.searchParams.get("category")?.trim();
@@ -104,6 +105,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json();
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
@@ -131,6 +133,7 @@ export async function POST(req: Request) {
 export async function PATCH(req: Request) {
   const body = await req.json();
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
@@ -153,6 +156,7 @@ export async function PATCH(req: Request) {
 export async function DELETE(req: Request) {
   const id = new URL(req.url).searchParams.get("id");
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const companyId = auth.companyId;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
   if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });

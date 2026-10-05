@@ -15,10 +15,7 @@ export async function GET(req: Request) {
   try {
     const cookieStore = await cookies();
     const url = new URL(req.url);
-    const mobileAuth = await resolvePreInductionAuth({
-      req,
-      uidFromQuery: url.searchParams.get("uid"),
-    });
+    const mobileAuth = await resolvePreInductionAuth({ req });
     const email = cookieStore.get("user_email")?.value ?? mobileAuth.userEmail;
     const role = cookieStore.get("role")?.value ?? mobileAuth.role;
     const uid = cookieStore.get("uid")?.value ?? mobileAuth.uid;

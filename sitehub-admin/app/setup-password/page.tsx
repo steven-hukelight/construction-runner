@@ -7,6 +7,8 @@ import Button from "../dashboard/components/ui/Button";
 import Input from "../dashboard/components/ui/Input";
 import { Eye, EyeOff } from "lucide-react";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
+import PasswordRequirements from "@/app/components/PasswordRequirements";
+import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 function SetupPasswordInner() {
   const searchParams = useSearchParams();
@@ -26,8 +28,8 @@ function SetupPasswordInner() {
       setError("Invalid or expired link.");
       return;
     }
-    if (!password || password.length < 8) {
-      setError("Password must be at least 8 characters.");
+    if (!isPasswordValid(password)) {
+      setError(PASSWORD_REQUIREMENTS_MESSAGE);
       return;
     }
     if (password !== confirm) {
@@ -100,6 +102,7 @@ function SetupPasswordInner() {
           >
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
+          <PasswordRequirements password={password} />
         </div>
         <div className="relative">
           <Input

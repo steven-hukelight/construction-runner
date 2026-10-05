@@ -131,9 +131,7 @@ export default function SystemLogsPage() {
 
       <div className="card">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 dark:from-blue-500/20 dark:to-blue-600/20 border border-blue-200/40 dark:border-slate-600">
-            <FileText className="w-5 h-5 text-blue-600 dark:text-blue-400" />
-          </div>
+          <FileText className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
           <div>
             <div className="flex items-center gap-2">
               <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100">Recent activity</h3>

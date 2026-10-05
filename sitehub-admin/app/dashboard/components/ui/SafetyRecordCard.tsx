@@ -59,7 +59,7 @@ export function SafetyRecordCard({
     </>
   );
 
-  const shell = "flex w-full items-start gap-3 rounded-2xl border border-slate-200/90 bg-white p-3.5 text-left shadow-sm dark:border-slate-600 dark:bg-slate-900";
+  const shell = "flex w-full items-start gap-3 rounded-xl border border-gray-200 bg-white p-3.5 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-slate-600 dark:bg-slate-900";
 
   if (onClick) {
     return (

@@ -1,6 +1,7 @@
 "use client";
 
 import React, { useState } from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
 import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
@@ -34,7 +35,7 @@ function displayStatus(status: string): string {
 function StatusBadge({ status }: { status: string }) {
   const label = displayStatus(status);
   const chip = STATUS_CHIP[label] ?? "status-chip--muted";
-  return <span className={`status-chip ${chip}`}>{label}</span>;
+  return <span className={`status-chip ${chip}`}>{toSentenceCase(label)}</span>;
 }
 
 export default function QuickInductionTable({

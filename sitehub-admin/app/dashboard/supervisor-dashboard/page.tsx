@@ -21,7 +21,7 @@ export default async function SupervisorDashboardPage() {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
         <Link
           href="/dashboard/attendance"
-          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 hover:border-blue-200 transition-colors duration-[120ms]"
         >
           <div
             className="flex h-12 w-12 items-center justify-center rounded-xl text-white"
@@ -38,7 +38,7 @@ export default async function SupervisorDashboardPage() {
         </Link>
         <Link
           href="/dashboard/supervisor-dashboard/induction"
-          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 shadow-sm hover:shadow-md hover:border-blue-200 transition-all"
+          className="flex items-center gap-4 rounded-xl border border-gray-200 bg-white p-6 hover:border-blue-200 transition-colors duration-[120ms]"
         >
           <div
             className="flex h-12 w-12 items-center justify-center rounded-xl text-white"

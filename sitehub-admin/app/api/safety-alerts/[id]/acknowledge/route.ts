@@ -8,6 +8,7 @@ export async function POST(
 ) {
   const { id } = await params;
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   if (!auth.uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

@@ -2,16 +2,6 @@
 
 import { roleDisplayName } from "@/lib/auth/roles";
 
-const ROLE_CHIP: Record<string, string> = {
-  superuser: "status-chip--role-superuser",
-  admin: "status-chip--role-admin",
-  site_admin: "status-chip--role-site-admin",
-  sub_admin: "status-chip--role-sub-admin",
-  supervisor: "status-chip--role-supervisor",
-  operative: "status-chip--role-operative",
-  viewer: "status-chip--muted",
-};
-
 interface RoleBadgeProps {
   role: string | null | undefined;
   className?: string;
@@ -20,11 +10,12 @@ interface RoleBadgeProps {
 export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
   const r = (role ?? "—").toString().trim() || "—";
   const display = r === "—" ? "—" : roleDisplayName(r);
-  const roleKey = r === "—" ? "" : r.toLowerCase();
-  const chip = ROLE_CHIP[roleKey] ?? "status-chip--role-default";
 
   return (
-    <span className={`status-chip ${chip} ${className}`.trim()} title={display}>
+    <span
+      className={`role-badge inline-flex items-center whitespace-nowrap rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-slate-700 dark:text-slate-200 ${className}`.trim()}
+      title={display}
+    >
       {display}
     </span>
   );

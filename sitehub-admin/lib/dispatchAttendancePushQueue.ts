@@ -7,7 +7,11 @@ type QueueRow = {
   title: string;
   body: string;
   data: Record<string, unknown> | null;
+  created_at: string | null;
 };
+
+/** A sign-out alert arriving later than this is misleading, so it is dropped rather than sent. */
+const MAX_PUSH_AGE_MS = 30 * 60 * 1000;
 
 /**
  * Sends OneSignal push for rows in `notifications` queued by
@@ -32,7 +36,7 @@ export async function dispatchPendingAttendancePushNotifications(limit = 50): Pr
   const errors: string[] = [];
   const { data: rows, error: fetchErr } = await supabaseAdmin
     .from("notifications")
-    .select("id, user_id, title, body, data")
+    .select("id, user_id, title, body, data, created_at")
     .eq("type", "attendance_auto_sign_out")
     .is("push_dispatched_at", null)
     .not("user_id", "is", null)
@@ -44,7 +48,20 @@ export async function dispatchPendingAttendancePushNotifications(limit = 50): Pr
     return { attempted: 0, sent: 0, suppressedDuplicates: 0, errors };
   }
 
-  const list = (rows ?? []) as QueueRow[];
+  const cutoffMs = Date.now() - MAX_PUSH_AGE_MS;
+  const all = (rows ?? []) as QueueRow[];
+  const staleIds = all
+    .filter((r) => r.created_at && new Date(r.created_at).getTime() < cutoffMs)
+    .map((r) => r.id);
+  if (staleIds.length > 0) {
+    const { error: staleErr } = await supabaseAdmin
+      .from("notifications")
+      .update({ push_dispatched_at: new Date().toISOString() })
+      .in("id", staleIds);
+    if (staleErr) errors.push(staleErr.message);
+  }
+  const staleSet = new Set(staleIds);
+  const list = all.filter((r) => !staleSet.has(r.id));
 
   // Group by (user_id, attendance_id) — first row in the group is dispatched,
   // duplicates are marked dispatched without sending another push.

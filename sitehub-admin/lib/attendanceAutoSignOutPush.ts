@@ -23,13 +23,15 @@ const BODY = "You were signed out after leaving the site boundary.";
 export async function sendAttendanceAutoSignOutPush(
   userId: string,
   reason: string,
-  attendanceId?: string | null
+  attendanceId?: string | null,
+  options: { clientNotified?: boolean } = {}
 ): Promise<void> {
   const uid = String(userId).trim();
   if (!uid) return;
   const attId = attendanceId ? String(attendanceId).trim() : "";
   const reasonStr = String(reason || "native_geofence");
   const nowIso = new Date().toISOString();
+  const clientNotified = options.clientNotified === true;
 
   // If we have a session id, try to record a dedupe marker first. If the row
   // already exists, another path has already notified this user for this
@@ -58,27 +60,48 @@ export async function sendAttendanceAutoSignOutPush(
       .maybeSingle();
 
     if (insertErr) {
-      // 23505 = unique_violation — another path already notified this session.
+      // 23505 = unique_violation — a marker already exists for this session. DB sign-out
+      // functions insert their marker without sending, so claim it if still unsent.
       if ((insertErr as { code?: string }).code === "23505") {
-        console.log("[push] attendance auto sign-out deduped", {
+        const { data: claimed } = await supabaseAdmin
+          .from("notifications")
+          .update({ push_dispatched_at: nowIso })
+          .eq("type", "attendance_auto_sign_out")
+          .eq("user_id", uid)
+          .eq("data->>attendance_id", attId)
+          .is("push_dispatched_at", null)
+          .select("id");
+        if (!claimed?.length) {
+          console.log("[push] attendance auto sign-out deduped", {
+            userId: uid,
+            attendanceId: attId,
+            reason: reasonStr,
+          });
+          return;
+        }
+      } else {
+        // Any other DB error: log and fall through to sending, so a DB blip
+        // doesn't silently drop the notification.
+        console.warn("[push] auto sign-out dedupe insert failed, sending anyway", {
           userId: uid,
           attendanceId: attId,
-          reason: reasonStr,
+          error: insertErr.message,
         });
-        return;
       }
-      // Any other DB error: log and fall through to sending, so a DB blip
-      // doesn't silently drop the notification.
-      console.warn("[push] auto sign-out dedupe insert failed, sending anyway", {
-        userId: uid,
-        attendanceId: attId,
-        error: insertErr.message,
-      });
     } else if (!inserted) {
       // Shouldn't normally happen, but if the insert returned no row treat it
       // as already-notified to be safe.
       return;
     }
+  }
+
+  if (clientNotified) {
+    console.log("[push] attendance auto sign-out shown on device; push skipped", {
+      userId: uid,
+      attendanceId: attId || undefined,
+      reason: reasonStr,
+    });
+    return;
   }
 
   const res = await sendPushToUsers([uid], TITLE, BODY, {

@@ -9,6 +9,7 @@ export const dynamic = "force-dynamic";
 export async function GET(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     if (!auth.uid && !auth.userEmail) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -31,6 +32,7 @@ export async function GET(req: Request) {
 export async function PUT(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     if (!canEditCompanySafetyPack(auth.role)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }

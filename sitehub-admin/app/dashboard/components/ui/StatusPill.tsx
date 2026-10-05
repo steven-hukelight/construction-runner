@@ -1,5 +1,7 @@
 "use client";
 
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
+
 type StatusVariant = "reviewed" | "pending" | "approved" | "rejected" | "received" | "default";
 
 const variants: Record<StatusVariant, string> = {
@@ -28,7 +30,7 @@ const defaultLabels: Record<StatusVariant, string> = {
 
 export function StatusPill({ status, label, className = "" }: StatusPillProps) {
   const variant = variants[status] ?? variants.default;
-  const displayLabel = label ?? defaultLabels[status] ?? status;
+  const displayLabel = toSentenceCase(label ?? defaultLabels[status] ?? status) || "—";
   return (
     <span className={`status-chip ${variant} ${className}`.trim()}>
       {displayLabel}

@@ -20,7 +20,7 @@ type Briefing = {
 type AckRow = {
   userId: string;
   name: string;
-  email: string;
+  role: string;
   acknowledgedAt: string | null;
   hasSignature: boolean;
   signatureUrl?: string | null;
@@ -227,7 +227,7 @@ export default function BriefingDetailModal({
                   <thead>
                     <tr className="border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
                       <th className="px-4 py-3">Name</th>
-                      <th className="px-4 py-3">Email</th>
+                      <th className="px-4 py-3">Role</th>
                       <th className="px-4 py-3">Acknowledged</th>
                       <th className="px-4 py-3">Signature</th>
                     </tr>
@@ -241,8 +241,8 @@ export default function BriefingDetailModal({
                         <td className="max-w-[10rem] truncate px-4 py-3 font-semibold" title={r.name}>
                           {r.name}
                         </td>
-                        <td className="max-w-[14rem] truncate px-4 py-3" title={r.email}>
-                          {r.email}
+                        <td className="max-w-[14rem] truncate px-4 py-3" title={r.role}>
+                          {r.role}
                         </td>
                         <td className="whitespace-nowrap px-4 py-3">
                           {r.acknowledgedAt ? formatDateTime(r.acknowledgedAt) : "—"}

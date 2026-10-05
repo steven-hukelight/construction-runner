@@ -101,21 +101,21 @@ export default function PreInductionSummaryCard({
       </div>
       <dl className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-6">
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
+          <dt className="text-xs font-medium text-gray-500">Role</dt>
           <dd className="mt-0.5">
             <RoleBadge role={user?.role} />
           </dd>
         </div>
         {user?.complianceScore != null && (
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+            <dt className="text-xs font-medium text-gray-500">
               Compliance
             </dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900">{user.complianceScore}%</dd>
           </div>
         )}
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium text-gray-500">
             Right to Work
           </dt>
           <dd className="mt-0.5">
@@ -126,7 +126,7 @@ export default function PreInductionSummaryCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium text-gray-500">
             Competency Card
           </dt>
           <dd className="mt-0.5">
@@ -137,7 +137,7 @@ export default function PreInductionSummaryCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Medical</dt>
+          <dt className="text-xs font-medium text-gray-500">Medical</dt>
           <dd className="mt-0.5">
             <SectionStatusBadge
               status={indicators.medical === "Verified" ? "complete" : indicators.medical === "Pending" ? "pending" : "missing"}
@@ -146,7 +146,7 @@ export default function PreInductionSummaryCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Training</dt>
+          <dt className="text-xs font-medium text-gray-500">Training</dt>
           <dd className="mt-0.5">
             <SectionStatusBadge
               status={indicators.ramsAccepted ? "complete" : indicators.trainingRecords > 0 ? "pending" : "missing"}
@@ -155,7 +155,7 @@ export default function PreInductionSummaryCard({
           </dd>
         </div>
         <div>
-          <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">
+          <dt className="text-xs font-medium text-gray-500">
             Declarations
           </dt>
           <dd className="mt-0.5">

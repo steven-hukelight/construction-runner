@@ -46,6 +46,7 @@ async function resolveThreadAuth(req: Request): Promise<{
   error: NextResponse | null;
 }> {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return { companyId: "", userId: "", role: undefined, error: auth };
   const url = new URL(req.url);
   const queryCompanyId = url.searchParams.get("companyId")?.trim() || undefined;
 

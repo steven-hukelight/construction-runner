@@ -11,6 +11,7 @@ import { getInductionProgress } from "@/lib/induction/inductionProgress";
 export async function POST(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const uid = auth.uid;
     const role = (auth.role ?? "").toLowerCase();
 

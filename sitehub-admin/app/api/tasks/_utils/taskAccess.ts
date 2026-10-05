@@ -12,6 +12,7 @@ const STAFF_ROLES = new Set(["superuser", "admin", "supervisor", "sub_admin"]);
  */
 export async function ensureTaskReadAccess(req: Request, taskId: string): Promise<NextResponse | null> {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const { data: task, error } = await supabaseAdmin
     .from("tasks")
     .select("company_id, assigned_to")

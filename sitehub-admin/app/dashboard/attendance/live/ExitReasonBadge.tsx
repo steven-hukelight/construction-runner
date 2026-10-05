@@ -20,7 +20,7 @@ export default function ExitReasonBadge({ kind }: { kind: ExitReasonKind | null 
   }
   return (
     <span
-      className={`inline-flex items-center rounded-md px-2 py-0.5 text-[11px] font-semibold tracking-wide uppercase ${styles[kind]}`}
+      className={`inline-flex items-center rounded-md px-2 py-0.5 text-xs font-semibold ${styles[kind]}`}
     >
       {labels[kind]}
     </span>

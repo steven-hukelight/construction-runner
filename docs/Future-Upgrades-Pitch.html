@@ -1,0 +1,195 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <title>Construction Runner — Future upgrades</title>
+  <style>
+    @page { size: A4; margin: 14mm 14mm 16mm 14mm; }
+    :root {
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --soft: #f8fafc;
+      --tip: #eff6ff;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      font-size: 9.5pt;
+      line-height: 1.4;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      padding-bottom: 10px;
+      margin-bottom: 12px;
+      border-bottom: 2.5px solid var(--blue);
+    }
+    .header img {
+      height: 48px;
+      width: auto;
+      max-width: 160px;
+      object-fit: contain;
+      background: #fff;
+      border-radius: 10px;
+    }
+    .header .brand { flex: 1; }
+    .header .brand .name { font-size: 12pt; font-weight: 700; color: var(--navy); margin: 0; }
+    .header .brand .tag { font-size: 8pt; color: var(--muted); margin: 2px 0 0; }
+    h1 { font-size: 16pt; color: var(--navy); margin: 0 0 8px; line-height: 1.2; }
+    h2 {
+      font-size: 11pt;
+      color: var(--navy);
+      margin: 14px 0 6px;
+      border-bottom: 1.5px solid var(--blue);
+      padding-bottom: 3px;
+      page-break-after: avoid;
+    }
+    p { margin: 0 0 6px; }
+    ul { margin: 0 0 8px; padding-left: 16px; }
+    li { margin: 0 0 3px; }
+    strong { font-weight: 700; }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 6px 0 10px;
+      font-size: 8.5pt;
+      page-break-inside: avoid;
+    }
+    th, td { border: 1px solid var(--line); padding: 5px 7px; text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: var(--navy); }
+    .lede {
+      background: var(--tip);
+      border: 1px solid #bfdbfe;
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 0 0 10px;
+      page-break-inside: avoid;
+    }
+    .pillars { display: flex; gap: 8px; margin: 6px 0 8px; }
+    .pillar {
+      flex: 1;
+      background: var(--soft);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 7px 9px;
+    }
+    .pillar strong { color: var(--blue); display: block; }
+    .upgrade {
+      border: 1px solid var(--line);
+      border-left: 3px solid var(--blue);
+      border-radius: 8px;
+      padding: 8px 10px;
+      margin: 0 0 8px;
+      page-break-inside: avoid;
+    }
+    .upgrade h3 { font-size: 10.5pt; color: var(--navy); margin: 0 0 4px; }
+    .upgrade h3 span { color: var(--blue); }
+    .upgrade .why { color: var(--muted); margin: 4px 0 0; }
+    .closing {
+      background: var(--navy);
+      color: #fff;
+      border-radius: 8px;
+      padding: 10px 12px;
+      margin-top: 12px;
+      font-size: 10.5pt;
+      page-break-inside: avoid;
+    }
+    .closing .label { font-size: 7.5pt; text-transform: uppercase; letter-spacing: 0.06em; color: #93c5fd; margin: 0 0 3px; }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <img src="user-guide/screenshots/logo.png" alt="Construction Runner" />
+    <div class="brand">
+      <p class="name">Construction Runner</p>
+      <p class="tag">www.construction-runner.com</p>
+    </div>
+  </div>
+
+  <h1>Future upgrades</h1>
+
+  <div class="lede">
+    <p><strong>Where we are today.</strong> Construction Runner already runs a site day to day: phone sign-in that knows when someone is on site (and signs them out when they leave), inductions, RAMS and briefing sign-off, near-miss reporting, tasks, deliveries, assets, messaging and subcontractor onboarding — with a web dashboard for the office.</p>
+    <p style="margin:0">That puts us level with the main UK competitors. The upgrades below are about moving <strong>ahead</strong> of them.</p>
+  </div>
+
+  <h2>The big idea</h2>
+  <p>Most site apps are digital paperwork: they record that something was signed. Construction Runner already knows three things paperwork apps don't:</p>
+  <div class="pillars">
+    <div class="pillar"><strong>Where people are</strong>Live site sign-in and sign-out</div>
+    <div class="pillar"><strong>What they're qualified for</strong>Cards and certificates with expiry dates</div>
+    <div class="pillar"><strong>What they've read</strong>Inductions, RAMS and briefings</div>
+  </div>
+  <p>Every upgrade below plugs into those three, so the app doesn't just store records — <strong>it notices when something is wrong and tells someone.</strong></p>
+
+  <h2>The upgrades</h2>
+
+  <div class="upgrade">
+    <h3><span>1.</span> Prove workers understood, not just signed</h3>
+    <p>After reading a RAMS or toolbox talk, the worker answers 3 quick questions generated from that exact document. Different questions each time; a bad question is pulled automatically if too many people get it wrong.</p>
+    <p class="why"><strong>Why it matters:</strong> a signature proves someone tapped "I agree". This proves they understood — much stronger evidence for clients, insurers and the HSE. No UK competitor combines this with live site sign-in.</p>
+  </div>
+
+  <div class="upgrade">
+    <h3><span>2.</span> Permits that know where, who and when</h3>
+    <p>Digital permit-to-work (hot works, height, confined space, excavation, isolations), but smarter:</p>
+    <ul>
+      <li>Only people with <strong>valid qualifications</strong> can be added to a permit</li>
+      <li>If the person who issued the permit <strong>leaves site</strong>, the permit is suspended automatically</li>
+      <li>Permits are drawn on a <strong>site map</strong>, with warnings when two clash (e.g. hot works next to a confined space)</li>
+      <li><strong>Fire-watch countdown</strong> after hot works, with reminders and a closing photo</li>
+    </ul>
+  </div>
+
+  <div class="upgrade">
+    <h3><span>3.</span> Visitors with no iPad and no blind spots</h3>
+    <ul>
+      <li>A <strong>QR poster</strong> at the gate — visitors sign in on their own phone. No kiosk to buy.</li>
+      <li>Every visitor is <strong>linked to a host</strong>; if the host leaves, they're reminded their visitor is still on site</li>
+      <li>Visitors appear in the <strong>fire roll-call</strong> alongside workers</li>
+      <li>Delivery drivers are <strong>matched to their booked slot</strong> automatically</li>
+    </ul>
+  </div>
+
+  <div class="upgrade">
+    <h3><span>4.</span> CSCS cards that stay checked</h3>
+    <ul>
+      <li>Scan a card once; the app <strong>tracks expiry</strong> and reminds the worker before it lapses</li>
+      <li>Shows <strong>who is on site today without the qualifications their job needs</strong></li>
+      <li>Flags suspicious cards (same card on two people, expired card presented)</li>
+    </ul>
+  </div>
+
+  <div class="upgrade">
+    <h3><span>5.</span> Works with no signal</h3>
+    <p style="margin:0">Finish offline sign-in and sign-out so workers on sites with poor signal are still recorded accurately, and everything syncs when they reconnect.</p>
+  </div>
+
+  <h2>Suggested order</h2>
+  <table>
+    <thead>
+      <tr><th style="width:8%">Step</th><th style="width:42%">Upgrade</th><th>Why this order</th></tr>
+    </thead>
+    <tbody>
+      <tr><td>1</td><td>Offline sign-in fix</td><td>Reliability of what customers already use</td></tr>
+      <tr><td>2</td><td>CSCS cards that stay checked</td><td>Quick win; permits depend on it</td></tr>
+      <tr><td>3</td><td>Understanding checks on RAMS &amp; briefings</td><td>Our headline difference</td></tr>
+      <tr><td>4</td><td>Visitor QR sign-in</td><td>High demand from buyers</td></tr>
+      <tr><td>5</td><td>Smart permits</td><td>Builds on steps 2 and 3</td></tr>
+    </tbody>
+  </table>
+
+  <div class="closing">
+    <p class="label">In one line</p>
+    <p style="margin:0">Construction Runner already runs the site. Next, it proves the right people are in the right place, qualified and briefed — and speaks up when they're not.</p>
+  </div>
+</body>
+</html>

@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { checkPreInductionAccess } from "../_utils/auth";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
 import { updatePreInductionStatus } from "../_utils/status";
 
 function toTimestamp(val: string | null): string | null {
@@ -11,11 +11,10 @@ function toTimestamp(val: string | null): string | null {
 
 export async function POST(req: Request, { params }: { params: Promise<{ userId: string }> }) {
   try {
-    const { userId } = await params;
-    const access = await checkPreInductionAccess(userId, req);
-    if (!access.ok) {
-      return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
-    }
+    const { userId: requestedUserId } = await params;
+    const access = await authorizeActingOnUser(req, requestedUserId);
+    if (!access.ok) return access.response;
+    const userId = access.targetUserId;
 
     const body = await req.json();
     // Accept both camelCase (web) and snake_case (mobile)

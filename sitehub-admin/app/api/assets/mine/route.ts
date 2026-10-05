@@ -7,6 +7,7 @@ import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess"
 export async function GET(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const userId = await resolveUserIdFromAuth(auth);
     if (!userId) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

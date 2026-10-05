@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"></head>
+<body>
+<div class="shell">
+  <aside class="sidebar">
+    <div class="brand"><img src="../screenshots/icon.png" alt=""> Construction Runner</div>
+    <div class="nav">
+      <a>Dashboard</a>
+      <div class="group">SITE CONTROL</div>
+      <a>Sites</a>
+      <a>Missing Info</a>
+      <a>Users</a>
+      <a class="active">Attendance</a>
+      <div class="group">OPERATIONS</div>
+      <a>Tasks</a>
+      <a>Messages</a>
+      <div class="group">SAFETY</div>
+      <a>RAMS</a>
+      <a>Induction safety</a>
+      <a>Site Rules</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <h1>Attendance</h1>
+        <p class="sub">Live sign-in logs and role call. Live list archives at midnight (UK).</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <div style="border:1px solid #e5e7eb;background:#fff;border-radius:10px;padding:8px 12px">17 Sep 2026</div>
+        <button class="btn">Today</button>
+      </div>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:16px">
+      <div class="pill">Live</div>
+      <div class="pill" style="background:#fff;border:1px solid #e5e7eb;color:#475569">Role Call</div>
+    </div>
+    <div style="display:grid;grid-template-columns:1.4fr .8fr;gap:16px">
+      <div class="card">
+        <strong>Live Attendance</strong>
+        <table style="margin-top:10px">
+          <thead><tr><th>Name</th><th>Site</th><th>Status</th><th>Signed in</th></tr></thead>
+          <tbody>
+            <tr><td>Tom</td><td>Kidbrooke Village</td><td><span class="status-chip status-chip--ok">On site</span></td><td>07:12</td></tr>
+            <tr><td>James Patel</td><td>PWT</td><td><span class="status-chip status-chip--ok">On site</span></td><td>07:28</td></tr>
+            <tr><td>Alex Morgan</td><td>Kidbrooke Village</td><td><span class="status-chip status-chip--warn">Auto signed out</span></td><td>07:05</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="card">
+        <strong>Record attendance</strong>
+        <p class="sub">Manual web sign-in for an operative. Does not replace GPS check-in on the app.</p>
+        <div class="sub" style="margin-top:12px">Operative</div>
+        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin:6px 0 12px">James Patel</div>
+        <div class="sub">Site</div>
+        <div style="border:1px solid #e5e7eb;border-radius:8px;padding:8px;margin:6px 0 12px">PWT</div>
+        <button class="btn" style="width:100%">Record Attendance</button>
+      </div>
+    </div>
+  </main>
+</div>
+</body></html>

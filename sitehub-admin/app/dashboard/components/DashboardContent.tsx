@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, MapPin, Users, ListTodo, type LucideIcon } from "lucide-react";
 import { StatCard } from "./ui/stat-card";
 import { EnhancedCard } from "./ui/enhanced-card";
+import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
 
 const DashboardCharts = dynamic(
   () => import("./DashboardCharts").then((mod) => ({ default: mod.DashboardCharts })),
@@ -13,7 +14,7 @@ const DashboardCharts = dynamic(
     ssr: false,
     loading: () => (
       <div
-        className="animate-pulse rounded-2xl border border-blue-100 bg-blue-50/50 dark:border-slate-600 dark:bg-slate-800 h-80 my-6"
+        className="animate-pulse rounded-xl border border-gray-200 bg-gray-50 dark:border-slate-600 dark:bg-slate-800 h-80 my-6"
         aria-hidden
       />
     ),
@@ -83,14 +84,18 @@ export function DashboardContent({
       return base;
     };
 
+    const canViewNearMiss = canRoleViewNearMiss(role);
+
     const fetchAttentionCounts = async () => {
       try {
         const [regsRes, nearMissRes] = await Promise.all([
           fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
-          fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, {
-            cache: "no-store",
-            credentials: "include",
-          }),
+          canViewNearMiss
+            ? fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, {
+                cache: "no-store",
+                credentials: "include",
+              })
+            : Promise.resolve(null),
         ]);
         const regsData = regsRes.ok ? await regsRes.json() : null;
         if (Array.isArray(regsData)) setPendingRegistrations(regsData);
@@ -130,12 +135,13 @@ export function DashboardContent({
       {unreviewedNearMiss > 0 && (
         <Link
           href="/dashboard/health-and-safety/near-miss?unreviewed=true"
-          className="block rounded-2xl border border-amber-200 bg-amber-50 p-4 shadow-[0_8px_24px_rgba(37,76,128,0.06)] hover:bg-amber-100/80 dark:bg-amber-900/20"
+          className="block rounded-xl border border-red-200 bg-red-50 p-4 hover:bg-red-100 transition-colors duration-[120ms] dark:border-red-900/40 dark:bg-red-900/20"
         >
-          <p className="font-semibold text-amber-900 dark:text-amber-200">
-            {unreviewedNearMiss} new near miss{unreviewedNearMiss === 1 ? "" : "es"} reported
+          <p className="flex items-center gap-2 font-semibold text-red-900 dark:text-red-200">
+            <span className="status-chip status-chip--danger tabular-nums">{unreviewedNearMiss}</span>
+            new near miss{unreviewedNearMiss === 1 ? "" : "es"} reported
           </p>
-          <p className="text-sm text-amber-800 dark:text-amber-300">
+          <p className="mt-1 text-sm text-red-800 dark:text-red-300">
             Review in Health & Safety → Near Miss
           </p>
         </Link>
@@ -145,45 +151,6 @@ export function DashboardContent({
         <StatCard title="Approved RAMS" value={effActiveRAMS} icon={FileText} color="green" />
         <StatCard title="People" value={effTotalUsers} icon={Users} color="cyan" />
         <StatCard title="Open tasks" value={effOpenTasks} icon={ListTodo} color="orange" />
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Link
-          href="/dashboard/sites"
-          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-blue-100 text-blue-700">
-            <MapPin className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Add a site</h3>
-            <p className="text-sm text-gray-500">Set up a job and assign the team</p>
-          </div>
-        </Link>
-        <Link
-          href="/dashboard/health-and-safety/rams"
-          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-teal-100 text-teal-700">
-            <FileText className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Issue RAMS</h3>
-            <p className="text-sm text-gray-500">Method statements for operatives to sign</p>
-          </div>
-        </Link>
-        <Link
-          href="/dashboard/users"
-          className="flex items-center gap-3 rounded-2xl border border-blue-100/80 bg-white p-4 shadow-[0_8px_24px_rgba(37,76,128,0.07)] hover:border-blue-200 dark:border-slate-600 dark:bg-slate-800"
-        >
-          <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-indigo-100 text-indigo-700">
-            <Users className="w-5 h-5" />
-          </div>
-          <div>
-            <h3 className="text-sm font-medium text-gray-900 dark:text-slate-100">Add people</h3>
-            <p className="text-sm text-gray-500">Invite supervisors and operatives</p>
-          </div>
-        </Link>
       </div>
 
       {/* Charts Section */}
@@ -274,7 +241,9 @@ export function DashboardContent({
                 const s = (t.status ?? "").toUpperCase();
                 return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
               }).length ?? 0) === 0 && (
-                <p className="py-4 text-sm text-gray-500">Nothing waiting — you&apos;re clear for now.</p>
+                <p className="py-4">
+                  <span className="status-chip status-chip--ok">Nothing waiting — you&apos;re clear for now.</span>
+                </p>
               )}
           </div>
         </EnhancedCard>
@@ -302,15 +271,20 @@ function PendingItem({ title, priority }: { title: string; priority: "high" | "m
     medium: "Open",
     low: "Review",
   };
-  const priorityColors = {
-    high: "text-red-700 bg-red-50",
-    medium: "text-orange-700 bg-orange-50",
-    low: "text-blue-700 bg-blue-50",
+  const priorityChips = {
+    high: "status-chip--danger",
+    medium: "status-chip--warn",
+    low: "status-chip--warn",
+  };
+  const rowTints = {
+    high: "bg-red-50 dark:bg-red-900/20",
+    medium: "bg-amber-50 dark:bg-amber-900/20",
+    low: "bg-amber-50 dark:bg-amber-900/20",
   };
   return (
-    <div className="flex items-center justify-between py-3 border-b border-gray-100 dark:border-slate-700 last:border-b-0">
+    <div className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 ${rowTints[priority]}`}>
       <p className="text-sm text-gray-900 dark:text-slate-100">{title}</p>
-      <span className={`text-xs font-medium px-2 py-1 rounded-full ${priorityColors[priority]}`}>
+      <span className={`status-chip ${priorityChips[priority]}`}>
         {priorityLabels[priority]}
       </span>
     </div>

@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import Link from "next/link";
 import type { ComplianceFilterStatus } from "../server";
 
@@ -29,7 +30,7 @@ type Props = {
 
 export default function ComplianceStatusBadge({ status, siteId }: Props) {
   const chip = STATUS_CHIP[status] ?? "status-chip--muted";
-  const label = STATUS_LABELS[status] ?? status;
+  const label = toSentenceCase(STATUS_LABELS[status] ?? status);
   const className = `status-chip ${chip}`;
   if (status === "missing_induction" && siteId) {
     return (

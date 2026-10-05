@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useCallback, useEffect } from "react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import LiveAttendance from "./LiveAttendance";
 import SignInOut from "./SignInOut";
 import RoleCall from "./RoleCall";
@@ -23,6 +23,7 @@ export default function AttendanceTabs() {
   const [recordAttendanceOpen, setRecordAttendanceOpen] = useState(false);
   const [showSuperuserHint, setShowSuperuserHint] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const check = () => {
@@ -39,6 +40,16 @@ export default function AttendanceTabs() {
     setRefreshTrigger((n) => n + 1);
   }, []);
 
+  const openDatePicker = useCallback(() => {
+    const input = dateInputRef.current;
+    if (!input) return;
+    try {
+      input.showPicker?.();
+    } catch {
+      input.focus();
+    }
+  }, []);
+
   return (
     <div className="space-y-6">
       {showSuperuserHint && (
@@ -48,11 +59,20 @@ export default function AttendanceTabs() {
       )}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div className="flex items-center gap-2">
-          <Calendar className="w-5 h-5 text-slate-500" />
-          <label className="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
+          <button
+            type="button"
+            onClick={openDatePicker}
+            className="rounded-md p-1 text-slate-500 hover:bg-slate-100 hover:text-blue-600 dark:hover:bg-slate-700"
+            aria-label="Open date picker"
+          >
+            <Calendar className="w-5 h-5" />
+          </button>
+          <label htmlFor="attendance-date" className="text-sm font-medium text-slate-700 dark:text-slate-300">Date</label>
           <input
+            id="attendance-date"
+            ref={dateInputRef}
             type="date"
-            className="rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="cursor-pointer rounded-lg border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 px-3 py-2 text-sm text-slate-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
             value={selectedDate}
             onChange={(e) => setSelectedDate(e.target.value || todayStr())}
           />

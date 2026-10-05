@@ -14,6 +14,7 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const body = await req.json().catch(() => ({}));
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
 
   let hasField = false;
   if ("status" in body && body.status != null) {

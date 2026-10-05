@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css"></head>
+<body>
+<div class="shell" style="position:relative">
+  <aside class="sidebar">
+    <div class="brand"><img src="../screenshots/icon.png" alt=""> Construction Runner</div>
+    <div class="nav">
+      <a>Dashboard</a>
+      <div class="group">SITE CONTROL</div>
+      <a>Sites</a>
+      <a>Subcontractors</a>
+      <a>Missing Info</a>
+      <a class="active">Users</a>
+      <a>Pending approvals</a>
+      <a>Attendance</a>
+      <div class="group">OPERATIONS</div>
+      <a>Tasks</a>
+      <a>Messages</a>
+      <div class="group">SAFETY</div>
+      <a>RAMS</a>
+      <a>Induction safety</a>
+      <a>Site Rules</a>
+    </div>
+  </aside>
+  <main class="main">
+    <div class="top">
+      <div>
+        <h1>Users</h1>
+        <p class="sub">Company accounts, roles, and medical records.</p>
+      </div>
+      <button class="btn">Invite User</button>
+    </div>
+    <div class="card">
+      <table>
+        <thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Actions</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>Oliver</td>
+            <td>oliver@company.com</td>
+            <td><span class="status-chip status-chip--info">Super Admin</span></td>
+            <td>View profile</td>
+          </tr>
+          <tr style="background:#eff6ff">
+            <td>Tom</td>
+            <td>tom@company.com</td>
+            <td><span class="status-chip status-chip--role-supervisor">Supervisor</span></td>
+            <td><strong style="color:#2563eb">Assign sites…</strong></td>
+          </tr>
+          <tr>
+            <td>Sarah Chen</td>
+            <td>sarah@company.com</td>
+            <td><span class="status-chip status-chip--role-site-admin">Site Admin</span></td>
+            <td>Assign sites…</td>
+          </tr>
+          <tr>
+            <td>James Patel</td>
+            <td>james@company.com</td>
+            <td><span class="status-chip status-chip--role-operative">Operative</span></td>
+            <td>View profile</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </main>
+  <div style="position:absolute;inset:0;background:rgba(15,23,42,.4);display:flex;align-items:center;justify-content:center">
+    <div class="card" style="width:420px">
+      <h2 style="margin:0 0 6px;font-size:20px">Assign sites</h2>
+      <p class="sub">tom@company.com will only see the sites you tick. Tick as many as they work on.</p>
+      <div style="margin:12px 0;font-size:12px;color:#2563eb;font-weight:600">Select all &nbsp; Clear</div>
+      <label style="display:block;padding:8px 0;font-size:14px"><span class="check"></span>Kidbrooke Village KV3G/F</label>
+      <label style="display:block;padding:8px 0;font-size:14px"><span class="check"></span>Plumstead West Thamesmead (PWT)</label>
+      <label style="display:block;padding:8px 0;font-size:14px"><span class="check off"></span>LSQ — Woolwich</label>
+      <label style="display:block;padding:8px 0;font-size:14px"><span class="check off"></span>LSQ — Bermondsey</label>
+      <div style="display:flex;justify-content:flex-end;gap:8px;margin-top:18px">
+        <button style="background:#fff;border:0;color:#64748b;padding:8px 12px">Cancel</button>
+        <button class="btn">Save</button>
+      </div>
+    </div>
+  </div>
+</div>
+</body></html>

@@ -1,0 +1,37 @@
+<!DOCTYPE html>
+<html><head><meta charset="utf-8"><link rel="stylesheet" href="base.css">
+<style>
+  body { display:flex; align-items:center; justify-content:center; height:900px; width:1440px; background:#fff7ed; }
+  .sheet { background:#fff; border-radius:20px 20px 0 0; padding:20px 18px 24px; margin-top:auto; }
+  .ok { color:#166534; font-size:13px; margin:8px 0; }
+</style></head>
+<body>
+<div style="display:flex;gap:48px;align-items:center">
+  <div class="phone">
+    <div class="phone-in" style="background:#e2e8f0;display:flex;flex-direction:column">
+      <div style="flex:1"></div>
+      <div class="sheet">
+        <div style="font-weight:800;font-size:18px">Always location required</div>
+        <p class="sub">Background location keeps you accurate. So you are never left signed in after you leave site.</p>
+        <div class="ok">✓ Only used to detect when you cross the site boundary.</div>
+        <div class="ok">✓ We do not track your movement or store any location history.</div>
+        <div class="ok">✓ Uses low-power presence detection — no continuous GPS.</div>
+        <div style="margin:12px 0;padding:10px;background:#fff7ed;border:1px solid #fed7aa;border-radius:10px;font-size:12px;color:#9a3412">If your exit isn't detected, you'll be auto signed out and marked absent.</div>
+        <p class="sub" style="font-size:12px">Apple shows two screens. First tap Allow While Using the App. Then tap Change to Always Allow.</p>
+        <button class="btn" style="width:100%;margin-top:8px">Continue</button>
+      </div>
+    </div>
+  </div>
+  <div style="max-width:480px">
+    <h1>Turn location to Always</h1>
+    <p class="sub" style="font-size:16px;line-height:1.55">Do this once. Sign In will not work properly until location is Always (iPhone) or Allow all the time (Android).</p>
+    <ol style="color:#334155;line-height:1.85;padding-left:18px">
+      <li>Tap <strong>Continue</strong> when the app asks.</li>
+      <li>iPhone: Allow While Using, then <strong>Change to Always Allow</strong>.</li>
+      <li>Android: Permissions → Location → <strong>Allow all the time</strong>.</li>
+      <li>Come back to the app and Sign In.</li>
+    </ol>
+    <p class="sub">While Using or Allow Once cannot sign you out after you leave site.</p>
+  </div>
+</div>
+</body></html>

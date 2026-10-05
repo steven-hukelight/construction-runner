@@ -1,6 +1,7 @@
 "use client";
 
 import React from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { UserRound } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
 import { DataTableShell, TableNameCell } from "../../components/ui/TableChrome";
@@ -14,7 +15,7 @@ function StatusBadge({ status }: { status: InductionStatus }) {
   };
   const chip =
     status === "completed" ? "status-chip--ok" : status === "expired" ? "status-chip--danger" : "status-chip--muted";
-  return <span className={`status-chip ${chip}`}>{labels[status]}</span>;
+  return <span className={`status-chip ${chip}`}>{toSentenceCase(labels[status])}</span>;
 }
 
 type Props = {

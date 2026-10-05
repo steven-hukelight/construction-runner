@@ -114,10 +114,7 @@ export default function LandingPage() {
 
         <section className="mt-8 grid items-center gap-6 lg:mt-10 lg:grid-cols-2">
           <div className="rounded-2xl bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:p-8">
-            <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700">
-              Site operations software
-            </p>
-            <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
               Know who is on site.
               <span className="mt-1 block text-blue-800">Know they are signed off.</span>
             </h1>
@@ -170,8 +167,7 @@ export default function LandingPage() {
               key={step.n}
               className="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md"
             >
-              <p className="text-[11px] font-semibold uppercase tracking-[0.16em] text-blue-700">{step.n}</p>
-              <h3 className="mt-3 text-lg font-semibold text-slate-900">{step.title}</h3>
+              <h3 className="text-lg font-semibold text-slate-900">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.body}</p>
             </div>
           ))}

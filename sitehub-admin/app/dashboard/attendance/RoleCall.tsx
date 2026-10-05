@@ -64,12 +64,16 @@ const asString = (value: unknown): string | undefined => {
 const normalizeUser = (value: unknown): User => {
   if (!value || typeof value !== "object") return {};
   const obj = value as Record<string, unknown>;
+  const display =
+    asString(obj.display_name) ||
+    asString(obj.displayName) ||
+    (asString(obj.name) && !String(obj.name).includes("@") ? asString(obj.name) : undefined);
   return {
-    id: asString(obj.id ?? obj.userId),
-    userId: asString(obj.userId),
-    name: asString(obj.name),
-    displayName: asString(obj.displayName ?? obj.display_name),
-    display_name: asString(obj.display_name),
+    id: asString(obj.id ?? obj.userId ?? obj.user_id),
+    userId: asString(obj.userId ?? obj.user_id ?? obj.id),
+    name: display || asString(obj.name),
+    displayName: display,
+    display_name: display,
     email: asString(obj.email),
   };
 };
@@ -77,11 +81,15 @@ const normalizeUser = (value: unknown): User => {
 const normalizeProfile = (value: unknown): Profile => {
   if (!value || typeof value !== "object") return {};
   const obj = value as Record<string, unknown>;
+  const display =
+    asString(obj.display_name) ||
+    asString(obj.displayName) ||
+    (asString(obj.name) && !String(obj.name).includes("@") ? asString(obj.name) : undefined);
   return {
-    id: asString(obj.id ?? obj.userId),
-    userId: asString(obj.userId),
-    displayName: asString(obj.displayName ?? obj.display_name),
-    display_name: asString(obj.display_name),
+    id: asString(obj.id ?? obj.userId ?? obj.user_id),
+    userId: asString(obj.userId ?? obj.user_id ?? obj.id),
+    displayName: display,
+    display_name: display,
     email: asString(obj.email),
   };
 };
@@ -564,6 +572,7 @@ export default function RoleCall({
 
 function resolveName(uid: string, data: AttendanceLog, users: User[], profiles: Profile[]): string {
   const looksLikeEmail = (s: string) => s.includes("@");
+  /** Prefer real names; treat email-local-part fallbacks as last resort. */
   const pick = (...vals: unknown[]): string | null => {
     for (const v of vals) {
       const s = String(v ?? "").trim();
@@ -573,24 +582,28 @@ function resolveName(uid: string, data: AttendanceLog, users: User[], profiles: 
   };
 
   const trimmedUid = String(uid || "").trim();
-  if (trimmedUid) {
-    const p = profiles.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
-    const u = users.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid);
-    const fromDirectory = pick(
-      p?.displayName,
-      p?.display_name,
-      u?.displayName,
-      u?.display_name,
-      u?.name,
-    );
-    if (fromDirectory) return fromDirectory;
-    const email = String(u?.email ?? "").trim();
-    if (email.includes("@")) return email.split("@")[0] || email;
-  }
+  const u = trimmedUid
+    ? users.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid)
+    : undefined;
+  const p = trimmedUid
+    ? profiles.find((x) => String(x.id ?? x.userId ?? "") === trimmedUid)
+    : undefined;
 
-  const fromLog = pick(data.displayName, data.display_name, data.operativeName, data.name);
-  if (fromLog) return fromLog;
-  const email = String(data.email ?? "").trim();
+  // Directory display_name first (never email-prefix aliases from profiles.displayName).
+  const fromDirectory = pick(
+    u?.display_name,
+    u?.displayName,
+    p?.display_name,
+    p?.displayName,
+    u?.name,
+    data.display_name,
+    data.displayName,
+    data.operativeName,
+    data.name,
+  );
+  if (fromDirectory) return fromDirectory;
+
+  const email = String(u?.email ?? data.email ?? "").trim();
   if (email.includes("@")) return email.split("@")[0] || email;
   if (data.operativeId && String(data.operativeId).trim()) return String(data.operativeId);
   return "Unknown";

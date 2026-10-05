@@ -9,6 +9,12 @@ import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { isSiteAttendanceRole } from "@/lib/auth/siteAttendanceUi";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import Link from "next/link";
+
+const headerButtonBase =
+  "inline-flex h-9 items-center justify-center rounded-lg px-4 text-sm font-medium transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
+const primaryHeaderButton = `${headerButtonBase} bg-blue-600 text-white hover:bg-blue-700`;
+const secondaryHeaderButton = `${headerButtonBase} border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200`;
 
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
@@ -70,7 +76,26 @@ export default async function AdminDashboardPage() {
 
   return (
     <div className="space-y-8 pb-12">
-      <WelcomeBanner showSiteAttendance={isSiteAttendanceRole(role)} />
+      <WelcomeBanner
+        showSiteAttendance={isSiteAttendanceRole(role)}
+        actions={
+          <>
+            <Link href="/dashboard/sites" title="Set up a job and assign the team" className={primaryHeaderButton}>
+              Add a site
+            </Link>
+            <Link
+              href="/dashboard/health-and-safety/rams"
+              title="Method statements for operatives to sign"
+              className={secondaryHeaderButton}
+            >
+              Issue RAMS
+            </Link>
+            <Link href="/dashboard/users" title="Invite supervisors and operatives" className={secondaryHeaderButton}>
+              Add people
+            </Link>
+          </>
+        }
+      />
         <SuperuserSelfOverrideSection role={role ?? null} />
 
         <DashboardContent

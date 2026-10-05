@@ -15,6 +15,7 @@ export async function GET(
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const access = await assertInspectionRecordAccess(auth, inspectionId);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });
@@ -96,6 +97,7 @@ export async function PATCH(
       return NextResponse.json({ error: "id required" }, { status: 400 });
     }
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const access = await assertInspectionRecordAccess(auth, inspectionId);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });

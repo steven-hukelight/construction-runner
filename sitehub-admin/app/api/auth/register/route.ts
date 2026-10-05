@@ -1,16 +1,40 @@
 import { randomUUID } from "crypto";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { notifyAdminsOperativePendingSignup } from "@/lib/notifyAdminPendingOperative";
+import {
+  generateSignupOtp,
+  hashSignupOtp,
+  sendSignupVerificationEmail,
+  signupOtpExpiresAt,
+} from "@/lib/signupEmailVerification";
+import { verifyTurnstileToken } from "@/lib/verifyTurnstile";
+import { getClientIp } from "@/lib/authAudit";
+import { isPasswordValid, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 export async function POST(req: Request) {
   try {
     const body = await req.json();
-    const { email: rawEmail, name, companyName, companyCode, password: rawPassword } = body;
+    const { email: rawEmail, name, companyName, companyCode, password: rawPassword, captchaToken } = body;
+
+    // Honeypot — bots often fill hidden "website" fields
+    if (typeof body.website === "string" && body.website.trim()) {
+      return NextResponse.json({ error: "Registration failed" }, { status: 400 });
+    }
+
+    const captcha = await verifyTurnstileToken(
+      typeof captchaToken === "string" ? captchaToken : null,
+      getClientIp(req)
+    );
+    if (!captcha.ok) {
+      return NextResponse.json({ error: captcha.error }, { status: 400 });
+    }
+
     const email = typeof rawEmail === "string" ? rawEmail.trim().toLowerCase() : "";
-    const password =
-      typeof rawPassword === "string" && rawPassword.length >= 8 ? rawPassword : undefined;
+    const password = typeof rawPassword === "string" && rawPassword ? rawPassword : undefined;
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
+    if (password && !isPasswordValid(password)) {
+      return NextResponse.json({ error: PASSWORD_REQUIREMENTS_MESSAGE }, { status: 400 });
+    }
 
     const { data: settingsRow } = await supabaseAdmin
       .from("settings")
@@ -42,7 +66,11 @@ export async function POST(req: Request) {
       companyId = data[0].id;
     } else if (companyName) {
       const inviteCode = Math.random().toString(36).substring(2, 10).toUpperCase();
-      const { data, error } = await supabaseAdmin.from("companies").insert({ name: companyName, invite_code: inviteCode }).select("id, name, invite_code").single();
+      const { data, error } = await supabaseAdmin
+        .from("companies")
+        .insert({ name: companyName, invite_code: inviteCode })
+        .select("id, name, invite_code")
+        .single();
       if (error) return NextResponse.json({ error: error.message }, { status: 400 });
       companyId = data.id;
       companyDoc = { name: data.name, invite_code: data.invite_code };
@@ -50,11 +78,19 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Company name or code required" }, { status: 400 });
     }
 
-    const { data: admins } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId).eq("role", "admin");
+    const { data: admins } = await supabaseAdmin
+      .from("users")
+      .select("id")
+      .eq("company_id", companyId)
+      .eq("role", "admin");
     const isFirstAdmin = !admins?.length;
 
-    const regStatus = isFirstAdmin ? "COMPANY_ADMIN_PENDING" : "PENDING";
+    const pendingStatus = isFirstAdmin ? "COMPANY_ADMIN_PENDING" : "PENDING";
     const regRole = isFirstAdmin ? "ADMIN" : "OPERATIVE";
+    const otp = generateSignupOtp();
+    const otpHash = hashSignupOtp(otp);
+    const otpExpires = signupOtpExpiresAt();
+
     const { data: reg, error: regErr } = await supabaseAdmin
       .from("registrations")
       .insert({
@@ -65,8 +101,15 @@ export async function POST(req: Request) {
           name: name ?? null,
           companyName: companyDoc?.name ?? null,
           companyId,
-          status: regStatus,
+          status: "EMAIL_UNVERIFIED",
+          pendingStatus,
           role: regRole,
+          emailVerified: false,
+          emailOtpHash: otpHash,
+          emailOtpExpiresAt: otpExpires,
+          emailOtpAttempts: 0,
+          companyPhone: typeof body.companyPhone === "string" ? body.companyPhone : null,
+          companyAddress: typeof body.companyAddress === "string" ? body.companyAddress : null,
         },
       })
       .select("id")
@@ -88,7 +131,8 @@ export async function POST(req: Request) {
     try {
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
         email,
-        email_confirm: true,
+        // Require email OTP before Auth treats the address as confirmed.
+        email_confirm: false,
         user_metadata: { name: name ?? undefined },
         ...(password ? { password } : {}),
       });
@@ -113,19 +157,68 @@ export async function POST(req: Request) {
         },
         { onConflict: "id" }
       );
+      await supabaseAdmin
+        .from("registrations")
+        .update({
+          data: {
+            email,
+            name: name ?? null,
+            companyName: companyDoc?.name ?? null,
+            companyId,
+            status: "EMAIL_UNVERIFIED",
+            pendingStatus,
+            role: regRole,
+            emailVerified: false,
+            emailOtpHash: otpHash,
+            emailOtpExpiresAt: otpExpires,
+            emailOtpAttempts: 0,
+            authUserId: authUser.id,
+            companyPhone: typeof body.companyPhone === "string" ? body.companyPhone : null,
+            companyAddress: typeof body.companyAddress === "string" ? body.companyAddress : null,
+          },
+        })
+        .eq("id", reg.id);
     }
 
-    if (!isFirstAdmin) {
-      void notifyAdminsOperativePendingSignup({
-        companyId: String(companyId),
-        companyName: companyDoc?.name ?? null,
-        operativeName: typeof name === "string" ? name : null,
-        operativeEmail: email,
-        registrationId: reg.id,
-      }).catch((e) => console.error("notifyAdminsOperativePendingSignup:", e));
+    const sent = await sendSignupVerificationEmail(email, otp);
+    if (!sent.ok) {
+      return NextResponse.json(
+        {
+          error: sent.error || "Could not send verification email",
+          registrationId: reg.id,
+          needsEmailVerification: true,
+        },
+        { status: 502 }
+      );
     }
 
-    const res = NextResponse.json({ id: reg.id, companyId, inviteCode: companyDoc?.invite_code }, { status: 201 });
+    const sentAt = new Date().toISOString();
+    const { data: freshRow, error: freshErr } = await supabaseAdmin
+      .from("registrations")
+      .select("data")
+      .eq("id", reg.id)
+      .maybeSingle();
+    const fresh = (freshRow?.data ?? {}) as Record<string, unknown>;
+    if (!freshErr && fresh.status === "EMAIL_UNVERIFIED") {
+      const { error: stampErr } = await supabaseAdmin
+        .from("registrations")
+        .update({ data: { ...fresh, emailOtpLastSentAt: sentAt } })
+        .eq("id", reg.id)
+        .filter("data->>status", "eq", "EMAIL_UNVERIFIED");
+      if (stampErr) console.error("register stamp emailOtpLastSentAt failed", stampErr);
+    }
+
+    // Do NOT notify admins until email is verified (see verify-email route).
+    const res = NextResponse.json(
+      {
+        id: reg.id,
+        companyId,
+        inviteCode: companyDoc?.invite_code,
+        needsEmailVerification: true,
+        message: "Check your email for a 6-digit verification code.",
+      },
+      { status: 201 }
+    );
     res.cookies.set("companyId", String(companyId), {
       path: "/",
       httpOnly: true,
@@ -133,7 +226,6 @@ export async function POST(req: Request) {
       secure: process.env.NODE_ENV === "production",
       maxAge: 24 * 60 * 60,
     });
-    // Do NOT set role here – only setUserCookies (after login) may set the role cookie
     return res;
   } catch {
     return NextResponse.json({ error: "Server error" }, { status: 500 });

@@ -129,8 +129,7 @@ function LoginPageContent() {
           className="object-cover object-center brightness-[0.96] saturate-[0.96]"
           sizes="100vw"
         />
-        <div className="absolute inset-0 bg-gradient-to-b from-slate-950/45 from-0% via-slate-900/10 via-45% to-slate-950/65 to-100%" />
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-950/20 via-transparent to-amber-950/15" />
+        <div className="absolute inset-0 bg-slate-950/40" />
       </div>
 
       <div className="relative z-10 flex flex-1 flex-col">
@@ -269,7 +268,6 @@ export default function AdminLoginPage() {
     <Suspense
       fallback={
         <div className="relative min-h-screen flex flex-1 items-center justify-center bg-slate-950">
-          <div className="absolute inset-0 z-0 bg-gradient-to-br from-slate-950 via-[#0f172a] to-[#0c1929]" aria-hidden />
           <div className="relative z-10 animate-spin h-8 w-8 rounded-full border-2 border-white/30 border-t-white" />
         </div>
       }

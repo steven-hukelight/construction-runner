@@ -53,6 +53,7 @@ async function resolveSendAuth(req: Request): Promise<{
   error: NextResponse | null;
 }> {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return { companyId: "", userId: "", role: undefined, error: auth };
   const queryCompanyId = new URL(req.url).searchParams.get("companyId")?.trim() || undefined;
 
   if (auth.uid) {

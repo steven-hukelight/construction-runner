@@ -32,7 +32,18 @@ interface DashboardChartsProps {
   tasks: DashboardDataTask[];
 }
 
-const COLORS = ["#2563eb", "#0d9488", "#0284c7", "#d97706", "#dc2626"];
+const SERIES = { primary: "#2563eb", secondary: "#60a5fa", tertiary: "#bfdbfe" };
+
+const STATUS_COLORS: Record<string, string> = {
+  Approved: "#059669",
+  Completed: "#059669",
+  "Awaiting review": "#d97706",
+  "To do": "#d97706",
+  "In progress": SERIES.primary,
+  Rejected: "#dc2626",
+};
+
+const statusColor = (name: string) => STATUS_COLORS[name] ?? SERIES.primary;
 
 function getMonthName(monthIndex: number) {
   const months = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
@@ -204,9 +215,9 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Line type="monotone" dataKey="sites" stroke="#2563eb" strokeWidth={2.5} dot={{ r: 3 }} name="Sites" />
-              <Line type="monotone" dataKey="rams" stroke="#0d9488" strokeWidth={2.5} dot={{ r: 3 }} name="RAMS" />
-              <Line type="monotone" dataKey="people" stroke="#0284c7" strokeWidth={2.5} dot={{ r: 3 }} name="People" />
+              <Line type="linear" dataKey="sites" stroke={SERIES.primary} strokeWidth={2.5} dot={{ r: 3 }} name="Sites" />
+              <Line type="linear" dataKey="rams" stroke={SERIES.secondary} strokeWidth={2.5} dot={{ r: 3 }} name="RAMS" />
+              <Line type="linear" dataKey="people" stroke={SERIES.tertiary} strokeWidth={2.5} dot={{ r: 3 }} name="People" />
             </LineChart>
           </ResponsiveContainer>
         ) : (
@@ -217,7 +228,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
               <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Bar dataKey="tasks" fill="#2563eb" radius={[8, 8, 0, 0]} name="Tasks raised" />
+              <Bar dataKey="tasks" fill={SERIES.primary} radius={[8, 8, 0, 0]} name="Tasks raised" />
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -248,11 +259,11 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
                 labelLine={false}
                 label={({ name, percent }) => `${name} ${((percent || 0) * 100).toFixed(0)}%`}
                 outerRadius={95}
-                fill="#2563eb"
+                fill={SERIES.primary}
                 dataKey="value"
               >
-                {ramsStatusData.map((_, index) => (
-                  <Cell key={`rams-${index}`} fill={COLORS[index % COLORS.length]} />
+                {ramsStatusData.map((entry) => (
+                  <Cell key={`rams-${entry.name}`} fill={statusColor(entry.name)} />
                 ))}
               </Pie>
               <Tooltip contentStyle={tooltipStyle} />
@@ -265,7 +276,11 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" fill="#0d9488" radius={[8, 8, 0, 0]} name="RAMS" />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="RAMS">
+                {ramsStatusData.map((entry) => (
+                  <Cell key={`rams-bar-${entry.name}`} fill={statusColor(entry.name)} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -302,7 +317,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
                 <XAxis type="number" allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
                 <YAxis type="category" dataKey="name" width={140} stroke="#6b7280" style={{ fontSize: "12px" }} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill="#2563eb" radius={[0, 8, 8, 0]} name="People" />
+                <Bar dataKey="value" fill={SERIES.primary} radius={[0, 8, 8, 0]} name="People" />
               </BarChart>
             </ResponsiveContainer>
           )
@@ -315,7 +330,11 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
               <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
               <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" fill="#0284c7" radius={[8, 8, 0, 0]} name="Tasks" />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="Tasks">
+                {taskStatusData.map((entry) => (
+                  <Cell key={`task-${entry.name}`} fill={statusColor(entry.name)} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}

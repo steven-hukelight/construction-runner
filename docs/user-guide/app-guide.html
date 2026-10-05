@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <title>Construction Runner App Guide — for operatives</title>
+  <style>
+    @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+    :root { --navy:#0f172a; --blue:#2563eb; --ink:#1e293b; --muted:#64748b; --line:#e2e8f0; --soft:#f8fafc; --tip:#eff6ff; --warn:#fff7ed; --go:#ecfdf5; }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body { font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif; color: var(--ink); font-size: 10.5pt; line-height: 1.45; }
+    h1, h2, h3 { color: var(--navy); page-break-after: avoid; }
+    h1 { font-size: 22pt; margin: 0 0 8px; }
+    h2 { font-size: 15pt; margin: 20px 0 8px; border-bottom: 2px solid var(--blue); padding-bottom: 4px; }
+    h3 { font-size: 12pt; margin: 14px 0 6px; }
+    p { margin: 0 0 8px; }
+    ul, ol { margin: 0 0 10px; padding-left: 18px; }
+    li { margin: 0 0 4px; }
+    .cover {
+      min-height: 240mm; display: flex; flex-direction: column; justify-content: space-between;
+      page-break-after: always; background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 50%, #2563eb 100%);
+      color: #fff; padding: 28mm 18mm; margin: -16mm -16mm 16mm;
+    }
+    .cover img.logo { width: 92px; height: auto; background: #fff; border-radius: 18px; padding: 8px; }
+    .cover h1 { color: #fff; font-size: 32pt; border: 0; margin-top: 24px; }
+    .cover .lede { font-size: 14pt; opacity: .92; max-width: 145mm; }
+    .meta { font-size: 10pt; opacity: .85; }
+    .shot { width: 100%; border: 1px solid var(--line); border-radius: 8px; margin: 6px 0 4px; page-break-inside: avoid; }
+    .cap { font-size: 8.5pt; color: var(--muted); margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; page-break-inside: avoid; }
+    th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: var(--navy); }
+    .box { border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px; page-break-inside: avoid; }
+    .tip { background: var(--tip); border: 1px solid #bfdbfe; }
+    .warn { background: var(--warn); border: 1px solid #fed7aa; }
+    .go { background: var(--go); border: 1px solid #bbf7d0; }
+    .k { font-weight: 700; }
+    .footer-note { color: var(--muted); font-size: 8.5pt; margin-top: 18px; }
+    .num { display:inline-block; width: 18px; height: 18px; background: var(--blue); color:#fff; border-radius: 999px; text-align:center; font-size: 10px; line-height:18px; font-weight:700; margin-right:6px; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div>
+      <img class="logo" src="screenshots/icon.png" alt="Construction Runner" />
+      <h1>Your Construction Runner app</h1>
+      <p class="lede">A simple guide for operatives and anyone who uses the phone app on site.</p>
+    </div>
+    <div class="meta">
+      <p>Version 1.0 &nbsp;·&nbsp; September 2026</p>
+      <p>iPhone and Android &nbsp;·&nbsp; Construction Runner</p>
+      <p>Support: info@construction-runner.com</p>
+    </div>
+  </section>
+
+  <h2>This guide is for you</h2>
+  <p>If you work on site, this is the app you use every day. You do <span class="k">not</span> log in on the website — the Construction Runner app on your phone is where you sign in, complete induction, read RAMS and briefings, and finish your tasks.</p>
+  <p>Keep this on your phone or print it. Ask your supervisor if you get stuck.</p>
+
+  <h2>What you need to do</h2>
+  <div class="box go">
+    <p><span class="k">First time on the app</span></p>
+    <ol>
+      <li>Install <span class="k">Construction Runner</span> from the App Store or Google Play.</li>
+      <li>Sign in (or Register with your company invite code), then wait until your administrator approves you.</li>
+      <li>Set Location to <span class="k">Always</span> (iPhone) or <span class="k">Allow all the time</span> (Android).</li>
+      <li>Open Profile → <span class="k">My Inductions</span> and complete induction for your site.</li>
+      <li>Add an emergency contact under Profile → <span class="k">My Info</span>.</li>
+    </ol>
+    <p style="margin:10px 0 0"><span class="k">Every day on site</span></p>
+    <ol>
+      <li>Home → <span class="k">Check In / Out</span> → pick your site → stand inside the boundary → <span class="k">Sign In</span>.</li>
+      <li>Open <span class="k">Safety</span> and acknowledge any new briefings or RAMS (<span class="k">Sign &amp; acknowledge</span>).</li>
+      <li>Do your <span class="k">Tasks</span>. Use Deliveries / Assets / Messages if you need them.</li>
+      <li>When you leave, tap <span class="k">Sign Out</span> — or walk out of the site fence and the app will sign you out.</li>
+    </ol>
+  </div>
+
+  <h2>1. Get the app and sign in</h2>
+  <ol>
+    <li>Search <span class="k">Construction Runner</span> on the App Store (iPhone) or Google Play (Android) and install it.</li>
+    <li>Open the app. Enter your work email and password, then tap <span class="k">Sign In</span>.</li>
+    <li>Optional: tick <span class="k">Remember me</span>. You can also turn on Face ID later in Settings.</li>
+    <li>New? Tap <span class="k">New user? Register here</span>. Enter Full Name, Company invite code (from your supervisor), and a password, then <span class="k">Register</span>.</li>
+  </ol>
+  <div class="box warn"><span class="k">Waiting for approval.</span> After you register you will see that your administrator must approve you. You cannot Sign In on site until they do. Ask your supervisor if it takes too long.</div>
+  <div class="box tip"><span class="k">Forgot Password?</span> On the sign-in screen tap Forgot Password?, enter your email, tap Send, then use the link in your email.</div>
+  <img class="shot" src="screenshots/20-app-login.png" alt="App sign in" />
+  <p class="cap">Figure 1. Sign in to Construction Runner. Register here if you are new — you still need approval before you can use the app.</p>
+
+  <h2>2. Turn location to Always (do this once)</h2>
+  <p>The app only uses location to know when you are inside the site and when you leave. It does not track you around town or keep a location history.</p>
+  <p>The first time you Check In, you will see <span class="k">Always location required</span> (iPhone) or <span class="k">Allow all the time required</span> (Android). Tap <span class="k">Continue</span>.</p>
+  <table>
+    <thead><tr><th>Phone</th><th>What to tap</th></tr></thead>
+    <tbody>
+      <tr><td>iPhone</td><td>First: <span class="k">Allow While Using the App</span>. Then: <span class="k">Change to Always Allow</span>. In Settings → Construction Runner → Location, it must say <span class="k">Always</span>.</td></tr>
+      <tr><td>Android</td><td>Settings → Permissions → Location → <span class="k">Allow all the time</span>.</td></tr>
+    </tbody>
+  </table>
+  <div class="box warn"><span class="k">While Using</span> or <span class="k">Allow Once</span> is not enough. The app cannot sign you out after you leave site, so Sign In stays locked until location is Always / Allow all the time.</div>
+  <img class="shot" src="screenshots/21-app-location.png" alt="Always location" />
+  <p class="cap">Figure 2. Allow Always location so you are never left signed in after you leave site.</p>
+
+  <h2>3. The Home screen</h2>
+  <p>After you are in, you land on <span class="k">Home</span>. Across the bottom you have six tabs:</p>
+  <p><span class="k">Home</span> · <span class="k">Safety</span> · <span class="k">Deliveries</span> · <span class="k">Assets</span> · <span class="k">Messages</span> · <span class="k">Tasks</span></p>
+  <p>The ••• menu (top right on most screens) has Profile, Settings, Help and Sign Out.</p>
+  <p>On Home you will see if you are Signed in, Signed out, or Absent today. Tap:</p>
+  <ul>
+    <li><span class="k">Check In / Out</span> — Sign in or out at your site</li>
+    <li><span class="k">My Tasks</span> — work assigned to you</li>
+    <li><span class="k">Briefings</span> — toolbox talks waiting for your signature</li>
+  </ul>
+  <img class="shot" src="screenshots/11-mobile-home.png" alt="Home tab" />
+  <p class="cap">Figure 3. Home — start Check In / Out from here. (Illustrated layout; labels match the live app.)</p>
+
+  <h2>4. Sign in when you arrive</h2>
+  <ol>
+    <li>Home → <span class="k">Check In / Out</span>.</li>
+    <li>Tap the <span class="k">Select site</span> pill at the top and choose today’s site.</li>
+    <li>Wait until the map says <span class="k">Inside Site Boundary</span>. If it says Outside, walk onto the site and tap Refresh location (in •••).</li>
+    <li>If the site needs induction and you have not done it, complete <span class="k">Site induction</span> then tap <span class="k">Complete induction</span>.</li>
+    <li>If RAMS appear, tap <span class="k">Accept &amp; Sign In</span>.</li>
+    <li>Tap <span class="k">Sign In</span>. Wait for “Signing you in, please wait…”</li>
+  </ol>
+  <div class="box tip">You must be <span class="k">inside the blue boundary</span> to Sign In. You cannot check in from the van park if that is outside the geofence.</div>
+  <img class="shot" src="screenshots/12-mobile-checkin.png" alt="Check in map" />
+  <p class="cap">Figure 4. Check In / Out. Stand inside the site boundary, then Sign In.</p>
+
+  <h3>Sign out when you leave</h3>
+  <ul>
+    <li>Open Check In / Out and tap <span class="k">Sign Out</span>, or</li>
+    <li>Walk out of the site fence — you should be signed out automatically (“You left the site — signed out automatically”).</li>
+  </ul>
+  <p>If you have no signal, Sign Out can wait and sync later. Do not stay “signed in” overnight if you have left site.</p>
+  <p>Need a day off the site? Use <span class="k">Mark as absent</span> / <span class="k">Lock this day</span> (this locks sign-in until midnight GMT).</p>
+
+  <h2>5. Induction for each site</h2>
+  <p>Open ••• → Profile → <span class="k">My Inductions</span>. This is how you start induction on a new site (for example if you move from one job to another).</p>
+  <ul>
+    <li><span class="k">Not Started</span> — tap <span class="k">Start Induction</span></li>
+    <li><span class="k">Completed</span> — you are good (it lasts 365 days)</li>
+    <li><span class="k">Expired</span> — do it again</li>
+  </ul>
+  <p>Induction steps: Read site safety information → Acknowledge RAMS and risk assessments → Confirm you understand site rules → <span class="k">Complete induction</span>.</p>
+  <div class="box warn">If the site has induction required, you cannot finish Sign In until induction is Completed.</div>
+  <img class="shot" src="screenshots/13-inductions.png" alt="My Inductions" />
+  <p class="cap">Figure 5. My Inductions — start induction here for any company site.</p>
+
+  <h2>6. Safety — what you must open on site</h2>
+  <p>Tap the <span class="k">Safety</span> tab (hard-hat icon). Work through anything new:</p>
+  <table>
+    <thead><tr><th>Open this</th><th>What you do</th></tr></thead>
+    <tbody>
+      <tr><td>Briefings</td><td>Read toolbox talks under To acknowledge. Sign, then tap <span class="k">Sign &amp; acknowledge</span>.</td></tr>
+      <tr><td>RAMS Documents</td><td>Read risk assessments. Acknowledge the same way. You may also accept RAMS during Sign In.</td></tr>
+      <tr><td>Site Rules</td><td>Read PPE, emergency and conduct rules. You can Save as favourite.</td></tr>
+      <tr><td>Safety checklist</td><td>Complete today’s checks if your site uses them.</td></tr>
+      <tr><td>Alerts</td><td>Open new alerts — they are marked read when you open them.</td></tr>
+      <tr><td>Near Miss Reports</td><td>If something almost went wrong: New report → fill in → photos (Camera or gallery) → <span class="k">Submit Report</span>.</td></tr>
+      <tr><td>COSHH</td><td>Look up hazardous substances and PPE.</td></tr>
+    </tbody>
+  </table>
+  <img class="shot" src="screenshots/22-app-safety.png" alt="Safety tab" />
+  <p class="cap">Figure 6. Safety tab — briefings, RAMS, rules, alerts and near miss.</p>
+  <img class="shot" src="screenshots/23-app-briefing.png" alt="Acknowledge a briefing" />
+  <p class="cap">Figure 7. Anything under To acknowledge is waiting for your signature.</p>
+  <img class="shot" src="screenshots/24-app-nearmiss.png" alt="Near miss report" />
+  <p class="cap">Figure 8. Near miss — Submit Report. It can sync later if you have no signal.</p>
+
+  <h2>7. Tasks, deliveries, assets, messages</h2>
+  <ul>
+    <li><span class="k">Tasks</span> — work for you. Tap a task and set <span class="k">Open</span>, <span class="k">In progress</span> or <span class="k">Done</span>. You can also open My Tasks from Home.</li>
+    <li><span class="k">Deliveries</span> — New delivery, add Proof of delivery and Picture of load, then <span class="k">Submit delivery</span>.</li>
+    <li><span class="k">Assets</span> (My Assets) — kit assigned to you. View &amp; add images, Report inspection, Close inspection.</li>
+    <li><span class="k">Messages</span> — conversations with your supervisors. Tap the send icon to reply.</li>
+  </ul>
+  <img class="shot" src="screenshots/26-app-tasks.png" alt="Tasks" />
+  <p class="cap">Figure 9. Tasks — mark Open, In progress or Done.</p>
+
+  <h2>8. Your profile</h2>
+  <p>••• → <span class="k">Profile</span></p>
+  <ul>
+    <li><span class="k">Personal Info</span> — name and photo. Save personal info.</li>
+    <li><span class="k">My Info</span> — emergency contact, medical, competency card, declarations. You can Sign In without this, but fill it in so the site can reach someone if you are hurt.</li>
+    <li><span class="k">My Inductions</span> — start or renew site induction.</li>
+    <li><span class="k">User Settings</span> — Dark Mode, Face ID, notifications, password, language, Download My Data, Sign Out.</li>
+  </ul>
+  <img class="shot" src="screenshots/25-app-profile.png" alt="Profile" />
+  <p class="cap">Figure 10. Profile — My Info and My Inductions live here.</p>
+
+  <h2>9. If you are offline</h2>
+  <ul>
+    <li>You need internet the first time you Sign In to the app.</li>
+    <li>After that, some lists still open with no signal (they may be out of date). Pull to refresh when you are back online.</li>
+    <li>Sign Out and near-miss reports can wait in a queue and sync later.</li>
+    <li>Check In still needs a live location and a connection to finish.</li>
+  </ul>
+
+  <h2>10. Supervisors using the app</h2>
+  <p>If you are a supervisor you use the same Check In, Safety and Tasks. You also get <span class="k">Supervisor Tools</span> on Home (a drawer) and you can add a task with the <span class="k">+</span> button. Site lists follow the sites your Super Admin ticked for you.</p>
+
+  <h2>If something is not working</h2>
+  <table>
+    <thead><tr><th>What you see</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>Pending approval / cannot Sign In after register</td><td>Ask your supervisor to approve you in Pending approvals.</td></tr>
+      <tr><td>Sign In stays locked / needs Always</td><td>iPhone: Location = Always. Android: Allow all the time. Then return to the app.</td></tr>
+      <tr><td>Outside Site Boundary</td><td>Walk onto the site. Refresh location. You cannot Sign In from outside the fence.</td></tr>
+      <tr><td>Asked to complete induction</td><td>Finish Site induction, or Profile → My Inductions → Start Induction.</td></tr>
+      <tr><td>Did not auto sign out</td><td>Location is probably still While Using. Change to Always, then Sign Out manually this time.</td></tr>
+      <tr><td>You're offline</td><td>Use Wi‑Fi or mobile data for Check In. Other items may sync when you have signal.</td></tr>
+      <tr><td>Forgot password</td><td>Forgot Password? on the sign-in screen.</td></tr>
+    </tbody>
+  </table>
+  <p>Need help? Ask your supervisor, or email <span class="k">info@construction-runner.com</span>.</p>
+  <p class="footer-note">Construction Runner App Guide v1.0 — September 2026. For people who use the phone app. Figures are illustrated layouts that match live button names.</p>
+</body>
+</html>

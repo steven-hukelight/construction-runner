@@ -1,18 +1,18 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { checkPreInductionAccess } from "@/app/api/pre-induction/[userId]/_utils/auth";
+import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
 import { updatePreInductionStatus } from "@/app/api/pre-induction/[userId]/_utils/status";
 
 /** Operative accepts RAMS for a site. */
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const userId = body.userId?.trim();
     const siteId = body.siteId?.trim();
-    if (!userId || !siteId) return NextResponse.json({ error: "userId and siteId required" }, { status: 400 });
+    if (!siteId) return NextResponse.json({ error: "userId and siteId required" }, { status: 400 });
 
-    const access = await checkPreInductionAccess(userId, req);
-    if (!access.ok) return NextResponse.json({ error: access.error }, { status: access.status ?? 403 });
+    const access = await authorizeActingOnUser(req, body.userId);
+    if (!access.ok) return access.response;
+    const userId = access.targetUserId;
 
     const { data: site } = await supabaseAdmin.from("sites").select("rams_version, ramsversion").eq("id", siteId).maybeSingle();
     if (!site) return NextResponse.json({ error: "Site not found" }, { status: 404 });

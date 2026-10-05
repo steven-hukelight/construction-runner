@@ -53,7 +53,7 @@ export default function SubcontractorsList() {
           {list.map((c) => (
             <div
               key={c.id}
-              className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-sm hover:shadow-md transition"
+              className="rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 transition-colors duration-[120ms]"
             >
               <div className="flex items-start gap-4">
                 <div className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">

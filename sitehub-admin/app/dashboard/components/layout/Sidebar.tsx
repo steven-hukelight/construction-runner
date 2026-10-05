@@ -1,8 +1,10 @@
 "use client";
 
-import { useState, useEffect, useCallback } from "react";
-import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
+import { Fragment, useState, useEffect, useCallback } from "react";
+import { getRoleFromClient } from "@/lib/utils/cookies";
 import { useClientSession } from "../ClientSessionProvider";
+import { useNearMissCount } from "../NearMissCountProvider";
+import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -16,17 +18,9 @@ import {
   Menu,
   X,
   HardHat,
-  ChevronDown,
-  ChevronRight,
-  FlaskConical,
-  ScrollText,
-  AlertTriangle,
-  AlertCircle,
-  List,
   MapPin,
   Users,
   ClipboardCheck,
-  ShieldCheck,
   Building2,
   ClipboardList,
   UserCheck,
@@ -65,7 +59,7 @@ type SidebarProps = {
   role?: string | null;
 };
 
-// Task 7: New sidebar structure — Modules removed; Safety replaces H&S sub-tabs
+// Health & Safety is a single link; its sections live in the tab strip in health-and-safety/layout.tsx
 const topLevelItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
@@ -75,16 +69,7 @@ const topLevelItems = [
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
 
-const safetySubItems = [
-  { name: "RAMS", href: "/dashboard/health-and-safety/rams", icon: FileText },
-  { name: "Briefings", href: "/dashboard/health-and-safety/briefings", icon: MessageSquare },
-  { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", icon: ShieldCheck },
-  { name: "COSHH", href: "/dashboard/health-and-safety/coshh", icon: FlaskConical },
-  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", icon: ScrollText },
-  { name: "Alerts", href: "/dashboard/health-and-safety/alerts", icon: AlertTriangle },
-  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", icon: AlertCircle },
-  { name: "Logs", href: "/dashboard/system-logs", icon: List },
-];
+const healthAndSafetyHref = "/dashboard/health-and-safety/rams";
 
 const subAdminNavItem = { name: "Operative Onboarding", href: "/dashboard/subcontractor", icon: FileText };
 
@@ -92,23 +77,10 @@ export default function Sidebar({ role }: SidebarProps) {
   const { t } = useDisplayPreferences();
   const pathname = usePathname();
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const { impersonating } = useClientSession();
-  const [nearMissBadge, setNearMissBadge] = useState(0);
+  const { impersonating, role: sessionRole } = useClientSession();
+  const rawNearMissCount = useNearMissCount();
+  const nearMissCount = canRoleViewNearMiss(sessionRole) ? rawNearMissCount : 0;
   const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
-  const [safetyExpanded, setSafetyExpanded] = useState(
-    () => pathname?.startsWith("/dashboard/health-and-safety") || pathname === "/dashboard/system-logs"
-  );
-
-  const fetchNearMissBadge = useCallback(() => {
-    const r = getRoleFromClient();
-    const companyId = getCompanyIdFromClient();
-    if (!r || r === "operative") return;
-    const qs = `/api/near-miss${companyId ? `?companyId=${encodeURIComponent(companyId)}` : ""}${companyId ? "&" : "?"}count=unreviewed`;
-    fetch(qs, { cache: "no-store", credentials: "include" })
-      .then((res) => res.json())
-      .then((d) => setNearMissBadge(typeof d?.count === "number" ? d.count : 0))
-      .catch(() => {});
-  }, []);
 
   const fetchPendingApprovalsBadge = useCallback(() => {
     const r = (getRoleFromClient() ?? "").toLowerCase();
@@ -121,25 +93,40 @@ export default function Sidebar({ role }: SidebarProps) {
   }, []);
 
   useEffect(() => {
-    fetchNearMissBadge();
     fetchPendingApprovalsBadge();
     // Poll occasionally; do NOT refetch on every client navigation — that was
     // doubling API load across the whole dashboard shell.
-    const interval = setInterval(() => {
-      fetchNearMissBadge();
-      fetchPendingApprovalsBadge();
-    }, 120_000);
+    const interval = setInterval(fetchPendingApprovalsBadge, 120_000);
     return () => clearInterval(interval);
-  }, [fetchNearMissBadge, fetchPendingApprovalsBadge]);
+  }, [fetchPendingApprovalsBadge]);
 
   useEffect(() => {
-    window.addEventListener("near-miss-reviewed", fetchNearMissBadge);
     window.addEventListener("pending-approvals-changed", fetchPendingApprovalsBadge);
     return () => {
-      window.removeEventListener("near-miss-reviewed", fetchNearMissBadge);
       window.removeEventListener("pending-approvals-changed", fetchPendingApprovalsBadge);
     };
-  }, [fetchNearMissBadge, fetchPendingApprovalsBadge]);
+  }, [fetchPendingApprovalsBadge]);
+
+  const showAdminNav = ["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "");
+
+  const healthAndSafetyLink = (
+    <Link
+      href={healthAndSafetyHref}
+      className={`${pathname?.startsWith("/dashboard/health-and-safety") ? "active" : ""} ${nearMissCount > 0 ? "!pr-2" : ""}`}
+      onClick={() => setMobileMenuOpen(false)}
+    >
+      <HardHat size={20} strokeWidth={2.5} />
+      <span className="flex-1 min-w-0">{t("Health & Safety")}</span>
+      {nearMissCount > 0 && (
+        <span
+          className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-medium flex items-center justify-center"
+          aria-label={`${nearMissCount} unreviewed near misses`}
+        >
+          {nearMissCount > 99 ? "99+" : nearMissCount}
+        </span>
+      )}
+    </Link>
+  );
 
   return (
     <>
@@ -192,11 +179,6 @@ export default function Sidebar({ role }: SidebarProps) {
               </button>
             </div>
           )}
-
-          {/* Navigation label */}
-          <div className="px-3 mb-3">
-            <p className="text-[11px] font-semibold text-gray-400 uppercase tracking-[0.12em]">Main menu</p>
-          </div>
         </div>
 
         {/* Nav: fills remaining space and scrolls so tabs are never behind help */}
@@ -243,7 +225,7 @@ export default function Sidebar({ role }: SidebarProps) {
               <span>{t(subAdminNavItem.name)}</span>
             </Link>
           )}
-          {["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "") &&
+          {showAdminNav &&
             adminNavItems.map((item) => {
               const active =
                 pathname === item.href ||
@@ -253,23 +235,25 @@ export default function Sidebar({ role }: SidebarProps) {
               const showPendingBadge =
                 item.href === "/dashboard/pending-approvals" && pendingApprovalsBadge > 0;
               return (
-                <Link
-                  key={item.href}
-                  href={item.href}
-                  className={`${active ? "active" : ""} ${showPendingBadge ? "!pr-2" : ""}`}
-                  onClick={() => setMobileMenuOpen(false)}
-                >
-                  <Icon size={20} strokeWidth={2.5} />
-                  <span className="flex-1 min-w-0">{t(item.name)}</span>
-                  {showPendingBadge && (
-                    <span
-                      className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
-                      aria-label={`${pendingApprovalsBadge} pending approvals`}
-                    >
-                      {pendingApprovalsBadge > 99 ? "99+" : pendingApprovalsBadge}
-                    </span>
-                  )}
-                </Link>
+                <Fragment key={item.href}>
+                  <Link
+                    href={item.href}
+                    className={`${active ? "active" : ""} ${showPendingBadge ? "!pr-2" : ""}`}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <Icon size={20} strokeWidth={2.5} />
+                    <span className="flex-1 min-w-0">{t(item.name)}</span>
+                    {showPendingBadge && (
+                      <span
+                        className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-bold flex items-center justify-center"
+                        aria-label={`${pendingApprovalsBadge} pending approvals`}
+                      >
+                        {pendingApprovalsBadge > 99 ? "99+" : pendingApprovalsBadge}
+                      </span>
+                    )}
+                  </Link>
+                  {item.href === "/dashboard/sites" && healthAndSafetyLink}
+                </Fragment>
               );
             })}
           {["operative", "OPERATIVE"].includes(role ?? "") ? (
@@ -306,44 +290,7 @@ export default function Sidebar({ role }: SidebarProps) {
               </Link>
             );
           })}
-          {/* Safety expandable section */}
-          <div className="sidebar-safety-section">
-            <button
-              type="button"
-              onClick={() => setSafetyExpanded(!safetyExpanded)}
-              className={`sidebar-link flex items-center justify-between w-full ${pathname?.startsWith("/dashboard/health-and-safety") || pathname === "/dashboard/system-logs" ? "active" : ""}`}
-            >
-              <span className="flex items-center gap-3">
-                <HardHat size={20} strokeWidth={2.5} />
-                {t("Safety")}
-              </span>
-              {nearMissBadge > 0 && (
-                <span className="min-w-[20px] h-5 px-1.5 rounded-full bg-red-500 text-white text-xs font-medium flex items-center justify-center">
-                  {nearMissBadge > 99 ? "99+" : nearMissBadge}
-                </span>
-              )}
-              {safetyExpanded ? <ChevronDown size={18} /> : <ChevronRight size={18} />}
-            </button>
-            {safetyExpanded && (
-              <div className="pl-8 flex flex-col gap-0.5 mt-1">
-                {safetySubItems.map((sub) => {
-                  const SubIcon = sub.icon;
-                  const isActive = pathname === sub.href || pathname.startsWith(sub.href + "/");
-                  return (
-                    <Link
-                      key={sub.href}
-                      href={sub.href}
-                      className={`text-sm py-2 px-3 rounded-lg flex items-center gap-2 ${isActive ? "bg-blue-100 text-blue-800 font-medium" : "text-gray-600 hover:bg-blue-50/80 hover:text-gray-900"}`}
-                      onClick={() => setMobileMenuOpen(false)}
-                    >
-                      <SubIcon size={16} strokeWidth={2} />
-                      {t(sub.name)}
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </div>
+          {!showAdminNav && healthAndSafetyLink}
           {topLevelItems.slice(5, 7).map((item) => {
             const active = pathname === item.href;
             const Icon = item.icon;

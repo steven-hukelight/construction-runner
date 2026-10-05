@@ -1,5 +1,7 @@
 "use client";
 
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
+
 /** Map task/delivery/asset statuses onto the shared table status-chip system. */
 function chipForStatus(raw: string): string {
   const s = raw.toLowerCase().replace(/\s+/g, "_");
@@ -20,7 +22,7 @@ function chipForStatus(raw: string): string {
 
 export function TaskStatusPill({ status }: { status?: string | null }) {
   const s = (status ?? "").toString().trim() || "—";
-  const label = s === "—" ? "—" : s.replace(/_/g, " ");
+  const label = s === "—" ? "—" : toSentenceCase(s);
   const chip = s === "—" ? "status-chip--muted" : chipForStatus(s);
   return <span className={`status-chip ${chip}`}>{label}</span>;
 }

@@ -9,6 +9,7 @@ import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@
 import { Mail, Calendar, Clock, Rows3 } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
+import { useClientSession } from "../components/ClientSessionProvider";
 
 export default function SettingsPage() {
   const { t } = useDisplayPreferences();
@@ -589,7 +590,7 @@ function DisplaySettings() {
           </div>
           <div className="flex flex-col gap-3 max-w-2xl">
             <div>
-              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-2">
                 Upload image
               </label>
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
@@ -629,7 +630,7 @@ function DisplaySettings() {
             </div>
 
             <div className="pt-2 border-t border-gray-200 dark:border-slate-600">
-              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-gray-600 dark:text-slate-400 mb-2">
                 Or image URL
               </label>
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
@@ -795,7 +796,7 @@ function DisplaySettings() {
         </div>
 
         <div className="mt-6 p-4 rounded-xl bg-gray-50 dark:bg-slate-800/60 border border-gray-200 dark:border-slate-600">
-          <p className="text-xs font-medium text-gray-500 dark:text-slate-400 uppercase tracking-wide mb-2">Preview</p>
+          <p className="text-xs font-medium text-gray-500 dark:text-slate-400 mb-2">Preview</p>
           <p className="text-sm text-gray-700 dark:text-slate-300">
             Date: {formatDate(new Date())} · Time: {formatTime(new Date())} · Full: {formatDateTime(new Date())}
           </p>
@@ -805,7 +806,13 @@ function DisplaySettings() {
   );
 }
 
+/** Company roles allowed by /api/maintenance/activity-log; superusers reach logs from their own sidebar. */
+const SYSTEM_LOG_ROLES = new Set(["admin", "supervisor", "sub_admin"]);
+
 function SecuritySettings() {
+  const { role } = useClientSession();
+  const showSystemLogs = SYSTEM_LOG_ROLES.has((role ?? "").toLowerCase());
+
   return (
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h2>
@@ -821,6 +828,13 @@ function SecuritySettings() {
           on the sign-in screen.
         </p>
         <p className="text-gray-500">Two-factor authentication is not available during beta.</p>
+        {showSystemLogs && (
+          <p>
+            <a href="/dashboard/system-logs" className="text-blue-600 font-medium hover:underline">
+              System logs
+            </a>
+          </p>
+        )}
       </div>
     </div>
   );

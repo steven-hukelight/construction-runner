@@ -234,7 +234,7 @@ function MetricCard({
     <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" style={{ color }} />
-        <p className="text-xs font-medium uppercase tracking-wide text-gray-500">{label}</p>
+        <p className="text-xs font-medium text-gray-500">{label}</p>
       </div>
       <p className="mt-1 text-2xl font-bold" style={{ color }}>
         {value}

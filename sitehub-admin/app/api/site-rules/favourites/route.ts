@@ -4,6 +4,7 @@ import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 
 export async function GET(req: Request) {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   if (!auth.uid) {
     return NextResponse.json({ ids: [] }, { status: 200 });
   }
@@ -26,6 +27,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   if (!auth.uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
@@ -66,6 +68,7 @@ export async function POST(req: Request) {
 
 export async function DELETE(req: Request) {
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   if (!auth.uid) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }

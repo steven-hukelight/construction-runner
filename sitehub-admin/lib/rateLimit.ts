@@ -1,5 +1,5 @@
 /**
- * Rate limiter for login endpoint.
+ * Rate limiter for login and invite-code redemption.
  * Uses Upstash Redis in production when UPSTASH_REDIS_REST_URL and UPSTASH_REDIS_REST_TOKEN are set.
  * Falls back to in-memory store in development.
  */
@@ -21,7 +21,7 @@ interface RateLimitResult {
 // In-memory fallback (development)
 const memoryStore = new Map<string, { count: number; resetAt: number }>();
 
-async function checkRateLimitRedis(identifier: string): Promise<RateLimitResult> {
+async function checkRateLimitRedis(key: string, max: number, windowMs: number): Promise<RateLimitResult> {
   try {
     const { Ratelimit } = await import("@upstash/ratelimit");
     const { Redis } = await import("@upstash/redis");
@@ -33,44 +33,43 @@ async function checkRateLimitRedis(identifier: string): Promise<RateLimitResult>
 
     const ratelimit = new Ratelimit({
       redis,
-      limiter: Ratelimit.slidingWindow(MAX_ATTEMPTS, "1 m"),
+      limiter: Ratelimit.slidingWindow(max, `${windowMs} ms`),
       analytics: false,
     });
 
-    const { success, remaining, reset } = await ratelimit.limit(`login:${identifier}`);
+    const { success, remaining, reset } = await ratelimit.limit(key);
     const retryAfter = success ? undefined : Math.ceil((reset - Date.now()) / 1000);
     return { success, remaining, reset, retryAfter };
   } catch {
     // Redis unavailable: fall through to in-memory
-    return checkRateLimitMemory(identifier);
+    return checkRateLimitMemory(key, max, windowMs);
   }
 }
 
-function checkRateLimitMemory(identifier: string): RateLimitResult {
+function checkRateLimitMemory(key: string, max: number, windowMs: number): RateLimitResult {
   const now = Date.now();
-  const key = `login:${identifier}`;
   const entry = memoryStore.get(key);
 
   if (!entry) {
-    memoryStore.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
     return {
       success: true,
-      remaining: MAX_ATTEMPTS - 1,
-      reset: now + WINDOW_MS,
+      remaining: max - 1,
+      reset: now + windowMs,
     };
   }
 
   if (now > entry.resetAt) {
-    memoryStore.set(key, { count: 1, resetAt: now + WINDOW_MS });
+    memoryStore.set(key, { count: 1, resetAt: now + windowMs });
     return {
       success: true,
-      remaining: MAX_ATTEMPTS - 1,
-      reset: now + WINDOW_MS,
+      remaining: max - 1,
+      reset: now + windowMs,
     };
   }
 
   entry.count++;
-  if (entry.count > MAX_ATTEMPTS) {
+  if (entry.count > max) {
     const retryAfter = Math.ceil((entry.resetAt - now) / 1000);
     return {
       success: false,
@@ -82,21 +81,28 @@ function checkRateLimitMemory(identifier: string): RateLimitResult {
 
   return {
     success: true,
-    remaining: MAX_ATTEMPTS - entry.count,
+    remaining: max - entry.count,
     reset: entry.resetAt,
   };
 }
 
-export async function checkLoginRateLimit(req: Request): Promise<RateLimitResult> {
+export function rateLimitClientId(req: Request): string {
   const forwarded = req.headers.get("x-forwarded-for");
   const realIp = req.headers.get("x-real-ip");
-  const identifier = (forwarded?.split(",")[0]?.trim() || realIp || "unknown").slice(0, 100);
+  return (forwarded?.split(",")[0]?.trim() || realIp || "unknown").slice(0, 100);
+}
 
+/** `key` should be namespaced, e.g. `login:<ip>`. */
+export async function checkRateLimit(key: string, max: number, windowMs: number): Promise<RateLimitResult> {
   const useRedis =
     process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN;
 
   if (useRedis) {
-    return checkRateLimitRedis(identifier);
+    return checkRateLimitRedis(key, max, windowMs);
   }
-  return checkRateLimitMemory(identifier);
+  return checkRateLimitMemory(key, max, windowMs);
+}
+
+export async function checkLoginRateLimit(req: Request): Promise<RateLimitResult> {
+  return checkRateLimit(`login:${rateLimitClientId(req)}`, MAX_ATTEMPTS, WINDOW_MS);
 }

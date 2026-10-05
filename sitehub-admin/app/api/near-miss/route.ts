@@ -2,38 +2,37 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import { authorizeNearMissViewer } from "@/lib/auth/nearMissAccess";
 
 export async function GET(req: Request) {
   try {
     const url = new URL(req.url);
-    const auth = await resolveMobileApiAuth(req);
+    const access = await authorizeNearMissViewer(req);
+    if (!access.ok) return access.response;
+    const auth = access.viewer;
     const companyId = auth.companyId ?? undefined;
 
     const unreviewedOnly = url.searchParams.get("unreviewed") === "true";
     const countOnly = url.searchParams.get("count") === "unreviewed";
-    const mineOnly = url.searchParams.get("mine") === "true";
+    // Viewers list company-wide unless they pass mine=true (self-only).
+    const filterToReporterOnly = url.searchParams.get("mine") === "true";
     const uid = auth.uid;
-    const roleLower = (auth.role ?? "").toLowerCase();
-    const canViewCompanyNearMiss =
-      roleLower === "supervisor" || roleLower === "admin" || roleLower === "superuser" || roleLower === "site_admin";
-    // Operatives always see only their own reports. Supervisors/admins may list company-wide
-    // unless they pass mine=true (self-only).
-    const filterToReporterOnly = !canViewCompanyNearMiss || mineOnly;
     const status = url.searchParams.get("status")?.trim().toLowerCase();
     const siteId = url.searchParams.get("siteId")?.trim();
     const search = url.searchParams.get("search")?.trim().toLowerCase();
     const sort = url.searchParams.get("sort") || "newest";
 
-    if (countOnly && companyId) {
+    if (countOnly) {
       let countQuery = supabaseAdmin
         .from("near_miss_reports")
         .select("id", { count: "exact", head: true })
-        .eq("company_id", companyId);
-      countQuery = countQuery.is("reviewed_at", null);
+        .is("reviewed_at", null);
+      if (companyId) countQuery = countQuery.eq("company_id", companyId);
       const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
       const siteScope = siteIdsForFilter(restricted, siteId);
       if (siteScope === "none") return NextResponse.json({ count: 0 });
       if (siteScope !== "all") countQuery = countQuery.in("site_id", siteScope);
+      if (filterToReporterOnly) countQuery = countQuery.eq("reported_by", uid);
       const { count, error } = await countQuery;
       if (error) return NextResponse.json({ error: error.message }, { status: 500 });
       return NextResponse.json({ count: count ?? 0 });
@@ -50,7 +49,7 @@ export async function GET(req: Request) {
     if (siteScope === "none") return NextResponse.json([]);
     if (siteScope !== "all") query = query.in("site_id", siteScope);
     if (unreviewedOnly) query = query.is("reviewed_at", null);
-    if (filterToReporterOnly && uid) query = query.eq("reported_by", uid);
+    if (filterToReporterOnly) query = query.eq("reported_by", uid);
     if (siteId) query = query.eq("site_id", siteId);
     if (status) {
       if (status === "reviewed") {
@@ -109,6 +108,7 @@ export async function GET(req: Request) {
 export async function POST(req: Request) {
   const body = await req.json();
   const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
   const companyId = auth.companyId ?? undefined;
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 

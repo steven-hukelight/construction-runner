@@ -2,6 +2,9 @@
 import { useState, useEffect, Suspense } from "react";
 import { useSearchParams } from "next/navigation";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
+import { TurnstileWidget } from "@/app/components/TurnstileWidget";
+import PasswordRequirements from "@/app/components/PasswordRequirements";
+import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 type RegisterTab = "join" | "newCompany";
 
@@ -55,6 +58,25 @@ function RegisterPageContent() {
   const [inviteMessage, setInviteMessage] = useState("");
   const [inviteLoading, setInviteLoading] = useState(false);
 
+  const [captchaToken, setCaptchaToken] = useState<string | null>(null);
+  const [turnstileEpoch, setTurnstileEpoch] = useState(0);
+  const [honeypot, setHoneypot] = useState("");
+
+  // Email verification step
+  const [verifyRegId, setVerifyRegId] = useState<string | null>(null);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [verifyCode, setVerifyCode] = useState("");
+  const [verifyMessage, setVerifyMessage] = useState("");
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
+  const [verifyDoneMessage, setVerifyDoneMessage] = useState<string | null>(null);
+  const turnstileEnabled = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
+
+  function resetTurnstile() {
+    setCaptchaToken(null);
+    setTurnstileEpoch((n) => n + 1);
+  }
+
   async function handleNewCompanySubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setNewCompanyLoading(true);
@@ -69,21 +91,32 @@ function RegisterPageContent() {
           companyName: newCompanyName,
           companyPhone: newCompanyPhone,
           companyAddress: newCompanyAddress,
+          captchaToken,
+          website: honeypot,
         }),
       });
-      if (res.ok) {
-        setNewCompanyMessage("New company request submitted. Pending superuser approval.");
+      const json = await res.json().catch(() => ({}));
+      if (res.ok || (res.status === 502 && json?.needsEmailVerification && json?.registrationId)) {
+        setVerifyRegId(json.id ?? json.registrationId);
+        setVerifyEmail(newAdminEmail);
+        setVerifyMessage(
+          res.ok
+            ? "We sent a 6-digit code to your email. Enter it below to continue."
+            : "Account started, but email may not have sent — use Resend code."
+        );
         setNewCompanyName("");
         setNewAdminName("");
         setNewAdminEmail("");
         setNewCompanyPhone("");
         setNewCompanyAddress("");
+        resetTurnstile();
       } else {
-        const json = await res.json();
         setNewCompanyMessage(json?.error || "Registration failed");
+        resetTurnstile();
       }
     } catch {
       setNewCompanyMessage("Network error");
+      resetTurnstile();
     } finally {
       setNewCompanyLoading(false);
     }
@@ -91,6 +124,10 @@ function RegisterPageContent() {
 
   async function handleInviteSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
+    if (!isPasswordValid(invitePassword)) {
+      setInviteMessage(PASSWORD_REQUIREMENTS_MESSAGE);
+      return;
+    }
     setInviteLoading(true);
     setInviteMessage("");
     try {
@@ -102,22 +139,79 @@ function RegisterPageContent() {
           name: inviteName,
           companyCode: inviteCode,
           password: invitePassword,
+          captchaToken,
+          website: honeypot,
         }),
       });
-      if (res.ok) {
-        setInviteMessage("Account request submitted. Pending approval.");
+      const json = await res.json().catch(() => ({}));
+      if (res.ok || (res.status === 502 && json?.needsEmailVerification && json?.registrationId)) {
+        setVerifyRegId(json.id ?? json.registrationId);
+        setVerifyEmail(inviteEmail);
+        setVerifyMessage(
+          res.ok
+            ? "We sent a 6-digit code to your email. Enter it below to continue."
+            : "Account started, but email may not have sent — use Resend code."
+        );
         setInviteName("");
         setInviteEmail("");
         setInviteCode("");
         setInvitePassword("");
+        resetTurnstile();
       } else {
-        const json = await res.json();
         setInviteMessage(json?.error || "Registration failed");
+        resetTurnstile();
       }
     } catch {
       setInviteMessage("Network error");
+      resetTurnstile();
     } finally {
       setInviteLoading(false);
+    }
+  }
+
+  async function handleVerifySubmit(e: React.FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    if (!verifyRegId) return;
+    setVerifyLoading(true);
+    setVerifyMessage("");
+    try {
+      const res = await fetch("/api/auth/register/verify-email", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationId: verifyRegId, code: verifyCode }),
+      });
+      const json = await res.json().catch(() => ({}));
+      if (res.ok) {
+        setVerifyDoneMessage(json.message || "Email verified. Your request is pending approval.");
+        setVerifyCode("");
+        setVerifyRegId(null);
+        setVerifyMessage("");
+      } else {
+        setVerifyMessage(json?.error || "Verification failed");
+      }
+    } catch {
+      setVerifyMessage("Network error");
+    } finally {
+      setVerifyLoading(false);
+    }
+  }
+
+  async function handleResendCode() {
+    if (!verifyRegId) return;
+    setResendLoading(true);
+    setVerifyMessage("");
+    try {
+      const res = await fetch("/api/auth/register/resend-code", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ registrationId: verifyRegId }),
+      });
+      const json = await res.json().catch(() => ({}));
+      setVerifyMessage(res.ok ? "New code sent — check your inbox." : json?.error || "Could not resend");
+    } catch {
+      setVerifyMessage("Network error");
+    } finally {
+      setResendLoading(false);
     }
   }
 
@@ -127,7 +221,7 @@ function RegisterPageContent() {
 
   if (!publicSettings) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-gradient-to-br from-blue-50 to-gray-100">
+      <div className="flex min-h-screen items-center justify-center bg-[#f3f7fb]">
         <div className="text-gray-500">Loading…</div>
       </div>
     );
@@ -135,7 +229,7 @@ function RegisterPageContent() {
 
   if (blocked) {
     return (
-      <div className="flex flex-col items-center justify-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 p-8">
+      <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f7fb] p-8">
         <button
           onClick={handleReturn}
           className="mb-6 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold shadow"
@@ -160,8 +254,75 @@ function RegisterPageContent() {
     );
   }
 
+  if (verifyDoneMessage) {
+    return (
+      <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
+        <div className="w-full max-w-md mt-10 p-8 rounded-2xl bg-white shadow-xl border border-blue-100 text-center">
+          <h1 className="text-2xl font-bold text-blue-700 mb-3">Email verified</h1>
+          <p className="text-sm text-gray-600 mb-6">{verifyDoneMessage}</p>
+          <a
+            href="/admin/login"
+            className="inline-block bg-blue-600 text-white py-2.5 px-6 rounded-lg font-semibold shadow hover:bg-blue-700"
+          >
+            Go to sign in
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (verifyRegId) {
+    return (
+      <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
+        <div className="w-full max-w-md mt-10 p-8 rounded-2xl bg-white shadow-xl border border-blue-100">
+          <h1 className="text-2xl font-bold text-blue-700 mb-2">Verify your email</h1>
+          <p className="text-sm text-gray-600 mb-6">
+            Enter the 6-digit code we sent to <strong className="text-gray-800">{verifyEmail}</strong>. After that,
+            an administrator still needs to approve your account.
+          </p>
+          <form onSubmit={handleVerifySubmit} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Verification code</label>
+              <input
+                type="text"
+                inputMode="numeric"
+                autoComplete="one-time-code"
+                pattern="\d{6}"
+                maxLength={6}
+                placeholder="000000"
+                className="border border-gray-300 rounded-lg p-3 w-full text-center text-2xl tracking-[0.4em] font-semibold focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                value={verifyCode}
+                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                required
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={verifyLoading || verifyCode.length !== 6}
+              className="bg-blue-600 text-white py-2.5 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700 disabled:bg-gray-300"
+            >
+              {verifyLoading ? "Verifying…" : "Verify email"}
+            </button>
+          </form>
+          <button
+            type="button"
+            onClick={() => void handleResendCode()}
+            disabled={resendLoading}
+            className="mt-4 w-full text-sm text-blue-600 hover:underline disabled:text-gray-400"
+          >
+            {resendLoading ? "Sending…" : "Resend code"}
+          </button>
+          {verifyMessage && <p className="text-sm text-center text-blue-700 mt-4 font-medium">{verifyMessage}</p>}
+          <a href="/admin/login" className="mt-6 block text-center text-sm text-gray-500 hover:text-blue-600">
+            Back to sign in
+          </a>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="flex flex-col items-center min-h-screen bg-gradient-to-br from-blue-50 to-gray-100 px-4 pb-12">
+    <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
       <button
         onClick={handleReturn}
         className="mb-6 mt-6 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold shadow"
@@ -206,9 +367,21 @@ function RegisterPageContent() {
           </button>
         </div>
 
+        {/* Honeypot — hidden from users */}
+        <label className="sr-only" aria-hidden="true">
+          Website
+          <input
+            tabIndex={-1}
+            autoComplete="off"
+            value={honeypot}
+            onChange={(e) => setHoneypot(e.target.value)}
+            className="hidden"
+          />
+        </label>
+
         <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-stretch justify-center">
           {tab === "newCompany" ? (
-        <form onSubmit={handleNewCompanySubmit} className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-all hover:shadow-2xl">
+        <form onSubmit={handleNewCompanySubmit} className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-colors duration-[120ms]">
           <p className="text-xs text-gray-600 mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
             Your data is collected solely for site access, safety compliance, induction, RAMS acceptance, and legal H&amp;S obligations. It is not used for marketing or profiling.
           </p>
@@ -269,12 +442,13 @@ function RegisterPageContent() {
                 required
               />
             </div>
+            <TurnstileWidget key={`company-${turnstileEpoch}`} onToken={setCaptchaToken} />
           </div>
           <div className="flex flex-col justify-end flex-1">
             <button
               type="submit"
               className="bg-blue-600 text-white py-2 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700 disabled:bg-gray-300 transition"
-              disabled={newCompanyLoading}
+              disabled={newCompanyLoading || (turnstileEnabled && !captchaToken)}
             >
               {newCompanyLoading ? "Submitting..." : "Request New Company"}
             </button>
@@ -286,7 +460,7 @@ function RegisterPageContent() {
         <form
           onSubmit={handleInviteSubmit}
           id="company-invite-code"
-          className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-all hover:shadow-2xl"
+          className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-colors duration-[120ms]"
         >
           <p className="text-xs text-gray-600 mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
             Your data is collected solely for site access, safety compliance, induction, RAMS acceptance, and legal H&amp;S obligations. It is not used for marketing or profiling.
@@ -333,20 +507,22 @@ function RegisterPageContent() {
               <label className="block text-sm font-medium text-gray-700">Set Password</label>
               <input
                 type="password"
-                placeholder="Choose a password (at least 8 characters)"
+                placeholder="Choose a secure password"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
                 value={invitePassword}
                 onChange={(e) => setInvitePassword(e.target.value)}
                 required
-                minLength={8}
+                minLength={PASSWORD_MIN_LENGTH}
               />
+              <PasswordRequirements password={invitePassword} />
             </div>
+            <TurnstileWidget key={`invite-${turnstileEpoch}`} onToken={setCaptchaToken} />
           </div>
           <div className="flex flex-col justify-end flex-1">
             <button
               type="submit"
               className="bg-blue-600 text-white py-2 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700 disabled:bg-gray-300 transition"
-              disabled={inviteLoading}
+              disabled={inviteLoading || (turnstileEnabled && !captchaToken)}
             >
               {inviteLoading ? "Submitting..." : "Submit registration"}
             </button>

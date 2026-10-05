@@ -1,9 +1,16 @@
 import { NextResponse } from "next/server";
+import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
 /** Marks the admin's setup as complete after they set their password. */
 export async function POST(req: Request) {
   try {
+    const role = (await cookies()).get("role")?.value?.toLowerCase();
+    if (!role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    if (role !== "superuser" && role !== "admin") {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
+
     const { email } = await req.json();
     if (!email) return NextResponse.json({ error: "Email required" }, { status: 400 });
 

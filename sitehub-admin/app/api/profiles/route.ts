@@ -145,7 +145,16 @@ export async function GET(req: Request) {
 }
 
 function mapProfileToResponse(obj: Record<string, unknown>) {
-  obj.displayName = obj.displayName ?? obj.name ?? obj.email?.toString()?.split("@")[0];
+  const displayName =
+    (typeof obj.displayName === "string" && obj.displayName.trim()) ||
+    (typeof obj.display_name === "string" && obj.display_name.trim()) ||
+    (typeof obj.name === "string" && obj.name.trim() && !String(obj.name).includes("@")
+      ? String(obj.name).trim()
+      : "") ||
+    "";
+  obj.displayName = displayName || undefined;
+  // Keep snake_case in sync for clients that read display_name.
+  if (displayName) obj.display_name = displayName;
   obj.addressLine1 = obj.addressLine1 ?? obj.address_line1 ?? obj.address;
   obj.jobTitle = obj.jobTitle ?? obj.jobtitle ?? obj.job_title;
   obj.emergencyContactName = obj.emergencyContactName ?? obj.emergencycontactname ?? obj.emergency_contact_name;

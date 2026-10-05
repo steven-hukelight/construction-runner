@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <title>Construction Runner User Guide</title>
+  <style>
+    @page { size: A4; margin: 16mm 16mm 18mm 16mm; }
+    :root {
+      --navy: #0f172a;
+      --blue: #2563eb;
+      --ink: #1e293b;
+      --muted: #64748b;
+      --line: #e2e8f0;
+      --soft: #f8fafc;
+      --tip: #eff6ff;
+      --warn: #fff7ed;
+    }
+    * { box-sizing: border-box; }
+    html, body { margin: 0; padding: 0; }
+    body {
+      font-family: "Avenir Next", "Segoe UI", Helvetica, Arial, sans-serif;
+      color: var(--ink);
+      font-size: 10.5pt;
+      line-height: 1.45;
+    }
+    h1, h2, h3 { color: var(--navy); page-break-after: avoid; }
+    h1 { font-size: 22pt; margin: 0 0 8px; }
+    h2 { font-size: 15pt; margin: 22px 0 8px; border-bottom: 2px solid var(--blue); padding-bottom: 4px; }
+    h3 { font-size: 12pt; margin: 16px 0 6px; }
+    p { margin: 0 0 8px; }
+    ul, ol { margin: 0 0 10px; padding-left: 18px; }
+    li { margin: 0 0 4px; }
+    a { color: var(--blue); }
+    .cover {
+      min-height: 240mm;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      page-break-after: always;
+      background: linear-gradient(180deg, #0f172a 0%, #1e3a8a 55%, #2563eb 100%);
+      color: #fff;
+      padding: 28mm 18mm;
+      margin: -16mm -16mm 16mm;
+    }
+    .cover img.logo { width: 92px; height: auto; background: #fff; border-radius: 18px; padding: 8px; }
+    .cover h1 { color: #fff; font-size: 34pt; border: 0; margin-top: 24px; }
+    .cover .lede { font-size: 14pt; opacity: .92; max-width: 140mm; }
+    .meta { font-size: 10pt; opacity: .85; }
+    .shot {
+      width: 100%;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      margin: 6px 0 4px;
+      page-break-inside: avoid;
+    }
+    .cap { font-size: 8.5pt; color: var(--muted); margin: 0 0 12px; }
+    table { width: 100%; border-collapse: collapse; margin: 8px 0 12px; font-size: 9.5pt; page-break-inside: avoid; }
+    th, td { border: 1px solid var(--line); padding: 6px 8px; text-align: left; vertical-align: top; }
+    th { background: var(--soft); color: var(--navy); }
+    .box { border-radius: 8px; padding: 10px 12px; margin: 8px 0 12px; page-break-inside: avoid; }
+    .tip { background: var(--tip); border: 1px solid #bfdbfe; }
+    .warn { background: var(--warn); border: 1px solid #fed7aa; }
+    .toc a { text-decoration: none; color: var(--navy); }
+    .toc li { margin: 3px 0; }
+    .footer-note { color: var(--muted); font-size: 8.5pt; margin-top: 18px; }
+    .two { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; page-break-inside: avoid; }
+    .two img { width: 100%; }
+    .k { font-weight: 700; }
+  </style>
+</head>
+<body>
+  <section class="cover">
+    <div>
+      <img class="logo" src="screenshots/icon.png" alt="Construction Runner" />
+      <h1>Construction Runner<br/>User Guide</h1>
+      <p class="lede">Web admin and mobile app for site attendance, induction, safety documents and day-to-day site control.</p>
+    </div>
+    <div class="meta">
+      <p>Version 1.1 &nbsp;·&nbsp; September 2026</p>
+      <p>www.construction-runner.com</p>
+      <p>Support: info@construction-runner.com</p>
+    </div>
+  </section>
+
+  <h2>Contents</h2>
+  <ol class="toc">
+    <li>Welcome</li>
+    <li>Who uses Construction Runner</li>
+    <li>Getting started — web</li>
+    <li>Roles and access</li>
+    <li>Sites</li>
+    <li>Users, invites and approvals</li>
+    <li>Attendance</li>
+    <li>Tasks, deliveries, assets and messages</li>
+    <li>Safety (RAMS, briefings, induction safety, rules, alerts, near miss)</li>
+    <li>Induction and missing info</li>
+    <li>Mobile app for operatives</li>
+    <li>Subcontractors</li>
+    <li>Settings, profile and privacy</li>
+    <li>Troubleshooting</li>
+  </ol>
+
+  <h2>1. Welcome</h2>
+  <p>Construction Runner is the platform your company uses to run sites: who is on site, who is inducted, which RAMS and briefings apply, and the tasks and deliveries for that site only.</p>
+  <p>There are two products that work together:</p>
+  <ul>
+    <li><span class="k">Web admin</span> — www.construction-runner.com — for Super Admins, Site Admins, Supervisors and Subcontractor admins.</li>
+    <li><span class="k">Mobile app</span> — Construction Runner on iPhone and Android — for operatives (and for supervisors who also work on site).</li>
+  </ul>
+  <p>Open the public website (construction photography and product overview), then choose <span class="k">Member Login</span> to reach the admin sign-in screen.</p>
+  <img class="shot" src="screenshots/01-landing.png" alt="Construction Runner website" />
+  <p class="cap">Figure 1. Public website — Member Login (top right) opens the admin sign-in page.</p>
+  <img class="shot" src="screenshots/05-contact.png" alt="Contact page" />
+  <p class="cap">Figure 2. Contact page — request a demo or discuss a rollout at www.construction-runner.com/contact</p>
+
+  <h2>2. Who uses Construction Runner</h2>
+  <table>
+    <thead>
+      <tr><th>Role</th><th>Where they work</th><th>What they can do</th></tr>
+    </thead>
+    <tbody>
+      <tr><td><span class="k">Super Admin</span></td><td>Web</td><td>Whole company: create sites, invite people, assign any role including Super Admin, see every site’s documents and attendance.</td></tr>
+      <tr><td><span class="k">Site Admin</span></td><td>Web</td><td>Only the sites ticked for them. Upload RAMS/briefings, manage attendance and users on those sites. Cannot create new sites or grant Super Admin.</td></tr>
+      <tr><td><span class="k">Supervisor</span></td><td>Web + app</td><td>Same site ticks as Site Admin. Run live attendance and role call, add tasks, review safety. On the app they also get Supervisor Tools.</td></tr>
+      <tr><td><span class="k">Operative</span></td><td>App only</td><td>Sign in/out at the geofence, complete induction, acknowledge RAMS and briefings, tasks, deliveries, near miss. Web login is not available.</td></tr>
+      <tr><td><span class="k">Subcontractor admin</span></td><td>Web</td><td>Onboard their own operatives for sites they are linked to. Invite with a site invite code.</td></tr>
+    </tbody>
+  </table>
+  <div class="box tip"><span class="k">Site folders.</span> Tasks, RAMS, briefings, site rules and alerts belong to one site. A Site Admin or Supervisor who is ticked for Kidbrooke does not see PWT’s documents, and the other way around — unless you tick both sites.</div>
+
+  <h2>3. Getting started — web</h2>
+  <h3>Sign in</h3>
+  <ol>
+    <li>Go to www.construction-runner.com and click <span class="k">Member Login</span> (or open /admin/login).</li>
+    <li>Enter work email and password. Optionally tick <span class="k">Remember me</span>.</li>
+    <li>Or use <span class="k">Sign in with Google</span> if your company uses Google accounts.</li>
+  </ol>
+  <img class="shot" src="screenshots/02-login.png" alt="Admin sign in" />
+  <p class="cap">Figure 3. Construction Runner Admin — Sign in.</p>
+  <div class="box warn"><span class="k">Pending approval.</span> After you register you cannot sign in on web or app until a Super Admin (or other approver) approves you. The login screen will say your account is pending approval.</div>
+  <div class="box warn"><span class="k">Operatives.</span> If an operative tries the website they see: “Operative web login is a future feature. Please use the mobile app.”</div>
+
+  <h3>Create an account</h3>
+  <p>From sign-in, click <span class="k">Create account</span>. Two tabs:</p>
+  <ul>
+    <li><span class="k">Join with invite code</span> — Full Name, Work Email, Company Invite Code (from Settings → Company), Set Password, then <span class="k">Submit registration</span>.</li>
+    <li><span class="k">Request new company</span> — for a brand-new organisation. Pending superuser approval.</li>
+  </ul>
+  <img class="shot" src="screenshots/03-register.png" alt="Create an account" />
+  <p class="cap">Figure 4. Create an account — join with company invite code.</p>
+
+  <h3>Forgot password</h3>
+  <ol>
+    <li>On sign-in, click <span class="k">Forgot password?</span></li>
+    <li>Enter the account email and click <span class="k">Send reset link</span>.</li>
+    <li>Open the email, set a new password, then sign in.</li>
+  </ol>
+  <p>A Super Admin can also send a reset from Users → row menu → <span class="k">Send reset email</span>.</p>
+  <img class="shot" src="screenshots/04-forgot-password.png" alt="Forgot password" />
+  <p class="cap">Figure 5. Forgot password — email a reset link.</p>
+
+  <h2>4. Roles and access</h2>
+  <p>After sign-in, the left sidebar is your map of the product. Super Admins see the full company. Site Admins and Supervisors only see the sites assigned to them. The <span class="k">Dashboard</span> opens with a company snapshot — active sites, who is on site, and open tasks — so you can jump into the work that matters today.</p>
+  <table>
+    <thead><tr><th>Sidebar</th><th>Typical users</th></tr></thead>
+    <tbody>
+      <tr><td>Dashboard</td><td>Everyone on web</td></tr>
+      <tr><td>Sites, Subcontractors, Missing Info, Users, Pending approvals, Attendance</td><td>Super Admin, Site Admin, Supervisor, Subcontractor admin</td></tr>
+      <tr><td>Tasks, Deliveries, Assets, Messages</td><td>Same</td></tr>
+      <tr><td>Safety: RAMS, Briefings, Induction safety, COSHH, Site Rules, Alerts, Near Miss, Logs</td><td>Same</td></tr>
+      <tr><td>Settings / Profile</td><td>Everyone on web</td></tr>
+    </tbody>
+  </table>
+  <div class="box tip"><span class="k">Missing Info.</span> The sidebar shows people missing emergency contact or medical details. (A fuller Induction Compliance list can be turned on for some companies; most companies use Missing Info.)</div>
+  <p>Only a Super Admin (or platform Superuser) can:</p>
+  <ul>
+    <li>Click <span class="k">Add New Site</span></li>
+    <li>Assign the Super Admin role</li>
+  </ul>
+  <p>Site Admins and Supervisors can invite or approve people as <span class="k">Operative</span> only.</p>
+
+  <h2>5. Sites</h2>
+  <p>Open <span class="k">Sites</span>. Super Admins see every company site. Site Admins and Supervisors see only assigned sites. Status columns use the same soft chips as the rest of the admin (Active / On map / Required).</p>
+  <img class="shot" src="screenshots/06-sites.png" alt="Sites screen" />
+  <p class="cap">Figure 6. Illustrated Sites screen (labels match the live admin). Each site is its own folder for documents and tasks.</p>
+  <h3>Add or edit a site (Super Admin)</h3>
+  <ol>
+    <li>Click <span class="k">Add New Site</span> (or open a site → Details).</li>
+    <li>Enter <span class="k">Site Name</span> and address. Set location on the map if needed.</li>
+    <li>Set <span class="k">Geofence radius (metres)</span> — this is the GPS boundary for mobile Sign In / Sign Out.</li>
+    <li>Tick <span class="k">Show on mobile map</span> if operatives should see it on the app map.</li>
+    <li>Tick <span class="k">Induction required for this site</span> if people must complete induction before they can sign in.</li>
+    <li>Click <span class="k">Save</span> / <span class="k">Save changes</span>.</li>
+  </ol>
+  <p>Row actions include View map, Toggle visible, Toggle active, and Delete site. Open a site to use the <span class="k">Details</span>, <span class="k">Subcontractors</span> and <span class="k">Induction</span> tabs.</p>
+
+  <h2>6. Users, invites and approvals</h2>
+  <h3>Invite someone</h3>
+  <ol>
+    <li>Open <span class="k">Users</span> → <span class="k">Invite User</span>.</li>
+    <li>Enter name, email and role.</li>
+    <li>For Site Admin or Supervisor, tick every site they should see (they can be on more than one). Click <span class="k">Invite</span>.</li>
+  </ol>
+  <h3>Approve a registration</h3>
+  <ol>
+    <li>Open <span class="k">Pending approvals</span>. Until you approve, they cannot sign in on web or app.</li>
+    <li>Choose <span class="k">Assign role</span>: Operative, Supervisor, Site Admin, or Super Admin.</li>
+    <li>For Supervisor or Site Admin, tick <span class="k">Sites they can access (tick all that apply)</span> — at least one site.</li>
+    <li>Click <span class="k">Approve</span> or <span class="k">Reject</span>.</li>
+  </ol>
+  <img class="shot" src="screenshots/08-approvals.png" alt="Pending approvals" />
+  <p class="cap">Figure 7. Illustrated Pending approvals — assign a role and tick sites before Approve.</p>
+  <h3>Change sites later</h3>
+  <p>On Users, open the row menu for a Site Admin or Supervisor and choose <span class="k">Assign sites…</span>. Tick every site they work on, use Select all / Clear if needed, then <span class="k">Save</span>.</p>
+  <img class="shot" src="screenshots/07-assign-sites.png" alt="Assign sites" />
+  <p class="cap">Figure 8. Illustrated Assign sites — multiple sites for Site Admins and Supervisors. Role chips match the live admin.</p>
+  <p>Other user actions: View profile, Medical records, Set role, Send reset email, Delete user.</p>
+  <div class="box tip"><span class="k">Company invite code.</span> Settings → Company shows the code staff use on Create account. Use <span class="k">Regenerate Invite Code</span> if the old code should stop working.</div>
+
+  <h2>7. Attendance</h2>
+  <p>Open <span class="k">Attendance</span>. Pick a date (or <span class="k">Today</span>). Two tabs:</p>
+  <ul>
+    <li><span class="k">Live</span> — who is signed in. Archives at midnight UK time; pick a past date to view the archive. Use <span class="k">Record attendance</span> for a manual web Sign In / Sign Out (this does not replace GPS check-in on the app).</li>
+    <li><span class="k">Role Call</span> — fire roll call. Signed in first, signed out on the other sub-tab. Filter by site. <span class="k">Export CSV</span>, <span class="k">Export PDF</span>, <span class="k">Archive &amp; Clear Day</span>.</li>
+  </ul>
+  <img class="shot" src="screenshots/09-attendance.png" alt="Attendance" />
+  <p class="cap">Figure 9. Illustrated Attendance — Live log plus optional manual Record attendance.</p>
+  <p>Mobile auto sign-out reasons can appear as geofence exit, left site, or auto sign-out (for example if GPS goes silent for too long).</p>
+
+  <h2>8. Tasks, deliveries, assets and messages</h2>
+  <h3>Tasks</h3>
+  <p><span class="k">Add Task</span> — Title, Description (optional), Assigned To (multiple people), <span class="k">Site</span> (required), Due date. Super Admins, Site Admins and Supervisors can add tasks. Operatives complete them on the app (Open / In progress / Done).</p>
+  <h3>Deliveries</h3>
+  <p><span class="k">Add Delivery</span> — Reference, Supplier / Wholesaler, Site, Scheduled At, Notes. Operatives can submit proof of delivery and load photos on the app.</p>
+  <h3>Assets</h3>
+  <p>Add equipment, assign to operatives, upload inspection evidence. Operatives see <span class="k">My Assets</span> on the app.</p>
+  <h3>Messages</h3>
+  <p>Open <span class="k">Messages</span>. You only see conversations you are in. Click <span class="k">New</span>, then pick the people who should receive the thread. You can optionally choose <span class="k">Broadcast to all company users</span> when everyone needs the same message. Reply in the thread.</p>
+  <div class="box warn"><span class="k">Always pick the site.</span> When you create a task, delivery, RAMS, briefing or alert you will be asked for a site. That item stays in that site only.</div>
+
+  <h2>9. Safety</h2>
+  <p>Open <span class="k">Safety</span> in the sidebar.</p>
+  <table>
+    <thead><tr><th>Item</th><th>What to do</th></tr></thead>
+    <tbody>
+      <tr><td>RAMS</td><td>Upload RAMS for a chosen site (PDF). Operatives acknowledge on the app. Company logo from Settings appears on PDFs.</td></tr>
+      <tr><td>Briefings</td><td>Upload toolbox talks. Operatives <span class="k">Sign &amp; acknowledge</span>. Super Admins/Supervisors can download acknowledgement reports.</td></tr>
+      <tr><td>Induction safety</td><td>Company safety pack shown during induction (the “read site safety information” step). Edit once for the company; it is not the same as Site Rules.</td></tr>
+      <tr><td>COSHH</td><td>Substance information, hazard symbols and PPE.</td></tr>
+      <tr><td>Site Rules</td><td>PPE, Emergency Procedures, Conduct — <span class="k">per site</span>. Save; optional file on emergency rules.</td></tr>
+      <tr><td>Alerts</td><td>Add Alert — Info / Warning / Critical + site.</td></tr>
+      <tr><td>Near Miss</td><td>Reports from the app. <span class="k">Mark reviewed</span>, Export PDF. Unreviewed count shows a red badge on Safety.</td></tr>
+    </tbody>
+  </table>
+  <div class="box tip"><span class="k">Induction safety vs Site Rules.</span> Induction safety is the shared company pack everyone reads when inducting. Site Rules are site-specific (PPE, emergency, conduct) and can differ between Kidbrooke and PWT.</div>
+  <img class="shot" src="screenshots/10-rams.png" alt="RAMS" />
+  <p class="cap">Figure 10. Illustrated RAMS — select the site, then upload. Acknowledgements show per document. Safety also lists Induction safety and Site Rules.</p>
+
+  <h2>10. Induction and missing info</h2>
+  <p><span class="k">Missing Info</span> lists people who still need emergency contact or medical details filled in. Use it to chase incomplete profiles before they arrive on site.</p>
+  <p>Induction is stored per site and expires <span class="k">365 days</span> after completion. On a site, the Induction tab shows Inducted, Expired, Induction Required, and lets an admin mark complete or reset.</p>
+  <p>When someone inducts on the app they: read <span class="k">Induction safety</span> (company pack) → acknowledge RAMS → confirm site rules → <span class="k">Complete induction</span>.</p>
+  <p>Admins who go to site should be inducted like everyone else (see Profile → Induction on the app, or the site Induction tab on web).</p>
+  <img class="shot" src="screenshots/13-inductions.png" alt="My Inductions on the app" />
+  <p class="cap">Figure 11. Illustrated My Inductions on the app — start induction on a new site here. Statuses: Not Started, Completed, Expired.</p>
+
+  <h2>11. Mobile app for operatives</h2>
+  <p>Download <span class="k">Construction Runner</span> from the App Store or Google Play. Sign in with the same email and password. Registration in the app also needs a company invite code and then admin approval.</p>
+  <img class="shot" src="screenshots/11-mobile-home.png" alt="App Home" />
+  <p class="cap">Figure 12. Illustrated Home tab — Check In / Out, tasks and briefings. Bottom tabs: Home, Safety, Deliveries, Assets, Messages, Tasks.</p>
+  <h3>Sign in on site</h3>
+  <ol>
+    <li>Home → <span class="k">Check In / Out</span>.</li>
+    <li>Tap <span class="k">Select site</span> and choose the site.</li>
+    <li>Wait until the map shows <span class="k">Inside Site Boundary</span>.</li>
+    <li>If the site requires induction, complete <span class="k">Site induction</span> (Read site safety information → Acknowledge RAMS → Confirm site rules → <span class="k">Complete induction</span>).</li>
+    <li>On <span class="k">RA/MS Acceptance</span> tap <span class="k">Accept &amp; Sign In</span>.</li>
+    <li>Tap <span class="k">Sign In</span>. To leave, tap <span class="k">Sign Out</span> or walk out of the geofence (auto sign-out).</li>
+  </ol>
+  <img class="shot" src="screenshots/12-mobile-checkin.png" alt="Check in map" />
+  <p class="cap">Figure 13. Illustrated Check In / Out map. You must be inside the boundary to Sign In. Leaving the site signs you out automatically.</p>
+  <div class="box warn">
+    <span class="k">Location must be Always.</span> On iPhone, Settings → Construction Runner → Location → <span class="k">Always</span> (not While Using). On Android, set Location to <span class="k">Allow all the time</span>. “While Using” or “Allow Once” will not sign you out after you leave the site.
+  </div>
+  <h3>Safety and other tabs</h3>
+  <ul>
+    <li>Safety: Briefings (Sign &amp; acknowledge), RAMS, Site Rules, Safety checklist, Alerts, Near Miss (<span class="k">New report</span> → <span class="k">Submit Report</span>), COSHH.</li>
+    <li>Profile (⋮ menu): Personal Info, My Info, <span class="k">My Inductions</span>, Settings, Sign Out.</li>
+    <li>Optional: Face ID / biometric login and app lock in Settings.</li>
+  </ul>
+  <div class="box tip"><span class="k">My Inductions vs Select site.</span> Use My Inductions to start induction on a site you have not done yet. Use Select site on the map for today’s attendance. Induction still blocks Sign In when the site requires it and you have not completed it.</div>
+  <div class="box tip"><span class="k">Connection and GPS.</span> Sign In needs a live connection and location. The web admin does not offer an Offline queue screen.</div>
+
+  <h2>12. Subcontractors</h2>
+  <ol>
+    <li>Main contractor: Subcontractors → <span class="k">Invite Subcontractor</span> → choose <span class="k">Site to link</span> → <span class="k">Generate invite code</span> → copy the code.</li>
+    <li>Partner opens www.construction-runner.com/join — <span class="k">Join as subcontractor</span> — enter code and email → Continue, then sign in once approved.</li>
+    <li>Subcontractor admins use <span class="k">Operative Onboarding</span> to invite their own people and upload documents.</li>
+  </ol>
+
+  <h2>13. Settings, profile and privacy</h2>
+  <p><span class="k">Settings</span> tabs: Personal Information, Company (name, address, logo, invite code), Notifications, Security (Change Password, Two-Factor Authentication, Session Timeout), Display, Data &amp; Privacy (Export Data, Delete Account).</p>
+  <p><span class="k">Profile</span> tabs: Personal, Activity, Certification &amp; Training, Medical History, Induction, Privacy &amp; Data. Need help? The sidebar links to info@construction-runner.com. Privacy policy: /legal/privacy-and-security</p>
+  <p>Notifications in the top bar clear when you close the panel after reading them (you do not have to click each item).</p>
+
+  <h2>14. Troubleshooting</h2>
+  <table>
+    <thead><tr><th>Problem</th><th>What to try</th></tr></thead>
+    <tbody>
+      <tr><td>Cannot sign in after registering</td><td>Wait for Pending approvals. Ask a Super Admin to Approve and, for Supervisor/Site Admin, tick sites.</td></tr>
+      <tr><td>Operative sent to the website</td><td>Use the Construction Runner mobile app.</td></tr>
+      <tr><td>Supervisor or Site Admin sees no sites</td><td>Users → Assign sites… and tick at least one site.</td></tr>
+      <tr><td>Cannot Sign In on the app</td><td>Enable Always / Allow all the time location. Stand inside the geofence. Complete induction if required. Accept RAMS. Check you have a network connection.</td></tr>
+      <tr><td>Did not auto sign out</td><td>Confirm Location is Always. Open Settings from the in-app prompt. Stay signed in only while on site.</td></tr>
+      <tr><td>Reset link expired</td><td>Request a new link from Forgot password.</td></tr>
+      <tr><td>Wrong documents on a site</td><td>Check the site selected when uploading. Content does not copy across sites.</td></tr>
+      <tr><td>Near Miss badge stays on</td><td>Open Near Miss and Mark reviewed.</td></tr>
+      <tr><td>Cannot see a message thread</td><td>You only see conversations you were added to. Ask the sender to include you, or use Broadcast when everyone must see it.</td></tr>
+    </tbody>
+  </table>
+  <p class="footer-note">Construction Runner User Guide v1.1 — September 2026. Screenshots of the public website are live captures. Admin and app figures are illustrated layouts that match live button labels and the current table chrome. For support: info@construction-runner.com</p>
+</body>
+</html>

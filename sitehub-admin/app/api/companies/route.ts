@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { getServerPublicOrigin } from "@/lib/url";
+import { sendApprovalWelcomeEmailToUser } from "@/lib/sendApprovalWelcomeEmail";
 
 /**
  * GET /api/companies
@@ -195,12 +195,7 @@ export async function POST(req: Request) {
     }
 
     try {
-      const base = getServerPublicOrigin();
-      await fetch(`${base.replace(/\/$/, "")}/api/auth/sendWelcome`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ userId: authUserId, tempPassword }),
-      });
+      await sendApprovalWelcomeEmailToUser(authUserId, tempPassword);
     } catch (e) {
       console.error("POST /api/companies welcome email failed:", e);
     }

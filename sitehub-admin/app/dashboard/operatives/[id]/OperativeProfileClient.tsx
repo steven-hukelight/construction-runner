@@ -5,6 +5,7 @@ import Image from "next/image";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
+import { openDocumentUrl } from "@/lib/openDocumentUrl";
 
 type User = {
   id: string;
@@ -233,22 +234,30 @@ export default function OperativeProfileClient({ id }: { id: string }) {
         <h3 className="font-medium text-slate-900">Medical History</h3>
 
         <div className="space-y-2 mt-3">
-          {medical.map((m) => (
-            <div key={m.id} className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
-              <div className="font-medium text-slate-900">{m.title}</div>
-              <div className="text-sm text-slate-600">{m.notes}</div>
-              <div className="text-sm">
-                <a
-                  href={(m as MedicalRecord).fileUrl ?? (m as MedicalRecord).file_url}
-                  target="_blank"
-                  rel="noreferrer"
-                  className="text-xs font-medium text-blue-600 hover:text-blue-700 underline"
-                >
-                  {(m as MedicalRecord).fileName ?? (m as MedicalRecord).file_name ?? "File"}
-                </a>
+          {medical.map((m) => {
+            const record = m as MedicalRecord;
+            const fileUrl = record.fileUrl ?? record.file_url;
+            const fileLabel = record.fileName ?? record.file_name ?? "File";
+            return (
+              <div key={m.id} className="border border-gray-200 rounded-lg px-3 py-2 bg-gray-50">
+                <div className="font-medium text-slate-900">{m.title}</div>
+                <div className="text-sm text-slate-600">{m.notes}</div>
+                <div className="text-sm">
+                  {fileUrl ? (
+                    <button
+                      type="button"
+                      onClick={() => openDocumentUrl(fileUrl)}
+                      className="text-xs font-medium text-blue-600 hover:text-blue-700 underline"
+                    >
+                      {fileLabel}
+                    </button>
+                  ) : (
+                    <span className="text-xs text-slate-500">{fileLabel}</span>
+                  )}
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
 
           {medical.length === 0 && <div className="text-sm text-slate-500">No records.</div>}
         </div>

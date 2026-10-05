@@ -171,26 +171,26 @@ export default async function UserProfilePage({
         </p>
         <dl className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Name</dt>
+            <dt className="text-xs font-medium text-gray-500">Name</dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900">{name}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Email address</dt>
+            <dt className="text-xs font-medium text-gray-500">Email address</dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900">{email}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Phone</dt>
+            <dt className="text-xs font-medium text-gray-500">Phone</dt>
             <dd className="mt-0.5 text-sm font-medium text-gray-900">{phoneDisplay}</dd>
           </div>
           <div>
-            <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Role</dt>
+            <dt className="text-xs font-medium text-gray-500">Role</dt>
             <dd className="mt-0.5">
               <RoleBadge role={userRole === "—" ? null : userRole} />
             </dd>
           </div>
           {companyName && (
             <div>
-              <dt className="text-xs font-medium uppercase tracking-wide text-gray-500">Company</dt>
+              <dt className="text-xs font-medium text-gray-500">Company</dt>
               <dd className="mt-0.5 text-sm font-medium text-gray-900">{companyName}</dd>
             </div>
           )}

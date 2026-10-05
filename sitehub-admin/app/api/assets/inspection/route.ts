@@ -7,6 +7,7 @@ import { rollAssetInspectionSchedule } from "@/lib/assets/rollInspectionSchedule
 export async function POST(req: Request) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const body = await req.json().catch(() => ({}));
     const assetId = body?.asset_id ?? body?.assetId;
     const notes = body?.notes != null ? String(body.notes).trim() : null;

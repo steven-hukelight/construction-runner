@@ -390,9 +390,7 @@ export default function SuperuserToolsPage() {
       <div className="grid gap-6 sm:grid-cols-1 md:grid-cols-2">
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Download className="w-5 h-5 text-blue-600" />
-            </div>
+            <Download className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Export company data</h3>
               <p className="text-sm text-gray-600">Download all data for one company as JSON</p>
@@ -427,9 +425,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <CheckCircle2 className="w-5 h-5 text-blue-600" />
-            </div>
+            <CheckCircle2 className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Validate data</h3>
               <p className="text-sm text-gray-600">Check companyId coverage and counts per company</p>
@@ -453,9 +449,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <FileText className="w-5 h-5 text-blue-600" />
-            </div>
+            <FileText className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Audit log export</h3>
               <p className="text-sm text-gray-600">Download activity logs for compliance</p>
@@ -479,9 +473,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Trash2 className="w-5 h-5 text-blue-600" />
-            </div>
+            <Trash2 className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Retention cleanup</h3>
               <p className="text-sm text-gray-600">GDPR: delete old inductions, training, RAMS data</p>
@@ -505,9 +497,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <KeyRound className="w-5 h-5 text-blue-600" />
-            </div>
+            <KeyRound className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Password reset</h3>
               <p className="text-sm text-gray-600">Send reset email to a user by email</p>
@@ -536,9 +526,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
+            <Users className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Provision all legacy users</h3>
               <p className="text-sm text-gray-600">Create auth accounts for users from a legacy import</p>
@@ -558,9 +546,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <History className="w-5 h-5 text-blue-600" />
-            </div>
+            <History className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Grandfather inductions</h3>
               <p className="text-sm text-gray-600">Batch-mark completed site inductions as grandfathered</p>
@@ -589,9 +575,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Copy className="w-5 h-5 text-blue-600" />
-            </div>
+            <Copy className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Copy company from template</h3>
               <p className="text-sm text-gray-600">Create new company with sites & rules from template</p>
@@ -630,9 +614,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Mail className="w-5 h-5 text-blue-600" />
-            </div>
+            <Mail className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Bulk invite</h3>
               <p className="text-sm text-gray-600">Send invite emails to many users for one company</p>
@@ -670,9 +652,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Upload className="w-5 h-5 text-blue-600" />
-            </div>
+            <Upload className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Import users from CSV</h3>
               <p className="text-sm text-gray-600">Bulk create registrations. CSV: email, name</p>
@@ -709,9 +689,7 @@ export default function SuperuserToolsPage() {
 
         <div className="card">
           <div className="flex items-center gap-3 mb-4">
-            <div className="p-2 rounded-xl bg-gradient-to-br from-blue-500/10 to-blue-600/10 border border-blue-200/40">
-              <Users className="w-5 h-5 text-blue-600" />
-            </div>
+            <Users className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
             <div>
               <h3 className="text-lg font-semibold text-gray-900">Sync profile to user docs</h3>
               <p className="text-sm text-gray-600">Copy displayName, phone from profile subcollection to user docs</p>

@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
-import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { NextResponse } from "next/server";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { bearerTokenFrom, expectedRoleCookie, verifyApiCredentials } from "@/lib/auth/apiAuth";
 
 export type MobileApiAuth = {
   uid: string | null;
@@ -10,105 +11,62 @@ export type MobileApiAuth = {
   isSuperuser: boolean;
 };
 
-export async function resolveMobileApiAuth(req: Request): Promise<MobileApiAuth> {
+/**
+ * Resolves the caller from a verified web session (`session_id` cookie) or a
+ * Supabase Bearer token (Flutter). Fails closed: returns a 401 response when no
+ * user can be established, so callers must `if (auth instanceof NextResponse) return auth;`.
+ */
+export async function resolveMobileApiAuth(req: Request): Promise<MobileApiAuth | NextResponse> {
   const cookieStore = await cookies();
-  const queryCompanyId =
-    new URL(req.url).searchParams.get("companyId")?.trim() || null;
+  const queryCompanyId = new URL(req.url).searchParams.get("companyId")?.trim() || null;
 
-  const cookieUid = cookieStore.get("uid")?.value?.trim() ?? null;
-  const cookieRole = cookieStore.get("role")?.value ?? null;
+  const cookieUid = cookieStore.get("uid")?.value?.trim() || null;
+  const cookieRole = cookieStore.get("role")?.value || null;
   const cookieCompanyId =
-    cookieStore.get("companyId")?.value ??
-    cookieStore.get("company_id")?.value ??
-    null;
-  const cookieUserEmail = cookieStore.get("user_email")?.value ?? null;
+    cookieStore.get("companyId")?.value ?? cookieStore.get("company_id")?.value ?? null;
+  const cookieUserEmail = cookieStore.get("user_email")?.value || null;
+
+  const outcome = await verifyApiCredentials({
+    sessionId: cookieStore.get("session_id")?.value ?? null,
+    bearerToken: bearerTokenFrom(req.headers.get("authorization")),
+    cookieUid,
+    cookieRole,
+    cookieCompanyId,
+    cookieEmail: cookieUserEmail,
+  });
+  if (!outcome.ok) {
+    return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+  }
+  const user = outcome.user;
 
   if (cookieUid || cookieRole || cookieUserEmail) {
-    const resolvedCookieCompanyId =
-      cookieRole === "superuser"
-        ? queryCompanyId ?? cookieCompanyId
-        : cookieCompanyId ??
-          (await resolveCompanyId({
-            cookieCompanyId: cookieCompanyId ?? undefined,
-            userEmail: cookieUserEmail ?? undefined,
-            role: cookieRole ?? undefined,
-            queryCompanyId: queryCompanyId ?? undefined,
-          })) ??
-            null;
-
+    const role = cookieRole ?? expectedRoleCookie(user);
+    const isSuperuser = role.toLowerCase() === "superuser";
+    const companyId = isSuperuser
+      ? queryCompanyId ?? cookieCompanyId
+      : cookieCompanyId ??
+        user.dbCompanyId ??
+        (await resolveCompanyId({
+          cookieCompanyId: undefined,
+          userEmail: cookieUserEmail ?? user.dbEmail ?? undefined,
+          role,
+          queryCompanyId: queryCompanyId ?? undefined,
+        })) ??
+        null;
     return {
-      uid: cookieUid,
-      role: cookieRole,
-      companyId: resolvedCookieCompanyId,
-      userEmail: cookieUserEmail,
-      isSuperuser: (cookieRole ?? "").toLowerCase() === "superuser",
-    };
-  }
-
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.toLowerCase().startsWith("bearer ")) {
-    return {
-      uid: null,
-      role: null,
-      companyId: null,
-      userEmail: null,
-      isSuperuser: false,
-    };
-  }
-
-  const token = authHeader.slice(7).trim();
-  if (!token) {
-    return {
-      uid: null,
-      role: null,
-      companyId: null,
-      userEmail: null,
-      isSuperuser: false,
-    };
-  }
-
-  try {
-    const {
-      data: { user },
-      error,
-    } = await supabaseAdmin.auth.getUser(token);
-
-    if (error || !user) {
-      return {
-        uid: null,
-        role: null,
-        companyId: null,
-        userEmail: null,
-        isSuperuser: false,
-      };
-    }
-
-    const { data: dbUser } = await supabaseAdmin
-      .from("users")
-      .select("id, company_id, role, email")
-      .eq("id", user.id)
-      .maybeSingle();
-
-    const role = (dbUser?.role as string | undefined) ?? null;
-    const companyId =
-      (dbUser?.company_id as string | undefined | null) ?? null;
-    const isSuperuser = (role ?? "").toLowerCase() === "superuser";
-
-    return {
-      uid: (dbUser?.id as string | undefined) ?? user.id,
+      uid: user.uid,
       role,
-      companyId: isSuperuser ? queryCompanyId ?? companyId : companyId,
-      userEmail:
-        (dbUser?.email as string | undefined) ?? user.email ?? null,
+      companyId,
+      userEmail: cookieUserEmail ?? user.dbEmail,
       isSuperuser,
     };
-  } catch {
-    return {
-      uid: null,
-      role: null,
-      companyId: null,
-      userEmail: null,
-      isSuperuser: false,
-    };
   }
+
+  return {
+    uid: user.uid,
+    role: user.dbRole,
+    companyId: user.isSuperuser ? queryCompanyId ?? user.dbCompanyId : user.dbCompanyId,
+    userEmail: user.dbEmail ?? user.authEmail,
+    isSuperuser: user.isSuperuser,
+  };
 }

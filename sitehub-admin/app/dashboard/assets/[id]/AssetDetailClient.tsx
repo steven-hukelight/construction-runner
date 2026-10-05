@@ -330,9 +330,17 @@ export default function AssetDetailClient({
                     : due === "ok"
                       ? "On schedule"
                       : "No schedule";
+              const dueChip =
+                due === "overdue"
+                  ? "status-chip--danger"
+                  : due === "due_soon"
+                    ? "status-chip--warn"
+                    : due === "ok"
+                      ? "status-chip--ok"
+                      : "status-chip--muted";
               return (
                 <p className="text-sm text-slate-600 mb-3">
-                  {dueLabel}
+                  <span className={`status-chip ${dueChip}`}>{dueLabel}</span>
                   {asset.next_inspection_due
                     ? ` · next due ${asset.next_inspection_due}`
                     : ""}

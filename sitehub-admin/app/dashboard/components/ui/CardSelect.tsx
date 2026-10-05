@@ -119,7 +119,7 @@ export function CardSelect({
           <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
         </span>
         <span className="min-w-0 flex-1">
-          <span className="block text-[10px] font-semibold uppercase tracking-wide text-slate-500 dark:text-slate-400">
+          <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
             {fieldLabel}
           </span>
           <span

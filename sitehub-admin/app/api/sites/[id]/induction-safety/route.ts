@@ -42,6 +42,7 @@ async function assertCanEditSite(auth: { role: string | null; uid: string | null
 export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     if (!auth.uid && !auth.userEmail) {
       return NextResponse.json({ error: "Not authenticated" }, { status: 401 });
     }
@@ -64,6 +65,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 export async function PUT(req: Request, { params }: { params: Promise<{ id: string }> }) {
   try {
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const { id: siteId } = await params;
     const forbid = await assertCanEditSite(auth, siteId);
     if (forbid) return forbid;

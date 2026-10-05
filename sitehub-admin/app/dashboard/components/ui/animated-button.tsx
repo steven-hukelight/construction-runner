@@ -20,14 +20,14 @@ export function AnimatedButton({
   disabled,
   ...props 
 }: AnimatedButtonProps) {
-  const baseStyles = "font-semibold rounded-xl transition-all duration-200 flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
+  const baseStyles = "font-semibold rounded-lg transition-colors duration-[120ms] flex items-center justify-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed";
   
   const variants = {
-    primary: "bg-gradient-to-r from-blue-600 to-blue-700 text-white hover:from-blue-700 hover:to-blue-800 shadow-md hover:shadow-lg",
+    primary: "bg-blue-600 text-white hover:bg-blue-700",
     secondary: "bg-gray-100 text-gray-900 hover:bg-gray-200",
     outline: "border-2 border-blue-600 text-blue-600 hover:bg-blue-50",
     ghost: "text-gray-700 hover:bg-gray-100",
-    danger: "bg-red-600 text-white hover:bg-red-700 shadow-md hover:shadow-lg",
+    danger: "bg-red-600 text-white hover:bg-red-700",
   };
 
   const sizes = {

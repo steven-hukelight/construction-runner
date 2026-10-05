@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "../components/ui/Table";
 import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
@@ -160,7 +161,7 @@ export default function SuperuserAdminClient() {
                     : status === "APPROVED"
                       ? "status-chip--ok"
                       : "status-chip--muted";
-                return <span className={`status-chip ${chip}`}>{status}</span>;
+                return <span className={`status-chip ${chip}`}>{toSentenceCase(status)}</span>;
               },
             },
             {

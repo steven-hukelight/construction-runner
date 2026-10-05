@@ -11,6 +11,7 @@ export async function GET(
   try {
     const { id: assetId } = await params;
     const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
     const access = await assertInspectionAssetAccess(auth, assetId);
     if (!access.ok) {
       return NextResponse.json({ error: access.error }, { status: access.status });
