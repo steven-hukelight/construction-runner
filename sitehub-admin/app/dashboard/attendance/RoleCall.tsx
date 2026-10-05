@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
@@ -416,14 +417,14 @@ export default function RoleCall({
         setPeople([]);
         setAttendanceLogs([]);
         onArchived?.();
-        alert(`Role call for ${selectedDate} archived. Ready for next session.`);
+        toast.success(`Role call for ${selectedDate} archived. Ready for next session.`);
       } else {
-        alert(data?.error ?? "Failed to archive");
+        toast.error(data?.error ?? "Failed to archive");
       }
     } catch (e: unknown) {
       const msg = e instanceof Error ? e.message : "Unknown error";
       console.error(e);
-      alert(`Failed to archive role call: ${msg}`);
+      toast.error(`Failed to archive role call: ${msg}`);
     } finally {
       setArchiving(false);
     }

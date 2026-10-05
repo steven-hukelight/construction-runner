@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import Button from "../components/ui/Button";
@@ -43,7 +44,7 @@ export default function InviteUserModal() {
 
   async function handleSubmit() {
     if (usesAssignedSites(form.role) && siteIds.length === 0) {
-      alert("Tick at least one site. They can be assigned to more than one.");
+      toast.error("Tick at least one site. They can be assigned to more than one.");
       return;
     }
     setSaving(true);

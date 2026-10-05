@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { createPortal } from "react-dom";
@@ -86,7 +87,7 @@ export default function AllUsersPage() {
         setRoleModal(null);
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to update role");
+        toast.error(err.error || "Failed to update role");
       }
     } finally {
       setSaving(false);
@@ -111,7 +112,7 @@ export default function AllUsersPage() {
         setCompanyModal(null);
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to update company");
+        toast.error(err.error || "Failed to update company");
       }
     } finally {
       setSaving(false);
@@ -132,7 +133,7 @@ export default function AllUsersPage() {
         );
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to update");
+        toast.error(err.error || "Failed to update");
       }
     } finally {
       setSaving(false);
@@ -142,7 +143,7 @@ export default function AllUsersPage() {
   async function handleSendPasswordReset(user: UserRow) {
     const email = user.email;
     if (!email) {
-      alert("User has no email.");
+      toast.error("User has no email.");
       return;
     }
     setSaving(true);
@@ -164,7 +165,7 @@ export default function AllUsersPage() {
         });
         provData = await provRes.json().catch(() => ({}));
         if (!provRes.ok || !provData?.ok) {
-          alert(provData?.error || "Provision failed");
+          toast.error(provData?.error || "Provision failed");
           return;
         }
         const newId = provData.userId ?? user.id;
@@ -182,7 +183,7 @@ export default function AllUsersPage() {
         setResetSentId(resetId);
         setTimeout(() => setResetSentId(null), 3000);
       } else {
-        alert(data.error || "Failed to send reset email");
+        toast.error(data.error || "Failed to send reset email");
       }
     } finally {
       setSaving(false);
@@ -198,7 +199,7 @@ export default function AllUsersPage() {
         setUsers((prev) => prev.filter((u) => u.id !== user.id));
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to delete");
+        toast.error(err.error || "Failed to delete");
       }
     } finally {
       setSaving(false);

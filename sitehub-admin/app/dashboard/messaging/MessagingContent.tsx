@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import Link from "next/link";
@@ -158,11 +159,11 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         });
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete message");
+        toast.error(j?.error ?? "Failed to delete message");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete message");
+      toast.error("Failed to delete message");
     } finally {
       setDeletingId(null);
     }
@@ -182,11 +183,11 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         fetchThreads();
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete thread");
+        toast.error(j?.error ?? "Failed to delete thread");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete thread");
+      toast.error("Failed to delete thread");
     } finally {
       setDeletingThread(false);
     }
@@ -204,11 +205,11 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         fetchThreads();
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to archive");
+        toast.error(j?.error ?? "Failed to archive");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to archive thread");
+      toast.error("Failed to archive thread");
     } finally {
       setArchiving(false);
       setArchivingId(null);
@@ -229,11 +230,11 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         fetchThreads();
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete thread");
+        toast.error(j?.error ?? "Failed to delete thread");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete thread");
+      toast.error("Failed to delete thread");
     } finally {
       setDeletingThreadId(null);
     }
@@ -241,7 +242,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
 
   async function submitNewThread() {
     if (!myUserId) {
-      alert("Could not resolve your account. Refresh the page and try again.");
+      toast.error("Could not resolve your account. Refresh the page and try again.");
       return;
     }
     const others = companyUsers.filter((u) => u.id !== myUserId);
@@ -250,7 +251,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         ? others.map((u) => u.id)
         : selectedRecipientIds.filter((id) => id !== myUserId);
     if (recipientIds.length === 0) {
-      alert(
+      toast.error(
         composeMode === "broadcast"
           ? "There are no other users in this company to message."
           : "Select at least one recipient."
@@ -270,7 +271,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(typeof data?.error === "string" ? data.error : "Failed to create conversation");
+        toast.error(typeof data?.error === "string" ? data.error : "Failed to create conversation");
         return;
       }
       if (data?.id) {
@@ -283,7 +284,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to create conversation");
+      toast.error("Failed to create conversation");
     } finally {
       setSending(false);
     }

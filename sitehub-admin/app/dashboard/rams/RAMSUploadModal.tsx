@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import Image from "next/image";
 import { useState, useEffect, type ChangeEvent } from "react";
@@ -56,11 +57,11 @@ export default function RAMSUploadModal() {
   async function handleUpload() {
     if (!file) return;
     if (!siteId.trim()) {
-      alert("Select a site. This RAMS document will only appear for that site.");
+      toast.error("Select a site. This RAMS document will only appear for that site.");
       return;
     }
     if (file.size > RAMS_MAX_UPLOAD_BYTES) {
-      alert(`File too large (max ${RAMS_MAX_UPLOAD_LABEL})`);
+      toast.error(`File too large (max ${RAMS_MAX_UPLOAD_LABEL})`);
       return;
     }
     setUploading(true);
@@ -82,7 +83,7 @@ export default function RAMSUploadModal() {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(typeof err?.error === "string" ? err.error : "Upload failed");
+        toast.error(typeof err?.error === "string" ? err.error : "Upload failed");
         return;
       }
       setOpen(false);

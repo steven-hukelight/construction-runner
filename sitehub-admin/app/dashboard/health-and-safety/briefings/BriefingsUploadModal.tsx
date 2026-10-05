@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect, type ChangeEvent } from "react";
 import Button from "../../components/ui/Button";
@@ -38,7 +39,7 @@ export default function BriefingsUploadModal() {
   async function handleUpload() {
     if (!file) return;
     if (!siteId.trim()) {
-      alert("Select a site. This briefing will only appear for that site.");
+      toast.error("Select a site. This briefing will only appear for that site.");
       return;
     }
     setUploading(true);
@@ -64,13 +65,13 @@ export default function BriefingsUploadModal() {
       };
       const push = json.push;
       if (push && push.recipients && push.recipients > 0 && !push.sent) {
-        alert(
+        toast.success(
           `Briefing saved, but the push notification may not have reached devices${
             push.error ? `: ${push.error}` : "."
           }`,
         );
       } else if (push && (!push.recipients || push.recipients === 0)) {
-        alert(
+        toast.success(
           "Briefing saved. No one is assigned to that site yet, so no push was sent.",
         );
       }

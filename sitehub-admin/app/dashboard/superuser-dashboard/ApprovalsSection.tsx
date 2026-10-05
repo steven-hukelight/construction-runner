@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
 import Table from "../components/ui/Table";
@@ -68,7 +69,7 @@ export default function ApprovalsSection() {
         setPending((prev) => prev.filter((r) => r.id !== id));
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "Approval failed");
+        toast.error(err.error || "Approval failed");
       }
     } finally {
       setLoading(false);

@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import Image from "next/image";
@@ -105,7 +106,7 @@ export default function OperativeProfileClient({ id }: { id: string }) {
   }, [id]);
 
   async function upload() {
-    if (!file) return alert("Select a file");
+    if (!file) return toast.error("Select a file");
     setLoading(true);
     try {
       // Read file as base64 and send to server for validation and storage
@@ -144,10 +145,10 @@ export default function OperativeProfileClient({ id }: { id: string }) {
       setFile(null);
       setMedical([]);
       await loadMedical();
-      alert("Uploaded");
+      toast.success("File uploaded");
     } catch (e) {
       console.error(e);
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setLoading(false);
     }

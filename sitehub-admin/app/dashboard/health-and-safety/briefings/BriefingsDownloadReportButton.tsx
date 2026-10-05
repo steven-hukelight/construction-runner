@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import { FileDown } from "lucide-react";
@@ -10,7 +11,7 @@ export default function BriefingsDownloadReportButton() {
   async function handleDownload() {
     const companyId = getCompanyIdFromClient();
     if (!companyId) {
-      alert("Please select a company first.");
+      toast.error("Please select a company first.");
       return;
     }
     setLoading(true);
@@ -29,7 +30,7 @@ export default function BriefingsDownloadReportButton() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Download report failed:", e);
-      alert("Failed to download report. Please try again.");
+      toast.error("Failed to download report. Please try again.");
     } finally {
       setLoading(false);
     }

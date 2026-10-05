@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect, useMemo, useCallback, useRef } from "react";
 import { User, Shield, FileText, Award, Upload, Eye, EyeOff, Download, Trash2, ClipboardCheck, ExternalLink } from "lucide-react";
@@ -437,13 +438,13 @@ export default function ProfilePage() {
       }
     }
     if (!effectiveUserId) {
-      alert("User ID not found. Please refresh and try again.");
+      toast.error("User ID not found. Please refresh and try again.");
       console.error("Missing userId for profile save.");
       return;
     }
 
     if (profile.phone && !isValidUkPhone(profile.phone)) {
-      alert("Please enter a valid UK phone number for your profile.");
+      toast.error("Please enter a valid UK phone number for your profile.");
       console.error("Invalid phone number:", profile.phone);
       return;
     }
@@ -485,13 +486,13 @@ export default function ProfilePage() {
         body: JSON.stringify({ userId: effectiveUserId, email: profile.email, role: profile.role, status: profile.status, notes }),
       });
 
-      alert("Profile saved successfully!");
+      toast.success("Profile saved");
       setIsDirty(false);
       await loadProfileViaApi(true);
     } catch (error: unknown) {
       console.error("Error saving profile:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      alert("Failed to save profile: " + message);
+      toast.error("Failed to save profile: " + message);
     } finally {
       setSaving(false);
     }
@@ -526,7 +527,7 @@ export default function ProfilePage() {
       if (!res.ok) throw new Error("Failed to save");
       setIsDirty(false);
       await loadProfileViaApi(true);
-      alert("Personal info saved.");
+      toast.success("Profile saved");
     } catch (e) {
       console.error("Error saving extra profile:", e);
     }
@@ -534,12 +535,12 @@ export default function ProfilePage() {
 
   async function addCertification() {
     if (!userId) {
-      alert("User not loaded. Please refresh the page.");
+      toast.error("User not loaded. Please refresh the page.");
       return;
     }
 
     if (!certForm.name || !certForm.description || !certForm.expiryDate) {
-      alert("Please fill in all required fields");
+      toast.error("Please fill in all required fields");
       return;
     }
 
@@ -594,12 +595,12 @@ export default function ProfilePage() {
       });
       setShowCertModal(false);
 
-      alert("Certification added successfully!");
+      toast.success("Certification added");
       await loadCertifications();
     } catch (error: unknown) {
       console.error("Error adding certification:", error);
       const message = error instanceof Error ? error.message : "Unknown error";
-      alert("Failed to add certification: " + message);
+      toast.error("Failed to add certification: " + message);
     }
   }
 
@@ -619,11 +620,11 @@ export default function ProfilePage() {
         }),
       });
       if (!res.ok) throw new Error("Delete failed");
-      alert("Certification deleted successfully!");
+      toast.success("Certification deleted");
       loadCertifications();
     } catch (error) {
       console.error("Error deleting certification:", error);
-      alert("Failed to delete certification");
+      toast.error("Failed to delete certification");
     }
   }
 
@@ -658,11 +659,11 @@ export default function ProfilePage() {
         }),
       });
       if (!patchRes.ok) throw new Error("Update failed");
-      alert("File uploaded successfully!");
+      toast.success("File uploaded");
       loadCertifications();
     } catch (error) {
       console.error("Error uploading file:", error);
-      alert("Failed to upload file");
+      toast.error("Failed to upload file");
     }
   }
 
@@ -1107,9 +1108,9 @@ export default function ProfilePage() {
                 <div className="mt-4">
                   <button
                     onClick={() => {
-                      if (extra.emergencyContactPhone && !isValidUkPhone(extra.emergencyContactPhone)) { alert('Please enter a valid UK phone number.'); return; }
-                      if (extra.niNumber && !isValidNi(extra.niNumber)) { alert('Please enter a valid NI number (e.g., QQ123456C).'); return; }
-                      if (extra.utrNumber && !isValidUtr(extra.utrNumber)) { alert('Please enter a valid 10-digit UTR.'); return; }
+                      if (extra.emergencyContactPhone && !isValidUkPhone(extra.emergencyContactPhone)) { toast.error('Please enter a valid UK phone number.'); return; }
+                      if (extra.niNumber && !isValidNi(extra.niNumber)) { toast.error('Please enter a valid NI number (e.g., QQ123456C).'); return; }
+                      if (extra.utrNumber && !isValidUtr(extra.utrNumber)) { toast.error('Please enter a valid 10-digit UTR.'); return; }
                       saveExtraProfile();
                     }}
                     className="button"
@@ -1357,7 +1358,7 @@ export default function ProfilePage() {
                       } catch (err: unknown) {
                         setExtra((prev) => ({ ...prev, restrictNonEssentialProcessing: !v }));
                         const message = err instanceof Error ? err.message : "Failed to update setting";
-                        alert(message);
+                        toast.error(message);
                       }
                     }}
                     className="rounded border-gray-300 text-blue-600"
@@ -1381,9 +1382,9 @@ export default function ProfilePage() {
                         a.download = `my-data-${Date.now()}.json`;
                         a.click();
                         URL.revokeObjectURL(a.href);
-                        alert("Data downloaded.");
+                        toast.success("Data downloaded.");
                       } catch (e) {
-                        alert("Failed to download: " + (e instanceof Error ? e.message : "Unknown error"));
+                        toast.error("Failed to download: " + (e instanceof Error ? e.message : "Unknown error"));
                       }
                     }}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-blue-600 text-white text-sm font-medium hover:bg-blue-700"
@@ -1409,10 +1410,10 @@ export default function ProfilePage() {
                         });
                         const data = await r.json().catch(() => ({}));
                         if (!r.ok) throw new Error(data.error || "Failed");
-                        alert(data.message || "Account deleted.");
+                        toast.success(data.message || "Account deleted.");
                         window.location.href = "/admin/login";
                       } catch (e) {
-                        alert("Failed: " + (e instanceof Error ? e.message : "Unknown error"));
+                        toast.error("Failed: " + (e instanceof Error ? e.message : "Unknown error"));
                       }
                     }}
                     className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-red-600 text-white text-sm font-medium hover:bg-red-700"

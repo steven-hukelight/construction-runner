@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect } from "react";
 import Link from "next/link";
@@ -107,7 +108,7 @@ export default function SubcontractorSetupPage() {
       setNewOperativeName("");
       setNewOperativePhone("");
     } else {
-      alert(data?.error ?? "Failed to add operative");
+      toast.error(data?.error ?? "Failed to add operative");
     }
   }
 
@@ -126,13 +127,13 @@ export default function SubcontractorSetupPage() {
       }));
     } else {
       const data = await res.json();
-      alert(data?.error ?? "Failed to assign");
+      toast.error(data?.error ?? "Failed to assign");
     }
   }
 
   async function uploadRAMS() {
     if (!ramsSiteId || !ramsFile) {
-      alert("Select a site and a file.");
+      toast.error("Select a site and a file.");
       return;
     }
     const form = new FormData();
@@ -146,10 +147,10 @@ export default function SubcontractorSetupPage() {
     const res = await fetch("/api/rams/upload", { method: "POST", body: form, credentials: "include" });
     if (res.ok) {
       setRamsFile(null);
-      alert("RAMS uploaded. It will be reviewed by the main contractor.");
+      toast.success("File uploaded");
     } else {
       const data = await res.json().catch(() => ({}));
-      alert(typeof data?.error === "string" ? data.error : "Upload failed.");
+      toast.error(typeof data?.error === "string" ? data.error : "Upload failed.");
     }
   }
 

@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from "react";
 import { Shield } from "lucide-react";
@@ -37,10 +38,10 @@ export default function SuperuserSelfOverrideBlock() {
       if (res.ok && data.success) {
         setOverrideOn(!!data.adminPreInductionOverride);
       } else {
-        alert(data.error || "Failed to update override");
+        toast.error(data.error || "Failed to update override");
       }
     } catch {
-      alert("Failed to update override");
+      toast.error("Failed to update override");
     } finally {
       setLoading(false);
     }

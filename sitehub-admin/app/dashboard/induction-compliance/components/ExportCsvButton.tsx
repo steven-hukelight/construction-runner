@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from "react";
 import Button from "@/app/dashboard/components/ui/Button";
@@ -22,7 +23,7 @@ export default function ExportCsvButton({ siteId, companyId, status }: Props) {
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Export failed");
+        toast.error(err.error ?? "Export failed");
         return;
       }
       const blob = await res.blob();

@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect, useCallback } from "react";
 import { useClientSession } from "../components/ClientSessionProvider";
@@ -50,10 +51,10 @@ export default function HaulageManager() {
         load();
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to add");
+        toast.error(err.error || "Failed to add");
       }
     } catch {
-      alert("Failed to add");
+      toast.error("Failed to add");
     } finally {
       setAdding(false);
     }
@@ -68,7 +69,7 @@ export default function HaulageManager() {
       });
       if (res.ok) load();
     } catch {
-      alert("Failed to delete");
+      toast.error("Failed to delete");
     }
   }
 

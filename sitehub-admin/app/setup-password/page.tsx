@@ -59,7 +59,7 @@ function SetupPasswordInner() {
   if (success) {
     return (
       <div className="card w-full max-w-md mx-auto mt-12 p-6">
-        <h2 className="text-2xl font-bold mb-4 text-blue-600">Password Set!</h2>
+        <h2 className="text-2xl font-bold mb-4 text-blue-600">Password set.</h2>
         <p className="text-gray-700 mb-6">Your password has been set. You can now log in.</p>
         <Link href="/admin/login">
           <Button variant="primary">Go to Login</Button>

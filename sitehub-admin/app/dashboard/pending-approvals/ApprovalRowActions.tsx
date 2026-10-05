@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import Button from "../components/ui/Button";
@@ -74,7 +75,7 @@ export default function ApprovalRowActions({
           type="button"
           onClick={() => {
             if (needsSites && siteIds.length === 0) {
-              alert("Tick at least one site. They can be assigned to more than one.");
+              toast.error("Tick at least one site. They can be assigned to more than one.");
               return;
             }
             void onApprove(regId, role, siteIds);

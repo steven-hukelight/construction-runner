@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { X, Paperclip, FileText, Image as ImageIcon } from "lucide-react";
@@ -69,7 +70,7 @@ export default function TaskDetailModal({
         setAttachments((prev) => [...prev, attachment]);
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "Upload failed");
+        toast.error(err.error || "Upload failed");
       }
     } finally {
       setUploading(false);

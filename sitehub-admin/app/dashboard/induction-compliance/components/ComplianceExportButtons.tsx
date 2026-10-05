@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from "react";
 import { FileDown, FileText } from "lucide-react";
@@ -32,7 +33,7 @@ export default function ComplianceExportButtons({ filters }: Props) {
       const res = await fetch(`/api/compliance-export/csv${qs}`, { credentials: "include" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Export failed");
+        toast.error(err.error ?? "Export failed");
         return;
       }
       const blob = await res.blob();
@@ -54,7 +55,7 @@ export default function ComplianceExportButtons({ filters }: Props) {
       const res = await fetch(`/api/compliance-export/pdf${qs}`, { credentials: "include" });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Export failed");
+        toast.error(err.error ?? "Export failed");
         return;
       }
       const blob = await res.blob();

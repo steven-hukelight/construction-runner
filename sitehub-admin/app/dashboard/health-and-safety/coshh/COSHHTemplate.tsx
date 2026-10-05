@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { Plus } from "lucide-react";
@@ -55,7 +56,7 @@ export default function COSHHTemplate() {
     });
     const data = await res.json();
     if (!res.ok) {
-      alert((data as { error?: string }).error ?? "Failed to save");
+      toast.error((data as { error?: string }).error ?? "Failed to save");
       return;
     }
     if (data.id) {

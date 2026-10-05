@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState, useRef } from "react";
 import { ScrollText, Plus, Pencil, Trash2, HardHat, AlertTriangle, Users, Paperclip } from "lucide-react";
@@ -44,7 +45,7 @@ export default function SiteRulesManager() {
   async function saveAdd() {
     if (!form.title.trim()) return;
     if (!form.siteId) {
-      alert("Select a site. This rule will only appear for that site.");
+      toast.error("Select a site. This rule will only appear for that site.");
       return;
     }
     const res = await fetch("/api/site-rules", {
@@ -129,10 +130,10 @@ export default function SiteRulesManager() {
           prev.map((r) => (r.id === ruleId ? { ...r, file_url: data.file_url } : r))
         );
       } else {
-        alert(data.error || "Upload failed");
+        toast.error(data.error || "Upload failed");
       }
     } catch {
-      alert("Upload failed");
+      toast.error("Upload failed");
     } finally {
       setUploading(false);
       if (fileInputRef.current) {

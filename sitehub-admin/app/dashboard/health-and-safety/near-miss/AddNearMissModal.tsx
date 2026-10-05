@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect } from "react";
 import Button from "../../components/ui/Button";
@@ -28,7 +29,7 @@ export default function AddNearMissModal() {
   async function handleSubmit() {
     if (!description.trim()) return;
     if (!siteId.trim()) {
-      alert("Select a site. This report will only appear for that site.");
+      toast.error("Select a site. This report will only appear for that site.");
       return;
     }
     setSubmitting(true);
@@ -59,7 +60,7 @@ export default function AddNearMissModal() {
       window.location.reload();
     } catch (e) {
       console.error(e);
-      alert(e instanceof Error ? e.message : "Failed to create near miss report.");
+      toast.error(e instanceof Error ? e.message : "Failed to create near miss report.");
     } finally {
       setSubmitting(false);
     }

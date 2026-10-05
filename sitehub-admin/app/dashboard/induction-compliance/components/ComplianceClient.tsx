@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
@@ -136,7 +137,7 @@ export default function ComplianceClient({
     });
     const data = await res.json();
     if (res.ok) router.refresh();
-    else alert(data?.message ?? data?.error ?? "Failed to mark as inducted");
+    else toast.error(data?.message ?? data?.error ?? "Failed to mark as inducted");
   }, [router]);
 
   const handleAssignToSite = useCallback(async (userId: string, siteId: string, companyId?: string) => {
@@ -154,7 +155,7 @@ export default function ComplianceClient({
     if (res.ok) {
       router.refresh();
     } else {
-      alert(data?.message ?? data?.error ?? "Failed to assign operative to site");
+      toast.error(data?.message ?? data?.error ?? "Failed to assign operative to site");
     }
   }, [router]);
 
@@ -166,7 +167,7 @@ export default function ComplianceClient({
       body: JSON.stringify({ userId, siteId }),
     });
     if (res.ok) router.refresh();
-    else alert("Failed to reset");
+    else toast.error("Failed to reset");
   }, [router]);
 
   const handleFiltersChange = useCallback((f: FilterState) => {

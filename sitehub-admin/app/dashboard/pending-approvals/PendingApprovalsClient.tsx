@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
 import { UserRound } from "lucide-react";
@@ -73,7 +74,7 @@ export default function PendingApprovalsClient() {
     });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      alert((err as { error?: string }).error ?? "Approval failed");
+      toast.error((err as { error?: string }).error ?? "Approval failed");
       return;
     }
     await load();
@@ -84,7 +85,7 @@ export default function PendingApprovalsClient() {
     const res = await fetch(`/api/auth/registrations/${id}/reject`, { method: "POST", credentials: "include" });
     if (!res.ok) {
       const err = await res.json().catch(() => ({}));
-      alert((err as { error?: string }).error ?? "Reject failed");
+      toast.error((err as { error?: string }).error ?? "Reject failed");
       return;
     }
     await load();

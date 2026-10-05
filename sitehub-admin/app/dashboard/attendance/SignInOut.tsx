@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
@@ -61,7 +62,7 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
   }, [selected]);
 
   async function submit() {
-    if (!selected) return alert("Select an operative");
+    if (!selected) return toast.error("Select an operative");
     setLoading(true);
     try {
       await fetch("/api/attendance", {
@@ -81,9 +82,9 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
       setSiteName("");
       setSiteId("");
       onRecorded?.();
-      alert("Attendance recorded");
+      toast.success("Attendance recorded");
     } catch {
-      alert("Error recording attendance");
+      toast.error("Error recording attendance");
     } finally {
       setLoading(false);
     }

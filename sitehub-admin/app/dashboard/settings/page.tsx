@@ -1,12 +1,12 @@
-
 "use client";
 
+import toast from "react-hot-toast";
 import Image from "next/image";
 import { useEffect, useState, type ChangeEvent } from "react";
 import PageHeader from "../components/PageHeader";
 import { useTheme } from "@/app/ThemeProvider";
 import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { Mail, Calendar, Clock, Rows3 } from "lucide-react";
+import { Mail, Calendar, Clock, Rows3, User, Building2, Bell, Lock, Palette, Database } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useClientSession } from "../components/ClientSessionProvider";
@@ -17,12 +17,12 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState(activeTabDefault);
 
   const tabs = [
-    { id: "personal", label: t("Personal Information") },
-    { id: "company", label: t("Company") },
-    { id: "notifications", label: t("Notifications") },
-    { id: "security", label: t("Security") },
-    { id: "display", label: t("Display") },
-    { id: "data", label: t("Data & Privacy") },
+    { id: "personal", label: t("Personal Information"), icon: User },
+    { id: "company", label: t("Company"), icon: Building2 },
+    { id: "notifications", label: t("Notifications"), icon: Bell },
+    { id: "security", label: t("Security"), icon: Lock },
+    { id: "display", label: t("Display"), icon: Palette },
+    { id: "data", label: t("Data & Privacy"), icon: Database },
   ];
 
   return (
@@ -34,13 +34,15 @@ export default function SettingsPage() {
         <div className="admin-tabs">
           {tabs.map((tab) => {
             const isActive = activeTab === tab.id;
+            const Icon = tab.icon;
             return (
               <button
                 key={tab.id}
                 type="button"
                 onClick={() => setActiveTab(tab.id)}
-                className={isActive ? "active" : ""}
+                className={`${isActive ? "active" : ""} focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500`}
               >
+                <Icon className="h-4 w-4" />
                 {tab.label}
               </button>
             );
@@ -125,11 +127,11 @@ function CompanySettings() {
     const trimmedName = companyName.trim();
     const trimmedAddress = companyAddress.trim();
     if (!trimmedName) {
-      alert("Company name is required.");
+      toast.error("Company name is required.");
       return;
     }
     if (!trimmedAddress) {
-      alert("Company address is required. Enter the full registered or principal address.");
+      toast.error("Company address is required. Enter the full registered or principal address.");
       return;
     }
     setNameSaving(true);
@@ -142,12 +144,12 @@ function CompanySettings() {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(typeof data?.error === "string" ? data.error : "Could not update company details");
+        toast.error(typeof data?.error === "string" ? data.error : "Could not update company details");
         return;
       }
       setCompanyName(trimmedName);
       setCompanyAddress(trimmedAddress);
-      alert("Company details saved.");
+      toast.success("Settings saved");
     } finally {
       setNameSaving(false);
     }
@@ -168,7 +170,7 @@ function CompanySettings() {
       });
       const data = await res.json();
       if (res.ok && data.logoUrl) setLogoUrl(data.logoUrl);
-      else alert(data.error || "Upload failed");
+      else toast.error(data.error || "Upload failed");
     } finally {
       setLogoUploading(false);
     }
@@ -185,7 +187,7 @@ function CompanySettings() {
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) setLogoUrl(null);
-      else alert(typeof data?.error === "string" ? data.error : "Could not remove logo");
+      else toast.error(typeof data?.error === "string" ? data.error : "Could not remove logo");
     } finally {
       setLogoRemoving(false);
     }
@@ -203,7 +205,7 @@ function CompanySettings() {
       if (res.ok && data.inviteCode) {
         setInviteCode(data.inviteCode);
       } else {
-        alert(data.error || "Failed to regenerate code");
+        toast.error(data.error || "Failed to regenerate code");
       }
     } finally {
       setRegenLoading(false);

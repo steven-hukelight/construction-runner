@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState } from "react";
 import Link from "next/link";
@@ -64,14 +65,14 @@ export default function SitesTable({
         } catch {
           /* ignore */
         }
-        window.alert(message);
+        toast.error(message);
         await mutate();
         return;
       }
       mutate((prev) => (prev ?? []).filter((row) => row.id !== id), false);
     } catch (e) {
       const msg = e instanceof Error ? e.message : "Could not delete site";
-      window.alert(msg);
+      toast.error(msg);
       await mutate();
     }
   }
@@ -112,7 +113,7 @@ export default function SitesTable({
         { revalidate: true }
       );
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Network error while saving.");
+      toast.error(e instanceof Error ? e.message : "Network error while saving.");
       await mutate();
     }
   }
@@ -126,7 +127,7 @@ export default function SitesTable({
         false
       );
     } catch (e) {
-      window.alert(e instanceof Error ? e.message : "Network error while saving.");
+      toast.error(e instanceof Error ? e.message : "Network error while saving.");
       await mutate();
     }
   }
@@ -156,7 +157,7 @@ export default function SitesTable({
           ),
         false
       );
-      window.alert(e instanceof Error ? e.message : "Could not save manager.");
+      toast.error(e instanceof Error ? e.message : "Could not save manager.");
     }
   }
 

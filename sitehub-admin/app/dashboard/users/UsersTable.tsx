@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Table from "../components/ui/Table";
@@ -54,6 +55,9 @@ function initialsFor(label: string): string {
 
 export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
+  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersError, setUsersError] = useState(false);
+  const reloadUsersRef = useRef<(() => void) | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [assignSitesFor, setAssignSitesFor] = useState<UserRow | null>(null);
@@ -120,46 +124,72 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
 
   // Fetch users from Supabase or fall back to API
   useEffect(() => {
+    let cancelled = false;
     const companyId = getCompanyIdFromClient();
-    const fetchFromApi = async () => {
-      try {
+
+    const run = async () => {
+      setUsersLoading(true);
+      setUsersError(false);
+      const fetchFromApi = async () => {
         const res = await fetch("/api/users", { cache: "no-store", credentials: "include" });
+        if (!res.ok) throw new Error("Could not load users");
         const json = await res.json();
         const rowsFromApi = Array.isArray(json) ? (json as UserRow[]) : [];
-        setRows(mergeCurrentUser(rowsFromApi));
+        if (!cancelled) setRows(mergeCurrentUser(rowsFromApi));
+      };
+
+      try {
+        if (!companyId) {
+          await fetchFromApi();
+          return;
+        }
+
+        const { data: loaded, error } = await supabase
+          .from("users")
+          .select("*")
+          .eq("company_id", companyId)
+          .order("created_at", { ascending: false });
+        const normalized = (loaded ?? []).map((u: UserRow) => ({
+          ...u,
+          company_id: u.company_id,
+          name: u.name ?? u.display_name ?? u.email ?? "",
+        }));
+        if (!error && loaded) {
+          if (!cancelled) setRows(mergeCurrentUser(normalized));
+        } else {
+          await fetchFromApi();
+        }
       } catch {
-        /* keep existing rows */
+        if (!cancelled) setUsersError(true);
+      } finally {
+        if (!cancelled) setUsersLoading(false);
       }
     };
 
-    if (!companyId) {
-      fetchFromApi();
-      return undefined;
-    }
-
-    const loadUsers = async () => {
-      const { data, error } = await supabase
-        .from("users")
-        .select("*")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false });
-      const normalized = (data ?? []).map((u: UserRow) => ({
-        ...u,
-        company_id: u.company_id,
-        name: u.name ?? u.display_name ?? u.email ?? "",
-      }));
-      if (!error && data) setRows(mergeCurrentUser(normalized));
-      else fetchFromApi();
+    reloadUsersRef.current = () => {
+      void run();
     };
+    void run();
 
-    loadUsers();
+    if (!companyId) {
+      return () => {
+        cancelled = true;
+      };
+    }
 
     const channel = supabase
       .channel("users-table")
-      .on("postgres_changes", { event: "*", schema: "public", table: "users", filter: `company_id=eq.${companyId}` }, loadUsers)
+      .on(
+        "postgres_changes",
+        { event: "*", schema: "public", table: "users", filter: `company_id=eq.${companyId}` },
+        () => {
+          void run();
+        }
+      )
       .subscribe();
 
     return () => {
+      cancelled = true;
       void supabase.removeChannel(channel);
     };
   }, [mergeCurrentUser]);
@@ -174,7 +204,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
         await openAssignSites(row ?? { id });
       }
     } else {
-      alert(result.error ?? "Failed to update role. Please try again.");
+      toast.error(result.error ?? "Failed to update role. Please try again.");
     }
   }
 
@@ -209,7 +239,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   async function saveAssignedSites() {
     if (!assignSitesFor) return;
     if (selectedSiteIds.length === 0) {
-      alert("Tick at least one site. They can be assigned to more than one.");
+      toast.error("Tick at least one site. They can be assigned to more than one.");
       return;
     }
     setSavingSites(true);
@@ -222,12 +252,12 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || "Could not save site access");
+        toast.error(data.error || "Could not save site access");
         return;
       }
       setAssignSitesFor(null);
     } catch {
-      alert("Could not save site access");
+      toast.error("Could not save site access");
     } finally {
       setSavingSites(false);
     }
@@ -241,7 +271,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
 
   async function handleSendPasswordReset(row: UserRow) {
     if (!row.email) {
-      alert("User has no email.");
+      toast.error("User has no email.");
       return;
     }
     try {
@@ -253,12 +283,12 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
       });
       const data = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(data.error || "Failed to send reset email");
+        toast.error(data.error || "Failed to send reset email");
         return;
       }
-      alert("Password reset email sent.");
+      toast.success("Password reset email sent.");
     } catch {
-      alert("Failed to send reset email");
+      toast.error("Failed to send reset email");
     }
   }
 
@@ -359,6 +389,11 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
         }
         columns={columns}
         data={displayedRows}
+        loading={usersLoading && rows.length === 0}
+        error={usersError && rows.length === 0}
+        onRetry={() => reloadUsersRef.current?.()}
+        thing="users"
+        things="users"
       />
       {assignSitesFor && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">

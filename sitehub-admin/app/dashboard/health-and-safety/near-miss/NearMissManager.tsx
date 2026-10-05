@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, FileDown, Trash2, Eye } from "lucide-react";
@@ -64,7 +65,7 @@ export default function NearMissManager() {
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Export failed:", e);
-      alert("Export failed. Please try again.");
+      toast.error("Export failed. Please try again.");
     }
   }
 
@@ -89,7 +90,7 @@ export default function NearMissManager() {
     if (!window.confirm("Delete this near miss report? This cannot be undone.")) return;
     const res = await fetch(`/api/near-miss/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) setItems((prev) => prev.filter((i) => i.id !== id));
-    else alert("Delete failed. Please try again.");
+    else toast.error("Delete failed. Please try again.");
   }
 
   const columns = [

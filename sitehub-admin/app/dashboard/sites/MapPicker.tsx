@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 /* eslint-disable @typescript-eslint/no-unused-vars */
@@ -120,7 +121,7 @@ export default function MapPicker({
         const currentPoints = polygonRef.current.getLatLngs()[0];
         
         if (currentPoints.length <= 3) {
-          alert("A polygon must have at least 3 points.");
+          toast.error("A polygon must have at least 3 points.");
           return;
         }
         

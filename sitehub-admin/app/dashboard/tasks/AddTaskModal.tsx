@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 import { useState, useEffect, useCallback } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
@@ -65,7 +66,7 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
 
   async function handleSubmit() {
     if (!form.siteId) {
-      alert("Select a site. This task will only appear for that site.");
+      toast.error("Select a site. This task will only appear for that site.");
       return;
     }
     try {
@@ -78,7 +79,7 @@ export default function AddTaskModal({ onSuccess }: { onSuccess?: () => void }) 
       onSuccess?.();
       router.refresh();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to create task");
+      toast.error(e instanceof Error ? e.message : "Failed to create task");
     }
   }
 

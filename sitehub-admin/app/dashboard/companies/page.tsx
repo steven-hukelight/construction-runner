@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
@@ -109,7 +110,7 @@ export default function CompaniesPage() {
         setEditModal(null);
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to update");
+        toast.error(err.error || "Failed to update");
       }
     } finally {
       setUpdating(false);
@@ -130,7 +131,7 @@ export default function CompaniesPage() {
         );
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to update");
+        toast.error(err.error || "Failed to update");
       }
     } finally {
       setUpdating(false);
@@ -144,7 +145,7 @@ export default function CompaniesPage() {
         setCompanies((prev) => prev.filter((c) => c.id !== company.id));
       } else {
         const err = await res.json();
-        alert(err.error || "Failed to delete");
+        toast.error(err.error || "Failed to delete");
       }
     } finally {
     }
@@ -182,10 +183,10 @@ export default function CompaniesPage() {
         setCreateOpen(false);
         loadCompanies();
         if (typeof data?.message === "string") {
-          alert(data.message);
+          toast.success(data.message);
         }
       } else {
-        alert(typeof data?.error === "string" ? data.error : "Failed to create company");
+        toast.error(typeof data?.error === "string" ? data.error : "Failed to create company");
       }
     } finally {
       setCreating(false);

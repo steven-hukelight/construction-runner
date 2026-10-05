@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect } from "react";
 import PageHeader from "@/app/dashboard/components/PageHeader";
@@ -38,14 +39,14 @@ export default function SuperuserSettingsClient() {
         body: JSON.stringify({ brandName, primaryColor, featureA, featureB, announcement, maintenance }),
       });
       if (res.ok) {
-        alert("Global settings saved.");
+        toast.success("Settings saved");
       } else {
         const err = await res.json().catch(() => ({}));
-        alert(err?.error || "Failed to save. API may not be implemented yet.");
+        toast.error(err?.error || "Failed to save. API may not be implemented yet.");
       }
     } catch (e: unknown) {
       const message = e instanceof Error ? e.message : "Network error";
-      alert("Failed to save: " + message);
+      toast.error("Failed to save: " + message);
     } finally {
       setSaving(false);
     }

@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
 import { X, FileDown, Users } from "lucide-react";
@@ -96,7 +97,7 @@ export default function BriefingDetailModal({
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert("Failed to export CSV.");
+      toast.error("Failed to export CSV.");
     } finally {
       setExporting(false);
     }
@@ -120,7 +121,7 @@ export default function BriefingDetailModal({
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error(e);
-      alert("Failed to export PDF.");
+      toast.error("Failed to export PDF.");
     } finally {
       setExporting(false);
     }

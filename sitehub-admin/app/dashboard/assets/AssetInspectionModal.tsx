@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from "react";
 import Button from "../components/ui/Button";
@@ -33,13 +34,13 @@ export default function AssetInspectionModal({
 
       if (!res.ok) {
         const err = await res.json();
-        alert(err?.error ?? "Inspection failed");
+        toast.error(err?.error ?? "Inspection failed");
         return;
       }
       onSuccess();
     } catch (e) {
       console.error(e);
-      alert("Inspection failed");
+      toast.error("Inspection failed");
     } finally {
       setSubmitting(false);
     }

@@ -2,6 +2,8 @@
 
 import React, { type ReactNode } from "react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
+import Button from "./Button";
+import Skeleton from "./Skeleton";
 import { TableToolbar } from "./TableChrome";
 
 type Density = "compact" | "comfortable" | "spacious";
@@ -12,6 +14,7 @@ const densityClasses: Record<Density, { rowPad: string; cellPad: string; textSiz
 	spacious: { rowPad: "py-4", cellPad: "px-6", textSize: "text-base", headerH: "h-14", rowMinH: "min-h-[56px]" },
 };
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 type TableProps = {
 	columns: any[];
 	data: any[];
@@ -23,8 +26,15 @@ type TableProps = {
 	actions?: ReactNode;
 	extra?: ReactNode;
 	embedded?: boolean;
+	loading?: boolean;
+	error?: boolean;
+	onRetry?: () => void;
+	/** Noun in "Couldn't load {thing}." */
+	thing?: string;
+	/** Plural noun in "No {things} yet." */
+	things?: string;
+	emptyAction?: ReactNode;
 	/** Background class for rows that need action (e.g. `bg-red-50`); defaults to white. */
-	// eslint-disable-next-line @typescript-eslint/no-explicit-any
 	rowClassName?: (row: any) => string | undefined;
 };
 
@@ -49,12 +59,20 @@ function Table({
 	actions,
 	extra,
 	embedded,
+	loading = false,
+	error = false,
+	onRetry,
+	thing = "this",
+	things,
+	emptyAction,
 	rowClassName,
 }: TableProps) {
 	const { tableDensity } = useDisplayPreferences();
 	const density: Density = (densityProp ?? tableDensity) in densityClasses ? (densityProp ?? tableDensity) as Density : "comfortable";
 	const { rowPad, cellPad, textSize, rowMinH } = densityClasses[density];
-	const isEmpty = !data || data.length === 0;
+	const showLoading = loading;
+	const showError = !showLoading && error;
+	const isEmpty = !showLoading && !showError && (!data || data.length === 0);
 	const cells: ReactNode[][] = isEmpty
 		? []
 		: data.map((row: any) =>
@@ -73,7 +91,24 @@ function Table({
 			</TableToolbar>
 		) : null);
 
-	const body = (
+	const status = showLoading ? (
+		<div className="space-y-2 p-4" aria-busy="true">
+			{Array.from({ length: 5 }).map((_, i) => (
+				<Skeleton key={i} className="h-10 w-full rounded-lg bg-gray-100" />
+			))}
+		</div>
+	) : showError ? (
+		<div className="flex flex-col items-center gap-3 px-4 py-16 text-center">
+			<p className="text-sm text-gray-700">{`Couldn't load ${thing}.`}</p>
+			{onRetry ? (
+				<Button type="button" variant="secondary" onClick={onRetry}>
+					Try again
+				</Button>
+			) : null}
+		</div>
+	) : null;
+
+	const body = status ?? (
 		<div className="max-h-[calc(100vh-220px)] min-h-[160px] overflow-x-auto overflow-y-auto">
 			<table className={`data-table w-full table-auto ${textSize}`}>
 				<thead className="sticky top-0 z-10">
@@ -88,8 +123,15 @@ function Table({
 				<tbody>
 					{isEmpty ? (
 						<tr>
-							<td colSpan={visibleCols.length} className="py-16 text-center text-sm text-slate-500 dark:text-slate-400">
-								{emptyMessage ?? "No data"}
+							<td colSpan={Math.max(visibleCols.length, 1)} className="py-16 text-center">
+								{things ? (
+									<div className="flex flex-col items-center gap-3">
+										<p className="text-sm text-gray-500">{`No ${things} yet.`}</p>
+										{emptyAction}
+									</div>
+								) : (
+									<div className="text-sm text-gray-500">{emptyMessage ?? "No data"}</div>
+								)}
 							</td>
 						</tr>
 					) : (

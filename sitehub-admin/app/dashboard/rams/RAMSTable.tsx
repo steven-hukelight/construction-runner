@@ -59,7 +59,7 @@ export default function RAMSTable({ data }: any) {
   }, [sites]);
 
   // Refresh RAMS on an interval; cookies send company / session context.
-  const { data: rows, mutate } = useSWR<any[]>(
+  const { data: rows, error: ramsError, isLoading, mutate } = useSWR<any[]>(
     "/api/rams",
     fetcher,
     { fallbackData: Array.isArray(data) ? data : [], refreshInterval: 30000 }
@@ -140,6 +140,13 @@ export default function RAMSTable({ data }: any) {
       subtitle={`${rowsSafe.length} documents uploaded`}
       columns={columns}
       data={rowsSafe}
+      loading={isLoading && rowsSafe.length === 0}
+      error={Boolean(ramsError) && rowsSafe.length === 0}
+      onRetry={() => {
+        void mutate();
+      }}
+      thing="RAMS"
+      things="RAMS"
     />
   );
 }

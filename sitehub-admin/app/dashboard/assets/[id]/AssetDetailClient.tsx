@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import Image from "next/image";
 import React, { useCallback, useEffect, useState, useRef } from "react";
@@ -159,7 +160,7 @@ export default function AssetDetailClient({
       URL.revokeObjectURL(url);
     } catch (e) {
       console.error("Export failed:", e);
-      alert("Export failed. Please try again.");
+      toast.error("Export failed. Please try again.");
     } finally {
       setExporting(false);
     }
@@ -196,11 +197,11 @@ export default function AssetDetailClient({
       if (res.ok) load();
       else {
         const err = await res.json();
-        alert(err?.error ?? "Failed to remove assignment");
+        toast.error(err?.error ?? "Failed to remove assignment");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to remove assignment");
+      toast.error("Failed to remove assignment");
     }
   }
 
@@ -219,7 +220,7 @@ export default function AssetDetailClient({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err?.error ?? "Failed to save schedule");
+        toast.error(err?.error ?? "Failed to save schedule");
         return;
       }
       await load();
@@ -258,17 +259,19 @@ export default function AssetDetailClient({
       });
       const json = await res.json().catch(() => ({}));
       if (!res.ok) {
-        alert(json?.error ?? "Failed to send reminder");
+        toast.error(json?.error ?? "Failed to send reminder");
         return;
       }
-      alert(
-        json?.success
-          ? `Reminder sent to ${json.recipients ?? 0} recipient(s).`
-          : `Reminder attempted but may not have delivered${json?.error ? `: ${json.error}` : "."}`,
-      );
+      if (json?.success) {
+        toast.success(`Reminder sent to ${json.recipients ?? 0} recipient(s).`);
+      } else {
+        toast.error(
+          `Reminder attempted but may not have delivered${json?.error ? `: ${json.error}` : "."}`,
+        );
+      }
     } catch (e) {
       console.error(e);
-      alert("Failed to send reminder");
+      toast.error("Failed to send reminder");
     } finally {
       setReminding(false);
     }

@@ -1,3 +1,4 @@
+import toast from "react-hot-toast";
 /**
  * Open a storage document URL. For private buckets, fetches a signed URL first
  * to avoid "could not open file" / 403 errors.
@@ -19,12 +20,12 @@ export async function openDocumentUrl(storedUrl: string): Promise<void> {
     const err = data?.error ?? (res.ok ? null : `Request failed (${res.status})`);
     if (err) {
       console.warn("openDocumentUrl: signed URL failed:", err);
-      alert(`Could not open document. ${typeof err === "string" ? err : "Please try again."}`);
+      toast.error(`Could not open document. ${typeof err === "string" ? err : "Please try again."}`);
     } else {
       window.open(storedUrl, "_blank", "noopener");
     }
   } catch (e) {
     console.warn("openDocumentUrl error:", e);
-    alert("Could not open document. Please try again.");
+    toast.error("Could not open document. Please try again.");
   }
 }

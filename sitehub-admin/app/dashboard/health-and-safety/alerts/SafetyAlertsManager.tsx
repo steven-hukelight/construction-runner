@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { AlertTriangle, Plus } from "lucide-react";
@@ -50,7 +51,7 @@ export default function SafetyAlertsManager() {
 
   async function save() {
     if (!form.siteId) {
-      alert("Select a site. This alert will only appear for that site.");
+      toast.error("Select a site. This alert will only appear for that site.");
       return;
     }
     const res = await fetch("/api/safety-alerts", {

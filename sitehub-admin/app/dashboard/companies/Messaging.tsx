@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState, useEffect, useCallback } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
@@ -45,11 +46,11 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
         setMessages((prev) => prev.filter((m) => m.id !== messageId));
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete message");
+        toast.error(j?.error ?? "Failed to delete message");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete message");
+      toast.error("Failed to delete message");
     } finally {
       setDeletingId(null);
     }

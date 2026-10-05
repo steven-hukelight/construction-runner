@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useMemo, useState, useEffect } from "react";
 import Link from "next/link";
@@ -108,7 +109,7 @@ export default function SiteInductionClient({
         setAddOperativeId("");
         window.dispatchEvent(new Event("induction-operatives-updated"));
       } else {
-        alert(data?.message ?? data?.error ?? "Failed to add operative to site");
+        toast.error(data?.message ?? data?.error ?? "Failed to add operative to site");
       }
     } finally {
       setAdding(false);
@@ -126,10 +127,10 @@ export default function SiteInductionClient({
         window.dispatchEvent(new Event("induction-operatives-updated"));
       } else {
         const data = await res.json();
-        alert(data?.error ?? "Failed to remove");
+        toast.error(data?.error ?? "Failed to remove");
       }
     } catch {
-      alert("Failed to remove");
+      toast.error("Failed to remove");
     }
   }
 

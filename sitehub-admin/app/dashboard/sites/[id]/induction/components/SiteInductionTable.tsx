@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
@@ -82,7 +83,7 @@ export default function SiteInductionTable({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Failed to mark as inducted");
+        toast.error(err.error ?? "Failed to mark as inducted");
         return;
       }
       router.refresh();
@@ -102,7 +103,7 @@ export default function SiteInductionTable({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error ?? "Failed to reset induction");
+        toast.error(err.error ?? "Failed to reset induction");
         return;
       }
       router.refresh();

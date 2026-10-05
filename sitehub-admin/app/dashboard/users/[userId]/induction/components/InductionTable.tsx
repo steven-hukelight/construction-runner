@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useState } from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
@@ -57,7 +58,7 @@ export default function InductionTable({
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        alert(err.error || "Failed to reset induction");
+        toast.error(err.error || "Failed to reset induction");
         return;
       }
       onRefresh?.();

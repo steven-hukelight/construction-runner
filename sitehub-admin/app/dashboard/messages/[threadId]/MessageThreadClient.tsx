@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
@@ -49,11 +50,11 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
         setMessages((prev) => prev.filter((m) => m.id !== messageId));
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete message");
+        toast.error(j?.error ?? "Failed to delete message");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete message");
+      toast.error("Failed to delete message");
     } finally {
       setDeletingId(null);
     }
@@ -70,11 +71,11 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
         window.location.href = "/dashboard/messaging";
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to delete thread");
+        toast.error(j?.error ?? "Failed to delete thread");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to delete thread");
+      toast.error("Failed to delete thread");
     } finally {
       setDeletingThread(false);
     }
@@ -88,11 +89,11 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
         window.history.back();
       } else {
         const j = await res.json().catch(() => ({}));
-        alert(j?.error ?? "Failed to archive");
+        toast.error(j?.error ?? "Failed to archive");
       }
     } catch (e) {
       console.error(e);
-      alert("Failed to archive thread");
+      toast.error("Failed to archive thread");
     } finally {
       setArchiving(false);
     }

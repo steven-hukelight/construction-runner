@@ -1,4 +1,5 @@
 "use client";
+import toast from "react-hot-toast";
 
 import { useState, useEffect } from "react";
 import Modal from "../components/ui/Modal";
@@ -59,7 +60,7 @@ export default function InviteSubcontractorModal({
       setCode(data.code);
       onCreated?.();
     } catch (e) {
-      alert(e instanceof Error ? e.message : "Failed to create invite code");
+      toast.error(e instanceof Error ? e.message : "Failed to create invite code");
     } finally {
       setCreating(false);
     }
