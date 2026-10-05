@@ -1,27 +1,3 @@
-@font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SF-Pro-Display-Regular.otf') format('opentype');
-  font-weight: 400;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SF-Pro-Display-Medium.otf') format('opentype');
-  font-weight: 500;
-  font-style: normal;
-  font-display: swap;
-}
-
-@font-face {
-  font-family: 'SF Pro';
-  src: url('/fonts/sf-pro/SF-Pro-Display-Bold.otf') format('opentype');
-  font-weight: 700;
-  font-style: normal;
-  font-display: swap;
-}
-
 @import "tailwindcss";
 @import "leaflet/dist/leaflet.css";
 
@@ -30,7 +6,7 @@
 
 /* Single :root — design tokens + shell variables (previously split across two blocks) */
 :root {
-  --font-sans: 'SF Pro', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", system-ui, sans-serif;
 
   /* 1.1 Spacing tokens */
   --space-4: 4px;
@@ -51,7 +27,7 @@
   --shadow-card: 0 8px 24px rgba(37, 76, 128, 0.07);
 
   /* 1.5 Colour tokens */
-  --brand-primary: #007AFF;
+  --brand-primary: #2563eb;
   --brand-muted: #F5F7FA;
   --border-soft: rgba(0, 0, 0, 0.08);
   --text-muted: rgba(0, 0, 0, 0.55);
@@ -450,22 +426,58 @@ h1, h2, h3, h4, h5, h6 {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: var(--space-8);
-  padding: 10px 20px;
-  border-radius: var(--radius-button);
+  gap: 8px;
+  height: 40px;
+  min-height: 40px;
+  padding: 10px 24px;
+  border-radius: 8px;
   border: 0;
   background: #2563eb;
-  color: white;
+  color: #ffffff;
   font-weight: 500;
   font-size: 14px;
   cursor: pointer;
   box-shadow: none;
-  min-height: 42px;
   transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
 }
 
 .button:hover {
   background: #1d4ed8;
+}
+
+.button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.row-menu-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #6b7280;
+  cursor: pointer;
+  transition: color 120ms ease, background-color 120ms ease, border-color 120ms ease;
+}
+
+.row-menu-button:hover {
+  background: #f3f4f6;
+  color: #374151;
+}
+
+.row-menu-button:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
+}
+
+.row-menu-button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
 }
 
 .button.ghost{
@@ -741,7 +753,7 @@ textarea.input{padding:10px 14px;min-height:90px;border-radius:8px}
   background: transparent;
   font-size: 13px;
   font-weight: 500;
-  color: var(--brand-primary, #007AFF);
+  color: var(--brand-primary, #2563eb);
   cursor: pointer;
   transition: background 0.15s ease, border-color 0.15s ease;
 }
@@ -853,7 +865,7 @@ a {
   .topbar h1{font-size:24px}
   .card{padding:20px;max-width:100%!important}
   .kpi{padding:20px}
-  .button{padding:12px 20px;font-size:14px;width:auto}
+  .button{padding:10px 24px;font-size:14px;width:auto}
   input,select,textarea{font-size:16px !important}
   .grid{grid-template-columns:1fr !important}
 }
@@ -1215,6 +1227,15 @@ a {
 
 [data-theme="dark"] .input:focus {
   border-color: #3b82f6;
+}
+
+[data-theme="dark"] .row-menu-button {
+  color: #cbd5e1;
+}
+
+[data-theme="dark"] .row-menu-button:hover {
+  background: #334155;
+  color: #f1f5f9;
 }
 
 [data-theme="dark"] .button.ghost {

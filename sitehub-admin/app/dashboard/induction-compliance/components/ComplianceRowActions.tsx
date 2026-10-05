@@ -75,7 +75,7 @@ export default function ComplianceRowActions({
         ref={buttonRef}
         type="button"
         onClick={handleToggle}
-        className="p-1.5 rounded-lg hover:bg-gray-100 text-gray-600 hover:text-gray-900"
+        className="row-menu-button"
         aria-label="Actions"
       >
         <MoreHorizontal className="h-4 w-4" />
@@ -88,7 +88,7 @@ export default function ComplianceRowActions({
             onClick={() => setOpen(false)}
           />
           <div
-            className={`absolute right-0 z-20 w-48 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-lg ${openUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
+            className={`absolute right-0 z-20 w-48 max-h-48 overflow-y-auto rounded-lg border border-gray-200 bg-white py-1 shadow-xl ${openUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
           >
             {actions.map((a, i) => {
               const Icon = a.icon;
