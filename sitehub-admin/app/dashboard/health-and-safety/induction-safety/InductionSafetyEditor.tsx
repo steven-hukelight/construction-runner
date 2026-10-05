@@ -63,7 +63,7 @@ export default function InductionSafetyEditor({
             disabled={!canEdit}
             rows={5}
             onChange={(e) => update(index, { body: e.target.value })}
-            className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-[#1A1A1A] dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
+            className="w-full px-4 py-2.5 bg-white dark:bg-slate-700 border border-gray-200 dark:border-slate-600 rounded-lg text-gray-900 dark:text-slate-100 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500"
           />
         </div>
       ))}

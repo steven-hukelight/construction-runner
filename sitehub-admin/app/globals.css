@@ -874,16 +874,6 @@ a {
   100% { background-position: 1000px 0; }
 }
 
-@keyframes float {
-  0%, 100% { transform: translateY(0px); }
-  50% { transform: translateY(-10px); }
-}
-
-@keyframes glow {
-  0%, 100% { opacity: 0.5; }
-  50% { opacity: 1; }
-}
-
 .animate-fadeIn {
   animation: fadeIn 0.6s cubic-bezier(0.4, 0, 0.2, 1);
 }
@@ -896,14 +886,6 @@ a {
   background: linear-gradient(90deg, #f0f0f0 0%, #f8f8f8 50%, #f0f0f0 100%);
   background-size: 1000px 100%;
   animation: shimmer 2s infinite;
-}
-
-.animate-float {
-  animation: float 3s ease-in-out infinite;
-}
-
-.animate-glow {
-  animation: glow 2s ease-in-out infinite;
 }
 
 /* =============================================
@@ -1301,35 +1283,10 @@ a {
 .fade-in-up {
   animation: marketingFadeInUp 0.6s ease-out;
 }
-.animate-float {
-  animation: marketingFloat 3s ease-in-out infinite;
-}
 @keyframes marketingFadeInUp {
   from { opacity: 0; transform: translateY(20px); }
   to { opacity: 1; transform: translateY(0); }
 }
-@keyframes marketingFloat {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-20px); }
-}
-@keyframes float {
-  0%, 100% { transform: translateY(0); }
-  50% { transform: translateY(-30px); }
-}
-@keyframes blob {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  33% { transform: translate(30px, -50px) scale(1.1) rotate(120deg); }
-  66% { transform: translate(-20px, 20px) scale(0.9) rotate(240deg); }
-  100% { transform: translate(0, 0) scale(1) rotate(360deg); }
-}
-@keyframes blob-reverse {
-  0% { transform: translate(0, 0) scale(1) rotate(0deg); }
-  33% { transform: translate(-30px, 50px) scale(0.9) rotate(-120deg); }
-  66% { transform: translate(20px, -20px) scale(1.1) rotate(-240deg); }
-  100% { transform: translate(0, 0) scale(1) rotate(-360deg); }
-}
-.animate-blob { animation: blob 20s infinite ease-in-out; }
-.animate-blob-reverse { animation: blob-reverse 25s infinite ease-in-out; }
 .glass {
   background: rgba(255, 255, 255, 0.05);
   backdrop-filter: blur(10px);
@@ -1345,18 +1302,6 @@ a {
 }
 .animate-fade-in { animation: marketingFadeIn 0.3s ease-out; }
 .animate-scale-in { animation: marketingScaleIn 0.3s ease-out; }
-.ripple-animation {
-  position: absolute;
-  border-radius: 50%;
-  background: rgba(255, 255, 255, 0.6);
-  transform: scale(0);
-  animation: ripple-effect 0.6s ease-out;
-  pointer-events: none;
-  z-index: 1000;
-}
-@keyframes ripple-effect {
-  to { transform: scale(4); opacity: 0; }
-}
 
 /* Mask sensitive non-password fields without triggering password managers. */
 .sensitive-disc {

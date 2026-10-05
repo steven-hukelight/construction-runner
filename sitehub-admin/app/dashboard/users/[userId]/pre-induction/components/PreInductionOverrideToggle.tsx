@@ -43,7 +43,7 @@ export default function PreInductionOverrideToggle({
   };
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="flex items-start gap-3">
         <div
           className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg text-white"

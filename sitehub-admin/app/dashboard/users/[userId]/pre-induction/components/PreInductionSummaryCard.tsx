@@ -72,7 +72,7 @@ export default function PreInductionSummaryCard({
   const statusBadge = STATUS_BADGES[user?.preInductionStatus ?? "not_started"];
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="mb-4 flex items-center gap-3">
         <div
           className="flex h-10 w-10 items-center justify-center rounded-lg text-sm font-semibold text-white"

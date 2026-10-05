@@ -201,7 +201,7 @@ function ResetPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f3f7fb]">
-      <div className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 p-8 max-w-md w-full">
+      <div className="bg-white rounded-xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-8 max-w-md w-full">
         <h2 className="text-2xl font-bold mb-4 text-center">Reset Password</h2>
 
         {error && (
@@ -255,7 +255,7 @@ function ResetPasswordPage() {
 
               <button
                 type="submit"
-                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
+                className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
                 disabled={loading}
               >
                 {loading ? "Resetting..." : "Reset Password"}

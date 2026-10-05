@@ -94,7 +94,7 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
       className={
         embedded
           ? "space-y-4"
-          : "bg-white border border-gray-200/60 dark:border-slate-600 rounded-xl shadow-sm p-6 space-y-5"
+          : "bg-white border border-gray-200 dark:border-slate-600 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-6 space-y-5"
       }
     >
       {!embedded && (
@@ -168,7 +168,7 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           placeholder="Add any extra details..."
-          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-all min-h-[80px] resize-none"
+          className="w-full px-4 py-2.5 bg-white border border-gray-200 rounded-lg text-gray-900 placeholder:text-gray-400 focus:outline-none focus:ring-2 focus:ring-blue-500/20 focus:border-blue-500 transition-colors duration-[120ms] min-h-[80px] resize-none"
         />
       </div>
       <Button

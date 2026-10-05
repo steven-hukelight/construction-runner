@@ -62,7 +62,7 @@ export default function SubcontractorOperativeTable({
           <div
             key={row.userId}
             onClick={() => onRowClick(row)}
-            className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm hover:border-blue-300 transition cursor-pointer"
+            className="rounded-xl border border-gray-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)] hover:border-blue-300 transition cursor-pointer"
           >
             <div className="flex items-start justify-between gap-3">
               <div className="flex items-center gap-3 min-w-0">

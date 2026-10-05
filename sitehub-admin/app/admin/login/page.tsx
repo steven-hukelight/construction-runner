@@ -135,7 +135,7 @@ function LoginPageContent() {
       <div className="relative z-10 flex flex-1 flex-col">
         <div className="flex flex-1 items-center justify-center p-6 sm:p-8">
           <div className="w-full max-w-md">
-            <div className="rounded-2xl border border-slate-200/90 bg-white p-8 shadow-[0_28px_90px_-16px_rgba(15,23,42,0.45)] ring-1 ring-slate-900/[0.06]">
+            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <div className="text-center mb-6">
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center">
               <Image src="/icon.png" alt="Construction Runner" width={112} height={112} className="object-contain" priority />
@@ -216,7 +216,7 @@ function LoginPageContent() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-xl bg-[#2563eb] py-2.5 font-medium text-white shadow-md shadow-blue-900/25 transition-colors hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition-colors duration-[120ms] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? t("Signing in...") : t("Sign in")}
             </button>
@@ -227,7 +227,7 @@ function LoginPageContent() {
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-slate-200 rounded-xl bg-slate-50/80 hover:bg-slate-100 text-slate-800 font-medium disabled:opacity-50 transition-colors"
+              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-slate-800 font-medium disabled:opacity-50 transition-colors duration-[120ms]"
             >
               <svg className="w-5 h-5" viewBox="0 0 24 24">
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>

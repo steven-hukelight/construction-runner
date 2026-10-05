@@ -59,14 +59,14 @@ export default async function CertsTrainingPage({
         }
       />
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <PreInductionSectionCertifications
           userId={userId}
           data={deepSerializeForClient(data.sections.certifications)}
         />
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <PreInductionSectionTraining
           userId={userId}
           data={deepSerializeForClient(data.sections.training)}

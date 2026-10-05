@@ -7,7 +7,7 @@ export default function DashboardLoading() {
         <div className="h-4 w-72 rounded bg-gray-100/80" />
       </div>
       {/* Card/table skeleton */}
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3 mb-6">
           <div className="h-12 w-12 rounded-xl bg-gray-200/80" />
           <div className="space-y-2">

@@ -231,7 +231,7 @@ function MetricCard({
   color: string;
 }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <div className="flex items-center gap-2">
         <Icon className="h-4 w-4" style={{ color }} />
         <p className="text-xs font-medium text-gray-500">{label}</p>

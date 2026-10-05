@@ -39,10 +39,10 @@ export default function ForgotPasswordPage() {
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
-        className="bg-white/90 backdrop-blur-xl rounded-2xl shadow-xl border border-gray-200/50 p-8 max-w-md w-full"
+        className="bg-white rounded-xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-8 max-w-md w-full"
       >
         <div className="text-center mb-6">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-blue-600 flex items-center justify-center">
+          <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-blue-600 flex items-center justify-center">
             <Mail className="w-8 h-8 text-white" />
           </div>
           <h2 className="text-2xl font-bold text-gray-900">Forgot password?</h2>
@@ -87,7 +87,7 @@ export default function ForgotPasswordPage() {
             <button
               type="submit"
               disabled={loading}
-              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-xl hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
+              className="w-full bg-blue-600 text-white font-semibold py-3 rounded-lg hover:bg-blue-700 transition-colors duration-[120ms] disabled:opacity-50 disabled:cursor-not-allowed"
             >
               {loading ? "Sending..." : "Send reset link"}
             </button>

@@ -709,10 +709,10 @@ export default function ProfilePage() {
       />
 
       {/* Tabs */}
-      <div className="bg-white border border-gray-200/60 rounded-xl shadow-sm p-1.5 inline-flex gap-1">
+      <div className="bg-white border border-gray-200 rounded-xl shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-1.5 inline-flex gap-1">
         <button
           onClick={() => setActiveTab("personal")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
             activeTab === "personal" 
               ? "bg-blue-600 text-white shadow-sm" 
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -723,7 +723,7 @@ export default function ProfilePage() {
         </button>
         <button
           onClick={() => setActiveTab("activity")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
             activeTab === "activity" 
               ? "bg-blue-600 text-white shadow-sm" 
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -734,7 +734,7 @@ export default function ProfilePage() {
         </button>
         <button
           onClick={() => setActiveTab("certifications")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
             activeTab === "certifications" 
               ? "bg-blue-600 text-white shadow-sm" 
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -745,7 +745,7 @@ export default function ProfilePage() {
         </button>
         <button
           onClick={() => setActiveTab("medical")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
             activeTab === "medical" 
               ? "bg-blue-600 text-white shadow-sm" 
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -757,7 +757,7 @@ export default function ProfilePage() {
         {preInductionUiEnabled && (
           <button
             onClick={() => setActiveTab("induction")}
-            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+            className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
               activeTab === "induction"
                 ? "bg-blue-600 text-white shadow-sm"
                 : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -769,7 +769,7 @@ export default function ProfilePage() {
         )}
         <button
           onClick={() => setActiveTab("privacy")}
-          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-all ${
+          className={`inline-flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-[120ms] ${
             activeTab === "privacy" 
               ? "bg-blue-600 text-white shadow-sm" 
               : "text-gray-600 hover:text-gray-900 hover:bg-gray-50"
@@ -1263,7 +1263,7 @@ export default function ProfilePage() {
                             ) : (
                               <button
                                 onClick={() => triggerFileUpload(cert.id)}
-                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-all"
+                                className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm font-medium rounded-lg bg-blue-50 hover:bg-blue-100 text-blue-600 border border-blue-200 transition-colors duration-[120ms]"
                               >
                                 <Upload size={14} />
                                 Upload Evidence
@@ -1280,7 +1280,7 @@ export default function ProfilePage() {
                     </div>
 
                     <div className="pt-6 border-t border-gray-100">
-                      <button onClick={() => setShowCertModal(true)} className="w-full px-4 py-2.5 text-sm font-medium rounded-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 transition-all">
+                      <button onClick={() => setShowCertModal(true)} className="w-full px-4 py-2.5 text-sm font-medium rounded-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 transition-colors duration-[120ms]">
                         + Add New Certification
                       </button>
                     </div>
@@ -1593,13 +1593,13 @@ export default function ProfilePage() {
             <div className="sticky bottom-0 bg-gray-50 px-6 py-4 flex gap-3 border-t border-gray-200">
               <button
                 onClick={() => setShowCertModal(false)}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 transition-all"
+                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 transition-colors duration-[120ms]"
               >
                 Cancel
               </button>
               <button
                 onClick={addCertification}
-                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-all"
+                className="flex-1 px-4 py-2.5 text-sm font-medium rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors duration-[120ms]"
               >
                 Add Certification
               </button>

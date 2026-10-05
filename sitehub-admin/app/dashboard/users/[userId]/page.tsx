@@ -164,7 +164,7 @@ export default async function UserProfilePage({
         />
       )}
       {/* Personal Information - mirrors profile/settings structure */}
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <h4 className="font-semibold text-slate-900 text-sm mb-4">Personal Information</h4>
         <p className="text-sm text-gray-600 mb-4">
           Same fields as profile/settings. Edit via Pre-Induction or the user&apos;s own Profile.

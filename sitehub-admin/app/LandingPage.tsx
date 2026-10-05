@@ -81,7 +81,7 @@ export default function LandingPage() {
     <>
     <MarketingShell>
       <div className="mx-auto max-w-6xl px-4 py-6 sm:px-8 sm:py-8">
-        <header className="flex items-center justify-between gap-4 rounded-2xl bg-white/90 px-4 py-3 shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:px-5">
+        <header className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5">
           <div className="flex items-center gap-3">
             <Image
               src="/icon.png?v=3"
@@ -99,13 +99,13 @@ export default function LandingPage() {
           <nav className="flex items-center gap-2 sm:gap-3">
             <Link
               href="/contact"
-              className="rounded-full px-3 py-2 text-sm font-medium text-slate-600 transition hover:text-blue-700 sm:px-4"
+              className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 transition-colors duration-[120ms] hover:text-blue-700 sm:px-4"
             >
               {tr("Contact")}
             </Link>
             <Link
               href="/admin/login"
-              className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+              className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
             >
               {tr("Member Login")}
             </Link>
@@ -113,7 +113,7 @@ export default function LandingPage() {
         </header>
 
         <section className="mt-8 grid items-center gap-6 lg:mt-10 lg:grid-cols-2">
-          <div className="rounded-2xl bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:p-8">
+          <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8">
             <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
               Know who is on site.
               <span className="mt-1 block text-blue-800">Know they are signed off.</span>
@@ -126,14 +126,14 @@ export default function LandingPage() {
               <button
                 type="button"
                 onClick={() => setIsDemoModalOpen(true)}
-                className="inline-flex items-center justify-center gap-2 rounded-full bg-blue-600 px-7 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-blue-600 px-7 py-3 text-base font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700"
               >
                 {tr("Request a demo")}
                 <ArrowRight className="h-4 w-4" />
               </button>
               <a
                 href="#notify"
-                className="inline-flex items-center justify-center rounded-full border border-blue-100 bg-white px-6 py-3 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200"
+                className="inline-flex items-center justify-center rounded-lg border border-gray-200 bg-white px-6 py-3 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200"
               >
                 Get launch updates
               </a>
@@ -146,7 +146,7 @@ export default function LandingPage() {
               return (
                 <div
                   key={feature.title}
-                  className="flex gap-4 rounded-2xl border border-white/70 bg-white/90 p-5 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md"
+                  className="flex gap-4 rounded-xl border border-gray-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
                 >
                   <div className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-blue-50 text-blue-700">
                     <Icon className="h-5 w-5" />
@@ -165,7 +165,7 @@ export default function LandingPage() {
           {STEPS.map((step) => (
             <div
               key={step.n}
-              className="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md"
+              className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
             >
               <h3 className="text-lg font-semibold text-slate-900">{step.title}</h3>
               <p className="mt-2 text-sm leading-relaxed text-slate-600">{step.body}</p>
@@ -175,7 +175,7 @@ export default function LandingPage() {
 
         <section
           id="notify"
-          className="mt-10 rounded-2xl border border-white/70 bg-white/90 px-6 py-8 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md sm:px-10"
+          className="mt-10 rounded-xl border border-gray-200 bg-white px-6 py-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-10"
         >
           <div className="grid items-center gap-8 lg:grid-cols-[1.2fr_1fr]">
             <div>
@@ -210,11 +210,11 @@ export default function LandingPage() {
                       value={email}
                       onChange={(e) => setEmail(e.target.value)}
                       placeholder="your@email.com"
-                      className="flex-1 rounded-full border border-blue-100 bg-[#f7fafc] px-5 py-3 text-slate-900 outline-none transition placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
+                      className="flex-1 rounded-lg border border-gray-200 bg-white px-5 py-3 text-slate-900 outline-none transition-colors duration-[120ms] placeholder:text-slate-400 focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20"
                     />
                     <button
                       type="submit"
-                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-full bg-blue-600 px-6 py-3 font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                      className="inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-lg bg-blue-600 px-6 py-3 font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700"
                     >
                       {tr("Notify me")} <ArrowRight className="h-4 w-4" />
                     </button>
@@ -222,7 +222,7 @@ export default function LandingPage() {
                   {notifyError && <p className="text-xs text-red-600">{notifyError}</p>}
                 </form>
               ) : (
-                <div className="flex items-center gap-3 rounded-2xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">
+                <div className="flex items-center gap-3 rounded-xl border border-emerald-200 bg-emerald-50 px-5 py-3 text-sm font-medium text-emerald-800">
                   <CheckCircle className="h-5 w-5 shrink-0" />
                   You&apos;re on the list — we&apos;ll reach out when we go live!
                 </div>

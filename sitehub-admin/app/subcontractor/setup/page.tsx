@@ -192,7 +192,7 @@ export default function SubcontractorSetupPage() {
 
       <div className="space-y-8">
         {/* Company name & logo */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Building2 size={20} className="text-blue-600" />
             Company details
@@ -235,7 +235,7 @@ export default function SubcontractorSetupPage() {
         </section>
 
         {/* Add operatives */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <UserPlus size={20} className="text-blue-600" />
             Add operatives
@@ -276,7 +276,7 @@ export default function SubcontractorSetupPage() {
         </section>
 
         {/* Upload RAMS */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <FileUp size={20} className="text-blue-600" />
             Upload RAMS
@@ -312,7 +312,7 @@ export default function SubcontractorSetupPage() {
         </section>
 
         {/* Assign operatives to site */}
-        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+        <section className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h2 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
             <Users size={20} className="text-blue-600" />
             Assign operatives to site

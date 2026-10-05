@@ -54,7 +54,7 @@ export default function JoinWithCodePage() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-sm">
+      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3 mb-6">
           <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
             <Building2 size={28} />

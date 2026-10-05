@@ -158,9 +158,9 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
           {messages.map((m) => (
             <div key={m.id} className="rounded-lg bg-gray-50 border border-gray-100 p-3.5 group">
               <div className="flex justify-between items-center gap-3 mb-2">
-                <span className="font-medium text-[#1A1A1A] text-sm">{m.sender_name ?? "Unknown"}</span>
+                <span className="font-medium text-gray-900 text-sm">{m.sender_name ?? "Unknown"}</span>
                 <div className="flex items-center gap-2 shrink-0">
-                  <span className="text-xs text-[#6E6E6E]">{formatDateTime(m.createdAt)}</span>
+                  <span className="text-xs text-gray-500">{formatDateTime(m.createdAt)}</span>
                   {m.read === true && (
                     <CheckCheck className="w-4 h-4 text-blue-600" aria-label="Read" />
                   )}
@@ -180,7 +180,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
                   )}
                 </div>
               </div>
-              <div className="text-sm text-[#1A1A1A]">{m.body}</div>
+              <div className="text-sm text-gray-900">{m.body}</div>
               {m.attachmentUrl && (
                 <a
                   href={m.attachmentUrl}

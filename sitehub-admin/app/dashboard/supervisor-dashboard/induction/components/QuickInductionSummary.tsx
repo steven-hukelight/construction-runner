@@ -24,7 +24,7 @@ export default function QuickInductionSummary({ summary }: { summary: Summary })
       {cards.map((c) => (
         <div
           key={c.label}
-          className="rounded-xl border border-gray-200 bg-white p-4 shadow-sm"
+          className="rounded-xl border border-gray-200 bg-white p-4 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
         >
           <p className="text-xs font-medium text-gray-500">
             {c.label}

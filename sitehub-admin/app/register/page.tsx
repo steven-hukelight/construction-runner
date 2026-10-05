@@ -237,7 +237,7 @@ function RegisterPageContent() {
         >
           ← Return to previous page
         </button>
-        <div className="max-w-md text-center p-8 rounded-2xl bg-white shadow-xl border border-gray-200">
+        <div className="max-w-md text-center p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
             {maintenance ? "Maintenance in progress" : "Registrations are closed"}
           </h1>
@@ -257,7 +257,7 @@ function RegisterPageContent() {
   if (verifyDoneMessage) {
     return (
       <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
-        <div className="w-full max-w-md mt-10 p-8 rounded-2xl bg-white shadow-xl border border-blue-100 text-center">
+        <div className="w-full max-w-md mt-10 p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] text-center">
           <h1 className="text-2xl font-bold text-blue-700 mb-3">Email verified</h1>
           <p className="text-sm text-gray-600 mb-6">{verifyDoneMessage}</p>
           <a
@@ -274,7 +274,7 @@ function RegisterPageContent() {
   if (verifyRegId) {
     return (
       <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
-        <div className="w-full max-w-md mt-10 p-8 rounded-2xl bg-white shadow-xl border border-blue-100">
+        <div className="w-full max-w-md mt-10 p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h1 className="text-2xl font-bold text-blue-700 mb-2">Verify your email</h1>
           <p className="text-sm text-gray-600 mb-6">
             Enter the 6-digit code we sent to <strong className="text-gray-800">{verifyEmail}</strong>. After that,
@@ -339,7 +339,7 @@ function RegisterPageContent() {
         </p>
 
         <div
-          className="flex rounded-xl border border-blue-200/80 bg-white/80 p-1 mb-8 shadow-sm"
+          className="flex rounded-xl border border-gray-200 bg-white p-1 mb-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           role="tablist"
           aria-label="Registration type"
         >
@@ -381,7 +381,7 @@ function RegisterPageContent() {
 
         <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-stretch justify-center">
           {tab === "newCompany" ? (
-        <form onSubmit={handleNewCompanySubmit} className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-colors duration-[120ms]">
+        <form onSubmit={handleNewCompanySubmit} className="flex flex-col justify-between min-h-[520px] p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] w-full max-w-md transition-colors duration-[120ms]">
           <p className="text-xs text-gray-600 mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
             Your data is collected solely for site access, safety compliance, induction, RAMS acceptance, and legal H&amp;S obligations. It is not used for marketing or profiling.
           </p>
@@ -460,7 +460,7 @@ function RegisterPageContent() {
         <form
           onSubmit={handleInviteSubmit}
           id="company-invite-code"
-          className="flex flex-col justify-between min-h-[520px] p-8 rounded-2xl bg-white shadow-xl border border-blue-100 w-full max-w-md transition-colors duration-[120ms]"
+          className="flex flex-col justify-between min-h-[520px] p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] w-full max-w-md transition-colors duration-[120ms]"
         >
           <p className="text-xs text-gray-600 mb-4 p-3 rounded-lg bg-blue-50 border border-blue-100">
             Your data is collected solely for site access, safety compliance, induction, RAMS acceptance, and legal H&amp;S obligations. It is not used for marketing or profiling.

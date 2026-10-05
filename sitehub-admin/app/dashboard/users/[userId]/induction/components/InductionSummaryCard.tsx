@@ -40,7 +40,7 @@ export default function InductionSummaryCard({
 
   return (
     <div
-      className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm"
+      className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
       style={{ borderColor: "rgba(229, 231, 235, 1)" }}
     >
       <div className="mb-4 flex items-center gap-3">

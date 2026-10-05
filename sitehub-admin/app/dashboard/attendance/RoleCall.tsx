@@ -533,7 +533,7 @@ export default function RoleCall({
             <button
               type="button"
               onClick={() => setStatusTab("signed_in")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-[120ms] ${
                 statusTab === "signed_in"
                   ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"
@@ -544,7 +544,7 @@ export default function RoleCall({
             <button
               type="button"
               onClick={() => setStatusTab("signed_out")}
-              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-all ${
+              className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors duration-[120ms] ${
                 statusTab === "signed_out"
                   ? "bg-white text-slate-900 shadow-sm dark:bg-slate-700 dark:text-slate-100"
                   : "text-slate-600 hover:text-slate-900 dark:text-slate-400 dark:hover:text-slate-100"

@@ -150,7 +150,7 @@ export default function SiteInductionClient({
   return (
     <div className="space-y-6">
       {/* Operatives on site (induction & RAMS by company) */}
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4">Operatives on site</h3>
         <p className="text-sm text-gray-500 dark:text-slate-400 mb-4">
           Add operatives from your company so they can see this site in the app and complete induction. Super Admins and Supervisors can add people here.
@@ -183,7 +183,7 @@ export default function SiteInductionClient({
       </div>
 
       {/* RAMS by company */}
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
           <FileText size={20} className="text-blue-600" />
           RAMS by company

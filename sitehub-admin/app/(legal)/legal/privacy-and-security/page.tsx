@@ -14,7 +14,7 @@ export default function PrivacyAndSecurityPage() {
   return (
     <MarketingShell>
       <div className="mx-auto max-w-3xl px-4 py-12 sm:px-6">
-        <div className="rounded-[20px] bg-[rgba(255,255,255,0.92)] px-5 py-10 shadow-[0_12px_40px_rgba(15,35,70,0.22)] ring-1 ring-white/70 backdrop-blur-xl sm:px-10">
+        <div className="rounded-xl border border-gray-200 bg-white px-5 py-10 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-10">
         <Link
           href="/"
           className="inline-flex items-center gap-2 text-sm text-blue-600 hover:text-blue-700 mb-8"

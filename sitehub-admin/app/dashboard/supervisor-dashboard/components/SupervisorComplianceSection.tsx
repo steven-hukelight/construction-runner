@@ -16,7 +16,7 @@ export default function SupervisorComplianceSection() {
   }, []);
 
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
       <h3 className="text-lg font-semibold text-gray-900 mb-4">Site Compliance Overview</h3>
       <p className="text-sm text-gray-500 mb-6">
         View real-time compliance status for operatives assigned to your sites.

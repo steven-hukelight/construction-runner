@@ -42,7 +42,7 @@ export default function ContactPage() {
     <>
       <MarketingShell>
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
-          <header className="flex items-center justify-between gap-4 rounded-2xl bg-white/90 px-4 py-3 shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:px-5">
+          <header className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5">
             <Link href="/" className="flex items-center gap-3">
               <Image
                 src="/icon.png?v=3"
@@ -59,20 +59,20 @@ export default function ContactPage() {
             <div className="flex items-center gap-3">
               <Link
                 href="/"
-                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
               >
                 Home
               </Link>
               <Link
                 href={MEMBER_LOGIN_URL}
-                className="rounded-full border border-blue-100 bg-white px-4 py-2 text-sm font-medium text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
               >
                 Member Login
               </Link>
             </div>
           </header>
 
-          <div className="mx-auto mt-8 max-w-4xl rounded-2xl bg-white/90 px-6 py-10 text-center shadow-[0_8px_24px_rgba(15,35,70,0.12)] ring-1 ring-white/70 backdrop-blur-md sm:px-10">
+          <div className="mx-auto mt-8 max-w-4xl rounded-xl border border-gray-200 bg-white px-6 py-10 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-10">
             <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
               Contact Construction Runner
             </div>
@@ -91,14 +91,14 @@ export default function ContactPage() {
               <button
                 type="button"
                 onClick={() => setIsDemoModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-7 py-3 text-base font-semibold text-white shadow-sm transition hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-7 py-3 text-base font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700"
               >
                 Request a Demo
                 <ArrowRight className="h-5 w-5" />
               </button>
               <Link
                 href={MEMBER_LOGIN_URL}
-                className="rounded-full border border-blue-100 bg-white px-7 py-3 text-base font-semibold text-slate-700 shadow-sm transition hover:border-blue-200 hover:text-blue-700"
+                className="rounded-lg border border-gray-200 bg-white px-7 py-3 text-base font-semibold text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
               >
                 Member Login
               </Link>
@@ -109,7 +109,7 @@ export default function ContactPage() {
             {contactOptions.map((option) => (
               <div
                 key={option.title}
-                className="rounded-2xl border border-white/70 bg-white/90 p-6 shadow-[0_8px_24px_rgba(15,35,70,0.12)] backdrop-blur-md"
+                className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
               >
                 <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
                   {option.icon}

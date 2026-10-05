@@ -123,7 +123,7 @@ export default function PreInductionLayout({
         })}
       </div>
 
-      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         {activeTab === "personal" && (
           <PreInductionSectionPersonal
             userId={userId}

@@ -379,7 +379,7 @@ function DeclarationsSection({
 
 function Section({ title, icon, children }: { title: string; icon: React.ReactNode; children: React.ReactNode }) {
   return (
-    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-sm space-y-4">
+    <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] space-y-4">
       <div className="flex items-center gap-2 text-slate-900">
         <span className="text-slate-600">{icon}</span>
         <h4 className="font-semibold text-sm">{title}</h4>

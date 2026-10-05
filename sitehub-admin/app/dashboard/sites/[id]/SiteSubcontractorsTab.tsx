@@ -139,7 +139,7 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
 
   return (
     <div className="space-y-8">
-      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <h3 className="text-lg font-semibold text-gray-900 mb-4 flex items-center gap-2">
           <Building2 size={20} className="text-blue-600" />
           Subcontractor companies
@@ -162,7 +162,7 @@ export default function SiteSubcontractorsTab({ siteId }: { siteId: string }) {
         </p>
       </div>
 
-      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-sm">
+      <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <h3 className="text-lg font-semibold text-gray-900 dark:text-slate-100 mb-4 flex items-center gap-2">
           <Users size={20} className="text-blue-600" />
           Operatives on site – Subcontractors

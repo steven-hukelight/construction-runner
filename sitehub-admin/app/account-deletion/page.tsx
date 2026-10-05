@@ -46,7 +46,7 @@ export default function AccountDeletionRequestPage() {
             it; we will explain what that is and why.
           </p>
 
-          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
+          <section className="rounded-xl border border-gray-200 bg-white p-5 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
             <h2 className="mb-3 text-lg font-semibold text-gray-900">
               What to include
             </h2>

@@ -315,7 +315,7 @@ export default function NotificationDropdown() {
           e.stopPropagation();
           setOpen((v) => !v);
         }}
-        className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-700/80 backdrop-blur-xl border border-gray-200/60 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-600 transition-all duration-300 relative group"
+        className="p-2.5 rounded-xl bg-white/80 dark:bg-slate-700/80 backdrop-blur-xl border border-gray-200/60 dark:border-slate-600 hover:bg-white dark:hover:bg-slate-600 transition-colors duration-[120ms] relative group"
         title="Notifications"
         aria-expanded={open}
         aria-haspopup="true"
