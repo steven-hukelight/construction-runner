@@ -263,7 +263,7 @@ export default function CertificationsPage() {
 
   return (
     <>
-      <PageHeader title="Certifications & Training" description="View records uploaded from mobile and web (live)" />
+      <PageHeader title="Certifications & training" description="View records uploaded from mobile and web (live)" />
 
       <div className="flex gap-3 mb-4">
         <button

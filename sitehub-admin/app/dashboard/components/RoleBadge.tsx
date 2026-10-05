@@ -13,7 +13,7 @@ export default function RoleBadge({ role, className = "" }: RoleBadgeProps) {
 
   return (
     <span
-      className={`role-badge inline-flex items-center whitespace-nowrap rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-slate-700 dark:text-slate-200 ${className}`.trim()}
+      className={`inline-flex items-center whitespace-nowrap rounded-md bg-gray-100 px-2 py-0.5 text-xs font-medium text-gray-700 dark:bg-slate-700 dark:text-slate-200 ${className}`.trim()}
       title={display}
     >
       {display}

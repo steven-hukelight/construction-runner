@@ -94,7 +94,7 @@ function PreInductionProgressSummary({ sections }: { sections: Record<string, Re
         <Badge status={rtwStatusType} label={rtwStatus} />
       </div>
       <div className="flex items-center justify-between gap-2">
-        <span className="text-gray-600 dark:text-slate-400">Competency Card</span>
+        <span className="text-gray-600 dark:text-slate-400">Competency card</span>
         <Badge status={ccComplete ? "complete" : "missing"} label={ccComplete ? "Complete" : "Missing"} />
       </div>
       <div className="flex items-center justify-between gap-2">
@@ -190,13 +190,13 @@ export default function ComplianceDrawer({
                   href={`/dashboard/users/${userId}/pre-induction`}
                   className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:underline text-sm font-medium"
                 >
-                  Open Full Pre-Induction Profile
+                  Open full pre-induction profile
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               </div>
             </ComplianceDrawerSection>
 
-            <ComplianceDrawerSection title="Personal Details" defaultOpen={false}>
+            <ComplianceDrawerSection title="Personal details" defaultOpen={false}>
               {data.sections.personal ? (
                 <div className="text-sm space-y-1">
                   <p>Name: {String(data.sections.personal.full_name ?? data.sections.personal.fullName ?? "—")}</p>
@@ -262,7 +262,7 @@ export default function ComplianceDrawer({
               )}
             </ComplianceDrawerSection>
 
-            <ComplianceDrawerSection title="Competency Card" defaultOpen={false}>
+            <ComplianceDrawerSection title="Competency card" defaultOpen={false}>
               {data.sections.competencyCard && (data.sections.competencyCard.card_number ?? data.sections.competencyCard.cardNumber ?? data.sections.competencyCard.file_url ?? data.sections.competencyCard.fileUrl) ? (
                 <div className="text-sm space-y-1">
                   <p>Type: {String(data.sections.competencyCard.card_type ?? data.sections.competencyCard.cardType ?? "—")}</p>
@@ -326,7 +326,7 @@ export default function ComplianceDrawer({
               )}
             </ComplianceDrawerSection>
 
-            <ComplianceDrawerSection title="Induction History">
+            <ComplianceDrawerSection title="Induction history">
               {data.inductionHistory.length === 0 ? (
                 <p className="text-sm text-gray-500 dark:text-slate-400">No induction history</p>
               ) : (
@@ -358,7 +358,7 @@ export default function ComplianceDrawer({
               )}
             </ComplianceDrawerSection>
 
-            <ComplianceDrawerSection title="Admin Actions" defaultOpen>
+            <ComplianceDrawerSection title="Admin actions" defaultOpen>
               {userId && (
               <ComplianceAdminActions
                 userId={userId}

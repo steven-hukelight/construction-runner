@@ -24,7 +24,7 @@ export default async function SuperuserDashboardPage() {
 
   const cards = [
     {
-      title: "Multi-company Admin",
+      title: "Multi-company admin",
       description: "Companies, users, sites, registrations, activity, unfiltered",
       href: "/dashboard/superuser-admin",
       icon: LayoutGrid,
@@ -36,25 +36,25 @@ export default async function SuperuserDashboardPage() {
       icon: Building2,
     },
     {
-      title: "All Users",
+      title: "All users",
       description: "View and manage users across companies",
       href: "/dashboard/all-users",
       icon: Users,
     },
     {
-      title: "System Logs",
+      title: "System logs",
       description: "Audit and system activity",
       href: "/dashboard/system-logs",
       icon: FileText,
     },
     {
-      title: "Global Settings",
+      title: "Global settings",
       description: "Platform-wide configuration",
       href: "/dashboard/global-settings",
       icon: Settings,
     },
     {
-      title: "Superuser Tools",
+      title: "Superuser tools",
       description: "Maintenance and data tools",
       href: "/dashboard/superuser-tools",
       icon: Wrench,
@@ -65,7 +65,7 @@ export default async function SuperuserDashboardPage() {
     <div className="space-y-8 pb-12">
       <div>
         <h1 className="text-2xl font-bold mb-2 text-gray-900">
-          Superuser Dashboard
+          Superuser dashboard
         </h1>
         <p className="text-gray-600">
           Manage tenants, users, and system settings. Use the company switcher in the top bar to

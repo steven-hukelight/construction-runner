@@ -113,7 +113,7 @@ export default function SystemLogsPage() {
       {clearConfirmOpen && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50">
           <div className="bg-white dark:bg-slate-800 rounded-xl shadow-xl p-6 max-w-md w-full mx-4">
-            <h3 className="text-lg font-semibold mb-2 dark:text-slate-100">Clear System Logs</h3>
+            <h3 className="text-lg font-semibold mb-2 dark:text-slate-100">Clear system logs</h3>
             <p className="text-sm text-gray-600 dark:text-slate-400 mb-6">
               This will delete all rows from the system_logs table. This action cannot be undone. The clear action will be recorded in audit_logs.
             </p>

@@ -14,7 +14,7 @@ export default async function SupervisorDashboardPage() {
         subtitle="Here's an overview of your sites, attendance, and induction status."
       />
       <PageHeader
-        title="Supervisor Dashboard"
+        title="Supervisor dashboard"
         description="Quick access to attendance, induction, and compliance tools."
       />
       <SupervisorComplianceSection />

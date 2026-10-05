@@ -34,7 +34,7 @@ export default function AttendanceTable({
             <tr className="data-table-header border-b border-blue-100/70 bg-[#eef4fa] text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-slate-600 dark:bg-slate-900/90 dark:text-slate-400">
               <th className={density.th}>Operative</th>
               <th className={density.th}>Site</th>
-              <th className={density.th}>Sign in · Left site · Signed out</th>
+              <th className={density.th}>Times</th>
               <th className={density.th}>Duration</th>
               <th className={density.th}>Status</th>
               <th className={`${density.th} text-right`} />

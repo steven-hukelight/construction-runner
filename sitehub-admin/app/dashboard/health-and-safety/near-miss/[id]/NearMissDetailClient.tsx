@@ -79,7 +79,7 @@ export default function NearMissDetailClient({
           className="inline-flex items-center gap-2 text-gray-600 hover:text-gray-900"
         >
           <ArrowLeft size={18} />
-          Back to Near Miss
+          Back to near miss
         </Link>
         <div className="flex flex-wrap gap-2">
           <Button onClick={handleExportReport}>
@@ -100,7 +100,7 @@ export default function NearMissDetailClient({
       </div>
 
       <div className="card p-6">
-        <h1 className="text-xl font-bold text-gray-900 mb-6">Near Miss Report</h1>
+        <h1 className="text-xl font-bold text-gray-900 mb-6">Near miss report</h1>
         <dl className="grid gap-4 sm:grid-cols-2">
           <div>
             <dt className="text-sm font-medium text-gray-500">Date</dt>

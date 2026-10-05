@@ -21,7 +21,7 @@ export default async function SafetyAlertsPage() {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Safety Alerts"
+        title="Safety alerts"
         description="Site safety alerts with severity levels: info, warning, critical."
       />
       <SafetyAlertsManager />

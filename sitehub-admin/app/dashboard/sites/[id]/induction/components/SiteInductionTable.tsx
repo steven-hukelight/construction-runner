@@ -5,11 +5,10 @@ import React, { useState } from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
-import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
 import Button from "@/app/dashboard/components/ui/Button";
 import type { SiteInductionOperative } from "../server";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
-import { UserRound } from "lucide-react";
 
 // When the pre-induction UI is disabled site-wide, present pre-induction
 // specific statuses under neutral labels so users don't see the feature name.
@@ -117,7 +116,7 @@ export default function SiteInductionTable({
       header: "Operative Name",
       accessor: "operativeName" as const,
       render: (row: SiteInductionOperative) => (
-        <TableNameCell icon={UserRound} label={row.operativeName} />
+        <TableNameCell initials={initialsFromLabel(row.operativeName)} label={row.operativeName} />
       ),
     },
     {

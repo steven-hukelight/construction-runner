@@ -128,7 +128,7 @@ export default async function UserProfilePage({
             className="inline-flex items-center justify-center rounded-xl px-4 py-2 text-sm font-semibold text-white shadow-sm hover:opacity-90"
             style={{ backgroundColor: "#2563EB" }}
           >
-            My Info
+            My info
           </Link>
           {preInductionUiEnabled && (
             <Link
@@ -163,9 +163,9 @@ export default async function UserProfilePage({
           canEdit={true}
         />
       )}
-      {/* Personal Information - mirrors profile/settings structure */}
+      {/* Personal information - mirrors profile/settings structure */}
       <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-        <h4 className="font-semibold text-slate-900 text-sm mb-4">Personal Information</h4>
+        <h4 className="font-semibold text-slate-900 text-sm mb-4">Personal information</h4>
         <p className="text-sm text-gray-600 mb-4">
           Same fields as profile/settings. Edit via Pre-Induction or the user&apos;s own Profile.
         </p>

@@ -334,7 +334,7 @@ export default function NotificationDropdown() {
               {unseenCount > 0
                 ? `${unseenCount} new · ` +
                   [
-                    countsByType.near_miss && `${countsByType.near_miss} Near Miss`,
+                    countsByType.near_miss && `${countsByType.near_miss} Near miss`,
                     countsByType.registration && `${countsByType.registration} Registrations`,
                     countsByType.message && `${countsByType.message} Messages`,
                     countsByType.rams && `${countsByType.rams} RAMS`,

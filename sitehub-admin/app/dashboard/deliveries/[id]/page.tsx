@@ -11,7 +11,7 @@ export default async function DeliveryDetailPage({ params }: PageProps) {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Delivery Details"
+        title="Delivery details"
         description="View POD, load photos, and update delivery status."
       />
       <DeliveryDetailClient deliveryId={id} />

@@ -31,7 +31,7 @@ export function CardSelect({
   items: CardSelectItem[];
   value: string;
   onChange: (id: string) => void;
-  icon: ComponentType<{ className?: string }>;
+  icon?: ComponentType<{ className?: string }>;
   fieldLabel: string;
   placeholder?: string;
   disabled?: boolean;
@@ -65,16 +65,24 @@ export function CardSelect({
     );
   }, [items, query]);
 
+  function close() {
+    setOpen(false);
+    setQuery("");
+  }
+
   useEffect(() => {
-    if (!open) {
-      setQuery("");
-      return;
-    }
+    if (!open) return;
     const onPointer = (e: MouseEvent) => {
-      if (rootRef.current && !rootRef.current.contains(e.target as Node)) setOpen(false);
+      if (rootRef.current && !rootRef.current.contains(e.target as Node)) {
+        setOpen(false);
+        setQuery("");
+      }
     };
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") setOpen(false);
+      if (e.key === "Escape") {
+        setOpen(false);
+        setQuery("");
+      }
     };
     document.addEventListener("mousedown", onPointer, true);
     document.addEventListener("keydown", onKey);
@@ -89,7 +97,7 @@ export function CardSelect({
 
   function pick(id: string) {
     onChange(id);
-    setOpen(false);
+    close();
   }
 
   return (
@@ -97,27 +105,25 @@ export function CardSelect({
       <button
         type="button"
         disabled={disabled}
-        onClick={() => setOpen((o) => !o)}
+        onClick={() => {
+          setQuery("");
+          setOpen((o) => !o);
+        }}
         aria-expanded={open}
         aria-haspopup="listbox"
         className={clsx(
-          "flex w-full items-center text-left shadow-sm transition",
-          "bg-white dark:bg-slate-900",
-          compact ? "gap-2 rounded-xl border px-2.5 py-1.5" : "gap-3 rounded-2xl border px-3 py-2.5",
-          open
-            ? "border-blue-400 ring-2 ring-blue-500/20"
-            : "border-slate-200 hover:border-slate-300 dark:border-slate-600 dark:hover:border-slate-500",
-          disabled && "cursor-not-allowed opacity-60"
+          "flex w-full items-center border border-gray-300 bg-white text-left transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-900",
+          compact ? "gap-2 rounded-lg px-3 py-1.5" : "gap-3 rounded-lg px-3 py-2.5",
+          disabled && "cursor-not-allowed opacity-50"
         )}
       >
+        {!compact && Icon ? (
         <span
-          className={clsx(
-            "flex shrink-0 items-center justify-center rounded-xl bg-blue-500/12 text-blue-600 dark:text-blue-300",
-            compact ? "h-8 w-8" : "h-10 w-10"
-          )}
+          className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-blue-50 text-blue-600 dark:bg-blue-500/15 dark:text-blue-300"
         >
-          <Icon className={compact ? "h-4 w-4" : "h-5 w-5"} />
+          <Icon className="h-4 w-4" />
         </span>
+        ) : null}
         <span className="min-w-0 flex-1">
           <span className="block text-xs font-semibold text-slate-500 dark:text-slate-400">
             {fieldLabel}
@@ -135,17 +141,13 @@ export function CardSelect({
             <span className="block truncate text-xs text-slate-500">{selected.subtitle}</span>
           ) : null}
         </span>
-        <span
-          className={clsx(
-            "flex shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400",
-            compact ? "h-7 w-7" : "h-8 w-8"
-          )}
-        >
-          <ChevronDown
-            className={clsx("h-4 w-4 transition-transform", open && "rotate-180")}
-            aria-hidden
-          />
-        </span>
+        {compact ? (
+          <ChevronDown className="h-4 w-4 shrink-0 text-gray-500" aria-hidden />
+        ) : (
+          <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-400">
+            <ChevronDown className={clsx("h-4 w-4", open && "rotate-180")} aria-hidden />
+          </span>
+        )}
       </button>
 
       {open && !disabled ? (
@@ -201,6 +203,7 @@ export function CardSelect({
                         active && "bg-blue-50 dark:bg-blue-500/15"
                       )}
                     >
+                      {Icon ? (
                       <span
                         className={clsx(
                           "flex h-9 w-9 shrink-0 items-center justify-center rounded-xl",
@@ -211,6 +214,7 @@ export function CardSelect({
                       >
                         <Icon className="h-4 w-4" />
                       </span>
+                      ) : null}
                       <span className="min-w-0 flex-1">
                         <span className="block truncate text-sm font-medium text-slate-900 dark:text-slate-100">
                           {s.name}

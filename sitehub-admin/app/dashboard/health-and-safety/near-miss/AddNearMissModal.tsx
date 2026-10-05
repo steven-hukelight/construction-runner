@@ -69,7 +69,7 @@ export default function AddNearMissModal() {
   return (
     <div className="space-y-3">
       <Button onClick={() => setOpen((v) => !v)}>
-        {open ? "Close" : "Add Near Miss"}
+        {open ? "Close" : "Add near miss"}
       </Button>
       {open && (
         <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4">
@@ -79,7 +79,7 @@ export default function AddNearMissModal() {
             aria-hidden
           />
           <div className="relative z-10 w-full max-w-xl lg:max-w-2xl card shadow-2xl max-h-[90vh] overflow-y-auto p-6 space-y-5">
-            <h3 className="text-lg font-semibold text-slate-900">Add Near Miss Report</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Add near miss report</h3>
             <p className="text-sm text-slate-600">
               Record a safety incident that did not result in injury. Used for tracking and prevention.
             </p>

@@ -19,7 +19,7 @@ export function buildCsvString(dataset: ComplianceExportRow[]): string {
     "Override Applied",
     "Grandfathered",
     "Compliance Score",
-    "Missing Items",
+    "Missing items",
     "Expiring Items",
     "RAMS Status",
     "RAMS Version",

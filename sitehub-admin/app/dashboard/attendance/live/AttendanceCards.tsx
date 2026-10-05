@@ -1,9 +1,10 @@
 "use client";
 
-import { User } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import type { AttendanceSession } from "./attendanceSessionTypes";
 import { getAttendanceRowModel } from "./attendanceRowModel";
+import { initialsFromLabel } from "../../components/ui/TableChrome";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 
 export default function AttendanceCards({
@@ -29,13 +30,12 @@ export default function AttendanceCards({
           now,
           timeFormat
         );
-        const accent = session.kind === "absent" ? "amber" : active ? "emerald" : "slate";
+        const operativeLabel = resolveOperativeLabel(session);
         return (
           <SafetyRecordCard
             key={session.id}
-            icon={User}
-            accent={accent}
-            title={resolveOperativeLabel(session)}
+            initials={initialsFromLabel(operativeLabel)}
+            title={operativeLabel}
             subtitle={resolveSiteLabel(session)}
             badges={
               <span
@@ -53,7 +53,7 @@ export default function AttendanceCards({
             meta={[...timeLines, durationLabel !== "—" ? durationLabel : ""].filter(Boolean)}
             onClick={() => onOpenSession(session)}
             actions={
-              <span className="text-sm font-medium text-blue-600 dark:text-blue-400">Details</span>
+              <ChevronRight className="h-4 w-4 text-gray-400" aria-hidden />
             }
           />
         );

@@ -1,9 +1,8 @@
 "use client";
 import toast from "react-hot-toast";
 import { useEffect, useState } from "react";
-import { UserRound } from "lucide-react";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import EditRegistrationModal, { type Registration } from "./EditRegistrationModal";
 import ApprovalRowActions from "../pending-approvals/ApprovalRowActions";
 import { useClientSession } from "../components/ClientSessionProvider";
@@ -92,7 +91,9 @@ export default function ApprovalsSection() {
           {
             header: "Name",
             accessor: "name",
-            render: (reg: Registration) => <TableNameCell icon={UserRound} label={reg.name || "—"} />,
+            render: (reg: Registration) => (
+              <TableNameCell initials={initialsFromLabel(reg.name || "—")} label={reg.name || "—"} />
+            ),
           },
           { header: "Email", accessor: "email" },
           { header: "Company", accessor: "companyName" },

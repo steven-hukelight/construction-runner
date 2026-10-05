@@ -55,7 +55,7 @@ export default function SuperuserSettingsClient() {
   if (loading) {
     return (
       <div className="p-8">
-        <PageHeader title="Global Settings" description="System-wide controls for all companies and users." />
+        <PageHeader title="Global settings" description="System-wide controls for all companies and users." />
         <p className="text-gray-500">Loading...</p>
       </div>
     );
@@ -63,7 +63,7 @@ export default function SuperuserSettingsClient() {
 
   return (
     <div className="p-8">
-      <PageHeader title="Global Settings" description="System-wide controls for all companies and users." />
+      <PageHeader title="Global settings" description="System-wide controls for all companies and users." />
       <div className="space-y-8">
         <section className="card">
           <h2 className="text-xl font-bold mb-4">Branding</h2>
@@ -105,7 +105,7 @@ export default function SuperuserSettingsClient() {
         </section>
         <div>
           <button className="button" onClick={handleSave} disabled={saving}>
-            {saving ? "Saving..." : "Save Global Settings"}
+            {saving ? "Saving..." : "Save global settings"}
           </button>
         </div>
       </div>

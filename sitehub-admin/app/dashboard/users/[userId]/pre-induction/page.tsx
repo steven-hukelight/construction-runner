@@ -77,7 +77,7 @@ export default async function PreInductionPage({
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Pre-Induction Profile"
+          title="Pre-induction profile"
           description="User not found or you don't have access."
         />
         <Link
@@ -97,7 +97,7 @@ export default async function PreInductionPage({
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Pre-Induction Profile"
+        title="Pre-induction profile"
         description={`Pre-Induction profile for ${data.user.name ?? data.user.email ?? data.user.id}.`}
         action={
           <Link

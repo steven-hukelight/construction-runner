@@ -202,13 +202,13 @@ export default function SubcontractorOperativeDrawer({
                   className="inline-flex items-center gap-1 text-blue-600 hover:underline text-sm font-medium"
                   target="_blank"
                 >
-                  View Pre-Induction Profile
+                  View pre-induction profile
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               </div>
             </Section>
 
-            <Section title="Personal Details (editable)" defaultOpen>
+            <Section title="Personal details (editable)" defaultOpen>
               <div className="space-y-3 text-sm">
                 <div>
                   <label className="block text-xs font-medium text-gray-500 mb-0.5">Full Name</label>
@@ -357,7 +357,7 @@ export default function SubcontractorOperativeDrawer({
             </Section>
 
             {operative.missingItems.length > 0 && (
-              <Section title="Missing Items">
+              <Section title="Missing items">
                 <ul className="text-sm text-amber-700 space-y-1">
                   {operative.missingItems.map((item, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -370,7 +370,7 @@ export default function SubcontractorOperativeDrawer({
             )}
 
             {operative.expiringItems.length > 0 && (
-              <Section title="Expiry Warnings">
+              <Section title="Expiry warnings">
                 <ul className="text-sm text-amber-700 space-y-1">
                   {operative.expiringItems.map((item, i) => (
                     <li key={i} className="flex items-center gap-2">
@@ -382,7 +382,7 @@ export default function SubcontractorOperativeDrawer({
               </Section>
             )}
 
-            <Section title="Subcontractor Actions" defaultOpen>
+            <Section title="Subcontractor actions" defaultOpen>
               <div className="flex flex-wrap gap-2">
                 <button
                   type="button"
@@ -403,7 +403,7 @@ export default function SubcontractorOperativeDrawer({
                   target="_blank"
                   className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 text-sm font-medium"
                 >
-                  View Pre-Induction Profile
+                  View pre-induction profile
                   <ExternalLink className="h-4 w-4" />
                 </Link>
               </div>

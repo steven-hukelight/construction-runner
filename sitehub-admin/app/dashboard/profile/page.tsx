@@ -802,7 +802,7 @@ export default function ProfilePage() {
             </div>
 
             <div className="mt-6 pt-6 border-t border-gray-100 space-y-4">
-              <h4 className="font-semibold text-slate-900 text-sm">Personal Information</h4>
+              <h4 className="font-semibold text-slate-900 text-sm">Personal information</h4>
               <div className="space-y-3 text-sm">
                 <div className="flex items-start justify-between">
                   <span className="text-slate-500">Phone</span>
@@ -1305,7 +1305,7 @@ export default function ProfilePage() {
                       <ClipboardCheck className="h-6 w-6 text-blue-600" />
                     </div>
                     <div>
-                      <h4 className="font-semibold text-slate-900">Pre-Induction Profile</h4>
+                      <h4 className="font-semibold text-slate-900">Pre-induction profile</h4>
                       <p className="text-sm text-slate-600">Upload documents, view &amp; edit your induction details</p>
                     </div>
                   </div>
@@ -1437,10 +1437,10 @@ export default function ProfilePage() {
                     </div>
                     <p className="text-slate-500 mb-2">No medical records found</p>
                     <p className="text-sm text-slate-400 mb-4">
-                      Your medical declaration lives in My Info / induction. Uploaded medical files are managed by administrators.
+                      Your medical declaration lives in My info / induction. Uploaded medical files are managed by administrators.
                     </p>
                     <Link href="/dashboard/profile" className="text-sm text-blue-600 hover:underline" onClick={() => setActiveTab("induction")}>
-                      Open induction / My Info
+                      Open induction / My info
                     </Link>
                   </div>
                 ) : (

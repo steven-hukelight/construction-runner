@@ -2,8 +2,8 @@
 
 import React, { useMemo, useState } from "react";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
-import { CheckCircle, Circle, UserRound } from "lucide-react";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
+import { CheckCircle, Circle } from "lucide-react";
 
 interface Profile {
   id: string;
@@ -43,7 +43,10 @@ export default function ProfilesTable({ profiles }: ProfilesTableProps) {
     {
       header: "Name",
       accessor: "displayName",
-      render: (row: Profile) => <TableNameCell icon={UserRound} label={row.displayName || row.email || "—"} />,
+      render: (row: Profile) => {
+        const label = row.displayName || row.email || "—";
+        return <TableNameCell initials={initialsFromLabel(label)} label={label} />;
+      },
     },
     { header: "Email", accessor: "email" },
     {

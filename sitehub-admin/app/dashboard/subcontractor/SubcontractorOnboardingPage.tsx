@@ -90,7 +90,7 @@ export default function SubcontractorOnboardingPage() {
   }, [rows, statusFilter, tradeFilter, siteFilter, search]);
 
   const selectClass =
-    "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500";
+    "rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500";
 
   const [isMobile, setIsMobile] = useState(false);
   const [isTablet, setIsTablet] = useState(false);
@@ -108,7 +108,7 @@ export default function SubcontractorOnboardingPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Operative Onboarding"
+        title="Operative onboarding"
         description="Manage your operatives, upload documents, complete Pre-Induction sections, and request verification."
       />
 

@@ -127,7 +127,7 @@ export default function PreInductionSummaryCard({
         </div>
         <div>
           <dt className="text-xs font-medium text-gray-500">
-            Competency Card
+            Competency card
           </dt>
           <dd className="mt-0.5">
             <SectionStatusBadge

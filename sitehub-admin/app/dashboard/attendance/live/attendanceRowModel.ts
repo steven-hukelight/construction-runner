@@ -32,9 +32,13 @@ export function getAttendanceRowModel(
     timeLines.push(`Signed in: ${hm(start)}`);
   } else {
     if (start) timeLines.push(`Signed in: ${hm(start)}`);
-    if (leave) timeLines.push(`Left site: ${hm(leave)}${reasonSuffix}`);
     const outAt = signedOut ?? (leave ? null : end);
-    if (outAt) timeLines.push(`Signed out: ${hm(outAt)}`);
+    if (leave && outAt && hm(leave) === hm(outAt)) {
+      timeLines.push(`Left site: ${hm(leave)} (auto)`);
+    } else {
+      if (leave) timeLines.push(`Left site: ${hm(leave)}${reasonSuffix}`);
+      if (outAt) timeLines.push(`Signed out: ${hm(outAt)}`);
+    }
   }
 
   let durationLabel: string;

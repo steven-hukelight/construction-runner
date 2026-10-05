@@ -74,7 +74,7 @@ export default function InviteSubcontractorModal({
   }
 
   return (
-    <Modal open={open} onClose={onClose} title="Invite Subcontractor">
+    <Modal open={open} onClose={onClose} title="Invite subcontractor">
       <div className="space-y-6">
         {code ? (
           <>

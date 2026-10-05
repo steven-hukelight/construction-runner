@@ -8,7 +8,7 @@ const POLL_INTERVAL_MS = 120_000;
 
 const NearMissCountContext = createContext(0);
 
-/** Unreviewed near-miss count, shared by the sidebar badge and the Health & Safety tab badge. */
+/** Unreviewed near-miss count, shared by the sidebar badge and the Health & safety tab badge. */
 export function NearMissCountProvider({ children }: { children: ReactNode }) {
   const [count, setCount] = useState(0);
 

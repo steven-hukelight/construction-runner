@@ -2,9 +2,8 @@
 
 import React from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
-import { UserRound } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
-import { DataTableShell, TableNameCell } from "../../components/ui/TableChrome";
+import { DataTableShell, initialsFromLabel, TableNameCell } from "../../components/ui/TableChrome";
 import type { ComplianceUser, ComplianceSite, InductionStatus } from "../server";
 
 function StatusBadge({ status }: { status: InductionStatus }) {
@@ -47,7 +46,7 @@ export default function ComplianceMatrix({ users, sites, matrix }: Props) {
                 className="data-table-row border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/60 dark:hover:bg-slate-700/80"
               >
                 <td className={density.td}>
-                  <TableNameCell icon={UserRound} label={u.name} detail={u.companyName} />
+                  <TableNameCell initials={initialsFromLabel(u.name)} label={u.name} detail={u.companyName} />
                 </td>
                 {sites.map((s) => {
                   const cell = matrix[u.id]?.[s.id];

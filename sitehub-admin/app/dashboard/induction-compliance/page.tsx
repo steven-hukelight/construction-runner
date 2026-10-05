@@ -7,7 +7,7 @@ import SuperuserSelfOverrideBlock from "./components/SuperuserSelfOverrideBlock"
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 export default async function InductionCompliancePage() {
-  // Induction Compliance is largely a Pre-Induction dashboard; when the
+  // Induction compliance is largely a Pre-Induction dashboard; when the
   // feature is hidden site-wide, send users somewhere useful. All backing
   // data still exists, flip `preInductionUiEnabled` back to `true` to
   // restore the page.
@@ -23,7 +23,7 @@ export default async function InductionCompliancePage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Induction Compliance"
+          title="Induction compliance"
           description="Induction status across users and sites."
         />
         <SuperuserSelfOverrideBlock />
@@ -44,7 +44,7 @@ export default async function InductionCompliancePage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Induction Compliance"
+          title="Induction compliance"
           description="Induction status across users and sites."
         />
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-6 text-amber-800">
@@ -59,7 +59,7 @@ export default async function InductionCompliancePage() {
     return (
       <div className="space-y-6">
         <PageHeader
-          title="Induction Compliance"
+          title="Induction compliance"
           description="Induction status across users and sites."
         />
         <p className="text-gray-600">No company selected or access denied.</p>
@@ -70,7 +70,7 @@ export default async function InductionCompliancePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Induction Compliance"
+        title="Induction compliance"
         description="Induction status for all users across all sites. Filter by status, company, trade, site, or expiry. Click a row to view full details."
       />
       {(role === "superuser" || role === "admin" || role === "ADMIN") && <SuperuserSelfOverrideBlock />}

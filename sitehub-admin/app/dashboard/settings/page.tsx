@@ -17,12 +17,12 @@ export default function SettingsPage() {
   const [activeTab, setActiveTab] = useState(activeTabDefault);
 
   const tabs = [
-    { id: "personal", label: t("Personal Information"), icon: User },
+    { id: "personal", label: t("Personal information"), icon: User },
     { id: "company", label: t("Company"), icon: Building2 },
     { id: "notifications", label: t("Notifications"), icon: Bell },
     { id: "security", label: t("Security"), icon: Lock },
     { id: "display", label: t("Display"), icon: Palette },
-    { id: "data", label: t("Data & Privacy"), icon: Database },
+    { id: "data", label: t("Data & privacy"), icon: Database },
   ];
 
   return (
@@ -66,7 +66,7 @@ export default function SettingsPage() {
 function PersonalInformationSettings() {
   return (
     <div className="card p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Personal Information</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-6">Personal information</h2>
       <p className="text-sm text-gray-600 mb-6">
         Edit your name, email, phone, address, emergency contact, NI number, and other personal details in your Profile.
         This is the single place for your account details, used across the app.
@@ -845,7 +845,7 @@ function SecuritySettings() {
 function DataPrivacySettings() {
   return (
     <div className="card p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Data & Privacy</h2>
+      <h2 className="text-xl font-bold text-gray-900 mb-6">Data & privacy</h2>
       <p className="text-sm text-gray-600 mb-6">
         Download your data or request erasure from Profile → Privacy &amp; Data. That is the live GDPR path.
       </p>

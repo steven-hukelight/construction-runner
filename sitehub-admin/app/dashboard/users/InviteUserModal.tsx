@@ -63,11 +63,11 @@ export default function InviteUserModal() {
   return (
     <div className="space-y-3">
       <Button onClick={() => setOpen((v) => !v)}>
-        {open ? "Close" : "Invite User"}
+        {open ? "Close" : "Invite user"}
       </Button>
       {open && (
         <div className="card w-full md:max-w-xl">
-          <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Invite User</h3>
+          <h3 className="text-base sm:text-lg font-semibold text-white mb-4 sm:mb-6">Invite user</h3>
           <div className="space-y-4 sm:space-y-5">
             <Input
               label="Name"

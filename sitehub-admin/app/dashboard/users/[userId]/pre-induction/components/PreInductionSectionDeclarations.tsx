@@ -17,7 +17,7 @@ interface PreInductionSectionDeclarationsProps {
   userId: string;
   data: Record<string, unknown> | null;
   onSaved?: () => void;
-  /** Must be true before operative can accept declaration. Requires Personal, Right to Work, Competency Card, Medical all complete. */
+  /** Must be true before operative can accept declaration. Requires Personal, Right to Work, Competency card, Medical all complete. */
   canAcceptDeclaration?: boolean;
 }
 
@@ -88,7 +88,7 @@ function PreInductionSectionDeclarations({
   const handleSave = async () => {
     if (!accepted && form.operativeDeclarationAccepted) return;
     if (form.operativeDeclarationAccepted && !canAcceptDeclaration) {
-      toast.error("Complete all required sections (Personal, Right to Work, Competency Card, Medical) before accepting the declaration.");
+      toast.error("Complete all required sections (Personal, Right to Work, Competency card, Medical) before accepting the declaration.");
       return;
     }
     setSaving(true);
@@ -133,7 +133,7 @@ function PreInductionSectionDeclarations({
       <h3 className="text-lg font-semibold text-gray-900">Declarations</h3>
       {!canAcceptDeclaration && (
         <div className="rounded-lg bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-800">
-          <strong>Complete all required sections first.</strong> Personal, Right to Work, Competency Card, and Medical must all be filled in and verified (green status) before you can accept the operative declaration.
+          <strong>Complete all required sections first.</strong> Personal, Right to Work, Competency card, and Medical must all be filled in and verified (green status) before you can accept the operative declaration.
         </div>
       )}
       <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

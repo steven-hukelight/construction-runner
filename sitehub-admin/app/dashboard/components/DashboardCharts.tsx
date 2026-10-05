@@ -248,7 +248,7 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
           </button>
         </div>
         {ramsStatusData.length === 0 ? (
-          <EmptyChart message="No RAMS yet. Upload method statements under Health & Safety → RAMS." />
+          <EmptyChart message="No RAMS yet. Upload method statements under Health & safety → RAMS." />
         ) : ramsView === "pie" ? (
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>

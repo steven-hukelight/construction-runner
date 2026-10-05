@@ -1,8 +1,8 @@
 "use client";
 
-import { UserRound } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
-import { TableNameCell } from "../../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../../components/ui/TableChrome";
 import type { AttendanceSession } from "./attendanceSessionTypes";
 import { getAttendanceRowModel } from "./attendanceRowModel";
 
@@ -35,9 +35,21 @@ export default function AttendanceRow({
       : "status-chip--muted";
 
   return (
-    <tr className="data-table-row border-b border-slate-100/90 transition-colors last:border-b-0 hover:bg-blue-50/70 dark:border-slate-700/60 dark:hover:bg-slate-700/80">
+    <tr
+      className="data-table-row cursor-pointer border-b border-slate-100/90 transition-colors duration-[120ms] last:border-b-0 hover:bg-blue-50/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-blue-500 dark:border-slate-700/60 dark:hover:bg-slate-700/80"
+      onClick={onOpenDetails}
+      onKeyDown={(e) => {
+        if (e.key === "Enter" || e.key === " ") {
+          e.preventDefault();
+          onOpenDetails();
+        }
+      }}
+      tabIndex={0}
+      role="button"
+      aria-label={`Open details for ${operativeLabel}`}
+    >
       <td className={`${densityTd} align-middle`}>
-        <TableNameCell icon={UserRound} label={operativeLabel} />
+        <TableNameCell initials={initialsFromLabel(operativeLabel)} label={operativeLabel} />
       </td>
       <td className={`${densityTd} align-middle text-slate-600 dark:text-slate-400`}>{siteLabel}</td>
       <td className={`${densityTd} align-middle`}>
@@ -52,9 +64,7 @@ export default function AttendanceRow({
         <span className={`status-chip ${chip}`}>{statusLabel}</span>
       </td>
       <td className={`${densityTd} align-middle text-right`}>
-        <button type="button" onClick={onOpenDetails} className="table-link">
-          Details
-        </button>
+        <ChevronRight className="ml-auto h-4 w-4 text-gray-400" aria-hidden />
       </td>
     </tr>
   );

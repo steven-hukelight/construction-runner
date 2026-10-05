@@ -31,7 +31,7 @@ export default async function SiteRulesPage() {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Site Rules"
+        title="Site rules"
         description="Per-site PPE, emergency, and conduct rules with optional attachments. Operatives accept these after the safety pack and RAMS. Not the company safety pack, that lives under Induction safety."
       />
       <SiteRulesManager />

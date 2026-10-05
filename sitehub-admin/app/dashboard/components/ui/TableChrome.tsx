@@ -34,6 +34,15 @@ export function TableToolbar({
   );
 }
 
+export function initialsFromLabel(label: string): string {
+  const source = label.includes("@") ? label.split("@")[0] : label;
+  const parts = source.split(/[\s._-]+/).filter(Boolean);
+  if (parts.length === 0 || label === "—") return "?";
+  const first = parts[0].charAt(0);
+  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
+  return (first + last).toUpperCase();
+}
+
 export function TableNameCell({
   icon: Icon,
   initials,

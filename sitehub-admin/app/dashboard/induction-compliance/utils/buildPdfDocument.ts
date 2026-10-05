@@ -11,7 +11,7 @@ export function buildPdfDocument(
   options?: { logo?: LogoForPdf | null; companyName?: string | null },
 ): Buffer {
   const report = createReportPdf({
-    title: "Induction Compliance Report",
+    title: "Induction compliance Report",
     subtitle: `${dataset.length} operative${dataset.length === 1 ? "" : "s"}`,
     branding: {
       companyName: options?.companyName,

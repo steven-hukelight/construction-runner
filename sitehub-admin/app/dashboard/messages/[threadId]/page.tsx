@@ -32,7 +32,7 @@ export default async function MessageThreadPage({ params }: PageProps) {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Message Thread"
+        title="Message thread"
         description="View and respond to messages."
       />
       <MessageThreadClient threadId={threadId} companyId={companyId ?? ""} canDelete={canDelete} />

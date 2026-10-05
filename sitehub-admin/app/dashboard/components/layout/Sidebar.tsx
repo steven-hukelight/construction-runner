@@ -29,23 +29,23 @@ import {
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-// Admin/Supervisor: Sites, Subcontractors, [Induction Compliance | Missing Info], Users, pending signups, Attendance
+// Admin/Supervisor: Sites, Subcontractors, [Induction compliance | Missing info], Users, pending signups, Attendance
 const adminNavItems = [
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
   { name: "Subcontractors", href: "/dashboard/subcontractors", icon: Building2 },
-  // When the pre-induction UI is disabled, "Induction Compliance" is replaced by
-  // the slim "Missing Info" report (emergency contact + medical info completeness).
+  // When the pre-induction UI is disabled, "Induction compliance" is replaced by
+  // the slim "Missing info" report (emergency contact + medical info completeness).
   ...(preInductionUiEnabled
     ? [
         {
-          name: "Induction Compliance",
+          name: "Induction compliance",
           href: "/dashboard/induction-compliance",
           icon: ClipboardCheck,
         },
       ]
     : [
         {
-          name: "Missing Info",
+          name: "Missing info",
           href: "/dashboard/missing-info",
           icon: ClipboardCheck,
         },
@@ -59,7 +59,7 @@ type SidebarProps = {
   role?: string | null;
 };
 
-// Health & Safety is a single link; its sections live in the tab strip in health-and-safety/layout.tsx
+// Health & safety is a single link; its sections live in the tab strip in health-and-safety/layout.tsx
 const topLevelItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
@@ -71,7 +71,7 @@ const topLevelItems = [
 
 const healthAndSafetyHref = "/dashboard/health-and-safety/rams";
 
-const subAdminNavItem = { name: "Operative Onboarding", href: "/dashboard/subcontractor", icon: FileText };
+const subAdminNavItem = { name: "Operative onboarding", href: "/dashboard/subcontractor", icon: FileText };
 
 export default function Sidebar({ role }: SidebarProps) {
   const { t } = useDisplayPreferences();
@@ -116,7 +116,7 @@ export default function Sidebar({ role }: SidebarProps) {
       onClick={() => setMobileMenuOpen(false)}
     >
       <HardHat size={20} strokeWidth={2.5} />
-      <span className="flex-1 min-w-0">{t("Health & Safety")}</span>
+      <span className="flex-1 min-w-0">{t("Health & safety")}</span>
       {nearMissCount > 0 && (
         <span
           className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-medium flex items-center justify-center"
@@ -265,12 +265,12 @@ export default function Sidebar({ role }: SidebarProps) {
               {preInductionUiEnabled ? (
                 <Link href="/dashboard/induction-compliance" className={pathname === "/dashboard/induction-compliance" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                   <ClipboardCheck size={20} strokeWidth={2.5} />
-                  <span>{t("Induction Compliance")}</span>
+                  <span>{t("Induction compliance")}</span>
                 </Link>
               ) : (
                 <Link href="/dashboard/missing-info" className={pathname === "/dashboard/missing-info" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
                   <ClipboardCheck size={20} strokeWidth={2.5} />
-                  <span>{t("Missing Info")}</span>
+                  <span>{t("Missing info")}</span>
                 </Link>
               )}
             </>

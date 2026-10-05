@@ -55,7 +55,7 @@ export default function SupervisorActions({
           className={btnClass}
         >
           <ExternalLink className="h-4 w-4" />
-          Open Full Pre-Induction Profile
+          Open full pre-induction profile
         </Link>
       )}
     </div>

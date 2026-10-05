@@ -22,7 +22,7 @@ export default async function NearMissPage() {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Near Miss"
+        title="Near miss"
         description="Safety incidents that didn't result in injury. Review and track reports."
         action={<AddNearMissModal />}
       />

@@ -60,7 +60,7 @@ export default function ComplianceFilters({
           placeholder="Name, company, CSCS..."
           value={filters.search}
           onChange={(e) => update({ search: e.target.value })}
-          className="min-w-[180px] rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100 shadow-sm focus:border-blue-500 focus:outline-none focus:ring-1 focus:ring-blue-500"
+          className="min-w-[180px] rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 shadow-none focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
         />
       </div>
 

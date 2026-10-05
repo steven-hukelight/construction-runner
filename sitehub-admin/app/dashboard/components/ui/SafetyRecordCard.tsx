@@ -6,6 +6,7 @@ import { clsx } from "clsx";
 
 export function SafetyRecordCard({
   icon: Icon,
+  initials,
   accent = "blue",
   title,
   subtitle,
@@ -14,7 +15,8 @@ export function SafetyRecordCard({
   actions,
   onClick,
 }: {
-  icon: LucideIcon;
+  icon?: LucideIcon;
+  initials?: string;
   accent?: "blue" | "amber" | "red" | "emerald" | "slate";
   title: string;
   subtitle?: string;
@@ -36,9 +38,15 @@ export function SafetyRecordCard({
 
   const body = (
     <>
-      <span className={clsx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tile)}>
-        <Icon className="h-5 w-5" aria-hidden />
-      </span>
+      {initials ? (
+        <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-blue-50 text-xs font-semibold text-blue-600 dark:bg-blue-500/15 dark:text-blue-300" aria-hidden>
+          {initials}
+        </span>
+      ) : Icon ? (
+        <span className={clsx("flex h-11 w-11 shrink-0 items-center justify-center rounded-xl", tile)}>
+          <Icon className="h-5 w-5" aria-hidden />
+        </span>
+      ) : null}
       <span className="min-w-0 flex-1">
         <span className="flex flex-wrap items-center gap-2">
           <span className="text-sm font-semibold text-slate-900 dark:text-slate-100">{title}</span>

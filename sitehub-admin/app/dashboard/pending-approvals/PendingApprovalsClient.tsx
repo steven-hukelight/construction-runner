@@ -2,12 +2,12 @@
 import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
-import { UserRound } from "lucide-react";
 import ApprovalRowActions from "./ApprovalRowActions";
 import { getRoleFromClient } from "@/lib/utils/cookies";
-import { roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
+import { usesAssignedSites } from "@/lib/auth/roles";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
+import RoleBadge from "../components/RoleBadge";
 
 type Reg = {
   id: string;
@@ -99,14 +99,14 @@ export default function PendingApprovalsClient() {
         {
           header: "Name",
           accessor: "name",
-          render: (r: Reg) => <TableNameCell icon={UserRound} label={r.name ?? "—"} />,
+          render: (r: Reg) => <TableNameCell initials={initialsFromLabel(r.name ?? "—")} label={r.name ?? "—"} />,
         },
         { header: "Email", accessor: "email", render: (r: Reg) => r.email ?? "—" },
         { header: "Company", accessor: "companyName", render: (r: Reg) => r.companyName ?? "—" },
         {
           header: "Requested",
           accessor: "role",
-          render: (r: Reg) => roleDisplayName((r.role ?? "OPERATIVE").toString().toUpperCase()),
+          render: (r: Reg) => <RoleBadge role={(r.role ?? "OPERATIVE").toString()} />,
         },
         {
           header: "Assign role",

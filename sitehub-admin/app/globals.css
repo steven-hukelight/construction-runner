@@ -251,6 +251,18 @@ h1, h2, h3, h4, h5, h6 {
   flex-direction: column;
   gap: 4px;
   margin-top: 8px;
+  scrollbar-width: none;
+}
+.sidebar nav::-webkit-scrollbar {
+  width: 0;
+  height: 0;
+}
+.sidebar nav:hover {
+  scrollbar-width: thin;
+}
+.sidebar nav:hover::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
 }
 
 /* 2.3 Sidebar navigation */
@@ -502,9 +514,10 @@ h1, h2, h3, h4, h5, h6 {
 /* inputs - 1.2 radius-input */
 .input {
   background: #ffffff;
-  border: 1px solid var(--border-soft, #E5E7EB);
+  border: 1px solid #d1d5db;
+  box-shadow: none;
   padding: 10px 14px;
-  border-radius: var(--radius-input);
+  border-radius: 8px;
   color: var(--text-body, #1A1A1A);
   font-size: 15px;
   font-weight: 400;
@@ -518,8 +531,11 @@ h1, h2, h3, h4, h5, h6 {
 
 .input:focus {
   outline: none;
-  border-color: #2563eb;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  box-shadow: none;
+}
+.input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 
 select.input{padding:10px 14px;min-height:42px}
@@ -601,17 +617,23 @@ textarea.input{padding:10px 14px;min-height:90px;border-radius:8px}
 }
 .table-toolbar-input {
   height: 36px;
-  border-radius: 12px;
-  border: 1px solid rgba(191, 219, 254, 0.95);
-  background: #f7fafc;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  box-shadow: none;
   padding: 0 12px;
-  font-size: 13px;
-  color: #0f172a;
+  font-size: 14px;
+  color: #111827;
   outline: none;
 }
 .table-toolbar-input:focus {
-  border-color: #60a5fa;
-  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+  outline: none;
+  border-color: #d1d5db;
+  box-shadow: none;
+}
+.table-toolbar-input:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 2px #3b82f6;
 }
 .status-chip {
   display: inline-flex;

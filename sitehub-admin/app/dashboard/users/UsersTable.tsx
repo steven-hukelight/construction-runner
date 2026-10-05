@@ -3,7 +3,7 @@ import toast from "react-hot-toast";
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import TableActions from "../components/ui/TableActions";
 import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
@@ -43,15 +43,6 @@ type MeResponse = {
   name?: string;
   role?: string;
 };
-
-function initialsFor(label: string): string {
-  const source = label.includes("@") ? label.split("@")[0] : label;
-  const parts = source.split(/[\s._-]+/).filter(Boolean);
-  if (parts.length === 0 || label === "—") return "?";
-  const first = parts[0].charAt(0);
-  const last = parts.length > 1 ? parts[parts.length - 1].charAt(0) : "";
-  return (first + last).toUpperCase();
-}
 
 export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
@@ -302,7 +293,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
         const label = row.name || row.email || "—";
         return (
           <TableNameCell
-            initials={initialsFor(label)}
+            initials={initialsFromLabel(label)}
             label={
               <Link
                 href={`/dashboard/users/${row.id}`}
@@ -376,7 +367,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
             <select
               value={roleFilter}
               onChange={(e) => setRoleFilter(e.target.value)}
-              className="h-9 w-52 rounded-lg border border-gray-200 bg-white px-3 text-sm text-gray-900 transition-colors duration-[120ms] hover:border-gray-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+              className="h-9 w-52 rounded-lg border border-gray-300 bg-white px-3 text-sm text-gray-900 shadow-none transition-colors duration-[120ms] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
             >
               <option value="all">All roles</option>
               <option value="OPERATIVE">Operative</option>

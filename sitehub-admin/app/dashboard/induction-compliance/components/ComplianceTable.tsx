@@ -1,9 +1,8 @@
 "use client";
 
 import React from "react";
-import { UserRound } from "lucide-react";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
-import { DataTableShell, TableNameCell } from "../../components/ui/TableChrome";
+import { DataTableShell, initialsFromLabel, TableNameCell } from "../../components/ui/TableChrome";
 import type { ComplianceRow } from "../server";
 import ComplianceStatusBadge from "./ComplianceStatusBadge";
 import ComplianceMissingItemsIcon from "./ComplianceMissingItemsIcon";
@@ -67,7 +66,7 @@ export default function ComplianceTable({
                 onClick={() => onRowClick(row.userId)}
               >
                 <td className={density.td}>
-                  <TableNameCell icon={UserRound} label={row.userName} detail={row.trade} />
+                  <TableNameCell initials={initialsFromLabel(row.userName)} label={row.userName} detail={row.trade} />
                 </td>
                 <td className={density.td}>
                   <RoleBadge role={row.userRole ?? "OPERATIVE"} />

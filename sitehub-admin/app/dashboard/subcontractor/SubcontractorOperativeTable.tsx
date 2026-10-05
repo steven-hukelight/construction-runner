@@ -4,7 +4,7 @@ import React from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import Image from "next/image";
 import { useTableDensityClasses } from "@/app/DisplayPreferencesProvider";
-import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
+import { DataTableShell, initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import {
   AlertTriangle,
   Clock,
@@ -12,7 +12,6 @@ import {
   Upload,
   CheckCircle,
   ExternalLink,
-  UserRound,
 } from "lucide-react";
 import type { SubcontractorOperativeRow } from "./utils/buildSubcontractorComplianceDataset";
 import RAMSStatusBadge from "../components/RAMSStatusBadge";
@@ -157,7 +156,7 @@ export default function SubcontractorOperativeTable({
                 onClick={() => onRowClick(row)}
               >
                 <td className={density.td}>
-                  <TableNameCell icon={UserRound} label={row.name} detail={row.email} />
+                  <TableNameCell initials={initialsFromLabel(row.name)} label={row.name} detail={row.email} />
                 </td>
                 <td className={`${density.td} text-gray-700`}>{row.trade || "—"}</td>
                 <td className={density.td}>

@@ -22,31 +22,31 @@ import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
 /* OPTION A: Single sidebar. Modules removed; use CompanySwitcher then regular Sidebar for Messaging and Assets */
 const navItems = [
-  { name: "Superuser Dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
-  { name: "Multi-company Admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
+  { name: "Superuser dashboard", href: "/dashboard/superuser-dashboard", icon: LayoutDashboard },
+  { name: "Multi-company admin", href: "/dashboard/superuser-admin", icon: LayoutGrid },
   { name: "Companies", href: "/dashboard/companies", icon: Building2 },
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
-  // Induction Compliance is primarily a pre-induction dashboard. When pre-induction
-  // UI is disabled it is replaced by the slim Missing Info report.
+  // Induction compliance is primarily a pre-induction dashboard. When pre-induction
+  // UI is disabled it is replaced by the slim Missing info report.
   ...(preInductionUiEnabled
     ? [
         {
-          name: "Induction Compliance",
+          name: "Induction compliance",
           href: "/dashboard/induction-compliance",
           icon: ClipboardCheck,
         },
       ]
     : [
         {
-          name: "Missing Info",
+          name: "Missing info",
           href: "/dashboard/missing-info",
           icon: ClipboardCheck,
         },
       ]),
-  { name: "All Users", href: "/dashboard/all-users", icon: Users },
-  { name: "System Logs", href: "/dashboard/system-logs", icon: FileText },
-  { name: "Global Settings", href: "/dashboard/global-settings", icon: Settings },
-  { name: "Superuser Tools", href: "/dashboard/superuser-tools", icon: Wrench },
+  { name: "All users", href: "/dashboard/all-users", icon: Users },
+  { name: "System logs", href: "/dashboard/system-logs", icon: FileText },
+  { name: "Global settings", href: "/dashboard/global-settings", icon: Settings },
+  { name: "Superuser tools", href: "/dashboard/superuser-tools", icon: Wrench },
 ];
 
 export default function SuperuserSidebar() {

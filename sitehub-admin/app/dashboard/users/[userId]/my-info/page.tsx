@@ -6,7 +6,7 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 import MyInfoEditor from "./MyInfoEditor";
 
 /**
- * Admin/supervisor view of a worker's My Info (medical, emergency contact,
+ * Admin/supervisor view of a worker's My info (medical, emergency contact,
  * competency card, declarations). Replaces the old /pre-induction route.
  *
  * ACL:
@@ -35,7 +35,7 @@ export default async function UserMyInfoPage({
     if (!me || me.id !== userId) {
       return (
         <div className="space-y-6">
-          <PageHeader title="My Info" description="Access denied." />
+          <PageHeader title="My info" description="Access denied." />
           <Link href="/dashboard" className="text-blue-600 hover:text-blue-700 font-medium">
             ← Back to dashboard
           </Link>
@@ -63,7 +63,7 @@ export default async function UserMyInfoPage({
     if (!target || String((target as { company_id?: string }).company_id ?? "").trim() !== (companyId ?? "")) {
       return (
         <div className="space-y-6">
-          <PageHeader title="My Info" description="Access denied." />
+          <PageHeader title="My info" description="Access denied." />
           <Link href="/dashboard/users" className="text-blue-600 hover:text-blue-700 font-medium">
             ← Back to users
           </Link>
@@ -91,7 +91,7 @@ export default async function UserMyInfoPage({
         </Link>
       </div>
       <PageHeader
-        title="My Info"
+        title="My info"
         description={`Medical, emergency contact, competency card and declarations for ${name}. Edits are audit-logged.`}
       />
       <MyInfoEditor userId={userId} />

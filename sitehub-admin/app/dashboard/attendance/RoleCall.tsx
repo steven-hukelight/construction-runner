@@ -3,10 +3,9 @@ import toast from "react-hot-toast";
 
 import { useEffect, useMemo, useState } from "react";
 import { formatDate, formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
-import { UserRound } from "lucide-react";
 import Button from "../components/ui/Button";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import { SitePicker } from "../components/ui/SitePicker";
 import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
 import { leftSiteAutoSignOutReasonSuffix } from "./live/sessionNotesFormat";
@@ -434,7 +433,9 @@ export default function RoleCall({
     {
       header: "Name",
       accessor: "name",
-      render: (row: PersonStatus) => <TableNameCell icon={UserRound} label={row.name} />,
+      render: (row: PersonStatus) => (
+        <TableNameCell initials={initialsFromLabel(row.name)} label={row.name} />
+      ),
     },
     {
       header: "Last Action",

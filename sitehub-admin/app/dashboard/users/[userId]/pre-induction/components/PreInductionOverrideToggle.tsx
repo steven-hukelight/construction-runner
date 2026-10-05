@@ -56,7 +56,7 @@ export default function PreInductionOverrideToggle({
             <h3 className="text-sm font-semibold text-gray-900">Pre-Induction Override</h3>
             <span
               className="text-gray-400 cursor-help"
-              title="Allows this operative to be assigned to a site without completing the Pre-Induction Profile. Only use this if the operative has been verified offline."
+              title="Allows this operative to be assigned to a site without completing the Pre-induction profile. Only use this if the operative has been verified offline."
             >
               <HelpCircle size={14} />
             </span>

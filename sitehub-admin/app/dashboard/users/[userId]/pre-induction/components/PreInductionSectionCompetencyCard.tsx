@@ -100,7 +100,7 @@ export default function PreInductionSectionCompetencyCard({
   return (
     <div className="space-y-6">
       <div>
-        <h3 className="text-lg font-semibold text-gray-900">Competency Card (Required)</h3>
+        <h3 className="text-lg font-semibold text-gray-900">Competency card (Required)</h3>
         <p className="text-sm text-gray-500 mt-1">
           Provide your competency card details – card number or uploaded document.
         </p>
@@ -167,7 +167,7 @@ export default function PreInductionSectionCompetencyCard({
         disabled={saving || (!cardNumber.trim() && !fileUrl.trim())}
         className="inline-flex items-center justify-center rounded-xl bg-blue-600 px-6 py-2.5 text-sm font-semibold text-white hover:bg-blue-700 disabled:opacity-50"
       >
-        {saving ? "Saving…" : "Save Competency Card"}
+        {saving ? "Saving…" : "Save Competency card"}
       </button>
     </div>
   );

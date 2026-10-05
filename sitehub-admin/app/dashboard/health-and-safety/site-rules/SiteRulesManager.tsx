@@ -163,7 +163,7 @@ export default function SiteRulesManager() {
             <ScrollText className="w-5 h-5 text-amber-600 dark:text-amber-400" />
           </div>
           <div>
-            <h3 className="text-lg font-semibold text-slate-900">Site Rules</h3>
+            <h3 className="text-lg font-semibold text-slate-900">Site rules</h3>
             <p className="text-sm text-slate-600">
               PPE, emergency procedures, and conduct. Edit to customize for your company.
             </p>

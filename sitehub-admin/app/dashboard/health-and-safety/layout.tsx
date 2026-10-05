@@ -10,10 +10,10 @@ const subTabs = [
   { name: "RAMS", href: "/dashboard/health-and-safety/rams", showNearMissCount: false },
   { name: "Briefings", href: "/dashboard/health-and-safety/briefings", showNearMissCount: false },
   { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", showNearMissCount: false },
-  { name: "Site Rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
+  { name: "Site rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
   { name: "COSHH", href: "/dashboard/health-and-safety/coshh", showNearMissCount: false },
   { name: "Alerts", href: "/dashboard/health-and-safety/alerts", showNearMissCount: false },
-  { name: "Near Miss", href: "/dashboard/health-and-safety/near-miss", showNearMissCount: true },
+  { name: "Near miss", href: "/dashboard/health-and-safety/near-miss", showNearMissCount: true },
 ];
 
 export default function HealthAndSafetyLayout({

@@ -87,7 +87,7 @@ export function SiteManagerSelect({
       disabled={disabled || loading}
       value={value}
       onChange={(e) => onChange(e.target.value)}
-      className="h-9 w-[10.5rem] max-w-[10.5rem] rounded-xl border border-blue-100 bg-[#f7fafc] px-2.5 text-sm font-medium text-slate-800 shadow-sm outline-none transition focus:border-blue-400 focus:ring-2 focus:ring-blue-500/20 disabled:opacity-60 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
+      className="h-9 w-[10.5rem] max-w-[10.5rem] rounded-lg border border-gray-300 bg-white px-2.5 text-sm text-gray-900 shadow-none outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100"
     >
       <option value="">Unassigned</option>
       {items.map((item) => (

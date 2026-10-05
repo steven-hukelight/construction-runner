@@ -30,7 +30,7 @@ export default async function AssetDetailPage({ params }: PageProps) {
   return (
     <div className="relative space-y-8">
       <PageHeader
-        title="Asset Details"
+        title="Asset details"
         description="View and manage asset assignments, inspections, and documents."
       />
       <AssetDetailClient assetId={id} companyId={companyId ?? ""} />

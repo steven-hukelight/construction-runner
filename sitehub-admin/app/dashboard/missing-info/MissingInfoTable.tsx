@@ -3,10 +3,10 @@
 import { useEffect, useState, useCallback } from "react";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { Bell, Download, HeartPulse, UserRound } from "lucide-react";
+import { Bell, Download } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import Table from "../components/ui/Table";
-import { TableNameCell } from "../components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 
@@ -154,7 +154,6 @@ export default function MissingInfoTable() {
             ]}
             value={filter}
             onChange={(id) => setFilter(id as typeof filter)}
-            icon={HeartPulse}
             fieldLabel="Filter"
             variant="compact"
             allowNone
@@ -168,7 +167,9 @@ export default function MissingInfoTable() {
         {
           header: "Worker",
           accessor: "name",
-          render: (r: Row) => <TableNameCell icon={UserRound} label={r.name || "—"} detail={r.email} />,
+          render: (r: Row) => (
+            <TableNameCell initials={initialsFromLabel(r.name || "—")} label={r.name || "—"} detail={r.email} />
+          ),
         },
         {
           header: "Role",

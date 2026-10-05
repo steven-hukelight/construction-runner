@@ -36,7 +36,7 @@ export default function SubcontractorsList() {
         <p className="text-gray-600 dark:text-slate-400">
           Partner companies linked to your sites. Invite new subcontractors with a code per site.
         </p>
-        <Button onClick={() => setModalOpen(true)}>Invite Subcontractor</Button>
+        <Button onClick={() => setModalOpen(true)}>Invite subcontractor</Button>
       </div>
 
       {isLoading ? (
@@ -46,7 +46,7 @@ export default function SubcontractorsList() {
       ) : list.length === 0 ? (
         <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-12 text-center">
           <p className="text-gray-600 dark:text-slate-400 mb-4">No subcontractor partners yet.</p>
-          <Button onClick={() => setModalOpen(true)}>Invite Subcontractor</Button>
+          <Button onClick={() => setModalOpen(true)}>Invite subcontractor</Button>
         </div>
       ) : (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">

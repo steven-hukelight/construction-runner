@@ -1,7 +1,7 @@
 "use client";
 
 /**
- * MyInfoEditor, admin/supervisor-facing editor for a worker's My Info.
+ * MyInfoEditor, admin/supervisor-facing editor for a worker's My info.
  *
  * Consolidates the 4 sections that survived the reflow:
  *   - Medical
@@ -80,7 +80,7 @@ export default function MyInfoEditor({ userId }: { userId: string }) {
       const data = (await res.json()) as MyInfoPayload;
       setPayload(data);
     } catch (e) {
-      toast.error(e instanceof Error ? e.message : "Failed to load My Info");
+      toast.error(e instanceof Error ? e.message : "Failed to load My info");
     } finally {
       setLoading(false);
     }

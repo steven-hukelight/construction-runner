@@ -158,8 +158,8 @@ export default function LiveAttendance({
   const sessions = useMemo(() => buildAttendanceSessions(logsForGrouping), [logsForGrouping]);
 
   const displayedSessions = useMemo(() => {
-    if (!activeSessionsOnly) return sessions;
-    return sessions.filter(isActiveWorkSession);
+    const list = activeSessionsOnly ? sessions.filter(isActiveWorkSession) : sessions;
+    return [...list].sort((a, b) => Number(isActiveWorkSession(b)) - Number(isActiveWorkSession(a)));
   }, [sessions, activeSessionsOnly]);
 
   useEffect(() => {

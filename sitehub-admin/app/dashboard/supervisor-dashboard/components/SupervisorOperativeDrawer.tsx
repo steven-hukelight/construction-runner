@@ -103,7 +103,7 @@ export default function SupervisorOperativeDrawer({
               </div>
             </Section>
 
-            <Section title="Personal Details (read-only)">
+            <Section title="Personal details (read-only)">
               {data.sections.personal ? (
                 <div className="text-sm space-y-1">
                   <p>Name: {(data.sections.personal.fullName as string) ?? "—"}</p>
@@ -198,7 +198,7 @@ export default function SupervisorOperativeDrawer({
               )}
             </Section>
 
-            <Section title="Induction History">
+            <Section title="Induction history">
               {data.inductionHistory.length === 0 ? (
                 <p className="text-sm text-gray-500">No induction history</p>
               ) : (
@@ -223,7 +223,7 @@ export default function SupervisorOperativeDrawer({
             </Section>
 
             {operative && (
-              <Section title="Supervisor Actions">
+              <Section title="Supervisor actions">
                 <SupervisorActions
                   operativeId={operative.operativeId}
                   siteId={siteId}

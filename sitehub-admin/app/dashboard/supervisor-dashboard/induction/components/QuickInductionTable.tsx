@@ -5,10 +5,9 @@ import React, { useState } from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { useRouter } from "next/navigation";
 import Table from "@/app/dashboard/components/ui/Table";
-import { TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
+import { initialsFromLabel, TableNameCell } from "@/app/dashboard/components/ui/TableChrome";
 import Button from "@/app/dashboard/components/ui/Button";
 import type { QuickInductionOperative } from "../server";
-import { UserRound } from "lucide-react";
 
 function formatCompletedAt(completedAt: Date | null): string {
   if (!completedAt) return "—";
@@ -18,7 +17,7 @@ function formatCompletedAt(completedAt: Date | null): string {
 
 // Neutral status labels, the "Pre-Induction Required" / "Pre-Induction Override"
 // legacy labels are mapped to plain "Induction Required" / "Override Applied" so
-// pre-induction language never leaks to supervisors after the My Info reflow.
+// pre-induction language never leaks to supervisors after the My info reflow.
 const STATUS_CHIP: Record<string, string> = {
   Inducted: "status-chip--ok",
   Grandfathered: "status-chip--info",
@@ -74,7 +73,7 @@ export default function QuickInductionTable({
       header: "Operative Name",
       accessor: "operativeName" as const,
       render: (row: QuickInductionOperative) => (
-        <TableNameCell icon={UserRound} label={row.operativeName} />
+        <TableNameCell initials={initialsFromLabel(row.operativeName)} label={row.operativeName} />
       ),
     },
     {
