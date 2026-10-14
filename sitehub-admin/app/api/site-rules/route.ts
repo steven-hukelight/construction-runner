@@ -1,7 +1,8 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { canPublishSiteWide } from "@/lib/auth/roles";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
@@ -24,10 +25,9 @@ export async function GET(req: Request) {
       .from("site_rules")
       .select("*")
       .eq("company_id", companyId);
-    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
-    const siteScope = siteIdsForFilter(restricted, url.searchParams.get("siteId"));
+    const siteScope = await dashboardSiteScope(auth.role, url.searchParams.get("siteId"), auth.uid);
     if (siteScope === "none") return NextResponse.json({ rules: [] }, { status: 200 });
-    if (siteScope !== "all") query = query.in("site_id", siteScope);
+    query = applySiteVisibility(query, siteScope);
     if (category) query = query.eq("category", category);
 
     const { data } = await query;
@@ -110,6 +110,7 @@ export async function POST(req: Request) {
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
 
   const { category, title, description, siteId } = body;
+  const siteWide = (body.siteWide === true || body.site_wide === true) && canPublishSiteWide(auth.role);
   if (!category || !title) return NextResponse.json({ error: "category and title required" }, { status: 400 });
   const siteForbid = await assertWritableSiteId(auth.role, siteId, auth.uid);
   if (siteForbid) return siteForbid;
@@ -120,6 +121,7 @@ export async function POST(req: Request) {
     title: String(title),
     body: String(description ?? ""),
     site_id: String(siteId).trim(),
+    site_wide: siteWide,
   }).select("id, category, title, body, site_id").single();
 
   if (error) {

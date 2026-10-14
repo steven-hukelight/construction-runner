@@ -18,6 +18,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { dashboardSiteScope } from "@/lib/auth/siteScope";
 import { isMedicalInfoComplete } from "@/lib/myInfo";
 
 export const dynamic = "force-dynamic";
@@ -60,17 +61,15 @@ export async function GET(req: Request) {
           role,
         })) || undefined;
     }
-    if (role !== "superuser" && !companyId) {
+    if (!companyId) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // 1. Active users in scope (skip inactive — no point chasing left company).
-    let userQuery = supabaseAdmin
+    // 1. Active users in this company only (skip inactive — no point chasing left company).
+    const userQuery = supabaseAdmin
       .from("users")
-      .select("id, email, display_name, role, company_id, status");
-    if (role !== "superuser" && companyId) {
-      userQuery = userQuery.eq("company_id", companyId);
-    }
+      .select("id, email, display_name, role, company_id, status")
+      .eq("company_id", companyId);
     const { data: allUsersRaw, error: usersErr } = await userQuery;
     if (usersErr) throw new Error(`users query: ${usersErr.message}`);
 
@@ -86,12 +85,14 @@ export async function GET(req: Request) {
       return NextResponse.json([], { status: 200 });
     }
 
-    // Optional site filter — narrow userIds to those assigned to the site.
-    if (siteId) {
+    // Selected site (query or the top-bar site) — only workers assigned there.
+    const siteScope = await dashboardSiteScope(role, siteId);
+    if (siteScope === "none") return NextResponse.json([], { status: 200 });
+    if (siteScope !== "all") {
       const { data: siteAssignments } = await supabaseAdmin
         .from("assigned_operatives")
         .select("user_id")
-        .eq("site_id", siteId);
+        .in("site_id", siteScope);
       const assignedIds = new Set((siteAssignments ?? []).map((r) => String((r as { user_id: string }).user_id)));
       userIds = userIds.filter((id) => assignedIds.has(id));
       if (userIds.length === 0) return NextResponse.json([], { status: 200 });

@@ -19,12 +19,34 @@ async function ensureDeliveryAccess(id: string): Promise<NextResponse | null> {
         role,
       })) || undefined;
   }
-  if (role === "superuser") return null;
   if (!companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   const { data } = await supabaseAdmin.from("deliveries").select("*").eq("id", id).single();
   if (!data) return NextResponse.json({ error: "Not found" }, { status: 404 });
   if (cid(data) !== companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   return null;
+}
+
+export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const forbid = await ensureDeliveryAccess(id);
+  if (forbid) return forbid;
+  const cookieStore = await cookies();
+  const companyId = cookieStore.get("companyId")?.value;
+  const { data } = await supabaseAdmin
+    .from("deliveries")
+    .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, pod_photos, load_url, load_photos, site_wide, created_at")
+    .eq("id", id)
+    .maybeSingle();
+  if (!data || (data as { company_id?: string }).company_id !== companyId) {
+    return NextResponse.json({ error: "Not found" }, { status: 404 });
+  }
+  const siteId = (data as { site_id?: string }).site_id;
+  let site = "";
+  if (siteId) {
+    const { data: siteRow } = await supabaseAdmin.from("sites").select("name").eq("id", siteId).maybeSingle();
+    site = (siteRow?.name as string) ?? "";
+  }
+  return NextResponse.json({ ...data, site });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

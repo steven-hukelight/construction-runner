@@ -3,7 +3,8 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
-import { getRestrictedSiteIds, siteIdsForFilter, assertWritableSiteId } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { canPublishSiteWide } from "@/lib/auth/roles";
 
 type TaskRow = {
   id?: string;
@@ -93,23 +94,7 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10) || 100, 500);
     const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
     const siteId = searchParams.get("siteId")?.trim() || searchParams.get("site_id")?.trim();
-    const restricted = await getRestrictedSiteIds(role);
-    const siteScope = siteIdsForFilter(restricted, siteId);
-    if (siteScope === "none") return NextResponse.json([]);
-
-    if (role === "superuser" && !companyId) {
-      let allQuery = supabaseAdmin
-        .from("tasks")
-        .select("id, title, description, status, company_id, site_id, assigned_to, created_at, due_date")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
-      if (siteScope !== "all") allQuery = allQuery.in("site_id", siteScope);
-      const { data } = await allQuery;
-      const list = (data || []) as TaskRow[];
-      let enriched = await enrichTasksWithNames(list);
-      enriched = await enrichTasksWithAttachments(enriched);
-      return NextResponse.json(enriched);
-    }
+    if (!companyId) return NextResponse.json([]);
     const roleLower = (role ?? "").toLowerCase();
     if (roleLower === "operative") {
       const { data: me } = await supabaseAdmin
@@ -144,6 +129,8 @@ export async function GET(req: Request) {
       }
       return NextResponse.json([]);
     }
+    const siteScope = await dashboardSiteScope(role, siteId);
+    if (siteScope === "none") return NextResponse.json([]);
     if (companyId) {
       let tasksQuery = supabaseAdmin
         .from("tasks")
@@ -151,7 +138,7 @@ export async function GET(req: Request) {
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .range(offset, offset + limit - 1);
-      if (siteScope !== "all") tasksQuery = tasksQuery.in("site_id", siteScope);
+      tasksQuery = applySiteVisibility(tasksQuery, siteScope);
       const { data: tasks } = await tasksQuery;
       const list = tasks ?? [];
       if (list.length > 0) {
@@ -222,6 +209,7 @@ export async function POST(req: Request) {
     site_id: siteId,
     assigned_to: firstAssignee ?? null,
     due_date: dueDateVal && String(dueDateVal).trim() ? dueDateVal : null,
+    site_wide: (b.site_wide === true || b.siteWide === true) && canPublishSiteWide(role),
   };
 
   const { data, error } = await supabaseAdmin.from("tasks").insert(insertPayload).select("id").single();

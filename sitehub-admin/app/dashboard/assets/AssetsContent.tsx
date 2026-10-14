@@ -8,6 +8,7 @@ import Button from "../components/ui/Button";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import { CardSelect } from "../components/ui/CardSelect";
 import { SitePicker } from "../components/ui/SitePicker";
+import { SiteWideField } from "../components/SiteWideField";
 import Table from "../components/ui/Table";
 import { DataTableShell, TableNameCell } from "../components/ui/TableChrome";
 import {
@@ -85,6 +86,8 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     condition: "good",
     inspection_interval_days: "" as string,
     next_inspection_due: "" as string,
+    site_id: "",
+    site_wide: false,
   });
   const [assignModal, setAssignModal] = useState<{ assetId: string; assetName: string } | null>(null);
   const [selectedUserId, setSelectedUserId] = useState("");
@@ -93,18 +96,22 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
   const [filterStatus, setFilterStatus] = useState("");
   const [filterType, setFilterType] = useState("");
   const [filterDue, setFilterDue] = useState("");
+  const [companySites, setCompanySites] = useState<{ id: string; name?: string }[]>([]);
 
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const [aRes, uRes] = await Promise.all([
+      const [aRes, uRes, sRes] = await Promise.all([
         fetch("/api/assets"),
         fetch(`/api/companies/${companyId}/operatives`).catch(() => ({ json: () => [] })),
+        fetch("/api/sites", { credentials: "include" }).catch(() => null),
       ]);
       const a = await aRes.json();
       const u = await uRes.json?.() ?? [];
+      const s = sRes ? await sRes.json().catch(() => []) : [];
       setAssets(Array.isArray(a) ? a : []);
       setUsers(Array.isArray(u) ? u : []);
+      setCompanySites(Array.isArray(s) ? s : []);
     } catch {
       setAssets([]);
       setUsers([]);
@@ -138,6 +145,8 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
                   : {}),
               }
             : {}),
+          site_id: newAsset.site_id || null,
+          site_wide: newAsset.site_wide,
         }),
       });
       setNewAsset({
@@ -147,6 +156,8 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
         condition: "good",
         inspection_interval_days: "",
         next_inspection_due: "",
+        site_id: "",
+        site_wide: false,
       });
       const res = await fetch("/api/assets");
       const a = await res.json();
@@ -440,6 +451,18 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
                 }
               />
             ) : null}
+            <SitePicker
+              sites={companySites}
+              value={newAsset.site_id}
+              onChange={(site_id) => setNewAsset({ ...newAsset, site_id })}
+              variant="compact"
+              placeholder="Site"
+              className="w-48"
+            />
+            <SiteWideField
+              checked={newAsset.site_wide}
+              onChange={(site_wide) => setNewAsset({ ...newAsset, site_wide })}
+            />
             <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()} size="sm">
               Add Asset
             </Button>

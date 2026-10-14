@@ -10,6 +10,7 @@ import { DataTableShell } from "../../components/ui/TableChrome";
 import TableActions from "../../components/ui/TableActions";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { SitePicker } from "../../components/ui/SitePicker";
+import { SiteWideField } from "../../components/SiteWideField";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
 const SEVERITIES = [
@@ -31,6 +32,7 @@ export default function SafetyAlertsManager() {
   const [items, setItems] = useState<AlertItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "" });
+  const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<{ id: string; name?: string }[]>([]);
 
   useEffect(() => {
@@ -57,13 +59,14 @@ export default function SafetyAlertsManager() {
     const res = await fetch("/api/safety-alerts", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, siteWide }),
       credentials: "include",
     });
     const data = await res.json();
     if (data.id) {
       setItems((prev) => [{ id: data.id, ...form }, ...prev]);
       setAdding(false);
+      setSiteWide(false);
       setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "" });
     }
   }
@@ -138,6 +141,9 @@ export default function SafetyAlertsManager() {
               Site <span className="text-red-600">*</span>
             </label>
             <SitePicker sites={sites} value={form.siteId} onChange={(siteId) => setForm((f) => ({ ...f, siteId }))} />
+            <div className="mt-2">
+              <SiteWideField checked={siteWide} onChange={setSiteWide} />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">Severity</label>

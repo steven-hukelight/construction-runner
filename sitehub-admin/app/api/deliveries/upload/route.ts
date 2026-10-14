@@ -29,7 +29,7 @@ async function ensureDeliveryAccess(deliveryId: string): Promise<{ companyId: st
 
   if (!delivery) return { companyId: "", error: NextResponse.json({ error: "Delivery not found" }, { status: 404 }) };
   const delCompanyId = (delivery as { company_id?: string }).company_id;
-  if (role !== "superuser" && delCompanyId !== companyId) {
+  if (delCompanyId !== companyId) {
     return { companyId: "", error: NextResponse.json({ error: "Forbidden" }, { status: 403 }) };
   }
 
@@ -79,7 +79,11 @@ export async function POST(req: Request) {
     const url = signed?.signedUrl ?? "";
 
     if (type === "pod") {
-      await supabaseAdmin.from("deliveries").update({ pod_url: url }).eq("id", deliveryId);
+      const { data: row } = await supabaseAdmin.from("deliveries").select("pod_photos, pod_url").eq("id", deliveryId).single();
+      const prev = (row as { pod_photos?: string[]; pod_url?: string }) ?? {};
+      const arr = Array.isArray(prev.pod_photos) ? prev.pod_photos : prev.pod_url ? [prev.pod_url] : [];
+      const combined = [...arr.filter(Boolean), url];
+      await supabaseAdmin.from("deliveries").update({ pod_photos: combined, pod_url: url }).eq("id", deliveryId);
     } else {
       const { data: row } = await supabaseAdmin.from("deliveries").select("load_photos, load_url").eq("id", deliveryId).single();
       const prev = (row as { load_photos?: string[]; load_url?: string }) ?? {};
@@ -90,7 +94,7 @@ export async function POST(req: Request) {
 
     const { data: updated } = await supabaseAdmin
       .from("deliveries")
-      .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, load_url, load_photos, created_at")
+      .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, pod_photos, load_url, load_photos, site_wide, created_at")
       .eq("id", deliveryId)
       .single();
 

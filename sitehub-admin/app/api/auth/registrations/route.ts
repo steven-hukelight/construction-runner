@@ -1,38 +1,42 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendApprovalWelcomeEmailToUser } from "@/lib/sendApprovalWelcomeEmail";
-import { findUserByIdOrEmail } from "@/lib/auth/findUser";
+import { findUserByIdOrEmail, findAuthUserIdByEmail, authUserExists } from "@/lib/auth/findUser";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { canApproveRegistrations, classifySignupStatus, isApprovalQueueStatus } from "@/lib/signupRegistration";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
-    const companyId = cookieStore.get("companyId")?.value?.trim() ?? null;
-
-    if (!role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    const roleLower = role.toLowerCase();
-    if (roleLower !== "superuser" && roleLower !== "admin" && roleLower !== "supervisor" && roleLower !== "sub_admin") {
+    const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
+    const roleLower = (auth.role ?? "").toLowerCase();
+    if (!canApproveRegistrations(roleLower)) {
       return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
+    const companyId = (auth.companyId ?? "").trim();
     const { data } = await supabaseAdmin.from("registrations").select("id, company_id, data");
     const regs = (data ?? [])
+      .filter((r) => isApprovalQueueStatus((r.data as { status?: string })?.status))
       .filter((r) => {
-        const st = (r.data as { status?: string })?.status ?? "";
-        return st === "PENDING" || st === "COMPANY_ADMIN_PENDING";
-      })
-      .filter((r) => {
-        if (roleLower === "superuser") return true;
         const rowCid = r.company_id ? String(r.company_id).trim() : "";
-        return rowCid === (companyId ?? "").trim();
+        if (auth.isSuperuser || roleLower === "superuser") {
+          return companyId ? rowCid === companyId : true;
+        }
+        return rowCid === companyId;
       })
       .map((r) => {
-        const d = (r.data as Record<string, unknown>) ?? {};
+        const d = { ...((r.data as Record<string, unknown>) ?? {}) };
+        delete d.emailOtpHash;
+        delete d.emailOtpExpiresAt;
+        delete d.emailOtpAttempts;
+        delete d.emailLinkTokenHash;
+        const status = typeof d.status === "string" ? d.status : "";
         return {
           id: r.id,
           ...d,
           companyId: d.companyId ?? r.company_id ?? null,
+          needsEmailVerification: classifySignupStatus(status) === "unverified",
         };
       });
     return NextResponse.json(regs);
@@ -48,9 +52,12 @@ export async function POST(req: Request) {
     const { id, role: roleFromBody, siteIds: siteIdsFromBody } = body;
     if (!id) return NextResponse.json({ error: "id required" }, { status: 400 });
 
-    const cookieStore = await cookies();
-    const actualApproverRole = (cookieStore.get("role")?.value ?? "").toLowerCase();
-    if (!actualApproverRole) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
+    const auth = await resolveMobileApiAuth(req);
+    if (auth instanceof NextResponse) return auth;
+    const actualApproverRole = (auth.role ?? "").toLowerCase();
+    if (!canApproveRegistrations(actualApproverRole)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    }
 
     const effectiveApproverRole = actualApproverRole === "superuser" ? "SUPERUSER" : actualApproverRole.toUpperCase();
 
@@ -95,14 +102,15 @@ export async function POST(req: Request) {
       role?: string;
       companyId?: string;
       emailVerified?: boolean;
+      passwordSet?: boolean;
+      authUserId?: string;
     };
     const effectiveCompanyId = regRow.company_id ?? reg.companyId ?? null;
-    if (reg.status !== "PENDING" && reg.status !== "COMPANY_ADMIN_PENDING") {
+    const statusKind = classifySignupStatus(reg.status);
+    if (statusKind !== "pending" && statusKind !== "unverified") {
       return NextResponse.json({ error: "Already processed" }, { status: 400 });
     }
-    if (reg.emailVerified === false) {
-      return NextResponse.json({ error: "Applicant has not verified their email yet" }, { status: 400 });
-    }
+    const awaitingEmail = statusKind === "unverified";
 
     let approvedSiteIds: string[] = [];
     if (assignRoleUpper === "SITE_ADMIN" || assignRoleUpper === "SUPERVISOR") {
@@ -117,16 +125,47 @@ export async function POST(req: Request) {
       }
     }
 
-    const tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
+    const email = (reg.email ?? "").trim().toLowerCase();
     let authUser: { id: string } | null = null;
     let appliedTempPassword = false;
+    let tempPassword: string | undefined;
 
-    const existingUser = await findUserByIdOrEmail({ email: reg.email ?? "" });
-    if (existingUser?.id) {
-      authUser = { id: String(existingUser.id) };
-    } else {
+    const candidateIds = [
+      typeof reg.authUserId === "string" ? reg.authUserId.trim() : "",
+      String((await findUserByIdOrEmail({ email }))?.id ?? "").trim(),
+      (await findAuthUserIdByEmail(email)) ?? "",
+    ].filter(Boolean);
+    for (const id of candidateIds) {
+      if (await authUserExists(id)) {
+        authUser = { id };
+        break;
+      }
+    }
+
+    if (awaitingEmail && (!authUser || reg.passwordSet === false)) {
+      return NextResponse.json(
+        {
+          error:
+            "This person has not verified their email. Ask them to open the link in the signup email, then approve them.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!authUser && reg.passwordSet !== false) {
+      return NextResponse.json(
+        {
+          error:
+            "This applicant already chose a password, but their login could not be found. Ask them to sign up again with the same email so that password is saved. A temporary password will not be created.",
+        },
+        { status: 400 }
+      );
+    }
+
+    if (!authUser) {
+      tempPassword = Math.random().toString(36).slice(2, 10) + "!A1";
       const { data: created, error } = await supabaseAdmin.auth.admin.createUser({
-        email: (reg.email ?? "").trim().toLowerCase(),
+        email,
         password: tempPassword,
         email_confirm: true,
         user_metadata: { name: reg.name ?? undefined },
@@ -144,6 +183,7 @@ export async function POST(req: Request) {
     const roleVal = assignRoleUpper.toLowerCase();
 
     await supabaseAdmin.auth.admin.updateUserById(authUser.id, {
+      email_confirm: true,
       app_metadata: {
         approved: approvedForApp,
         role: roleVal,
@@ -152,7 +192,7 @@ export async function POST(req: Request) {
       },
     });
 
-    await supabaseAdmin.from("users").upsert(
+    const { error: userWriteErr } = await supabaseAdmin.from("users").upsert(
       {
         id: authUser.id,
         email: (reg.email ?? "").trim().toLowerCase() || null,
@@ -163,6 +203,10 @@ export async function POST(req: Request) {
       },
       { onConflict: "id" }
     );
+    if (userWriteErr) {
+      console.error("users upsert failed:", userWriteErr);
+      return NextResponse.json({ error: userWriteErr.message }, { status: 500 });
+    }
 
     await supabaseAdmin.from("user_sites").delete().eq("user_id", authUser.id);
     if ((assignRoleUpper === "SITE_ADMIN" || assignRoleUpper === "SUPERVISOR") && approvedSiteIds.length > 0) {
@@ -182,6 +226,7 @@ export async function POST(req: Request) {
           ...reg,
           companyId: effectiveCompanyId,
           status: isCompanyAdmin ? "ADMIN_SETUP_PENDING" : "APPROVED",
+          emailVerified: true,
           approved_at: new Date().toISOString(),
           user_id: authUser.id,
           role: roleVal,

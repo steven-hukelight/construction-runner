@@ -1,12 +1,12 @@
 import { NextResponse } from "next/server";
-import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { canApproveRegistrations } from "@/lib/signupRegistration";
 
-export async function POST(_req: Request, { params }: { params: Promise<{ id: string }> }) {
-  const role = (await cookies()).get("role")?.value;
-  if (!role) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-  const roleLower = role.toLowerCase();
-  if (roleLower !== "superuser" && roleLower !== "admin" && roleLower !== "supervisor") {
+export async function POST(req: Request, { params }: { params: Promise<{ id: string }> }) {
+  const auth = await resolveMobileApiAuth(req);
+  if (auth instanceof NextResponse) return auth;
+  if (!canApproveRegistrations(auth.role)) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
 

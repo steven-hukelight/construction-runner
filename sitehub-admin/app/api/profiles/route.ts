@@ -97,10 +97,9 @@ export async function GET(req: Request) {
           role,
         })) || undefined;
     }
-    if (role !== "superuser" && !companyId) return NextResponse.json([]);
+    if (!companyId) return NextResponse.json([]);
 
-    let query = supabaseAdmin.from("users").select("*");
-    if (role !== "superuser" && companyId) query = query.eq("company_id", companyId);
+    const query = supabaseAdmin.from("users").select("*").eq("company_id", companyId);
     const { data: users } = await query;
     if (!users?.length) return NextResponse.json([]);
     const userIds = users.map((u) => u.id);

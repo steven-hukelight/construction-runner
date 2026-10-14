@@ -9,6 +9,7 @@ import dynamic from "next/dynamic";
 import { useClientSession } from "../ClientSessionProvider";
 
 const CompanySwitcher = dynamic(() => import("../CompanySwitcher"), { ssr: false });
+const SiteSwitcher = dynamic(() => import("../SiteSwitcher"), { ssr: false });
 
 function getInitials(value: string): string {
   const cleaned = value.trim();
@@ -72,6 +73,7 @@ export default function Topbar() {
     <header className="topbar">
       <div className="flex items-center gap-3">
         {isSuperuser && <CompanySwitcher />}
+        <SiteSwitcher />
       </div>
 
       <div className="flex items-center gap-4">

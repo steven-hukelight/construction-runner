@@ -1,6 +1,7 @@
 import { cookies } from "next/headers";
 import Link from "next/link";
 import PageHeader from "@/app/dashboard/components/PageHeader";
+import SuperuserCompanyGate from "@/app/dashboard/components/SuperuserCompanyGate";
 import MissingInfoTable from "./MissingInfoTable";
 
 /**
@@ -11,6 +12,11 @@ import MissingInfoTable from "./MissingInfoTable";
 export default async function MissingInfoPage() {
   const cookieStore = await cookies();
   const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
+  const impersonating = cookieStore.get("impersonating")?.value === "true";
+
+  if (role === "superuser" && !impersonating) {
+    return <SuperuserCompanyGate title="Missing info" description="Select a company to see workers with missing details." />;
+  }
 
   const isPrivilegedRole = ["admin", "supervisor", "superuser"].includes(role);
   if (!isPrivilegedRole) {

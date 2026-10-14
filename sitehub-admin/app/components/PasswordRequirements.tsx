@@ -9,7 +9,7 @@ export default function PasswordRequirements({ password }: { password: string })
       {PASSWORD_RULES.map((rule) => {
         const met = rule.test(password);
         return (
-          <li key={rule.id} className={`flex items-center gap-1.5 ${met ? "text-green-600" : "text-gray-500"}`}>
+          <li key={rule.id} className={`flex items-center gap-1.5 ${met ? "text-emerald-700" : "text-gray-500"}`}>
             {met ? <Check size={14} aria-hidden /> : <X size={14} aria-hidden />}
             <span>{rule.label}</span>
             <span className="sr-only">{met ? "(met)" : "(not met)"}</span>

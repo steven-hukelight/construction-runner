@@ -7,7 +7,8 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { RAMS_MAX_UPLOAD_BYTES, RAMS_MAX_UPLOAD_LABEL } from "@/lib/ramsUploadLimits";
 import { assertWritableSiteId } from "@/lib/auth/siteScope";
-import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { canPublishSiteWide } from "@/lib/auth/roles";
+import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 export const maxDuration = 120;
 
@@ -33,6 +34,7 @@ export async function POST(req: Request) {
   const siteId = (form.get("siteId") as string) ?? "";
   const titleRaw = ((form.get("title") as string) ?? "").trim();
   const descriptionRaw = ((form.get("description") as string) ?? "").trim();
+  const siteWideRequested = String(form.get("siteWide") ?? "").toLowerCase() === "true";
 
   if (
     !fileEntry ||
@@ -53,6 +55,7 @@ export async function POST(req: Request) {
 
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
+  const siteWide = siteWideRequested && canPublishSiteWide(role);
   let companyId = cookieStore.get("companyId")?.value ?? null;
   if (!companyId) {
     companyId =
@@ -134,6 +137,7 @@ export async function POST(req: Request) {
     url: fileUrl,
     company_id: companyIdTrim,
     status: "PENDING",
+    site_wide: siteWide,
   };
 
   let { data: inserted, error } = await supabaseAdmin
@@ -192,9 +196,12 @@ export async function POST(req: Request) {
     metadata: { ramsId: inserted?.id, siteId, fileName: file.name, companyId: companyIdTrim },
   });
 
-  const { data: companyUsers } = sid
-    ? { data: (await userIdsForSiteContent(companyIdTrim, sid)).map((id) => ({ id })) }
-    : await supabaseAdmin.from("users").select("id").eq("company_id", companyIdTrim);
+  const pushSource = siteWide
+    ? await userIdsForCompany(companyIdTrim)
+    : sid
+      ? await userIdsForSiteContent(companyIdTrim, sid)
+      : await userIdsForCompany(companyIdTrim);
+  const companyUsers = pushSource.map((id) => ({ id }));
   const pushIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean) as string[];
   if (pushIds.length > 0) {
     sendPushToUsers(

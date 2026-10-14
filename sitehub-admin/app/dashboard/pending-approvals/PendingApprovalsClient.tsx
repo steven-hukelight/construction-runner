@@ -16,6 +16,7 @@ type Reg = {
   companyName?: string;
   role?: string;
   status?: string;
+  needsEmailVerification?: boolean;
 };
 
 type Site = { id: string; name: string };
@@ -105,6 +106,11 @@ export default function PendingApprovalsClient() {
         },
         { header: "Email", accessor: "email", render: (r: Reg) => r.email ?? "—" },
         { header: "Company", accessor: "companyName", render: (r: Reg) => r.companyName ?? "—" },
+        {
+          header: "Status",
+          accessor: "status",
+          render: (r: Reg) => (r.needsEmailVerification ? "Email not verified" : "Ready to approve"),
+        },
         {
           header: "Requested",
           accessor: "role",

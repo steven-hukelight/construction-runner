@@ -4,7 +4,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess";
-import { getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import { applySiteVisibility, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { canPublishSiteWide } from "@/lib/auth/roles";
 import {
   computeNextInspectionDue,
   parseIntervalDays,
@@ -116,14 +117,15 @@ export async function GET(req: Request) {
       )
       .order("created_at", { ascending: false });
 
-    if (companyId) {
-      query = query.eq("company_id", companyId);
-    }
+    if (!companyId) return NextResponse.json([]);
+    query = query.eq("company_id", companyId);
     const cookieStore = await cookies();
-    const restricted = await getRestrictedSiteIds(cookieStore.get("role")?.value);
-    const siteScope = siteIdsForFilter(restricted, new URL(req.url).searchParams.get("siteId"));
+    const siteScope = await dashboardSiteScope(
+      cookieStore.get("role")?.value,
+      new URL(req.url).searchParams.get("siteId")
+    );
     if (siteScope === "none") return NextResponse.json([]);
-    if (siteScope !== "all") query = query.in("site_id", siteScope);
+    query = applySiteVisibility(query, siteScope);
 
     const { data: assets, error: qErr } = await query;
     if (qErr) {
@@ -185,7 +187,7 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const { companyId, userId, error } = await ensureCreateAccess(req);
+    const { companyId, userId, role, error } = await ensureCreateAccess(req);
     if (error) return error;
     if (!companyId) {
       return NextResponse.json({ success: false, message: "Company required" }, { status: 400 });
@@ -236,12 +238,14 @@ export async function POST(req: Request) {
       }
     }
 
+    const siteWide = (body?.site_wide === true || body?.siteWide === true) && canPublishSiteWide(role);
     const insertPayload: Record<string, unknown> = {
       company_id: companyId,
       name,
       type,
       status,
       site_id: siteId,
+      site_wide: siteWide,
     };
     if (serialNumber) insertPayload.serial_number = serialNumber;
     if (body?.description != null) insertPayload.description = String(body.description).trim();

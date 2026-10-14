@@ -4,6 +4,7 @@ import { useSearchParams } from "next/navigation";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 import { TurnstileWidget } from "@/app/components/TurnstileWidget";
 import PasswordRequirements from "@/app/components/PasswordRequirements";
+import SignupVerifyForm from "@/app/components/SignupVerifyForm";
 import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
 
 type RegisterTab = "join" | "newCompany";
@@ -53,6 +54,17 @@ function RegisterPageContent() {
     }
     if (email) setInviteEmail(email);
     if (name) setInviteName(name);
+    if (searchParams.get("verified") === "1") {
+      setVerifyDoneMessage(
+        "Email verified. An administrator must approve your account before you can sign in."
+      );
+    }
+    const verifyError = searchParams.get("verifyError");
+    if (verifyError === "expired") {
+      setInviteMessage("That verification link has expired. Sign up again or request a new email.");
+    } else if (verifyError === "invalid") {
+      setInviteMessage("That verification link is not valid. Sign up again or request a new email.");
+    }
   }, [searchParams]);
   const [invitePassword, setInvitePassword] = useState("");
   const [inviteMessage, setInviteMessage] = useState("");
@@ -65,11 +77,10 @@ function RegisterPageContent() {
   // Email verification step
   const [verifyRegId, setVerifyRegId] = useState<string | null>(null);
   const [verifyEmail, setVerifyEmail] = useState("");
-  const [verifyCode, setVerifyCode] = useState("");
   const [verifyMessage, setVerifyMessage] = useState("");
-  const [verifyLoading, setVerifyLoading] = useState(false);
-  const [resendLoading, setResendLoading] = useState(false);
   const [verifyDoneMessage, setVerifyDoneMessage] = useState<string | null>(null);
+  const [codeOnly, setCodeOnly] = useState(false);
+  const [codeOnlyEmail, setCodeOnlyEmail] = useState("");
   const turnstileEnabled = !!process.env.NEXT_PUBLIC_TURNSTILE_SITE_KEY?.trim();
 
   function resetTurnstile() {
@@ -96,19 +107,18 @@ function RegisterPageContent() {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok || (res.status === 502 && json?.needsEmailVerification && json?.registrationId)) {
+      if (res.ok && json?.needsEmailVerification) {
         setVerifyRegId(json.id ?? json.registrationId);
         setVerifyEmail(newAdminEmail);
-        setVerifyMessage(
-          res.ok
-            ? "We sent a 6-digit code to your email. Enter it below to continue."
-            : "Account started, but email may not have sent, use Resend code."
-        );
+        setVerifyMessage("We sent a verification link and a 6-digit code to your email.");
         setNewCompanyName("");
         setNewAdminName("");
         setNewAdminEmail("");
         setNewCompanyPhone("");
         setNewCompanyAddress("");
+        resetTurnstile();
+      } else if (res.ok) {
+        setVerifyDoneMessage(json.message || "Your new company request is pending approval.");
         resetTurnstile();
       } else {
         setNewCompanyMessage(json?.error || "Registration failed");
@@ -144,18 +154,19 @@ function RegisterPageContent() {
         }),
       });
       const json = await res.json().catch(() => ({}));
-      if (res.ok || (res.status === 502 && json?.needsEmailVerification && json?.registrationId)) {
+      if (res.ok && json?.needsEmailVerification) {
         setVerifyRegId(json.id ?? json.registrationId);
         setVerifyEmail(inviteEmail);
-        setVerifyMessage(
-          res.ok
-            ? "We sent a 6-digit code to your email. Enter it below to continue."
-            : "Account started, but email may not have sent, use Resend code."
-        );
+        setVerifyMessage("We sent a verification link and a 6-digit code to your email.");
         setInviteName("");
         setInviteEmail("");
         setInviteCode("");
         setInvitePassword("");
+        resetTurnstile();
+      } else if (res.ok) {
+        setVerifyDoneMessage(
+          json.message || "Account request submitted. An administrator must approve it before you can sign in."
+        );
         resetTurnstile();
       } else {
         setInviteMessage(json?.error || "Registration failed");
@@ -166,52 +177,6 @@ function RegisterPageContent() {
       resetTurnstile();
     } finally {
       setInviteLoading(false);
-    }
-  }
-
-  async function handleVerifySubmit(e: React.FormEvent<HTMLFormElement>) {
-    e.preventDefault();
-    if (!verifyRegId) return;
-    setVerifyLoading(true);
-    setVerifyMessage("");
-    try {
-      const res = await fetch("/api/auth/register/verify-email", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationId: verifyRegId, code: verifyCode }),
-      });
-      const json = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setVerifyDoneMessage(json.message || "Email verified. Your request is pending approval.");
-        setVerifyCode("");
-        setVerifyRegId(null);
-        setVerifyMessage("");
-      } else {
-        setVerifyMessage(json?.error || "Verification failed");
-      }
-    } catch {
-      setVerifyMessage("Network error");
-    } finally {
-      setVerifyLoading(false);
-    }
-  }
-
-  async function handleResendCode() {
-    if (!verifyRegId) return;
-    setResendLoading(true);
-    setVerifyMessage("");
-    try {
-      const res = await fetch("/api/auth/register/resend-code", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ registrationId: verifyRegId }),
-      });
-      const json = await res.json().catch(() => ({}));
-      setVerifyMessage(res.ok ? "New code sent, check your inbox." : json?.error || "Could not resend");
-    } catch {
-      setVerifyMessage("Network error");
-    } finally {
-      setResendLoading(false);
     }
   }
 
@@ -258,7 +223,9 @@ function RegisterPageContent() {
     return (
       <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
         <div className="w-full max-w-md mt-10 p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)] text-center">
-          <h1 className="text-2xl font-bold text-blue-700 mb-3">Email verified</h1>
+          <h1 className="text-2xl font-bold text-blue-700 mb-3">
+            {verifyDoneMessage.toLowerCase().includes("verified") ? "Email verified" : "Request submitted"}
+          </h1>
           <p className="text-sm text-gray-600 mb-6">{verifyDoneMessage}</p>
           <a
             href="/admin/login"
@@ -271,51 +238,77 @@ function RegisterPageContent() {
     );
   }
 
-  if (verifyRegId) {
+  if (verifyRegId || (codeOnly && verifyEmail.includes("@"))) {
     return (
       <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
         <div className="w-full max-w-md mt-10 p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-          <h1 className="text-2xl font-bold text-blue-700 mb-2">Verify your email</h1>
+          <SignupVerifyForm
+            email={verifyEmail}
+            registrationId={verifyRegId}
+            initialMessage={verifyMessage}
+            onVerified={(message) => {
+              setVerifyDoneMessage(message);
+              setVerifyRegId(null);
+              setCodeOnly(false);
+            }}
+            onBack={() => {
+              setVerifyRegId(null);
+              setCodeOnly(false);
+              setVerifyEmail("");
+              setVerifyMessage("");
+            }}
+          />
+          <a href="/admin/login" className="mt-6 block text-center text-sm text-gray-500 hover:text-blue-600">
+            Back to sign in
+          </a>
+        </div>
+      </div>
+    );
+  }
+
+  if (codeOnly) {
+    return (
+      <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
+        <div className="w-full max-w-md mt-10 p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h1 className="text-2xl font-bold text-blue-700 mb-2">Enter your email</h1>
           <p className="text-sm text-gray-600 mb-6">
-            Enter the 6-digit code we sent to <strong className="text-gray-800">{verifyEmail}</strong>. After that,
-            an administrator still needs to approve your account.
+            Use the email you registered with. We will check the 6-digit code sent to that inbox.
           </p>
-          <form onSubmit={handleVerifySubmit} className="space-y-4">
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              const next = codeOnlyEmail.trim().toLowerCase();
+              if (next.includes("@")) {
+                setVerifyEmail(next);
+                setVerifyMessage("Enter the 6-digit code from your email.");
+              }
+            }}
+            className="space-y-4"
+          >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Verification code</label>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
-                type="text"
-                inputMode="numeric"
-                autoComplete="one-time-code"
-                pattern="\d{6}"
-                maxLength={6}
-                placeholder="000000"
-                className="border border-gray-300 rounded-lg p-3 w-full text-center text-2xl tracking-[0.4em] font-semibold focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
-                value={verifyCode}
-                onChange={(e) => setVerifyCode(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                type="email"
                 required
+                className="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
+                value={codeOnlyEmail}
+                onChange={(e) => setCodeOnlyEmail(e.target.value)}
               />
             </div>
             <button
               type="submit"
-              disabled={verifyLoading || verifyCode.length !== 6}
-              className="bg-blue-600 text-white py-2.5 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700 disabled:bg-gray-300"
+              className="bg-blue-600 text-white py-2.5 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700"
             >
-              {verifyLoading ? "Verifying…" : "Verify email"}
+              Continue
             </button>
           </form>
           <button
             type="button"
-            onClick={() => void handleResendCode()}
-            disabled={resendLoading}
-            className="mt-4 w-full text-sm text-blue-600 hover:underline disabled:text-gray-400"
+            onClick={() => setCodeOnly(false)}
+            className="mt-4 w-full text-sm text-gray-500 hover:text-blue-600"
           >
-            {resendLoading ? "Sending…" : "Resend code"}
+            Back
           </button>
-          {verifyMessage && <p className="text-sm text-center text-blue-700 mt-4 font-medium">{verifyMessage}</p>}
-          <a href="/admin/login" className="mt-6 block text-center text-sm text-gray-500 hover:text-blue-600">
-            Back to sign in
-          </a>
         </div>
       </div>
     );
@@ -532,6 +525,18 @@ function RegisterPageContent() {
         </form>
           )}
         </div>
+        <p className="text-center mt-6">
+          <button
+            type="button"
+            className="text-sm text-blue-600 hover:underline"
+            onClick={() => {
+              setCodeOnly(true);
+              setCodeOnlyEmail(inviteEmail || newAdminEmail);
+            }}
+          >
+            Already have a verification code?
+          </button>
+        </p>
       </div>
     </div>
   );

@@ -2,6 +2,7 @@
 
 import Image from "next/image";
 import React, { useCallback, useEffect, useState } from "react";
+import toast from "react-hot-toast";
 import Link from "next/link";
 import Button from "../../components/ui/Button";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
@@ -22,6 +23,7 @@ interface Delivery {
   notes?: string;
   podUrl?: string;
   pod_url?: string;
+  pod_photos?: string[];
   loadUrl?: string;
   load_url?: string;
   load_photos?: string[];
@@ -36,11 +38,13 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
   const load = useCallback(async () => {
     setLoading(true);
     try {
-      const res = await fetch("/api/deliveries", { credentials: "include" });
-      const data = await res.json();
-      const list = Array.isArray(data) ? data : [];
-      const found = list.find((d: Delivery) => d.id === deliveryId);
-      setDelivery(found ?? null);
+      const res = await fetch(`/api/deliveries/${deliveryId}`, { credentials: "include" });
+      if (!res.ok) {
+        setDelivery(null);
+        return;
+      }
+      const found = (await res.json()) as Delivery;
+      setDelivery(found?.id ? found : null);
     } catch {
       setDelivery(null);
     } finally {
@@ -51,6 +55,21 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
   useEffect(() => {
     void load();
   }, [load]);
+
+  async function uploadPhotos(type: "load" | "pod", files: File[]) {
+    for (const file of files) {
+      const body = new FormData();
+      body.append("deliveryId", deliveryId);
+      body.append("type", type);
+      body.append("file", file);
+      const res = await fetch("/api/deliveries/upload", { method: "POST", body, credentials: "include" });
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({}));
+        throw new Error((err as { error?: string }).error || "Upload failed");
+      }
+    }
+    await load();
+  }
 
   async function handleStatus(status: string) {
     await updateDeliveryStatus(deliveryId, status);
@@ -76,9 +95,8 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
     );
   }
 
-  const photos = delivery.proof_photos ?? delivery.load_photos ?? [];
-  const podUrl = delivery.podUrl ?? delivery.pod_url ?? photos[0];
-  const loadUrl = delivery.loadUrl ?? delivery.load_url ?? photos[1];
+  const podPhotos = uniquePhotos(delivery.pod_photos, delivery.podUrl ?? delivery.pod_url);
+  const loadPhotos = uniquePhotos(delivery.load_photos ?? delivery.proof_photos, delivery.loadUrl ?? delivery.load_url);
 
   return (
     <div className="space-y-6">
@@ -117,30 +135,30 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
         </dl>
       </div>
 
-      <div className="card p-6">
-        <h3 className="font-semibold mb-4">Proof of Delivery</h3>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {podUrl && (
-            <div>
-              <p className="text-sm text-slate-500 mb-2">POD</p>
-              <a href={podUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <Image src={podUrl} alt="POD" width={600} height={400} className="rounded-lg max-h-48 object-cover border" unoptimized />
-              </a>
-            </div>
-          )}
-          {loadUrl && (
-            <div>
-              <p className="text-sm text-slate-500 mb-2">Load Photo</p>
-              <a href={loadUrl} target="_blank" rel="noopener noreferrer" className="block">
-                <Image src={loadUrl} alt="Load" width={600} height={400} className="rounded-lg max-h-48 object-cover border" unoptimized />
-              </a>
-            </div>
-          )}
-          {!podUrl && !loadUrl && photos.length === 0 && (
-            <p className="text-slate-500">No photos uploaded.</p>
-          )}
-        </div>
-      </div>
+      <PhotoGroup
+        title="Load photos"
+        empty="No load photos yet."
+        photos={loadPhotos}
+        onUpload={async (files) => {
+          try {
+            await uploadPhotos("load", files);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Upload failed");
+          }
+        }}
+      />
+      <PhotoGroup
+        title="Proof of delivery"
+        empty="No POD photos yet."
+        photos={podPhotos}
+        onUpload={async (files) => {
+          try {
+            await uploadPhotos("pod", files);
+          } catch (e) {
+            toast.error(e instanceof Error ? e.message : "Upload failed");
+          }
+        }}
+      />
 
       <div className="card p-6">
         <h3 className="font-semibold mb-4">Actions</h3>
@@ -153,6 +171,86 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+function uniquePhotos(many: string[] | undefined, single?: string): string[] {
+  const list = (Array.isArray(many) ? many : []).filter((url) => typeof url === "string" && url.length > 0);
+  if (single && !list.includes(single)) list.unshift(single);
+  return [...new Set(list)];
+}
+
+function PhotoGroup({
+  title,
+  empty,
+  photos,
+  onUpload,
+}: {
+  title: string;
+  empty: string;
+  photos: string[];
+  onUpload: (files: File[]) => Promise<void>;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function take(list: FileList | null) {
+    const files = list ? Array.from(list) : [];
+    if (files.length === 0) return;
+    setBusy(true);
+    try {
+      await onUpload(files);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="card p-6 space-y-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <h3 className="font-semibold">{title}</h3>
+        <div className="flex flex-wrap gap-2">
+          <label className="inline-flex cursor-pointer items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            {busy ? "Uploading…" : "Add photos"}
+            <input
+              type="file"
+              accept="image/*"
+              multiple
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                void take(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+          <label className="inline-flex cursor-pointer items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
+            Capture
+            <input
+              type="file"
+              accept="image/*"
+              capture="environment"
+              className="sr-only"
+              disabled={busy}
+              onChange={(e) => {
+                void take(e.target.files);
+                e.target.value = "";
+              }}
+            />
+          </label>
+        </div>
+      </div>
+      {photos.length === 0 ? (
+        <p className="text-sm text-slate-500">{empty}</p>
+      ) : (
+        <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+          {photos.map((url) => (
+            <a key={url} href={url} target="_blank" rel="noopener noreferrer" className="block">
+              <Image src={url} alt={title} width={600} height={400} className="rounded-lg h-36 w-full object-cover border" unoptimized />
+            </a>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

@@ -1,6 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { normalizeRole } from "@/lib/auth/roles";
 
+/** Everyone in the company. Used when an item is marked site-wide. */
+export async function userIdsForCompany(companyId: string): Promise<string[]> {
+  if (!companyId) return [];
+  const { data } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
+  return (data ?? []).map((row) => String((row as { id: string }).id));
+}
+
 /** People who should be notified about content on one site (not the whole company). */
 export async function userIdsForSiteContent(companyId: string, siteId: string): Promise<string[]> {
   const ids = new Set<string>();

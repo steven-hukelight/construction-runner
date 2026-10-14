@@ -20,21 +20,11 @@ export default function ApprovalsSection() {
   useEffect(() => {
     setLoading(true);
     Promise.all([
-      fetch("/api/registrations").then((res) => res.json()),
+      fetch("/api/auth/registrations", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
       fetch("/api/sites", { credentials: "include", cache: "no-store" }).then((r) => (r.ok ? r.json() : [])),
     ])
       .then(([data, sitesJson]) => {
-        const filtered = Array.isArray(data)
-          ? data
-              .filter((row: { data?: { status?: string } }) => {
-                const st = row.data?.status ?? "";
-                return st === "PENDING" || st === "COMPANY_ADMIN_PENDING";
-              })
-              .map((row: { id: string; data?: Record<string, unknown> }) => ({
-                id: row.id,
-                ...(row.data ?? {}),
-              }))
-          : [];
+        const filtered = Array.isArray(data) ? data : [];
         setPending(filtered as Registration[]);
         setSites(
           Array.isArray(sitesJson)
@@ -97,6 +87,12 @@ export default function ApprovalsSection() {
           },
           { header: "Email", accessor: "email" },
           { header: "Company", accessor: "companyName" },
+          {
+            header: "Status",
+            accessor: "status",
+            render: (reg: Registration) =>
+              reg.needsEmailVerification ? "Email not verified" : "Ready to approve",
+          },
           {
             header: "Actions",
             accessor: "actions",

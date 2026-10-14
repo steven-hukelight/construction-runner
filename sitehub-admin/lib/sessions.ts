@@ -2,10 +2,7 @@
  * Session management: create, validate, update, revoke.
  */
 import { supabaseAdmin } from "./supabaseAdmin";
-import {
-  SESSION_IDLE_TIMEOUT_MS,
-  SESSION_ABSOLUTE_TIMEOUT_MS,
-} from "./securityConfig";
+import { sessionLifetimeMs } from "./securityConfig";
 
 export interface SessionRecord {
   id: string;
@@ -50,23 +47,29 @@ export async function validateSession(sessionId: string): Promise<{
 }> {
   const { data, error } = await supabaseAdmin
     .from("user_sessions")
-    .select("id, user_id, created_at, last_active_at, revoked_at")
+    .select("id, user_id, created_at, last_active_at, revoked_at, device_type")
     .eq("id", sessionId)
     .single();
   if (error || !data) {
     return { valid: false, reason: "session_not_found" };
   }
-  const row = data as { revoked_at: string | null; created_at: string; last_active_at: string };
+  const row = data as {
+    revoked_at: string | null;
+    created_at: string;
+    last_active_at: string;
+    device_type: string | null;
+  };
   const lastActiveAtMs = new Date(row.last_active_at).getTime();
   if (row.revoked_at) {
     return { valid: false, reason: "revoked", lastActiveAtMs };
   }
   const now = Date.now();
   const createdAt = new Date(row.created_at).getTime();
-  if (now - lastActiveAtMs > SESSION_IDLE_TIMEOUT_MS) {
+  const { idleMs, absoluteMs } = sessionLifetimeMs(row.device_type);
+  if (now - lastActiveAtMs > idleMs) {
     return { valid: false, reason: "idle_timeout", lastActiveAtMs };
   }
-  if (now - createdAt > SESSION_ABSOLUTE_TIMEOUT_MS) {
+  if (now - createdAt > absoluteMs) {
     return { valid: false, reason: "absolute_timeout", lastActiveAtMs };
   }
   return {

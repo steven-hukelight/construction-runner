@@ -5,7 +5,8 @@ import { writeAuditLog } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { assertWritableSiteId } from "@/lib/auth/siteScope";
-import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { canPublishSiteWide } from "@/lib/auth/roles";
+import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 export async function POST(req: Request) {
   const form = await req.formData();
@@ -47,6 +48,8 @@ export async function POST(req: Request) {
   const { data: users } = email ? await supabaseAdmin.from("users").select("id").eq("email", email).limit(1) : { data: [] };
   const actorId = (users?.[0] as { id?: string })?.id ?? null;
 
+  const siteWide =
+    String(form.get("siteWide") ?? "").toLowerCase() === "true" && canPublishSiteWide(cookieStore.get("role")?.value);
   const { data: briefing, error: insertError } = await supabaseAdmin.from("briefings").insert({
     title: title.trim() || file.name,
     body: body.trim() || null,
@@ -54,6 +57,7 @@ export async function POST(req: Request) {
     company_id: companyId,
     site_id: siteId.trim(),
     uploaded_by: actorId,
+    site_wide: siteWide,
   }).select("id").single();
 
   if (insertError) {
@@ -70,7 +74,9 @@ export async function POST(req: Request) {
     metadata: { briefingId: briefing?.id, title: title || file.name },
   });
 
-  const userIds = await userIdsForSiteContent(companyId, siteId.trim());
+  const userIds = siteWide
+    ? await userIdsForCompany(companyId)
+    : await userIdsForSiteContent(companyId, siteId.trim());
   let push: { recipients: number; sent: boolean; error?: string } = {
     recipients: userIds.length,
     sent: false,

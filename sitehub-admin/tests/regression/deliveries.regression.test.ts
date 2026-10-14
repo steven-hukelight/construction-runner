@@ -133,7 +133,9 @@ describe("Deliveries upload (POD / load photo)", () => {
     mockSupabaseResponseQueue.push(
       { data: { id: deliveryId, company_id: companyId }, error: null },
       { data: null, error: null },
-      { data: { id: deliveryId, pod_url: "https://signed.url/pod.jpg" }, error: null }
+      { data: { pod_photos: [], pod_url: null }, error: null },
+      { data: null, error: null },
+      { data: { id: deliveryId, pod_url: "https://signed.url/pod.jpg", pod_photos: ["https://signed.url/pod.jpg"] }, error: null }
     );
 
     const form = new FormData();

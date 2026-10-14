@@ -2,8 +2,9 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { sendPushToUsers } from "@/lib/onesignal";
-import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
-import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { canPublishSiteWide } from "@/lib/auth/roles";
 
 function severityBucket(raw: string | null | undefined): string {
   const value = (raw ?? "info").toLowerCase();
@@ -23,15 +24,17 @@ export async function GET(req: Request) {
     const dateFrom = url.searchParams.get("dateFrom");
     const dateTo = url.searchParams.get("dateTo");
 
-    let query = supabaseAdmin.from("safety_alerts").select("*");
-    if (auth.companyId) query = query.eq("company_id", auth.companyId);
-    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
-    const siteScope = siteIdsForFilter(restricted, url.searchParams.get("siteId"));
+    if (!auth.companyId) {
+      if (countOnly === "unread") return NextResponse.json({ count: 0 });
+      return NextResponse.json([]);
+    }
+    let query = supabaseAdmin.from("safety_alerts").select("*").eq("company_id", auth.companyId);
+    const siteScope = await dashboardSiteScope(auth.role, url.searchParams.get("siteId"), auth.uid);
     if (siteScope === "none") {
       if (countOnly === "unread") return NextResponse.json({ count: 0 });
       return NextResponse.json([]);
     }
-    if (siteScope !== "all") query = query.in("site_id", siteScope);
+    query = applySiteVisibility(query, siteScope);
     if (severity) query = query.in("severity", severity === "critical" ? ["critical", "high"] : severity === "warning" ? ["warning", "medium"] : ["info", "low"]);
     if (dateFrom) query = query.gte("created_at", dateFrom);
     if (dateTo) query = query.lte("created_at", dateTo);
@@ -126,9 +129,10 @@ export async function POST(req: Request) {
       severity: severity || "info",
       company_id: companyId,
       site_id: body.siteId,
+      site_wide: (body.siteWide === true || body.site_wide === true) && canPublishSiteWide(auth.role),
       expires_at: body.expiresAt ? new Date(body.expiresAt).toISOString() : null,
     })
-    .select("id, severity, title, company_id")
+    .select("id, severity, title, company_id, site_wide")
     .single();
 
   if (error) {
@@ -136,7 +140,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   if (data && severityBucket(data.severity) == "critical") {
-    const userIds = await userIdsForSiteContent(data.company_id, String(body.siteId));
+    const userIds = data.site_wide
+      ? await userIdsForCompany(data.company_id)
+      : await userIdsForSiteContent(data.company_id, String(body.siteId));
     if (userIds.length > 0) {
       sendPushToUsers(userIds, "Critical safety alert", data.title ?? "Alert", {
         type: "safety_alert",

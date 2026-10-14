@@ -6,6 +6,7 @@ import { useState, useEffect, type ChangeEvent } from "react";
 import Button from "../components/ui/Button";
 import Input from "../components/ui/Input";
 import { SitePicker } from "../components/ui/SitePicker";
+import { SiteWideField } from "../components/SiteWideField";
 import { PortalOverlay } from "../components/PortalOverlay";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import { RAMS_MAX_UPLOAD_BYTES, RAMS_MAX_UPLOAD_LABEL } from "@/lib/ramsUploadLimits";
@@ -18,6 +19,7 @@ export default function RAMSUploadModal() {
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
   const [siteId, setSiteId] = useState("");
+  const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -69,6 +71,7 @@ export default function RAMSUploadModal() {
       const form = new FormData();
       form.append("file", file);
       form.append("siteId", siteId.trim());
+      if (siteWide) form.append("siteWide", "true");
       form.append("title", title.trim() || file.name.replace(/\.pdf$/i, "") || file.name);
       form.append("description", description.trim());
       const impersonatedCompanyId = getCompanyIdFromClient();
@@ -138,7 +141,12 @@ export default function RAMSUploadModal() {
                   onChange={setSiteId}
                   placeholder="Select site…"
                 />
-                <p className="mt-1 text-xs text-slate-500">Stays in this site’s folder only.</p>
+                <p className="mt-1 text-xs text-slate-500">
+                  {siteWide ? "Shown on every site in this company." : "Shown on this site only."}
+                </p>
+                <div className="mt-2">
+                  <SiteWideField checked={siteWide} onChange={setSiteWide} />
+                </div>
               </div>
 
               <div>

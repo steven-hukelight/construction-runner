@@ -7,6 +7,7 @@ import Input from "../../components/ui/Input";
 import Button from "../../components/ui/Button";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { SitePicker } from "../../components/ui/SitePicker";
+import { SiteWideField } from "../../components/SiteWideField";
 
 const CATEGORIES = [
   { id: "PPE", label: "PPE", icon: HardHat, desc: "Personal protective equipment requirements" },
@@ -22,6 +23,7 @@ export default function SiteRulesManager() {
   const [editing, setEditing] = useState<Rule | null>(null);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ category: "PPE", title: "", description: "", siteId: "" });
+  const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<{ id: string; name?: string }[]>([]);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -51,11 +53,12 @@ export default function SiteRulesManager() {
     const res = await fetch("/api/site-rules", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(form),
+      body: JSON.stringify({ ...form, siteWide }),
       credentials: "include",
     });
     const data = await res.json();
     if (data.rule) {
+      setSiteWide(false);
       let rule = data.rule;
       if (form.category === "emergency" && uploadFile) {
         setUploading(true);
@@ -217,6 +220,9 @@ export default function SiteRulesManager() {
               Site <span className="text-red-600">*</span>
             </label>
             <SitePicker sites={sites} value={form.siteId} onChange={(siteId) => setForm((f) => ({ ...f, siteId }))} />
+            <div className="mt-2">
+              <SiteWideField checked={siteWide} onChange={setSiteWide} />
+            </div>
           </div>
           {form.category === "emergency" && (
             <div>

@@ -7,6 +7,10 @@ import {
   MAX_FALLBACK_ACCURACY_M,
   shouldSkipCoarseFallbackOutsideEval,
 } from "@/lib/attendanceCoarseFallback";
+import {
+  decideImmediateGeofenceExit,
+  parseCoord,
+} from "@/lib/attendanceImmediateGeofence";
 
 export const dynamic = "force-dynamic";
 
@@ -40,7 +44,9 @@ export async function POST(req: Request) {
 
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from("attendance")
-      .select("id, user_id, action, timestamp, created_at")
+      .select(
+        "id, user_id, action, timestamp, created_at, latitude, longitude, last_location_lat, last_location_lng, last_location_accuracy, last_location_outside_fence"
+      )
       .eq("id", String(attendanceId))
       .maybeSingle();
 
@@ -176,6 +182,19 @@ export async function POST(req: Request) {
         const lastTs = r.lastLocationTimestamp ?? r.last_location_timestamp;
         const outside =
           r.lastLocationOutsideFence === true || r.last_location_outside_fence === true;
+        const skippedCoarsePing =
+          r.skippedCoarsePing === true || r.skipped_coarse_ping === true;
+        const previousLat =
+          parseCoord((row as { last_location_lat?: unknown }).last_location_lat) ??
+          parseCoord((row as { latitude?: unknown }).latitude);
+        const previousLng =
+          parseCoord((row as { last_location_lng?: unknown }).last_location_lng) ??
+          parseCoord((row as { longitude?: unknown }).longitude);
+        const previousOutside =
+          (row as { last_location_outside_fence?: unknown }).last_location_outside_fence === true;
+        const clearance = parseCoord(
+          r.outsideClearanceMeters ?? r.outside_clearance_meters
+        );
         if (geofenceExitPing && !outside) {
           console.warn("[AUTO-SIGN-OUT][location] geofence_exit_ping_but_geometry_inside_threshold", {
             attendanceId: String(row.id),
@@ -187,42 +206,115 @@ export async function POST(req: Request) {
             outsideClearanceMeters: r.outsideClearanceMeters ?? r.outside_clearance_meters,
           });
         }
-        if (geofenceExitPing && outside) {
-          const { data: imm, error: immErr } = await supabaseAdmin.rpc(
-            "attendance_immediate_geofence_exit_sign_out",
-            { p_attendance_id: String(row.id) }
-          );
-          const immOk =
-            imm &&
-            typeof imm === "object" &&
-            (imm as Record<string, unknown>).ok === true;
-          if (immErr || !immOk) {
-            console.warn("[AUTO-SIGN-OUT][location] immediate_geofence_exit_sign_out_failed", {
-              attendanceId: String(row.id),
-              immErr,
-              imm,
-            });
-          } else {
-            console.log("[AUTO-SIGN-OUT][location] immediate_auto_sign_out", {
+        if (geofenceExitPing && outside && !skippedCoarsePing) {
+          const decision = decideImmediateGeofenceExit({
+            geofenceExitPing,
+            geometryOutside: outside,
+            skippedCoarsePing,
+            signInAt,
+            accuracyM: pAcc,
+            clientTimestampMs: Number.isFinite(clientTs) ? clientTs : null,
+            previousOutside,
+            previousLat,
+            previousLng,
+            currentLat: Number(lat),
+            currentLng: Number(lng),
+            outsideClearanceM: clearance,
+          });
+          if (decision.action === "ignore_restore" || decision.action === "ignore_clear") {
+            const revert: Record<string, unknown> = {
+              last_location_outside_fence: previousOutside ? true : false,
+            };
+            if (decision.action === "ignore_restore" && previousLat != null && previousLng != null) {
+              revert.last_location_lat = previousLat;
+              revert.last_location_lng = previousLng;
+              const previousAcc = parseCoord(
+                (row as { last_location_accuracy?: unknown }).last_location_accuracy
+              );
+              if (previousAcc != null) revert.last_location_accuracy = previousAcc;
+            } else if (decision.action === "ignore_clear") {
+              revert.last_location_lat = null;
+              revert.last_location_lng = null;
+              revert.last_location_outside_fence = false;
+            }
+            const { error: revertErr } = await supabaseAdmin
+              .from("attendance")
+              .update(revert)
+              .eq("id", row.id);
+            if (revertErr) {
+              console.warn("[AUTO-SIGN-OUT][location] untrusted_outside_revert_failed", {
+                attendanceId: String(row.id),
+                decision,
+                revertErr,
+              });
+            }
+            console.warn("[AUTO-SIGN-OUT][location] immediate_sign_out_held", {
               attendanceId: String(row.id),
               operativeId: operativeIdLog,
-              userId: uid,
-              reason: "geofence_exit_immediate",
-              triggerSource: "server_geofence",
+              siteId: siteIdLog,
+              reason: decision.reason,
+              action: decision.action,
+              accuracy: pAcc,
+              outsideClearanceMeters: clearance,
             });
-            await sendAttendanceAutoSignOutPush(uid, "geofence_exit_immediate", String(row.id));
             return NextResponse.json({
               ok: true,
               lastLocationTimestamp: lastTs,
-              lastLocationOutsideFence: true,
+              lastLocationOutsideFence: revert.last_location_outside_fence === true,
               insideFence: r.insideFence ?? r.inside_fence,
               outsideThresholdMeters: outsideThresholdM,
-              outsideClearanceMeters: r.outsideClearanceMeters ?? r.outside_clearance_meters,
+              outsideClearanceMeters: clearance,
               fallbackPing: fallbackPing || undefined,
-              immediateAutoSignOut: true,
-              autoSignOutReason: "geofence_exit_immediate",
-              autoSignOutTriggerSource: "server_geofence",
+              immediateAutoSignOut: false,
+              geofenceExitHeld: true,
+              geofenceExitHoldReason: decision.reason,
             });
+          }
+          if (decision.action === "hold_outside") {
+            console.log("[AUTO-SIGN-OUT][location] outside_awaiting_confirmation", {
+              attendanceId: String(row.id),
+              operativeId: operativeIdLog,
+              siteId: siteIdLog,
+              reason: decision.reason,
+            });
+          } else if (decision.action === "sign_out") {
+            const { data: imm, error: immErr } = await supabaseAdmin.rpc(
+              "attendance_immediate_geofence_exit_sign_out",
+              { p_attendance_id: String(row.id) }
+            );
+            const immOk =
+              imm &&
+              typeof imm === "object" &&
+              (imm as Record<string, unknown>).ok === true;
+            if (immErr || !immOk) {
+              console.warn("[AUTO-SIGN-OUT][location] immediate_geofence_exit_sign_out_failed", {
+                attendanceId: String(row.id),
+                immErr,
+                imm,
+              });
+            } else {
+              console.log("[AUTO-SIGN-OUT][location] immediate_auto_sign_out", {
+                attendanceId: String(row.id),
+                operativeId: operativeIdLog,
+                userId: uid,
+                reason: "geofence_exit_immediate",
+                triggerSource: "server_geofence",
+                confirmReason: decision.reason,
+              });
+              await sendAttendanceAutoSignOutPush(uid, "geofence_exit_immediate", String(row.id));
+              return NextResponse.json({
+                ok: true,
+                lastLocationTimestamp: lastTs,
+                lastLocationOutsideFence: true,
+                insideFence: r.insideFence ?? r.inside_fence,
+                outsideThresholdMeters: outsideThresholdM,
+                outsideClearanceMeters: r.outsideClearanceMeters ?? r.outside_clearance_meters,
+                fallbackPing: fallbackPing || undefined,
+                immediateAutoSignOut: true,
+                autoSignOutReason: "geofence_exit_immediate",
+                autoSignOutTriggerSource: "server_geofence",
+              });
+            }
           }
         }
         console.log("[attendance/location] ping stored", {

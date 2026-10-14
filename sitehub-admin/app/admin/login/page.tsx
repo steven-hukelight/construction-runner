@@ -11,6 +11,7 @@ import { getAuthRedirectOrigin } from "@/lib/url";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
+import SignupVerifyForm from "@/app/components/SignupVerifyForm";
 
 function LoginPageContent() {
   const { t } = useDisplayPreferences();
@@ -21,6 +22,9 @@ function LoginPageContent() {
   const [error, setError] = useState("");
   const [inviteHint, setInviteHint] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [verifyEmail, setVerifyEmail] = useState("");
+  const [verifyRegistrationId, setVerifyRegistrationId] = useState<string | null>(null);
+  const [verifyDoneMessage, setVerifyDoneMessage] = useState<string | null>(null);
   const router = useRouter();
   const searchParams = useSearchParams();
 
@@ -82,6 +86,12 @@ function LoginPageContent() {
     try {
       const { error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
+        const notConfirmed = /email not confirmed/i.test(error.message);
+        if (notConfirmed) {
+          setVerifyEmail(email.trim().toLowerCase());
+          setError("");
+          return;
+        }
         setError(error.message);
         return;
       }
@@ -93,13 +103,17 @@ function LoginPageContent() {
       const result = await setUserCookies(session.user.email, rememberMe, session.user.id);
       if (!result.role) {
         await supabase.auth.signOut({ scope: "local" });
-        setError(
-          "pendingApproval" in result && result.pendingApproval
-            ? "Your account is pending approval. An administrator must approve it before you can sign in."
-            : result.restricted === "operative"
+        if ("pendingApproval" in result && result.pendingApproval) {
+          setError(
+            "Your account is pending approval. An administrator must approve it before you can sign in."
+          );
+        } else {
+          setError(
+            result.restricted === "operative"
               ? "Operative web login is a future feature. Please use the mobile app."
               : "Your account is not yet set up. Please contact your administrator."
-        );
+          );
+        }
         setLoading(false);
         return;
       }
@@ -140,10 +154,42 @@ function LoginPageContent() {
             <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center">
               <Image src="/icon.png" alt="Construction Runner" width={112} height={112} className="object-contain" priority />
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">{t("Sign In")}</h1>
+            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
+              {verifyDoneMessage ? t("Email verified") : verifyEmail ? t("Verify your email") : t("Sign In")}
+            </h1>
             <p className="text-sm text-slate-500 mt-1">Construction Runner Admin</p>
               </div>
 
+              {verifyDoneMessage ? (
+                <div className="text-center">
+                  <p className="text-sm text-gray-600 mb-6">{verifyDoneMessage}</p>
+                  <button
+                    type="button"
+                    className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700"
+                    onClick={() => {
+                      setVerifyDoneMessage(null);
+                      setVerifyEmail("");
+                    }}
+                  >
+                    {t("Back to sign in")}
+                  </button>
+                </div>
+              ) : verifyEmail ? (
+                <SignupVerifyForm
+                  email={verifyEmail}
+                  registrationId={verifyRegistrationId}
+                  onVerified={(message) => {
+                    setVerifyDoneMessage(message);
+                    setVerifyEmail("");
+                    setVerifyRegistrationId(null);
+                  }}
+                  onBack={() => {
+                    setVerifyEmail("");
+                    setVerifyRegistrationId(null);
+                  }}
+                />
+              ) : (
+              <>
               {inviteHint && !error && (
                 <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
                   <p className="text-sm text-blue-800">
@@ -252,6 +298,8 @@ function LoginPageContent() {
               <p className="mt-4 flex justify-center">
                 <FeedbackLink variant="login" />
               </p>
+              </>
+              )}
             </div>
             <p className="mt-5 text-center text-xs text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
               © {new Date().getFullYear()} Construction Runner

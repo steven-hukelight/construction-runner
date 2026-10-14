@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
-import { getRestrictedSiteIds, siteIdsForFilter, assertWritableSiteId } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
 import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 function toTime(a: unknown): number {
@@ -32,46 +32,18 @@ export async function GET(req: Request) {
     }
     if (role === "superuser") {
       companyId = searchParams.get("companyId") || companyId || undefined;
-      const restricted = await getRestrictedSiteIds(role);
-      const siteScope = siteIdsForFilter(restricted, searchParams.get("siteId"));
-      if (siteScope === "none") return NextResponse.json([]);
-      if (companyId) {
-        let q = supabaseAdmin
-          .from("rams")
-          .select("*")
-          .eq("company_id", companyId)
-          .order("created_at", { ascending: false })
-          .limit(listLimit);
-        if (siteScope !== "all") q = q.in("site_id", siteScope);
-        const { data, error } = await q;
-        if (error) {
-          console.error("GET /api/rams (superuser scoped):", error.message);
-          return NextResponse.json({ error: error.message }, { status: 500 });
-        }
-        return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
-      }
-      const { data, error } = await supabaseAdmin
-        .from("rams")
-        .select("*")
-        .order("created_at", { ascending: false })
-        .limit(listLimit);
-      if (error) {
-        console.error("GET /api/rams (superuser all):", error.message);
-        return NextResponse.json({ error: error.message }, { status: 500 });
-      }
-      return NextResponse.json((data ?? []).map((d) => ({ id: d.id, ...d })));
     }
+    if (!companyId) return NextResponse.json([]);
+    const siteScope = await dashboardSiteScope(role, searchParams.get("siteId"));
+    if (siteScope === "none") return NextResponse.json([]);
     if (companyId) {
-      const restricted = await getRestrictedSiteIds(role);
-      const siteScope = siteIdsForFilter(restricted, searchParams.get("siteId"));
-      if (siteScope === "none") return NextResponse.json([]);
       let ownQuery = supabaseAdmin
         .from("rams")
         .select("*")
         .eq("company_id", companyId)
         .order("created_at", { ascending: false })
         .limit(listLimit);
-      if (siteScope !== "all") ownQuery = ownQuery.in("site_id", siteScope);
+      ownQuery = applySiteVisibility(ownQuery, siteScope);
       const { data: ownRams, error: ownErr } = await ownQuery;
       if (ownErr) {
         console.error("GET /api/rams (own company):", ownErr.message);

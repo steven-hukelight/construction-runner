@@ -108,11 +108,20 @@ export async function verifyApiCredentials(creds: ApiCredentials): Promise<ApiAu
   }
   if (!uid) return { ok: false, reason: "invalid_credentials" };
 
-  const { data: row } = await supabaseAdmin
+  let { data: row } = await supabaseAdmin
     .from("users")
     .select("id, company_id, role, email")
     .eq("id", uid)
     .maybeSingle();
+  // Legacy accounts have a public.users.id that differs from the auth id; match on the verified auth email.
+  if (!row && source === "bearer" && authEmail) {
+    const pattern = authEmail.replace(/\\/g, "\\\\").replace(/%/g, "\\%").replace(/_/g, "\\_");
+    ({ data: row } = await supabaseAdmin
+      .from("users")
+      .select("id, company_id, role, email")
+      .ilike("email", pattern)
+      .maybeSingle());
+  }
 
   const dbRole = (row?.role as string | null | undefined) ?? null;
   const user: VerifiedApiUser = {

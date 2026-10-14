@@ -28,3 +28,29 @@ export async function findUserByIdOrEmail(opts: {
     .maybeSingle();
   return (data as Record<string, unknown> | null) ?? null;
 }
+
+/** Auth user id for an email, even when public.users is missing. */
+export async function findAuthUserIdByEmail(email: string): Promise<string | null> {
+  const normalized = email.trim().toLowerCase();
+  if (!normalized) return null;
+
+  const { data: rpcId, error: rpcError } = await supabaseAdmin.rpc("auth_user_id_by_email", {
+    search_email: normalized,
+  });
+  if (!rpcError && rpcId) return String(rpcId);
+
+  const dbUser = await findUserByIdOrEmail({ email: normalized });
+  const dbId = dbUser?.id ? String(dbUser.id) : null;
+  if (dbId) {
+    const { data } = await supabaseAdmin.auth.admin.getUserById(dbId);
+    if (data?.user?.id) return data.user.id;
+  }
+  return dbId;
+}
+
+export async function authUserExists(id: string): Promise<boolean> {
+  const trimmed = id.trim();
+  if (!trimmed) return false;
+  const { data, error } = await supabaseAdmin.auth.admin.getUserById(trimmed);
+  return !error && !!data?.user?.id;
+}

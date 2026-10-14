@@ -40,17 +40,14 @@ export async function GET(req: Request) {
       .select("id, profile_id, title, issuer, issue_date, expiry_date, attachment_url, created_at")
       .order("created_at", { ascending: false })
       .limit(limit);
-    if (role !== "superuser" && companyId) {
-      const userIdsRes = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
-      const userIds = (userIdsRes.data ?? []).map((u) => u.id);
-      if (userIds.length === 0) return NextResponse.json([]);
-      const profilesRes = await supabaseAdmin.from("profiles").select("id").in("user_id", userIds);
-      const profileIds = (profilesRes.data ?? []).map((p) => p.id);
-      if (profileIds.length === 0) return NextResponse.json([]);
-      query = query.in("profile_id", profileIds);
-    } else if (role !== "superuser") {
-      return NextResponse.json([]);
-    }
+    if (!companyId) return NextResponse.json([]);
+    const userIdsRes = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
+    const companyUserIds = (userIdsRes.data ?? []).map((u) => u.id);
+    if (companyUserIds.length === 0) return NextResponse.json([]);
+    const profilesRes = await supabaseAdmin.from("profiles").select("id").in("user_id", companyUserIds);
+    const companyProfileIds = (profilesRes.data ?? []).map((p) => p.id);
+    if (companyProfileIds.length === 0) return NextResponse.json([]);
+    query = query.in("profile_id", companyProfileIds);
 
     const { data: profileRows } = await query;
 

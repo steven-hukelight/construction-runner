@@ -15,6 +15,25 @@ export const COOKIE_MAX_AGE_DEFAULT = 24 * 60 * 60; // 24 hours (matches absolut
 /** Worker mobile app (X-Client: mobile): keep users signed in across days without re-entering password. */
 export const COOKIE_MAX_AGE_MOBILE_APP = 90 * 24 * 60 * 60; // 90 days
 
+/**
+ * Web dashboard stays on short idle. The Android/iOS app keeps a 90-day cookie
+ * but used to lose `/api/me/assigned-sites` after 30 minutes because session_id
+ * was validated with the web idle timeout.
+ */
+export function sessionLifetimeMs(deviceType?: string | null): {
+  idleMs: number;
+  absoluteMs: number;
+} {
+  if ((deviceType ?? "").trim().toLowerCase() === "mobile") {
+    const ms = COOKIE_MAX_AGE_MOBILE_APP * 1000;
+    return { idleMs: ms, absoluteMs: ms };
+  }
+  return {
+    idleMs: SESSION_IDLE_TIMEOUT_MS,
+    absoluteMs: SESSION_ABSOLUTE_TIMEOUT_MS,
+  };
+}
+
 // Rate limiting
 export const RATE_LIMIT_WINDOW_MS = 60 * 1000; // 1 minute
 export const RATE_LIMIT_MAX_ATTEMPTS = 10;

@@ -13,6 +13,7 @@ import {
   COOKIE_MAX_AGE_REMEMBER,
 } from "./securityConfig";
 import { serializeAuthCookie, serializeAuthCookieClear } from "./authCookies";
+import { findUnverifiedSignupByEmail } from "./signupRegistration";
 
 const url = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -50,6 +51,20 @@ export async function handleLoginPost(req: Request): Promise<NextResponse> {
         userAgent,
         outcome: "failure",
       });
+      const notConfirmed =
+        authError.code === "email_not_confirmed" ||
+        /email not confirmed/i.test(authError.message || "");
+      if (notConfirmed) {
+        const unverified = await findUnverifiedSignupByEmail(email);
+        return NextResponse.json(
+          {
+            error: "Check your email and open the verification link, or enter the 6-digit code.",
+            needsEmailVerification: true,
+            registrationId: unverified?.id ?? null,
+          },
+          { status: 403 }
+        );
+      }
       const msg = authError.message || "Invalid email or password";
       const code = authError.status === 429 ? 429 : 401;
       return NextResponse.json({ error: msg }, { status: code });
@@ -166,6 +181,17 @@ export async function handleLoginPost(req: Request): Promise<NextResponse> {
         userAgent,
         outcome: "failure",
       });
+      const unverified = await findUnverifiedSignupByEmail(sessionEmail);
+      if (unverified) {
+        return NextResponse.json(
+          {
+            error: "Check your email and open the verification link, or enter the 6-digit code.",
+            needsEmailVerification: true,
+            registrationId: unverified.id,
+          },
+          { status: 403 }
+        );
+      }
       return NextResponse.json(
         { error: "Your account is pending approval. An administrator must approve it before you can sign in." },
         { status: 403 }

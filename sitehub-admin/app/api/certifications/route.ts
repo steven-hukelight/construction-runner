@@ -29,12 +29,12 @@ export async function GET(req: Request) {
 
     if (userIdParam) {
       query = query.eq("user_id", userIdParam);
-    } else if (role !== "superuser" && companyId) {
+    } else if (companyId) {
       const userIdsRes = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
       const userIds = (userIdsRes.data ?? []).map((u) => u.id);
       if (userIds.length === 0) return NextResponse.json([]);
       query = query.in("user_id", userIds);
-    } else if (role !== "superuser") {
+    } else {
       return NextResponse.json([]);
     }
 

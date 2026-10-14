@@ -1,11 +1,15 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import {
+  generateSignupLinkToken,
   generateSignupOtp,
+  hashSignupLinkToken,
   hashSignupOtp,
   sendSignupVerificationEmail,
   signupOtpExpiresAt,
+  signupVerifyUrl,
 } from "@/lib/signupEmailVerification";
+import { findUnverifiedSignupByEmail } from "@/lib/signupRegistration";
 
 type RegData = {
   email?: string;
@@ -15,6 +19,7 @@ type RegData = {
   emailOtpExpiresAt?: string;
   emailOtpAttempts?: number;
   emailOtpLastSentAt?: string;
+  emailLinkTokenHash?: string;
 };
 
 function copyOtpField<K extends keyof RegData>(
@@ -49,6 +54,7 @@ async function restoreUndeliveredSignupOtp(params: {
   copyOtpField(restored, params.previous, "emailOtpExpiresAt");
   copyOtpField(restored, params.previous, "emailOtpAttempts");
   copyOtpField(restored, params.previous, "emailOtpLastSentAt");
+  copyOtpField(restored, params.previous, "emailLinkTokenHash");
 
   const { data: rolled, error: rollbackError } = await supabaseAdmin
     .from("registrations")
@@ -62,6 +68,7 @@ async function restoreUndeliveredSignupOtp(params: {
   const invalidated: RegData = { ...fresh };
   delete invalidated.emailOtpHash;
   delete invalidated.emailOtpExpiresAt;
+  delete invalidated.emailLinkTokenHash;
   const { error: invalidateError } = await supabaseAdmin
     .from("registrations")
     .update({ data: invalidated })
@@ -78,16 +85,28 @@ async function restoreUndeliveredSignupOtp(params: {
 export async function POST(req: Request) {
   try {
     const body = await req.json().catch(() => ({}));
-    const registrationId = typeof body.registrationId === "string" ? body.registrationId.trim() : "";
-    if (!registrationId) {
-      return NextResponse.json({ error: "Registration id required" }, { status: 400 });
+    let registrationId = typeof body.registrationId === "string" ? body.registrationId.trim() : "";
+    const emailHint = typeof body.email === "string" ? body.email.trim().toLowerCase() : "";
+    if (!registrationId && !emailHint) {
+      return NextResponse.json({ error: "Registration id or email required" }, { status: 400 });
     }
 
-    const { data: regRow } = await supabaseAdmin
-      .from("registrations")
-      .select("id, data")
-      .eq("id", registrationId)
-      .maybeSingle();
+    let regRow: { id: string; data: unknown } | null = null;
+    if (registrationId) {
+      const { data } = await supabaseAdmin
+        .from("registrations")
+        .select("id, data")
+        .eq("id", registrationId)
+        .maybeSingle();
+      if (data) regRow = data;
+    }
+    if (!regRow && emailHint) {
+      const found = await findUnverifiedSignupByEmail(emailHint);
+      if (found) {
+        registrationId = found.id;
+        regRow = { id: found.id, data: found.data };
+      }
+    }
 
     if (!regRow) {
       return NextResponse.json({ error: "Registration not found" }, { status: 404 });
@@ -109,10 +128,12 @@ export async function POST(req: Request) {
     }
 
     const otp = generateSignupOtp();
+    const linkToken = generateSignupLinkToken();
     const writtenHash = hashSignupOtp(otp);
     const nextData: RegData = {
       ...data,
       emailOtpHash: writtenHash,
+      emailLinkTokenHash: hashSignupLinkToken(linkToken),
       emailOtpExpiresAt: signupOtpExpiresAt(),
       emailOtpAttempts: 0,
       emailOtpLastSentAt: new Date().toISOString(),
@@ -154,7 +175,11 @@ export async function POST(req: Request) {
       );
     }
 
-    const sent = await sendSignupVerificationEmail(email, otp);
+    const sent = await sendSignupVerificationEmail({
+      email,
+      code: otp,
+      verifyUrl: signupVerifyUrl(linkToken),
+    });
     if (!sent.ok) {
       const rolledBack = await restoreUndeliveredSignupOtp({
         registrationId,

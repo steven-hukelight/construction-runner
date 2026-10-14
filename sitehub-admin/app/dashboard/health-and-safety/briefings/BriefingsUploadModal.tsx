@@ -6,6 +6,7 @@ import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { PortalOverlay } from "../../components/PortalOverlay";
 import { SitePicker } from "../../components/ui/SitePicker";
+import { SiteWideField } from "../../components/SiteWideField";
 
 type Site = { id: string; name?: string };
 
@@ -15,6 +16,7 @@ export default function BriefingsUploadModal() {
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
   const [siteId, setSiteId] = useState("");
+  const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
   const [uploading, setUploading] = useState(false);
 
@@ -49,6 +51,7 @@ export default function BriefingsUploadModal() {
       form.append("title", title.trim() || file.name);
       form.append("body", body.trim());
       form.append("siteId", siteId.trim());
+      if (siteWide) form.append("siteWide", "true");
 
       const res = await fetch("/api/briefings/upload", {
         method: "POST",
@@ -127,7 +130,12 @@ export default function BriefingsUploadModal() {
               onChange={setSiteId}
               placeholder="Select site…"
             />
-            <p className="mt-1 text-xs text-slate-500">Stays in this site’s folder only.</p>
+            <p className="mt-1 text-xs text-slate-500">
+              {siteWide ? "Shown on every site in this company." : "Shown on this site only."}
+            </p>
+            <div className="mt-2">
+              <SiteWideField checked={siteWide} onChange={setSiteWide} />
+            </div>
           </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">PDF File</label>

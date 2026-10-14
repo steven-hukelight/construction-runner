@@ -10,6 +10,7 @@ import { Mail, Calendar, Clock, Rows3, User, Building2, Bell, Lock, Palette, Dat
 import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useClientSession } from "../components/ClientSessionProvider";
+import ChangePasswordForm from "./ChangePasswordForm";
 
 export default function SettingsPage() {
   const { t } = useDisplayPreferences();
@@ -818,16 +819,17 @@ function SecuritySettings() {
   return (
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Security Settings</h2>
-      <div className="space-y-4 text-sm text-gray-700">
+      <ChangePasswordForm />
+      <div className="space-y-4 text-sm text-gray-700 mt-6 pt-6 border-t border-gray-100">
         <p>
           Web sessions sign you out after 30 minutes of inactivity. Password reset links expire after 1 hour.
         </p>
         <p>
-          To change your password, use{" "}
+          Forgotten your current password? Use{" "}
           <a href="/forgot-password" className="text-blue-600 font-medium hover:underline">
             Forgot password
           </a>{" "}
-          on the sign-in screen.
+          to get a reset link by email.
         </p>
         <p className="text-gray-500">Two-factor authentication is not available during beta.</p>
         {showSystemLogs && (

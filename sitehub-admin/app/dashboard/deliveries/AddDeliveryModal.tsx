@@ -8,6 +8,7 @@ import { SitePicker } from "../components/ui/SitePicker";
 import { useRouter } from "next/navigation";
 import { createDelivery } from "./actions";
 import { getCurrentSiteIdFromCookie } from "@/lib/utils/cookies";
+import { SiteWideField } from "../components/SiteWideField";
 
 interface Site { id: string; name?: string; [k: string]: unknown }
 
@@ -23,6 +24,7 @@ export default function AddDeliveryModal() {
     site: "",
     scheduledAt: "",
     notes: "",
+    siteWide: false,
   });
   const [haulageList, setHaulageList] = useState<{ id: string; name: string }[]>([]);
 
@@ -62,10 +64,10 @@ export default function AddDeliveryModal() {
 
   async function handleSubmit() {
     if (!canSubmit) return;
-    const payload = { ...form, wholesaler: effectiveWholesaler };
+    const payload = { ...form, wholesaler: effectiveWholesaler, siteWide: form.siteWide };
     await createDelivery(payload);
     setOpen(false);
-    setForm({ reference: "", wholesaler: "", wholesalerOther: "", siteId: "", site: "", scheduledAt: "", notes: "" });
+    setForm({ reference: "", wholesaler: "", wholesalerOther: "", siteId: "", site: "", scheduledAt: "", notes: "", siteWide: false });
     router.refresh();
   }
 
@@ -132,6 +134,12 @@ export default function AddDeliveryModal() {
                 onChange={onSiteSelect}
                 placeholder="Select site…"
               />
+              <div className="mt-2">
+                <SiteWideField
+                  checked={form.siteWide}
+                  onChange={(siteWide) => setForm((f) => ({ ...f, siteWide }))}
+                />
+              </div>
             </div>
 
             <Input

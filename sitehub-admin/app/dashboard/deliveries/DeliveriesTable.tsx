@@ -26,6 +26,7 @@ interface Delivery {
   notes?: string;
   podUrl?: string;
   pod_url?: string;
+  pod_photos?: string[];
   loadUrl?: string;
   load_url?: string;
   load_photos?: string[];
@@ -201,6 +202,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
       accessor: "images",
       render: (row: Delivery) => {
         const urls = [
+          ...(Array.isArray(row.pod_photos) ? row.pod_photos : []),
           row.podUrl ?? row.pod_url,
           ...(Array.isArray(row.load_photos) ? row.load_photos : []),
           row.loadUrl ?? row.load_url,
@@ -216,7 +218,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
                 rel="noopener noreferrer"
                 className="text-blue-600 hover:underline text-xs"
               >
-                {i === 0 ? "POD" : `Load ${i}`}
+                {`Photo ${i + 1}`}
               </a>
             ))}
           </span>

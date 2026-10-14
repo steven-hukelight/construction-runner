@@ -51,14 +51,15 @@ export async function POST(req: Request) {
     if (ids.length > 50) {
       return NextResponse.json({ error: "Max 50 recipients per request" }, { status: 400 });
     }
+    if (!companyId) {
+      return NextResponse.json({ error: "Select a company first" }, { status: 400 });
+    }
 
-    let q = supabaseAdmin
+    const q = supabaseAdmin
       .from("users")
       .select("id, email, display_name, company_id, role")
-      .in("id", ids);
-    if (role !== "superuser" && companyId) {
-      q = q.eq("company_id", companyId);
-    }
+      .in("id", ids)
+      .eq("company_id", companyId);
     const { data: users, error } = await q;
     if (error) {
       return NextResponse.json({ error: error.message }, { status: 500 });

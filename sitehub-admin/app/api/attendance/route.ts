@@ -20,6 +20,10 @@ import {
 } from "@/lib/autoSignOutDiagnostics";
 import { AUTO_SIGN_OUT_TIMEOUT_MS } from "@/lib/attendanceFallbackConstants";
 import { fetchLatestAttendanceRowForUser } from "@/lib/attendanceLatestRow";
+import {
+  autoSignOutExitAt,
+  shouldResumeAfterAutoSignOut,
+} from "@/lib/attendanceResumeAfterAutoSignOut";
 import { enrichAttendanceApiFields, exitIsoFromBody, normalizeAttendanceAction } from "@/lib/attendanceRowEnrich";
 import { sendAttendanceAutoSignOutPush } from "@/lib/attendanceAutoSignOutPush";
 import { dispatchPendingAttendancePushNotifications } from "@/lib/dispatchAttendancePushQueue";
@@ -221,12 +225,7 @@ export async function GET(req: Request) {
         const normalized = await normalizeAttendanceRows(att ?? []);
         return NextResponse.json(normalized);
       }
-      let q = supabaseAdmin.from("attendance").select("*");
-      q = applyExtraFilters(q);
-      const { data: att, error: attAllErr } = await q.order("timestamp", { ascending: false }).limit(limit);
-      if (attAllErr) console.error("[GET /api/attendance] attendance (all) query:", attAllErr.message, attAllErr);
-      const normalized = await normalizeAttendanceRows(att ?? []);
-      return NextResponse.json(normalized);
+      return NextResponse.json([]);
     }
 
     const roleLower = (role ?? "").toLowerCase();
@@ -714,7 +713,7 @@ export async function POST(req: Request) {
 
     const lastRow = await fetchLatestAttendanceRowForUser(
       // Omit last_location_outside_fence until migration 20260405120000_attendance_last_location_outside_fence.sql is applied (PostgREST errors if column missing).
-      "id, action, user_id, auto_sign_out, auto_sign_out_reason, exit_time_millis, timestamp, created_at, site_id, last_location_lat, last_location_lng, last_location_timestamp, latitude, longitude",
+      "id, action, user_id, auto_sign_out, auto_sign_out_reason, auto_sign_out_trigger_source, exit_time, exit_time_millis, sign_out_time, timestamp, created_at, site_id, last_location_lat, last_location_lng, last_location_timestamp, latitude, longitude, notes",
       String(operativeId),
       assignedCompanyId
     );
@@ -728,6 +727,91 @@ export async function POST(req: Request) {
         return NextResponse.json(
           { error: "already_signed_in", message: "Already signed in. Sign out before signing in again." },
           { status: 409 }
+        );
+      }
+
+      const lastFull = lastRow as Record<string, unknown> | null;
+      const resumeExitAt = lastFull ? autoSignOutExitAt(lastFull) : null;
+      if (
+        lastFull?.id &&
+        shouldResumeAfterAutoSignOut({
+          autoSignOut: lastFull.auto_sign_out === true,
+          lastActionNorm: lastNorm,
+          lastSiteId: lastFull.site_id != null ? String(lastFull.site_id) : null,
+          signInSiteId: siteForAttendance,
+          reason: lastFull.auto_sign_out_reason,
+          exitAt: resumeExitAt,
+        })
+      ) {
+        const nowIso = new Date().toISOString();
+        const lat = body.latitude ?? body.lat;
+        const lng = body.longitude ?? body.lng ?? body.lon;
+        const acc = body.accuracy;
+        const resumeMeta = JSON.stringify({
+          resumed_after_auto_sign_out: true,
+          previous_auto_sign_out_reason: lastFull.auto_sign_out_reason ?? null,
+          previous_exit_time: resumeExitAt?.toISOString() ?? null,
+          resumed_at: nowIso,
+        });
+        const existingNotes =
+          lastFull.notes != null && String(lastFull.notes).trim()
+            ? String(lastFull.notes).trim()
+            : "";
+        const patch: Record<string, unknown> = {
+          action: "SIGN IN",
+          auto_sign_out: false,
+          auto_sign_out_reason: null,
+          auto_sign_out_trigger_source: null,
+          exit_time: null,
+          exit_time_millis: null,
+          sign_out_time: null,
+          exit_lat: null,
+          exit_lng: null,
+          exit_accuracy: null,
+          last_location_outside_fence: false,
+          last_location_timestamp: nowIso,
+          notes: existingNotes ? `${existingNotes}\n${resumeMeta}` : resumeMeta,
+        };
+        if (lat != null && lng != null) {
+          const la = Number(lat);
+          const lo = Number(lng);
+          if (Number.isFinite(la) && Number.isFinite(lo)) {
+            patch.latitude = la;
+            patch.longitude = lo;
+            patch.last_location_lat = la;
+            patch.last_location_lng = lo;
+          }
+        }
+        if (acc != null && Number.isFinite(Number(acc))) {
+          const ac = Number(acc);
+          patch.accuracy = ac;
+          patch.last_location_accuracy = ac;
+        }
+
+        const { error: resumeErr } = await supabaseAdmin
+          .from("attendance")
+          .update(patch)
+          .eq("id", lastFull.id);
+        if (resumeErr) {
+          console.error("POST /api/attendance resume after auto sign-out:", resumeErr);
+          return NextResponse.json({ error: resumeErr.message }, { status: 500 });
+        }
+
+        console.log("[AUTO-SIGN-OUT] POST /api/attendance resumed_after_auto_sign_out", {
+          attendanceId: lastFull.id,
+          userId: operativeId,
+          siteId: siteForAttendance,
+          previousReason: lastFull.auto_sign_out_reason,
+          previousExitTime: resumeExitAt?.toISOString() ?? null,
+        });
+
+        return NextResponse.json(
+          {
+            id: lastFull.id,
+            resumed: true,
+            resumedAfterAutoSignOut: true,
+          },
+          { status: 201 }
         );
       }
     } else {

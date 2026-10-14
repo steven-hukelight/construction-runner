@@ -2,7 +2,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
-import { getRestrictedSiteIds, siteIdsForFilter, assertWritableSiteId } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { canPublishSiteWide } from "@/lib/auth/roles";
 
 export async function GET(req: Request) {
   try {
@@ -23,56 +24,31 @@ export async function GET(req: Request) {
 
     const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10) || 100, 500);
     const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
-    const restricted = await getRestrictedSiteIds(role);
-    const siteScope = siteIdsForFilter(restricted, searchParams.get("siteId"));
+    if (!companyId) return NextResponse.json([]);
+    const siteScope = await dashboardSiteScope(role, searchParams.get("siteId"));
     if (siteScope === "none") return NextResponse.json([]);
 
-    if (role === "superuser") {
-      let q = supabaseAdmin
-        .from("deliveries")
-        .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, load_url, load_photos, created_at")
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
-      if (siteScope !== "all") q = q.in("site_id", siteScope);
-      const { data } = await q;
-      const deliveries = data ?? [];
-      const siteIds = [...new Set(deliveries.map((d) => (d as Record<string, unknown>).site_id).filter(Boolean))];
-      const siteMap: Record<string, string> = {};
-      if (siteIds.length > 0) {
-        const { data: sites } = await supabaseAdmin.from("sites").select("id, name").in("id", siteIds);
-        for (const s of sites ?? []) siteMap[s.id] = (s.name as string) ?? "";
-      }
-      const enriched = deliveries.map((d) => {
-        const siteId = (d as Record<string, unknown>).site_id;
-        const site = siteMap[siteId as string] ?? "";
-        return { ...d, site: site || (d as Record<string, unknown>).site };
-      });
-      return NextResponse.json(enriched);
+    let q = supabaseAdmin
+      .from("deliveries")
+      .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, pod_photos, load_url, load_photos, site_wide, created_at")
+      .eq("company_id", companyId)
+      .order("created_at", { ascending: false })
+      .range(offset, offset + limit - 1);
+    q = applySiteVisibility(q, siteScope);
+    const { data } = await q;
+    const deliveries = data ?? [];
+    const siteIds = [...new Set(deliveries.map((d) => (d as Record<string, unknown>).site_id).filter(Boolean))];
+    const siteMap: Record<string, string> = {};
+    if (siteIds.length > 0) {
+      const { data: sites } = await supabaseAdmin.from("sites").select("id, name").in("id", siteIds);
+      for (const s of sites ?? []) siteMap[s.id] = (s.name as string) ?? "";
     }
-    if (companyId) {
-      let q = supabaseAdmin
-        .from("deliveries")
-        .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, load_url, load_photos, created_at")
-        .eq("company_id", companyId)
-        .order("created_at", { ascending: false })
-        .range(offset, offset + limit - 1);
-      if (siteScope !== "all") q = q.in("site_id", siteScope);
-      const { data } = await q;
-      const deliveries = data ?? [];
-      const siteIds = [...new Set(deliveries.map((d) => (d as Record<string, unknown>).site_id).filter(Boolean))];
-      const siteMap: Record<string, string> = {};
-      if (siteIds.length > 0) {
-        const { data: sites } = await supabaseAdmin.from("sites").select("id, name").in("id", siteIds);
-        for (const s of sites ?? []) siteMap[s.id] = (s.name as string) ?? "";
-      }
-      const enriched = deliveries.map((d) => {
-        const siteId = (d as Record<string, unknown>).site_id;
-        const site = siteMap[siteId as string] ?? "";
-        return { ...d, site: site || (d as Record<string, unknown>).site };
-      });
-      return NextResponse.json(enriched);
-    }
-    return NextResponse.json([], { status: 200 });
+    const enriched = deliveries.map((d) => {
+      const siteId = (d as Record<string, unknown>).site_id;
+      const site = siteMap[siteId as string] ?? "";
+      return { ...d, site: site || (d as Record<string, unknown>).site };
+    });
+    return NextResponse.json(enriched);
   } catch (e) {
     console.error("GET /api/deliveries failed:", e);
     return NextResponse.json([], { status: 200 });
@@ -98,6 +74,7 @@ export async function POST(req: Request) {
   const siteForbid = await assertWritableSiteId(role, deliverySiteId);
   if (siteForbid) return siteForbid;
 
+  const siteWide = (body.site_wide === true || body.siteWide === true) && canPublishSiteWide(role);
   const id = crypto.randomUUID();
   const { data, error } = await supabaseAdmin.from("deliveries").insert({
     id,
@@ -111,6 +88,7 @@ export async function POST(req: Request) {
     pod_url: body.pod_url ?? body.podUrl ?? null,
     load_url: body.load_url ?? body.loadUrl ?? null,
     wholesaler: body.wholesaler ?? null,
+    site_wide: siteWide,
   }).select("id").single();
 
   if (error) {

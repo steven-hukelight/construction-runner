@@ -40,6 +40,7 @@ export async function POST(req: Request) {
     const res = NextResponse.json({ ok: true });
     res.cookies.set("impersonating", "true", opts);
     res.cookies.set("companyId", companyId, opts);
+    res.cookies.set("currentSiteId", "", { path: "/", maxAge: 0, sameSite: "lax", httpOnly: false, secure: process.env.NODE_ENV === "production" });
     return res;
   } catch (e) {
     console.error("POST /api/impersonate failed", e);

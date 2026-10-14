@@ -9,6 +9,8 @@ export type Registration = {
   email?: string;
   companyName?: string;
   role?: string;
+  status?: string;
+  needsEmailVerification?: boolean;
 };
 
 type EditRegistrationModalProps = {

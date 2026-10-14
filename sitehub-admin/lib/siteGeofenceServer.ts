@@ -137,7 +137,7 @@ function pointInPolygon(lat: number, lng: number, poly: { lat: number; lng: numb
   return inside;
 }
 
-function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
+export function distanceMeters(aLat: number, aLng: number, bLat: number, bLng: number): number {
   const R = 6371000;
   const φ1 = (aLat * Math.PI) / 180;
   const φ2 = (bLat * Math.PI) / 180;

@@ -34,6 +34,12 @@ export function canAssignOperativesToSites(role: string | null | undefined): boo
   return r === "superuser" || r === "admin" || r === "supervisor" || r === "site_admin";
 }
 
+/** Superuser, Super Admin, Supervisor, and Site Admin may publish an item to every site in the company. */
+export function canPublishSiteWide(role: string | null | undefined): boolean {
+  const r = normalizeRole(role);
+  return r === "superuser" || r === "admin" || r === "supervisor" || r === "site_admin";
+}
+
 /** Super Admin / Superuser edit the company default safety pack. */
 export function canEditCompanySafetyPack(role: string | null | undefined): boolean {
   const r = normalizeRole(role);
