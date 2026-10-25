@@ -2,11 +2,12 @@
 
 import { useEffect, useState, useRef, useMemo, useCallback } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { Bell, AlertCircle, UserPlus, MessageSquare, FileText, Megaphone, Package } from "lucide-react";
+import { Bell, AlertCircle, UserPlus, MessageSquare, FileText, Megaphone, Package, Clock } from "lucide-react";
 import Link from "next/link";
 import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
 
 type NotificationItem =
+  | { type: "attendance"; id: string; title: string; href: string; createdAt?: string; read: boolean }
   | { type: "near_miss"; id: string; title: string; href: string; createdAt?: string }
   | { type: "registration"; id: string; title: string; href: string; createdAt?: string }
   | { type: "message"; id: string; title: string; href: string; createdAt?: string }
@@ -21,6 +22,47 @@ const NOTIFICATION_REFRESH_MS = 120_000;
 /** Show dashboard bell items from the last 7 days (RAMS, briefings, etc.). */
 const RECENT_MS = 7 * 24 * 60 * 60 * 1000;
 const SEEN_KEY = "sitehub_notif_seen";
+const ATTENDANCE_ALERT_ROLES = new Set(["admin", "site_admin", "supervisor"]);
+const ATTENDANCE_FEED = "/api/me/notifications?topic=attendance_alerts";
+
+type InAppNotification = {
+  id: string;
+  title: string;
+  body: string;
+  data: Record<string, unknown>;
+  createdAt: string;
+  readAt: string | null;
+};
+
+function localYmd(iso: unknown): string | null {
+  if (typeof iso !== "string") return null;
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return null;
+  return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+}
+
+function attendanceHref(data: Record<string, unknown>): string {
+  const params = new URLSearchParams();
+  if (typeof data.site_id === "string" && data.site_id) params.set("siteId", data.site_id);
+  const date = localYmd(data.occurred_at);
+  if (date) params.set("date", date);
+  const qs = params.toString();
+  return qs ? `/dashboard/attendance?${qs}` : "/dashboard/attendance";
+}
+
+function isAttendanceAlertRole(role: string | null | undefined): boolean {
+  return ATTENDANCE_ALERT_ROLES.has((role ?? "").toLowerCase());
+}
+
+function markAttendanceRead(ids: string[]) {
+  if (ids.length === 0) return;
+  void fetch("/api/me/notifications", {
+    method: "PATCH",
+    headers: { "Content-Type": "application/json" },
+    credentials: "include",
+    body: JSON.stringify({ ids: ids.slice(0, 100) }),
+  }).catch(() => {});
+}
 
 function notificationItemTime(item: NotificationItem): number {
   if (!item.createdAt) return Date.now();
@@ -60,9 +102,13 @@ export default function NotificationDropdown() {
   }, [items]);
 
   const unseenItems = useMemo(
-    () => displayItems.filter((item) => !seenKeys.has(`${item.type}:${item.id}`)),
+    () =>
+      displayItems.filter(
+        (item) => !seenKeys.has(`${item.type}:${item.id}`) && !(item.type === "attendance" && item.read)
+      ),
     [displayItems, seenKeys]
   );
+  const [attendanceUnread, setAttendanceUnread] = useState(0);
 
   const [resolvedCompanyId, setResolvedCompanyId] = useState<string | null>(() => getCompanyIdFromClient());
   const lastFetchAtRef = useRef(0);
@@ -125,7 +171,13 @@ export default function NotificationDropdown() {
         );
       }
 
-      const [threadsRes, ...rest] = await Promise.all(fetches);
+      const attendancePromise: Promise<{ notifications?: InAppNotification[]; unreadCount?: number } | null> =
+        isAttendanceAlertRole(role)
+          ? fetch(`${ATTENDANCE_FEED}&limit=20`, { cache: "no-store", credentials: "include" })
+              .then((res) => (res.ok ? res.json() : null))
+              .catch(() => null)
+          : Promise.resolve(null);
+      const [[threadsRes, ...rest], attendanceFeed] = await Promise.all([Promise.all(fetches), attendancePromise]);
       const nearMissRes = isAdminOrSupervisor ? rest[0] : null;
       const regsRes = isAdminOrSupervisor ? rest[1] : null;
       const ramsRes = isAdminOrSupervisor ? rest[2] : rest[0];
@@ -140,6 +192,20 @@ export default function NotificationDropdown() {
       const deliveries = deliveriesRes?.ok ? await deliveriesRes.json() : [];
 
       const list: NotificationItem[] = [];
+
+      if (attendanceFeed && Array.isArray(attendanceFeed.notifications)) {
+        for (const n of attendanceFeed.notifications) {
+          list.push({
+            type: "attendance",
+            id: n.id,
+            title: n.body ? `${n.title} · ${n.body}` : n.title,
+            href: attendanceHref(n.data ?? {}),
+            createdAt: n.createdAt,
+            read: n.readAt != null,
+          });
+        }
+        setAttendanceUnread(typeof attendanceFeed.unreadCount === "number" ? attendanceFeed.unreadCount : 0);
+      }
 
       if (Array.isArray(nearMisses)) {
         nearMisses.forEach((m: { id: string; description?: string; created_at?: string }) => {
@@ -266,7 +332,28 @@ export default function NotificationDropdown() {
     }
   }, [open]);
 
-  const hasNew = unseenItems.length > 0;
+  // Cheap unread check so the dot shows new attendance alerts before the bell is opened.
+  useEffect(() => {
+    if (!isAttendanceAlertRole(getRoleFromClient())) return;
+    let cancelled = false;
+    const check = () => {
+      if (document.visibilityState === "hidden") return;
+      fetch(`${ATTENDANCE_FEED}&unread=1&limit=1`, { cache: "no-store", credentials: "include" })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data: { unreadCount?: number } | null) => {
+          if (!cancelled && typeof data?.unreadCount === "number") setAttendanceUnread(data.unreadCount);
+        })
+        .catch(() => {});
+    };
+    check();
+    const interval = setInterval(check, NOTIFICATION_REFRESH_MS);
+    return () => {
+      cancelled = true;
+      clearInterval(interval);
+    };
+  }, []);
+
+  const hasNew = unseenItems.length > 0 || attendanceUnread > 0;
 
   const countsByType = useMemo(() => {
     const c: Record<string, number> = {};
@@ -280,6 +367,14 @@ export default function NotificationDropdown() {
 
   const markItemsSeen = useCallback((list: NotificationItem[]) => {
     if (list.length === 0) return;
+    const unreadAttendance = list.filter((i) => i.type === "attendance" && !i.read).map((i) => i.id);
+    if (unreadAttendance.length > 0) {
+      markAttendanceRead(unreadAttendance);
+      setItems((prev) =>
+        prev.map((i) => (i.type === "attendance" && unreadAttendance.includes(i.id) ? { ...i, read: true } : i))
+      );
+      setAttendanceUnread((n) => Math.max(0, n - unreadAttendance.length));
+    }
     list.forEach((i) => markSeen(i.type, i.id));
     setSeenKeys((prev) => {
       const next = new Set(prev);
@@ -334,6 +429,7 @@ export default function NotificationDropdown() {
               {unseenCount > 0
                 ? `${unseenCount} new · ` +
                   [
+                    countsByType.attendance && `${countsByType.attendance} Attendance`,
                     countsByType.near_miss && `${countsByType.near_miss} Near miss`,
                     countsByType.registration && `${countsByType.registration} Registrations`,
                     countsByType.message && `${countsByType.message} Messages`,
@@ -356,7 +452,8 @@ export default function NotificationDropdown() {
             ) : (
               <ul className="divide-y divide-gray-100 dark:divide-slate-600">
                 {displayItems.map((item) => {
-                  const isUnseen = !seenKeys.has(`${item.type}:${item.id}`);
+                  const isUnseen =
+                    !seenKeys.has(`${item.type}:${item.id}`) && !(item.type === "attendance" && item.read);
                   return (
                   <li key={`${item.type}-${item.id}`}>
                     <Link
@@ -365,7 +462,9 @@ export default function NotificationDropdown() {
                       className="flex gap-3 px-4 py-3 hover:bg-gray-50 dark:hover:bg-slate-700/50 transition-colors text-left"
                     >
                       <span className="shrink-0 mt-0.5">
-                        {item.type === "near_miss" ? (
+                        {item.type === "attendance" ? (
+                          <Clock className="w-4 h-4 text-blue-500" />
+                        ) : item.type === "near_miss" ? (
                           <AlertCircle className="w-4 h-4 text-amber-500" />
                         ) : item.type === "message" ? (
                           <MessageSquare className="w-4 h-4 text-emerald-500" />
@@ -392,7 +491,9 @@ export default function NotificationDropdown() {
                           )}
                         </p>
                         <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
-                          {item.type === "near_miss"
+                          {item.type === "attendance"
+                            ? "Attendance"
+                            : item.type === "near_miss"
                             ? "Near miss"
                             : item.type === "message"
                               ? "Message"
@@ -425,9 +526,11 @@ export default function NotificationDropdown() {
                         ? "/dashboard/health-and-safety/rams"
                         : displayItems.some((i) => i.type === "briefing")
                           ? "/dashboard/health-and-safety/briefings"
-                          : displayItems.some((i) => i.type === "delivery")
-                            ? "/dashboard/deliveries"
-                            : "/dashboard/users"
+                            : displayItems.some((i) => i.type === "delivery")
+                              ? "/dashboard/deliveries"
+                              : displayItems.some((i) => i.type === "attendance")
+                                ? "/dashboard/attendance"
+                                : "/dashboard/users"
                 }
                 onClick={() => {
                   markItemsSeen(displayItems);

@@ -11,6 +11,7 @@ import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useClientSession } from "../components/ClientSessionProvider";
 import ChangePasswordForm from "./ChangePasswordForm";
+import AttendanceAlertSettings from "./AttendanceAlertSettings";
 
 export default function SettingsPage() {
   const { t } = useDisplayPreferences();
@@ -438,13 +439,7 @@ function NotificationSettings() {
           </div>
           <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
         </div>
-        <div className="flex items-center justify-between py-3 border-b">
-          <div>
-            <p className="font-semibold text-gray-900">Attendance Updates</p>
-            <p className="text-sm text-gray-600">Get updates on operative attendance</p>
-          </div>
-          <input type="checkbox" className="w-5 h-5 rounded border-gray-300" />
-        </div>
+        <AttendanceAlertSettings />
         <div className="flex items-center justify-between py-3 border-b">
           <div>
             <p className="font-semibold text-gray-900">Safety alerts</p>

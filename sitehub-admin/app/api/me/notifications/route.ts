@@ -1,7 +1,7 @@
 /**
  * In-app notification centre for the signed-in user.
  *
- * GET   /api/me/notifications?limit=30&unread=1&before=<ISO>  -> newest first, plus unreadCount
+ * GET   /api/me/notifications?limit=30&unread=1&before=<ISO>&topic=<topic>  -> newest first, plus unreadCount (for that topic)
  * PATCH /api/me/notifications  { ids: [...] } | { all: true } -> mark as read
  *
  * Auth: cookie session or Bearer token (mobile). Only ever reads or updates the caller's own rows.
@@ -36,12 +36,14 @@ async function resolveMeUid(req: Request): Promise<string | null> {
   return null;
 }
 
-async function countUnread(uid: string): Promise<number> {
-  const { count, error } = await supabaseAdmin
+async function countUnread(uid: string, topic: string | null = null): Promise<number> {
+  let query = supabaseAdmin
     .from("notifications")
     .select("id", { count: "exact", head: true })
     .eq("user_id", uid)
     .is("read_at", null);
+  if (topic) query = query.eq("topic", topic);
+  const { count, error } = await query;
   if (error) throw new Error(error.message);
   return count ?? 0;
 }
@@ -51,7 +53,7 @@ export async function GET(req: Request) {
     const uid = await resolveMeUid(req);
     if (!uid) return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
 
-    const { limit, unreadOnly, before } = parseFeedQuery(new URL(req.url));
+    const { limit, unreadOnly, before, topic } = parseFeedQuery(new URL(req.url));
 
     let query = supabaseAdmin
       .from("notifications")
@@ -61,8 +63,9 @@ export async function GET(req: Request) {
       .limit(limit);
     if (unreadOnly) query = query.is("read_at", null);
     if (before) query = query.lt("created_at", before);
+    if (topic) query = query.eq("topic", topic);
 
-    const [{ data, error }, unreadCount] = await Promise.all([query, countUnread(uid)]);
+    const [{ data, error }, unreadCount] = await Promise.all([query, countUnread(uid, topic)]);
     if (error) throw new Error(error.message);
 
     const rows = (data ?? []) as NotificationRow[];

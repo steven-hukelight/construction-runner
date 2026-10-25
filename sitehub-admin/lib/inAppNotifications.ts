@@ -32,7 +32,10 @@ export type FeedQuery = {
   limit: number;
   unreadOnly: boolean;
   before: string | null;
+  topic: string | null;
 };
+
+const TOPIC_RE = /^[a-z][a-z0-9_]{0,39}$/;
 
 export function parseFeedQuery(url: URL): FeedQuery {
   const rawLimit = Number.parseInt(url.searchParams.get("limit") ?? "", 10);
@@ -46,7 +49,10 @@ export function parseFeedQuery(url: URL): FeedQuery {
   const beforeRaw = url.searchParams.get("before");
   const before = beforeRaw && !Number.isNaN(Date.parse(beforeRaw)) ? new Date(beforeRaw).toISOString() : null;
 
-  return { limit, unreadOnly, before };
+  const topicRaw = (url.searchParams.get("topic") ?? "").trim();
+  const topic = TOPIC_RE.test(topicRaw) ? topicRaw : null;
+
+  return { limit, unreadOnly, before, topic };
 }
 
 export type MarkReadRequest = { all: true } | { ids: string[] };

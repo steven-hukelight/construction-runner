@@ -2,7 +2,11 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AUTH_COOKIE_NAMES, authCookieClearOptions } from "@/lib/authCookies";
 import { bearerTokenFrom, verifyApiCredentials } from "@/lib/auth/apiAuth";
-import { isAttendanceCronAuthorized } from "@/lib/attendanceCronAuth";
+import {
+  ATTENDANCE_ALERTS_DISPATCH_PATH,
+  isAttendanceAlertsDispatchAuthorized,
+  isAttendanceCronAuthorized,
+} from "@/lib/attendanceCronAuth";
 
 /** API routes that must work without a signed-in user. Exact paths only. */
 export const PUBLIC_API_PATHS = new Set([
@@ -29,6 +33,7 @@ export const CRON_API_PATHS = new Set([
   "/api/maintenance/dispatch-attendance-push-queue",
   "/api/maintenance/dispatch-asset-inspection-reminders",
   "/api/maintenance/attendance-fallback-sign-out",
+  "/api/maintenance/dispatch-attendance-alerts",
 ]);
 
 function normalizeApiPath(path: string): string {
@@ -39,6 +44,7 @@ async function guardApi(req: NextRequest): Promise<NextResponse> {
   const path = normalizeApiPath(req.nextUrl.pathname);
   if (req.method === "OPTIONS" || PUBLIC_API_PATHS.has(path)) return NextResponse.next();
   if (CRON_API_PATHS.has(path) && isAttendanceCronAuthorized(req)) return NextResponse.next();
+  if (path === ATTENDANCE_ALERTS_DISPATCH_PATH && isAttendanceAlertsDispatchAuthorized(req)) return NextResponse.next();
 
   const outcome = await verifyApiCredentials({
     sessionId: req.cookies.get("session_id")?.value ?? null,

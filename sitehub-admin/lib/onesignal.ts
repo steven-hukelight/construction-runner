@@ -151,6 +151,31 @@ function interpretResponse(
   return { delivered: true, onesignalId: String(json.id) };
 }
 
+export type PushOptions = {
+  /** `mobile` = iOS and Android app only, `web` = browser push only. Default: every platform. */
+  platform?: "mobile" | "web";
+  /** Page a browser push opens when clicked. */
+  webUrl?: string;
+  /** Stacks related pushes together (iOS thread, Android group). */
+  groupId?: string;
+};
+
+function platformFields(options?: PushOptions): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  if (options?.platform === "mobile") {
+    out.isIos = true;
+    out.isAndroid = true;
+  } else if (options?.platform === "web") {
+    out.isAnyWeb = true;
+  }
+  if (options?.webUrl) out.web_url = options.webUrl;
+  if (options?.groupId) {
+    out.thread_id = options.groupId;
+    out.android_group = options.groupId;
+  }
+  return out;
+}
+
 /**
  * Sends transactional push notifications by `external_user_id`.
  * Tries legacy `include_external_user_ids`, then `include_aliases` + `target_channel: push`,
@@ -160,7 +185,8 @@ export async function sendPushToUsers(
   userIds: string[],
   title: string,
   message: string,
-  data?: Record<string, string>
+  data?: Record<string, string>,
+  options?: PushOptions
 ): Promise<{ sent: boolean; error?: string; onesignalId?: string }> {
   const appId = process.env.ONESIGNAL_APP_ID || FALLBACK_ONESIGNAL_APP_ID;
   const apiKey = process.env.ONESIGNAL_REST_API_KEY;
@@ -182,6 +208,7 @@ export async function sendPushToUsers(
     priority: 10,
     /** Seconds before drop; keep within provider limits (~72h typical). */
     ttl: 172800,
+    ...platformFields(options),
   };
   if (data && Object.keys(data).length > 0) {
     payloadBase.data = stringifyData(data);

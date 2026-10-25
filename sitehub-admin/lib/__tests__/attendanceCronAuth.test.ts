@@ -1,4 +1,4 @@
-import { isAttendanceCronAuthorized } from "@/lib/attendanceCronAuth";
+import { isAttendanceAlertsDispatchAuthorized, isAttendanceCronAuthorized } from "@/lib/attendanceCronAuth";
 
 function req(headers: Record<string, string>): Request {
   return new Request("https://www.construction-runner.com/api/attendance/archive", {
@@ -30,5 +30,33 @@ describe("isAttendanceCronAuthorized", () => {
     expect(isAttendanceCronAuthorized(req({ "x-vercel-cron-schedule": "0 7 * * *" }))).toBe(false);
     expect(isAttendanceCronAuthorized(req({ authorization: "Bearer " }))).toBe(false);
     expect(isAttendanceCronAuthorized(req({}))).toBe(false);
+  });
+});
+
+describe("isAttendanceAlertsDispatchAuthorized", () => {
+  const prevCron = process.env.CRON_SECRET;
+  const prevAlerts = process.env.ATTENDANCE_ALERTS_SECRET;
+
+  afterEach(() => {
+    if (prevCron === undefined) delete process.env.CRON_SECRET;
+    else process.env.CRON_SECRET = prevCron;
+    if (prevAlerts === undefined) delete process.env.ATTENDANCE_ALERTS_SECRET;
+    else process.env.ATTENDANCE_ALERTS_SECRET = prevAlerts;
+  });
+
+  it("accepts the alerts secret or CRON_SECRET, and nothing else", () => {
+    process.env.CRON_SECRET = "cron-secret";
+    process.env.ATTENDANCE_ALERTS_SECRET = "alerts-secret";
+    expect(isAttendanceAlertsDispatchAuthorized(req({ authorization: "Bearer alerts-secret" }))).toBe(true);
+    expect(isAttendanceAlertsDispatchAuthorized(req({ authorization: "Bearer cron-secret" }))).toBe(true);
+    expect(isAttendanceAlertsDispatchAuthorized(req({ authorization: "Bearer other" }))).toBe(false);
+    expect(isAttendanceCronAuthorized(req({ authorization: "Bearer alerts-secret" }))).toBe(false);
+  });
+
+  it("rejects everything when neither secret is set", () => {
+    delete process.env.CRON_SECRET;
+    delete process.env.ATTENDANCE_ALERTS_SECRET;
+    expect(isAttendanceAlertsDispatchAuthorized(req({ authorization: "Bearer " }))).toBe(false);
+    expect(isAttendanceAlertsDispatchAuthorized(req({}))).toBe(false);
   });
 });

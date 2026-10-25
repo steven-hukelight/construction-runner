@@ -20,7 +20,13 @@ describe("parseFeedQuery", () => {
       limit: NOTIFICATION_FEED_DEFAULT_LIMIT,
       unreadOnly: false,
       before: null,
+      topic: null,
     });
+  });
+
+  it("accepts a simple topic and ignores anything else", () => {
+    expect(parseFeedQuery(url("?topic=attendance_alerts")).topic).toBe("attendance_alerts");
+    expect(parseFeedQuery(url("?topic=Robert'); drop")).topic).toBeNull();
   });
 
   it("clamps the limit", () => {

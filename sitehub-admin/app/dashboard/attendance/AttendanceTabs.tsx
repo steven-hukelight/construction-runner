@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useCallback, useEffect, useRef } from "react";
+import { useSearchParams } from "next/navigation";
 import LiveAttendance from "./LiveAttendance";
 import SignInOut from "./SignInOut";
 import RoleCall from "./RoleCall";
@@ -22,7 +23,13 @@ export default function AttendanceTabs() {
   const [refreshTrigger, setRefreshTrigger] = useState(0);
   const [recordAttendanceOpen, setRecordAttendanceOpen] = useState(false);
   const [showSuperuserHint, setShowSuperuserHint] = useState(false);
-  const [selectedDate, setSelectedDate] = useState<string>(todayStr);
+  // Links from attendance alerts open on that site and day.
+  const searchParams = useSearchParams();
+  const linkedDate = searchParams.get("date");
+  const linkedSiteId = searchParams.get("siteId")?.trim() || null;
+  const [selectedDate, setSelectedDate] = useState<string>(() =>
+    linkedDate && /^\d{4}-\d{2}-\d{2}$/.test(linkedDate) ? linkedDate : todayStr()
+  );
   const dateInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -133,7 +140,7 @@ export default function AttendanceTabs() {
                 The live list archives automatically at midnight (UK). Pick a past date to view the archive.
               </p>
             </div>
-            <LiveAttendance refreshTrigger={refreshTrigger} selectedDate={selectedDate} />
+            <LiveAttendance refreshTrigger={refreshTrigger} selectedDate={selectedDate} initialSiteId={linkedSiteId} />
           </div>
         </div>
       )}

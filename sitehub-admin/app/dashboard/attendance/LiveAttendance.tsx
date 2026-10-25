@@ -118,12 +118,13 @@ function resolveSiteFromLog(log: AttendanceLog | null, siteMap: Map<string, Site
 export default function LiveAttendance({
   refreshTrigger = 0,
   selectedDate: selectedDateProp,
-}: { refreshTrigger?: number; selectedDate?: string }) {
+  initialSiteId = null,
+}: { refreshTrigger?: number; selectedDate?: string; initialSiteId?: string | null }) {
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
-  const [selectedSiteId, setSelectedSiteId] = useState<string>("all");
+  const [selectedSiteId, setSelectedSiteId] = useState<string>(initialSiteId || "all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [localDate, setLocalDate] = useState<string>(() => todayStr());
   const selectedDate = selectedDateProp ?? localDate;
@@ -134,7 +135,6 @@ export default function LiveAttendance({
   const [drawerSession, setDrawerSession] = useState<AttendanceSession | null>(null);
   const [now, setNow] = useState(() => new Date());
   const [listEpoch, setListEpoch] = useState(0);
-
   useEffect(() => {
     const id = setInterval(() => setNow(new Date()), 30000);
     return () => clearInterval(id);
