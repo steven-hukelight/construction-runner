@@ -9,6 +9,8 @@ import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { isSiteAttendanceRole } from "@/lib/auth/siteAttendanceUi";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
+import { dashboardSiteScope } from "@/lib/auth/siteScope";
+import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import Link from "next/link";
 
 const headerButtonBase =
@@ -32,12 +34,27 @@ export default async function AdminDashboardPage() {
 
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
-  const [sites, rams, users, tasks] = await Promise.all([
+  const [allSites, rams, allUsers, tasks] = await Promise.all([
     fetchSites(companyId ?? undefined, cookieHeader),
     fetchRAMS(companyId ?? undefined, cookieHeader),
     fetchUsers(companyId ?? undefined, role, cookieHeader),
     fetchTasks(companyId ?? undefined, cookieHeader),
   ]);
+
+  let sites = allSites;
+  let users = allUsers;
+  const selectedSiteId = cookieStore.get("currentSiteId")?.value?.trim();
+  if (selectedSiteId) {
+    const scope = await dashboardSiteScope(role, selectedSiteId, cookieStore.get("uid")?.value);
+    const siteIds = Array.isArray(scope) ? scope : [];
+    const memberIds = new Set(
+      (await Promise.all(siteIds.map((id) => userIdsForSiteContent(companyId ?? "", id)))).flat()
+    );
+    sites = (allSites ?? []).filter((s: { id?: unknown }) => siteIds.includes(String(s?.id ?? "")));
+    users = (Array.isArray(allUsers) ? allUsers : []).filter((u: { id?: unknown }) =>
+      memberIds.has(String(u?.id ?? ""))
+    );
+  }
 
   const totalSites = sites?.length || 0;
   const activeRAMS = (rams || []).filter((r) => r?.status === "APPROVED").length || 0;

@@ -21,7 +21,7 @@ const DashboardCharts = dynamic(
   }
 );
 import { formatDate } from "@/app/DisplayPreferencesProvider";
-import { getCompanyIdFromClient, getRoleFromClient } from "@/lib/utils/cookies";
+import { getCompanyIdFromClient, getCurrentSiteIdFromCookie, getRoleFromClient } from "@/lib/utils/cookies";
 import type { DashboardDataSite, DashboardDataRams, DashboardDataUser, DashboardDataTask } from "./dashboardTypes";
 
 // Helper function to get relative time (ISO string or legacy { toDate } or Date)
@@ -77,11 +77,15 @@ export function DashboardContent({
   useEffect(() => {
     const role = getRoleFromClient();
     const companyId = getCompanyIdFromClient();
+    const siteId = getCurrentSiteIdFromCookie();
     if (!role) return;
 
     const qs = (base: string) => {
-      if (companyId) return `${base}?companyId=${encodeURIComponent(companyId)}`;
-      return base;
+      const params = new URLSearchParams();
+      if (companyId) params.set("companyId", companyId);
+      if (siteId) params.set("siteId", siteId);
+      const query = params.toString();
+      return query ? `${base}?${query}` : base;
     };
 
     const canViewNearMiss = canRoleViewNearMiss(role);
