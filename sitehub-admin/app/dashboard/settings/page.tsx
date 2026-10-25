@@ -341,6 +341,8 @@ function NotificationSettings() {
   const [saving, setSaving] = useState(false);
   const [role, setRole] = useState<string | null>(null);
   const [operativePendingApproval, setOperativePendingApproval] = useState(true);
+  const [assetInspectionReminders, setAssetInspectionReminders] = useState(true);
+  const [savingAssetReminders, setSavingAssetReminders] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
 
   const isManager = (() => {
@@ -348,17 +350,25 @@ function NotificationSettings() {
     return r === "admin" || r === "supervisor" || r === "sub_admin";
   })();
 
+  function applyPrefs(p: unknown) {
+    if (!p || typeof p !== "object") return;
+    const o = p as Record<string, unknown>;
+    if (typeof o.operativePendingApproval === "boolean") setOperativePendingApproval(o.operativePendingApproval);
+    if (typeof o.assetInspectionReminders === "boolean") setAssetInspectionReminders(o.assetInspectionReminders);
+  }
+
   useEffect(() => {
     let cancelled = false;
-    fetch("/api/me", { credentials: "include", cache: "no-store" })
-      .then((res) => res.json())
-      .then((data) => {
+    Promise.all([
+      fetch("/api/me", { credentials: "include", cache: "no-store" }).then((res) => res.json()),
+      fetch("/api/me/email-notification-preferences", { credentials: "include", cache: "no-store" }).then((res) =>
+        res.ok ? res.json() : null,
+      ),
+    ])
+      .then(([me, prefs]) => {
         if (cancelled) return;
-        setRole(typeof data.role === "string" ? data.role : null);
-        const p = data.emailNotificationPreferences;
-        if (p && typeof p.operativePendingApproval === "boolean") {
-          setOperativePendingApproval(p.operativePendingApproval);
-        }
+        setRole(typeof me?.role === "string" ? me.role : null);
+        applyPrefs(prefs);
       })
       .catch(() => {})
       .finally(() => {
@@ -369,28 +379,44 @@ function NotificationSettings() {
     };
   }, []);
 
+  async function patchPrefs(patch: Record<string, boolean>): Promise<void> {
+    const res = await fetch("/api/me/email-notification-preferences", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      credentials: "include",
+      body: JSON.stringify(patch),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) {
+      throw new Error(typeof data.error === "string" ? data.error : "Could not save");
+    }
+    applyPrefs(data);
+  }
+
   async function handleSaveEmailPrefs() {
     setSaving(true);
     setSaveError(null);
     try {
-      const res = await fetch("/api/me/email-notification-preferences", {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
-        body: JSON.stringify({ operativePendingApproval }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (!res.ok) {
-        setSaveError(typeof data.error === "string" ? data.error : "Could not save");
-        return;
-      }
-      if (typeof data.operativePendingApproval === "boolean") {
-        setOperativePendingApproval(data.operativePendingApproval);
-      }
-    } catch {
-      setSaveError("Could not save");
+      await patchPrefs({ operativePendingApproval });
+    } catch (e) {
+      setSaveError(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleToggleAssetReminders(next: boolean) {
+    const previous = assetInspectionReminders;
+    setAssetInspectionReminders(next);
+    setSavingAssetReminders(true);
+    try {
+      await patchPrefs({ assetInspectionReminders: next });
+      toast.success(next ? "Asset inspection reminders on" : "Asset inspection reminders off");
+    } catch (e) {
+      setAssetInspectionReminders(previous);
+      toast.error(e instanceof Error ? e.message : "Could not save");
+    } finally {
+      setSavingAssetReminders(false);
     }
   }
 
@@ -425,6 +451,24 @@ function NotificationSettings() {
             <p className="text-sm text-gray-600">Critical alerts from Safety → Alerts (push when published)</p>
           </div>
           <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
+        </div>
+        <div className="flex items-center justify-between py-3 border-b">
+          <div>
+            <label htmlFor="pref-asset-inspection-reminders" className="font-semibold text-gray-900">
+              Asset inspection reminders
+            </label>
+            <p className="text-sm text-gray-600">
+              Push and in-app reminders when an asset you look after is due or overdue for inspection
+            </p>
+          </div>
+          <input
+            id="pref-asset-inspection-reminders"
+            type="checkbox"
+            className="w-5 h-5 rounded border-gray-300 text-blue-600 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            checked={assetInspectionReminders}
+            onChange={(e) => void handleToggleAssetReminders(e.target.checked)}
+            disabled={loading || savingAssetReminders}
+          />
         </div>
 
         {isManager && (

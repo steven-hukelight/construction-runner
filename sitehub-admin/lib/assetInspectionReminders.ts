@@ -2,6 +2,7 @@ import {
   assetInspectionDueStatus,
   toDateOnlyUtc,
 } from "@/lib/assets/inspectionSchedule";
+import { assetInspectionRemindersEnabled } from "@/lib/notificationPreferences";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 
@@ -142,6 +143,23 @@ async function resolveReminderRecipients(asset: AssetRow): Promise<string[]> {
   for (const u of staff ?? []) {
     const uid = (u as { id?: string }).id;
     if (uid) ids.add(uid);
+  }
+
+  if (ids.size === 0) return [];
+
+  const { data: prefs, error } = await supabaseAdmin
+    .from("users")
+    .select("id, email_notification_preferences")
+    .in("id", [...ids]);
+  if (error) {
+    console.warn("[asset-insp-remind] preference lookup failed:", error.message);
+    return [...ids];
+  }
+  for (const p of prefs ?? []) {
+    const row = p as { id: string; email_notification_preferences?: unknown };
+    if (!assetInspectionRemindersEnabled(row.email_notification_preferences)) {
+      ids.delete(row.id);
+    }
   }
 
   return [...ids];
