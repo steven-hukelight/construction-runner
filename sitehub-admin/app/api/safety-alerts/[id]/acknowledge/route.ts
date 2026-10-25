@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
 
 export async function POST(
   req: Request,
@@ -15,7 +16,7 @@ export async function POST(
 
   const { data: alert } = await supabaseAdmin
     .from("safety_alerts")
-    .select("id, company_id")
+    .select("id, company_id, site_id, site_wide")
     .eq("id", id)
     .maybeSingle();
 
@@ -26,6 +27,8 @@ export async function POST(
   if (!auth.isSuperuser && auth.companyId && alert.company_id !== auth.companyId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const siteForbid = await assertDocumentSiteAccess(auth, alert);
+  if (siteForbid) return siteForbid;
 
   const { error } = await supabaseAdmin
     .from("alert_acknowledgements")

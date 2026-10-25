@@ -4,7 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { resolveUserIdFromAuth } from "@/app/api/assets/_utils/inspectionAccess";
-import { applySiteVisibility, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, documentSiteScope } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import {
   computeNextInspectionDue,
@@ -120,10 +120,10 @@ export async function GET(req: Request) {
     if (!companyId) return NextResponse.json([]);
     query = query.eq("company_id", companyId);
     const cookieStore = await cookies();
-    const siteScope = await dashboardSiteScope(
-      cookieStore.get("role")?.value,
-      new URL(req.url).searchParams.get("siteId")
-    );
+    const siteScope = await documentSiteScope(req, {
+      role: cookieStore.get("role")?.value,
+      siteId: new URL(req.url).searchParams.get("siteId"),
+    });
     if (siteScope === "none") return NextResponse.json([]);
     query = applySiteVisibility(query, siteScope);
 

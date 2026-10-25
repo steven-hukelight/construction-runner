@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { sendPushToUsers } from "@/lib/onesignal";
-import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, documentSiteScope } from "@/lib/auth/siteScope";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 
@@ -29,7 +29,7 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
     let query = supabaseAdmin.from("safety_alerts").select("*").eq("company_id", auth.companyId);
-    const siteScope = await dashboardSiteScope(auth.role, url.searchParams.get("siteId"), auth.uid);
+    const siteScope = await documentSiteScope(req, { auth, siteId: url.searchParams.get("siteId") });
     if (siteScope === "none") {
       if (countOnly === "unread") return NextResponse.json({ count: 0 });
       return NextResponse.json([]);

@@ -2,10 +2,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { serializeSites } from "@/app/api/sites/_utils/serializeSite";
 import { isValidCompletedSiteInduction } from "@/lib/induction/validSiteInduction";
 
-export async function listInductedSitesForUser(
-  userId: string,
-  opts?: { companyId?: string | null; restrictToSiteIds?: string[] | null },
-) {
+/** Site ids where the user holds a valid completed induction. */
+export async function listInductedSiteIdsForUser(userId: string): Promise<string[]> {
   const uid = String(userId ?? "").trim();
   if (!uid) return [];
 
@@ -18,12 +16,19 @@ export async function listInductedSitesForUser(
     return [];
   }
 
-  let siteIds = [...new Set(
-    (rows ?? [])
+  return [...new Set(
+    ((rows ?? []) as { site_id?: string | null; status?: string | null; completed_at?: string | null }[])
       .filter((r) => isValidCompletedSiteInduction(r))
-      .map((r) => String((r as { site_id?: string }).site_id ?? "").trim())
+      .map((r) => String(r.site_id ?? "").trim())
       .filter(Boolean),
   )];
+}
+
+export async function listInductedSitesForUser(
+  userId: string,
+  opts?: { companyId?: string | null; restrictToSiteIds?: string[] | null },
+) {
+  let siteIds = await listInductedSiteIdsForUser(userId);
 
   const restrict = opts?.restrictToSiteIds;
   if (restrict) {

@@ -4,7 +4,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
-import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, documentSiteScope } from "@/lib/auth/siteScope";
 import { userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 function toTime(a: unknown): number {
@@ -34,7 +34,7 @@ export async function GET(req: Request) {
       companyId = searchParams.get("companyId") || companyId || undefined;
     }
     if (!companyId) return NextResponse.json([]);
-    const siteScope = await dashboardSiteScope(role, searchParams.get("siteId"));
+    const siteScope = await documentSiteScope(req, { role, siteId: searchParams.get("siteId") });
     if (siteScope === "none") return NextResponse.json([]);
     if (companyId) {
       let ownQuery = supabaseAdmin
@@ -55,7 +55,7 @@ export async function GET(req: Request) {
         .select("id")
         .eq("company_id", companyId);
       const mainSiteIds = (mainSites ?? []).map((s) => s.id).filter((id) =>
-        siteScope === "all" ? true : siteScope.includes(id)
+        siteScope === "all" ? true : Array.isArray(siteScope) && siteScope.includes(id)
       );
       if (mainSiteIds.length === 0) return NextResponse.json(own);
 

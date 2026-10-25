@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
 
 export async function GET(req: Request) {
   const auth = await resolveMobileApiAuth(req);
@@ -39,7 +40,7 @@ export async function POST(req: Request) {
 
   const { data: rule } = await supabaseAdmin
     .from("site_rules")
-    .select("id, company_id")
+    .select("id, company_id, site_id, site_wide")
     .eq("id", ruleId)
     .maybeSingle();
   if (!rule) {
@@ -48,6 +49,8 @@ export async function POST(req: Request) {
   if (!auth.isSuperuser && auth.companyId && rule.company_id !== auth.companyId) {
     return NextResponse.json({ error: "Forbidden" }, { status: 403 });
   }
+  const siteForbid = await assertDocumentSiteAccess(auth, rule);
+  if (siteForbid) return siteForbid;
 
   const { error } = await supabaseAdmin
     .from("site_rule_favourites")

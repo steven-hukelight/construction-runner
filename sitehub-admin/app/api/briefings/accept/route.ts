@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
+import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
 
 export async function POST(req: Request) {
   try {
@@ -19,10 +20,16 @@ export async function POST(req: Request) {
     if (!access.ok) return access.response;
     const userId = access.targetUserId;
 
-    const { data: briefing } = await supabaseAdmin.from("briefings").select("id").eq("id", briefingId).single();
+    const { data: briefing } = await supabaseAdmin
+      .from("briefings")
+      .select("id, site_id, site_wide")
+      .eq("id", briefingId)
+      .single();
     if (!briefing) {
       return NextResponse.json({ error: "Briefing not found" }, { status: 404 });
     }
+    const siteForbid = await assertDocumentSiteAccess(access.actor, briefing);
+    if (siteForbid) return siteForbid;
 
     await supabaseAdmin.from("briefing_acknowledgements").upsert(
       {

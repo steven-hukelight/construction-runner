@@ -15,32 +15,54 @@ function popResponse(): { data: unknown; error: Error | null } {
   return { data: [] as unknown[], error: null as Error | null };
 }
 
-const createChain = () => ({
-  select: () => createChain(),
-  insert: () => createChain(),
-  upsert: () => createChain(),
-  update: () => createChain(),
-  delete: () => createChain(),
-  eq: () => createChain(),
-  neq: () => createChain(),
-  in: () => createChain(),
-  not: () => createChain(),
-  is: () => createChain(),
-  order: () => createChain(),
-  limit: () => createChain(),
-  range: () => createChain(),
-  onConflict: () => createChain(),
-  single: () => Promise.resolve(popResponse()),
-  maybeSingle: () => Promise.resolve(popResponse()),
-  then: (res: (r: { data: unknown; error: Error | null }) => void) =>
-    Promise.resolve(popResponse()).then(res),
-});
+/** Every query builder call, so tests can assert which filters a route applied. */
+export const mockSupabaseCalls: { table: string; method: string; args: unknown[] }[] = [];
+
+const CHAIN_METHODS = [
+  "select",
+  "insert",
+  "upsert",
+  "update",
+  "delete",
+  "eq",
+  "neq",
+  "in",
+  "or",
+  "not",
+  "is",
+  "order",
+  "limit",
+  "range",
+  "onConflict",
+] as const;
+
+type MockChain = {
+  [K in (typeof CHAIN_METHODS)[number]]: (...args: unknown[]) => MockChain;
+} & {
+  single: () => Promise<{ data: unknown; error: Error | null }>;
+  maybeSingle: () => Promise<{ data: unknown; error: Error | null }>;
+  then: (res: (r: { data: unknown; error: Error | null }) => void) => Promise<void>;
+};
+
+const createChain = (table = ""): MockChain => {
+  const chain = {} as MockChain;
+  for (const method of CHAIN_METHODS) {
+    chain[method] = (...args: unknown[]) => {
+      mockSupabaseCalls.push({ table, method, args });
+      return chain;
+    };
+  }
+  chain.single = () => Promise.resolve(popResponse());
+  chain.maybeSingle = () => Promise.resolve(popResponse());
+  chain.then = (res) => Promise.resolve(popResponse()).then(res);
+  return chain;
+};
 
 function createMockClient() {
   const client = {
     from: (table: string) => {
-      void table;
-      return createChain();
+      mockSupabaseCalls.push({ table, method: "from", args: [table] });
+      return createChain(table);
     },
 
     auth: {

@@ -4,7 +4,13 @@ import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
-import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import {
+  applySiteVisibility,
+  assertWritableSiteId,
+  documentSiteScope,
+  isMobileClientRequest,
+  rowInSiteScope,
+} from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 
 type TaskRow = {
@@ -117,11 +123,14 @@ export async function GET(req: Request) {
           .select("*")
           .eq("assigned_to", me.id)
           .order("created_at", { ascending: false });
+        const operativeScope = isMobileClientRequest(req)
+          ? await documentSiteScope(req, { role, siteId })
+          : "all";
         const seen = new Set<string>();
         const merged = [...(byAssignment ?? []), ...(byLegacy ?? [])].filter((t) => {
           if (seen.has(t.id)) return false;
           seen.add(t.id);
-          return true;
+          return rowInSiteScope(t, operativeScope, { keepUnsited: true });
         });
         merged.sort((a, b) => new Date(b.created_at ?? 0).getTime() - new Date(a.created_at ?? 0).getTime());
         let enriched = await enrichTasksWithNames(merged as TaskRow[]);
@@ -130,7 +139,7 @@ export async function GET(req: Request) {
       }
       return NextResponse.json([]);
     }
-    const siteScope = await dashboardSiteScope(role, siteId);
+    const siteScope = await documentSiteScope(req, { role, siteId });
     if (siteScope === "none") return NextResponse.json([]);
     if (companyId) {
       let tasksQuery = supabaseAdmin

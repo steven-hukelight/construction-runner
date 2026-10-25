@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
-import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, documentSiteScope } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 
 export async function GET(req: Request) {
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     const limit = Math.min(parseInt(searchParams.get("limit") || "100", 10) || 100, 500);
     const offset = parseInt(searchParams.get("offset") || "0", 10) || 0;
     if (!companyId) return NextResponse.json([]);
-    const siteScope = await dashboardSiteScope(role, searchParams.get("siteId"));
+    const siteScope = await documentSiteScope(req, { role, siteId: searchParams.get("siteId") });
     if (siteScope === "none") return NextResponse.json([]);
 
     let q = supabaseAdmin

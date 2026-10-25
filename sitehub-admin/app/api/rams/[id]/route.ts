@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { onRamsApprovedForSite } from "@/lib/ramsCompliance";
 import { writeAuditLog } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
@@ -51,7 +53,7 @@ async function ensureRAMAccess(id: string): Promise<NextResponse | null> {
   return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
-export async function GET(_req: Request, { params }: { params: Promise<{ id: string }> }) {
+export async function GET(req: Request, { params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const forbid = await ensureRAMAccess(id);
   if (forbid) return forbid;
@@ -64,6 +66,15 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   if (error || !ram) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
+
+  const verified = await resolveMobileApiAuth(req);
+  const cookieStore = await cookies();
+  const viewer =
+    verified instanceof NextResponse
+      ? { role: cookieStore.get("role")?.value ?? null, uid: cookieStore.get("uid")?.value ?? null }
+      : verified;
+  const siteForbid = await assertDocumentSiteAccess(viewer, ram);
+  if (siteForbid) return siteForbid;
 
   let siteName: string | null = null;
   const sid = ram.site_id as string | null | undefined;

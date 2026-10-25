@@ -2,7 +2,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
-import { applySiteVisibility, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, documentSiteScope } from "@/lib/auth/siteScope";
 
 export const dynamic = "force-dynamic";
 
@@ -25,7 +25,7 @@ export async function GET(req: Request) {
     if (!companyId) return NextResponse.json([]);
 
     const explicitSiteId = searchParams.get("siteId")?.trim() || searchParams.get("site_id")?.trim();
-    const siteScope = await dashboardSiteScope(role, explicitSiteId);
+    const siteScope = await documentSiteScope(req, { role, siteId: explicitSiteId });
     if (siteScope === "none") return NextResponse.json([]);
 
     let query = supabaseAdmin.from("briefings").select("*").eq("company_id", companyId).order("created_at", { ascending: false });

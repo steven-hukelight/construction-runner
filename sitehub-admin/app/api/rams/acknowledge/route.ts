@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
+import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
 
 /**
  * POST /api/rams/acknowledge — Per-document acknowledgement (operative app).
@@ -20,10 +21,16 @@ export async function POST(req: Request) {
     if (!access.ok) return access.response;
     const userId = access.targetUserId;
 
-    const { data: ram } = await supabaseAdmin.from("rams").select("id").eq("id", ramsId).single();
+    const { data: ram } = await supabaseAdmin
+      .from("rams")
+      .select("id, site_id, site_wide")
+      .eq("id", ramsId)
+      .single();
     if (!ram) {
       return NextResponse.json({ error: "RAMS document not found" }, { status: 404 });
     }
+    const siteForbid = await assertDocumentSiteAccess(access.actor, ram);
+    if (siteForbid) return siteForbid;
 
     await supabaseAdmin.from("rams_acknowledgements").upsert(
       {

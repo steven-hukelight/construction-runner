@@ -1,7 +1,7 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, assertWritableSiteId, documentSiteScope } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import { sendPushToUsers } from "@/lib/onesignal";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
@@ -27,7 +27,7 @@ export async function GET(req: Request) {
       .from("site_rules")
       .select("*")
       .eq("company_id", companyId);
-    const siteScope = await dashboardSiteScope(auth.role, url.searchParams.get("siteId"), auth.uid);
+    const siteScope = await documentSiteScope(req, { auth, siteId: url.searchParams.get("siteId") });
     if (siteScope === "none") return NextResponse.json({ rules: [] }, { status: 200 });
     query = applySiteVisibility(query, siteScope);
     if (category) query = query.eq("category", category);

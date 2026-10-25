@@ -4,9 +4,9 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
-import { applySiteVisibility, dashboardSiteScope } from "@/lib/auth/siteScope";
+import { applySiteVisibility, documentSiteScope } from "@/lib/auth/siteScope";
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value;
@@ -21,7 +21,10 @@ export async function GET() {
     }
     if (!companyId) return NextResponse.json([]);
 
-    const siteScope = await dashboardSiteScope(role, null);
+    const siteScope = await documentSiteScope(req, {
+      role,
+      siteId: new URL(req.url).searchParams.get("siteId"),
+    });
     if (siteScope === "none") return NextResponse.json([]);
     let query = supabaseAdmin.from("coshh").select("*").eq("company_id", companyId).order("created_at", { ascending: false });
     query = applySiteVisibility(query, siteScope);

@@ -2,6 +2,10 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { normalizeRole, usesAssignedSites } from "@/lib/auth/roles";
+import { resolveMobileApiAuth, type MobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { listInductedSiteIdsForUser } from "@/lib/induction/listInductedSites";
+import { fetchLatestAttendanceRowForUser } from "@/lib/attendanceLatestRow";
+import { isOpenSignInAction } from "@/lib/attendanceStatusRow";
 
 export async function resolveCallerUserId(): Promise<string | null> {
   const cookieStore = await cookies();
@@ -40,7 +44,7 @@ export async function getRestrictedSiteIds(
 export function siteIdsForFilter(
   restricted: string[] | null,
   explicitSiteId?: string | null
-): string[] | "all" | "none" {
+): Exclude<SiteScope, "site_wide_only"> {
   const explicit = (explicitSiteId ?? "").trim();
   if (explicit) {
     if (restricted && !restricted.includes(explicit)) return "none";
@@ -66,14 +70,24 @@ export function siteVisibilityOr(siteIds: string[]): string | null {
   return `site_id.in.(${ids.join(",")}),site_wide.eq.true`;
 }
 
+/**
+ * `all` = no extra filter. `none` = zero rows. `site_wide_only` = only company-wide rows.
+ * Otherwise these site ids plus company-wide rows.
+ */
+export type SiteScope = string[] | "all" | "none" | "site_wide_only";
+
 type SiteQuery = {
   in: (column: string, values: string[]) => SiteQuery;
   or: (filters: string) => SiteQuery;
+  eq: (column: string, value: unknown) => SiteQuery;
 };
 
 /** Apply a site list. Site-wide rows stay visible when a site is selected. */
-export function applySiteVisibility<T>(query: T, scope: string[] | "all" | "none"): T {
+export function applySiteVisibility<T>(query: T, scope: SiteScope): T {
   if (scope === "all" || scope === "none") return query;
+  if (scope === "site_wide_only") {
+    return (query as unknown as SiteQuery).eq("site_wide", true) as unknown as T;
+  }
   const clause = siteVisibilityOr(scope);
   if (!clause) return query;
   return (query as unknown as SiteQuery).or(clause) as unknown as T;
@@ -109,6 +123,116 @@ export async function dashboardSiteScope(
       ? await getOperativeSiteIds(userId)
       : await getRestrictedSiteIds(role, userId);
   return siteIdsForFilter(restricted, chosen || null);
+}
+
+export function isMobileClientRequest(req: Request): boolean {
+  return req.headers.get("x-client")?.toLowerCase().trim() === "mobile";
+}
+
+/** Whether a row fetched outside `applySiteVisibility` belongs in the scope. */
+export function rowInSiteScope(
+  row: { site_id?: string | null; site_wide?: boolean | null },
+  scope: SiteScope,
+  opts?: { keepUnsited?: boolean }
+): boolean {
+  if (scope === "all") return true;
+  if (scope === "none") return false;
+  if (row.site_wide === true) return true;
+  const siteId = String(row.site_id ?? "").trim();
+  if (!siteId) return opts?.keepUnsited === true;
+  return scope !== "site_wide_only" && scope.includes(siteId);
+}
+
+/** Site of the caller's open sign-in, if their latest attendance row is a sign-in. */
+export async function currentSignedInSiteId(
+  userId: string,
+  companyId?: string | null
+): Promise<string | null> {
+  try {
+    const latest = await fetchLatestAttendanceRowForUser("action, site_id, created_at, timestamp", userId, companyId);
+    if (!latest || !isOpenSignInAction(latest.action as string | null)) return null;
+    const siteId = String(latest.site_id ?? "").trim();
+    return siteId || null;
+  } catch {
+    return null;
+  }
+}
+
+type DocumentScopeAuth = Pick<MobileApiAuth, "role" | "uid" | "companyId">;
+
+/**
+ * Document list scope. Web keeps the dashboard rules (`dashboardSiteScope`).
+ * Mobile shows one site at a time:
+ * - Operatives: `siteId` must be a site they are inducted on. Without one (older builds)
+ *   they get the site they are signed in to, or only company-wide items.
+ * - Supervisors / Site Admins: `siteId` must be one of their sites; none = all their sites.
+ * - Company admins / superusers: `siteId` must belong to their company; none = all.
+ */
+export async function documentSiteScope(
+  req: Request,
+  opts: { siteId?: string | null; auth?: DocumentScopeAuth; role?: string | null }
+): Promise<SiteScope> {
+  const requested = (opts.siteId ?? "").trim();
+  if (!isMobileClientRequest(req)) {
+    return dashboardSiteScope(opts.auth?.role ?? opts.role, requested || null, opts.auth?.uid);
+  }
+
+  let auth = opts.auth;
+  if (!auth) {
+    const resolved = await resolveMobileApiAuth(req);
+    if (resolved instanceof NextResponse) return "none";
+    auth = resolved;
+  }
+  const uid = (auth.uid ?? "").trim();
+  const role = normalizeRole(auth.role);
+
+  if (role === "operative") {
+    if (!uid) return "none";
+    if (requested) {
+      const inducted = await listInductedSiteIdsForUser(uid);
+      return inducted.includes(requested) ? [requested] : "none";
+    }
+    const signedIn = await currentSignedInSiteId(uid, auth.companyId);
+    return signedIn ? [signedIn] : "site_wide_only";
+  }
+
+  if (usesAssignedSites(role)) {
+    return siteIdsForFilter(await getRestrictedSiteIds(role, uid), requested || null);
+  }
+
+  if (!requested) return "all";
+  const companyId = (auth.companyId ?? "").trim();
+  if (!companyId) return [requested];
+  const { data: site } = await supabaseAdmin
+    .from("sites")
+    .select("company_id, main_contractor_id")
+    .eq("id", requested)
+    .maybeSingle();
+  const row = site as { company_id?: string | null; main_contractor_id?: string | null } | null;
+  if (!row) return "none";
+  return row.company_id === companyId || row.main_contractor_id === companyId ? [requested] : "none";
+}
+
+/**
+ * Operatives may open a document only if it is company-wide or its site is one they are
+ * inducted on or assigned to (assigned keeps the induction flow working before completion).
+ */
+export async function assertDocumentSiteAccess(
+  auth: Pick<MobileApiAuth, "role" | "uid">,
+  doc: { site_id?: string | null; site_wide?: boolean | null }
+): Promise<NextResponse | null> {
+  if (normalizeRole(auth.role) !== "operative") return null;
+  const siteId = String(doc.site_id ?? "").trim();
+  if (doc.site_wide === true || !siteId) return null;
+  const uid = (auth.uid ?? "").trim();
+  if (uid) {
+    const [inducted, assigned] = await Promise.all([
+      listInductedSiteIdsForUser(uid),
+      getOperativeSiteIds(uid),
+    ]);
+    if (inducted.includes(siteId) || assigned.includes(siteId)) return null;
+  }
+  return NextResponse.json({ error: "Forbidden" }, { status: 403 });
 }
 
 export async function assertWritableSiteId(
