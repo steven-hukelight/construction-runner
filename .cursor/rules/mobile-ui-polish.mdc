@@ -10,7 +10,7 @@ alwaysApply: false
 - Use `#1E4ED8` as the primary accent; gradients should be subtle and never overpower the layout.
 - Keep spacing on the 8 / 12 / 16 / 24 / 32 scale only.
 - Use 10-12px radii for cards and containers, with very soft shadows and no harsh borders.
-- Preserve strong typography hierarchy in SF Pro: title first, subtitle second, metadata third.
+- Preserve strong typography hierarchy: title first, subtitle second, metadata third. On iOS this is the system font (SF Pro). Never bundle Apple font files.
 
 # Component Standards
 

@@ -3,6 +3,8 @@ import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
+import { sendPushToUsers } from "@/lib/onesignal";
+import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
@@ -129,6 +131,17 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
   const rule = { id: data?.id, category: data?.category, title: data?.title, description: data?.body, site_id: data?.site_id };
+  const ruleSiteId = String(data?.site_id ?? siteId ?? "").trim();
+  const notifyIds = siteWide
+    ? await userIdsForCompany(companyId)
+    : await userIdsForSiteContent(companyId, ruleSiteId);
+  if (notifyIds.length > 0) {
+    sendPushToUsers(notifyIds, "New site rule", String(data?.title ?? title), {
+      type: "site_rule",
+      screen: "site_rules",
+      ...(ruleSiteId ? { siteId: ruleSiteId } : {}),
+    }).catch((e) => console.error("Site rule push failed:", e));
+  }
   return NextResponse.json({ rule });
 }
 

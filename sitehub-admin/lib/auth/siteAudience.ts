@@ -1,5 +1,4 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { normalizeRole } from "@/lib/auth/roles";
 
 /** Everyone in the company. Used when an item is marked site-wide. */
 export async function userIdsForCompany(companyId: string): Promise<string[]> {
@@ -8,43 +7,64 @@ export async function userIdsForCompany(companyId: string): Promise<string[]> {
   return (data ?? []).map((row) => String((row as { id: string }).id));
 }
 
-/** People who should be notified about content on one site (not the whole company). */
+function addId(ids: Set<string>, value: unknown) {
+  const id = String(value ?? "").trim();
+  if (id) ids.add(id);
+}
+
+/**
+ * People linked to one site: assigned operatives, site membership, induction,
+ * and the site manager. Company-wide staff are not included unless they are
+ * on this site.
+ */
 export async function userIdsForSiteContent(companyId: string, siteId: string): Promise<string[]> {
   const ids = new Set<string>();
-  if (!companyId || !siteId) return [];
-
-  const { data: staff } = await supabaseAdmin
-    .from("users")
-    .select("id, role")
-    .eq("company_id", companyId);
-  for (const u of staff ?? []) {
-    const role = normalizeRole((u as { role?: string }).role);
-    // Company-wide staff who should hear about site H&S content.
-    if (
-      role === "admin" ||
-      role === "superuser" ||
-      role === "supervisor" ||
-      role === "site_admin" ||
-      role === "sub_admin"
-    ) {
-      ids.add(String((u as { id: string }).id));
-    }
-  }
+  const sid = siteId.trim();
+  if (!sid) return [];
 
   const { data: siteUsers } = await supabaseAdmin
     .from("user_sites")
     .select("user_id")
-    .eq("site_id", siteId);
-  for (const row of siteUsers ?? []) {
-    if (row.user_id) ids.add(String(row.user_id));
-  }
+    .eq("site_id", sid);
+  for (const row of siteUsers ?? []) addId(ids, (row as { user_id?: string }).user_id);
 
   const { data: assigned } = await supabaseAdmin
     .from("assigned_operatives")
-    .select("user_id")
-    .eq("site_id", siteId);
+    .select("user_id, userid")
+    .eq("site_id", sid);
   for (const row of assigned ?? []) {
-    if (row.user_id) ids.add(String(row.user_id));
+    const record = row as { user_id?: string; userid?: string };
+    addId(ids, record.user_id);
+    addId(ids, record.userid);
+  }
+
+  const { data: inducted } = await supabaseAdmin
+    .from("user_site_inductions")
+    .select("user_id")
+    .eq("site_id", sid);
+  for (const row of inducted ?? []) addId(ids, (row as { user_id?: string }).user_id);
+
+  const { data: site } = await supabaseAdmin
+    .from("sites")
+    .select("manager_id")
+    .eq("id", sid)
+    .maybeSingle();
+  addId(ids, (site as { manager_id?: string } | null)?.manager_id);
+
+  if (companyId && ids.size > 0) {
+    const { data: members } = await supabaseAdmin
+      .from("users")
+      .select("id, company_id")
+      .in("id", [...ids]);
+    const otherCompany = new Set(
+      (members ?? [])
+        .filter((row) => {
+          const company = String((row as { company_id?: string }).company_id ?? "").trim();
+          return company.length > 0 && company !== companyId;
+        })
+        .map((row) => String((row as { id: string }).id)),
+    );
+    for (const id of otherCompany) ids.delete(id);
   }
 
   return [...ids];

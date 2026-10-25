@@ -61,3 +61,8 @@ export async function POST(req: Request) {
     return NextResponse.json({ error: "Retention cleanup failed" }, { status: 500 });
   }
 }
+
+/** Vercel Cron invokes scheduled paths with GET. */
+export async function GET(req: Request) {
+  return POST(req);
+}

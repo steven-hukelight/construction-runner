@@ -22,7 +22,7 @@ export const PUBLIC_API_PATHS = new Set([
   "/api/feedback",
 ]);
 
-/** Scheduled jobs: allowed with `Authorization: Bearer CRON_SECRET` (or Vercel Cron), otherwise need a user. */
+/** Scheduled jobs: allowed with `Authorization: Bearer CRON_SECRET`, otherwise need a user. */
 export const CRON_API_PATHS = new Set([
   "/api/attendance/archive",
   "/api/maintenance/retention-cleanup",

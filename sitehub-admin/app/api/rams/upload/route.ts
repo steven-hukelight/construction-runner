@@ -200,7 +200,7 @@ export async function POST(req: Request) {
     ? await userIdsForCompany(companyIdTrim)
     : sid
       ? await userIdsForSiteContent(companyIdTrim, sid)
-      : await userIdsForCompany(companyIdTrim);
+      : [];
   const companyUsers = pushSource.map((id) => ({ id }));
   const pushIds = (companyUsers ?? []).map((r) => r.id).filter(Boolean) as string[];
   if (pushIds.length > 0) {
@@ -208,7 +208,7 @@ export async function POST(req: Request) {
       pushIds,
       `New RAMS: ${displayTitle}`,
       "A new risk assessment & method statement was added",
-      { type: "rams", screen: "rams" }
+      { type: "rams", screen: "rams", ...(sid ? { siteId: sid } : {}) }
     ).catch((e) => console.error("RAMS push failed:", e));
   }
 

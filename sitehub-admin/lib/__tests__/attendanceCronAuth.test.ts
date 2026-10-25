@@ -23,10 +23,12 @@ describe("isAttendanceCronAuthorized", () => {
     expect(isAttendanceCronAuthorized(req({ authorization: "Bearer wrong" }))).toBe(false);
   });
 
-  it("accepts Vercel Cron header when deployed and secret is unset", () => {
+  it("rejects everything when CRON_SECRET is unset, even on Vercel", () => {
     delete process.env.CRON_SECRET;
     process.env.VERCEL = "1";
-    expect(isAttendanceCronAuthorized(req({ "x-vercel-cron": "1" }))).toBe(true);
+    expect(isAttendanceCronAuthorized(req({ "x-vercel-cron": "1" }))).toBe(false);
+    expect(isAttendanceCronAuthorized(req({ "x-vercel-cron-schedule": "0 7 * * *" }))).toBe(false);
+    expect(isAttendanceCronAuthorized(req({ authorization: "Bearer " }))).toBe(false);
     expect(isAttendanceCronAuthorized(req({}))).toBe(false);
   });
 });

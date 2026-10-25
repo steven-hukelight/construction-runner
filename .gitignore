@@ -2,3 +2,6 @@
 *_failed.log
 .vercel
 .env*.local
+
+# Shortcut to ~/.cursor/plans (local only)
+/plans

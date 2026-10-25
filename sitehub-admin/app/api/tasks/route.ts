@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { sendPushToUsers } from "@/lib/onesignal";
+import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import { applySiteVisibility, assertWritableSiteId, dashboardSiteScope } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 
@@ -221,22 +222,36 @@ export async function POST(req: Request) {
 
   const taskId = data?.id;
   const taskTitle = (insertPayload.title as string) || "Untitled Task";
-  if (taskId && Array.isArray(assignedToIds) && assignedToIds.length > 0) {
-    const uniqueIds = [...new Set(assignedToIds)].filter(Boolean);
+  const assigneeIds = Array.isArray(assignedToIds)
+    ? [...new Set(assignedToIds.map((id) => String(id).trim()).filter(Boolean))]
+    : [];
+  if (taskId && assigneeIds.length > 0) {
     await supabaseAdmin.from("task_assignments").insert(
-      uniqueIds.map((uid) => ({ task_id: taskId, user_id: uid }))
+      assigneeIds.map((uid) => ({ task_id: taskId, user_id: uid }))
     );
-    sendPushToUsers(uniqueIds, "New task assigned", taskTitle, {
-      type: "task",
-      taskId: String(taskId),
-      screen: "tasks",
-    })
-      .then((r) => {
-        if (!r.sent) {
-          console.error("Task push not delivered:", r.error, "→ assignee ids:", uniqueIds.join(", "));
-        }
+  }
+  if (taskId) {
+    const siteKey = String(siteId ?? "").trim();
+    const siteAudience = insertPayload.site_wide
+      ? await userIdsForCompany(String(assignedCompanyId))
+      : siteKey
+        ? await userIdsForSiteContent(String(assignedCompanyId), siteKey)
+        : [];
+    const notifyIds = [...new Set([...siteAudience, ...assigneeIds])];
+    if (notifyIds.length > 0) {
+      sendPushToUsers(notifyIds, "New task", taskTitle, {
+        type: "task",
+        taskId: String(taskId),
+        screen: "tasks",
+        ...(siteKey ? { siteId: siteKey } : {}),
       })
-      .catch((e) => console.error("Task push failed:", e));
+        .then((r) => {
+          if (!r.sent) {
+            console.error("Task push not delivered:", r.error, "→", notifyIds.length, "people");
+          }
+        })
+        .catch((e) => console.error("Task push failed:", e));
+    }
   }
 
   return NextResponse.json({ id: taskId }, { status: 201 });

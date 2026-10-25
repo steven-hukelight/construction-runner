@@ -126,6 +126,7 @@ export async function POST(req: Request) {
     sendPushToUsers(pushIds, `New RAMS: ${t}`, "A new RAMS document was added", {
       type: "rams",
       screen: "rams",
+      ...(ramsSiteId ? { siteId: ramsSiteId } : {}),
     }).catch((e) => console.error("RAMS push failed:", e));
   }
 

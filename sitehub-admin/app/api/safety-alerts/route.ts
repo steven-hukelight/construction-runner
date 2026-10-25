@@ -139,16 +139,24 @@ export async function POST(req: Request) {
     console.error("POST /api/safety-alerts failed:", error);
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
-  if (data && severityBucket(data.severity) == "critical") {
+  if (data) {
+    const alertSiteId = String(body.siteId ?? "").trim();
     const userIds = data.site_wide
       ? await userIdsForCompany(data.company_id)
-      : await userIdsForSiteContent(data.company_id, String(body.siteId));
+      : await userIdsForSiteContent(data.company_id, alertSiteId);
     if (userIds.length > 0) {
-      sendPushToUsers(userIds, "Critical safety alert", data.title ?? "Alert", {
-        type: "safety_alert",
-        alertId: data.id,
-        screen: "safety_alerts",
-      }).catch((pushError) =>
+      const critical = severityBucket(data.severity) == "critical";
+      sendPushToUsers(
+        userIds,
+        critical ? "Critical safety alert" : "New safety alert",
+        data.title ?? "Alert",
+        {
+          type: "safety_alert",
+          alertId: data.id,
+          screen: "safety_alerts",
+          ...(alertSiteId ? { siteId: alertSiteId } : {}),
+        },
+      ).catch((pushError) =>
         console.error("Safety alert push failed:", pushError),
       );
     }

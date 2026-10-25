@@ -1,19 +1,26 @@
 ---
-description: Move plans into an "old plans" folder once they have been executed
+description: Keep unbuilt plans together and move them into "old plans" once executed
 alwaysApply: true
 ---
 
-# Archive executed plans
+# Plan storage and archiving
 
-When a plan has been fully executed (all its todos done and the user has confirmed or the work is complete), move the plan file into the matching `old plans` folder as the final step of the task:
+## Where plans live
+
+All plans that have not been built yet live together in `~/.cursor/plans/`. When a new plan is written (Plan mode or a plan doc), save it there rather than in this repo (`.cursor/plans/`, `docs/`, `sitehub_worker_Ready/docs/`). If an unbuilt plan turns up elsewhere, move it into `~/.cursor/plans/` and update any links to it.
+
+## Archive executed plans
+
+When a plan has been fully executed (all its todos done and the user has confirmed or the work is complete), move it as the final step of the task:
 
 | Plan location | Archive to |
 |---|---|
-| `~/.cursor/plans/*.plan.md` (Cursor Plan mode) | `~/.cursor/plans/old plans/` |
-| Plan docs in this repo (e.g. `*_PLAN.md` under `docs/`, `markdown_documents/`, `sitehub_worker_Ready/docs/`) | `docs/old plans/` |
+| `~/.cursor/plans/` | `~/.cursor/plans/old plans/` |
+| Older plan docs still in this repo (e.g. `*_PLAN.md` under `docs/`) | `docs/old plans/` |
 
 - Use `git mv` for files tracked by git, plain `mv` otherwise. Keep the original filename.
 - Only archive plans that were actually executed; leave partially done or not-started plans in place.
 - Never archive these active plans unless the user says so:
-  - `sitehub_worker_Ready/docs/OFFLINE_SIGN_IN_PLAN.md`
-  - `~/.cursor/plans/investor_differentiation_roadmap_f3e86d8d.plan.md`- Mention the move in the final summary to the user.
+  - `~/.cursor/plans/OFFLINE_SIGN_IN_PLAN.md` (Stage 0 of the Site Access and Permits Roadmap; archive both together once that roadmap is fully executed)
+  - `~/.cursor/plans/investor_differentiation_roadmap_f3e86d8d.plan.md`
+- Mention the move in the final summary to the user.

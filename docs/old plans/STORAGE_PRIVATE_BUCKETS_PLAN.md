@@ -1,6 +1,6 @@
 # Plan: private medical, certifications and training buckets, and signature links
 
-Status: plan only, nothing applied. Written 2026-10-05 (security phase 2b).
+Status: complete (2026-10-15). Written 2026-10-05 (security phase 2b). See the status note at the end.
 
 ## Current state (counts only)
 
@@ -124,4 +124,6 @@ Reads:
 4. Apply the migration (buckets private, optional signature data fix).
 5. Verify: anonymous request to a `/object/public/medical/...` URL returns 400/404; owner and same-company manager can open a signature through the dashboard; operative of another company gets 403 from `/api/storage/signed-url`.
 
-Status (phase 2c-1): steps 1 and 2 are done. The check lives in `lib/storage/privateFile.ts` (`storageScope`, `authorizeStorageRead`) and also covers the company-scoped buckets through row lookups. Covered by `app/api/__tests__/storageSignedUrl.test.ts`. Steps 3–5 are not started.
+Status (phase 2c-1): steps 1 and 2 are done. The check lives in `lib/storage/privateFile.ts` (`storageScope`, `authorizeStorageRead`) and also covers the company-scoped buckets through row lookups. Covered by `app/api/__tests__/storageSignedUrl.test.ts`.
+
+Status (2026-10-15): steps 3–5 done. The three writers store `company_documents/<path>` and `medical/<path>`. Migration `20261015205341_private_medical_buckets_signature_refs.sql` made `medical`, `certifications` and `training` private and converted 20 RAMS and 9 briefing signature URLs to references (0 public-form left). Verified: anonymous `/object/public/...` requests return 400; `/api/storage/signed-url` without a session returns 401. `certifications` and `training` remain unused (kept, private).

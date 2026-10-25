@@ -47,11 +47,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
 
-    const { data: urlData } = supabaseAdmin.storage
-      .from("company_documents")
-      .getPublicUrl(path);
-
-    return NextResponse.json({ signatureUrl: urlData.publicUrl });
+    // Private bucket: store a "bucket/path" reference; readers sign it via /api/storage/signed-url.
+    return NextResponse.json({ signatureUrl: `company_documents/${path}` });
   } catch (e) {
     console.error("POST /api/briefings/upload-signature:", e);
     return NextResponse.json({ error: "Server error" }, { status: 500 });

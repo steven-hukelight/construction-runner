@@ -1,0 +1,22 @@
+---
+description: Explicit Data API grants for new public tables, views, functions, and sequences
+alwaysApply: true
+---
+
+# Data API grants
+
+From 30 October 2026, new objects in `public` are not reachable by supabase-js, PostgREST, or GraphQL until granted. Existing objects keep their current grants. Do not backfill them and do not change default privileges.
+
+In the same migration that creates the object, grant only the roles and privileges that callers need. RLS still limits rows. `anon` gets nothing unless the object is intentionally public. `postgres` gets nothing unless a cron job or definer function in the same migration calls it.
+
+| Caller | Typical grant |
+|---|---|
+| Admin API routes (service role via supabase-js) | `select, insert, update, delete` to `service_role` |
+| Signed-in mobile or web client | Only the verbs its RLS policies allow, to `authenticated` |
+| RPC | `execute` on the function to the roles that call it |
+| Inserts into an identity or serial column via the API | `usage, select` on that sequence to the same roles |
+
+```sql
+grant select, insert, update, delete on public.your_table to service_role;
+grant select on public.your_table to authenticated;
+```

@@ -61,10 +61,8 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Upload failed" }, { status: 500 });
     }
 
-    const supabaseUrl = process.env.SUPABASE_URL || process.env.NEXT_PUBLIC_SUPABASE_URL;
-    const fileUrl = uploadData?.path
-      ? `${supabaseUrl}/storage/v1/object/public/medical/${uploadData.path}`
-      : null;
+    // Private bucket: store a "bucket/path" reference; readers sign it via /api/storage/signed-url.
+    const fileUrl = uploadData?.path ? `medical/${uploadData.path}` : null;
 
     await supabaseAdmin.from("medical_records").insert({
       user_id: operativeId,

@@ -88,7 +88,11 @@ export async function POST(req: Request) {
         userIds,
         `New Briefing: ${title.trim() || file.name}`,
         "New toolbox talk / briefing added",
-        { type: "briefing", screen: "briefings" },
+        {
+          type: "briefing",
+          screen: "briefings",
+          ...(siteId.trim() ? { siteId: siteId.trim() } : {}),
+        },
       );
       push = {
         recipients: userIds.length,
