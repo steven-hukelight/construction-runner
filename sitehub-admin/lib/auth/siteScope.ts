@@ -205,12 +205,12 @@ export async function documentSiteScope(
   if (!companyId) return [requested];
   const { data: site } = await supabaseAdmin
     .from("sites")
-    .select("company_id, main_contractor_id")
+    .select("company_id")
     .eq("id", requested)
     .maybeSingle();
-  const row = site as { company_id?: string | null; main_contractor_id?: string | null } | null;
+  const row = site as { company_id?: string | null } | null;
   if (!row) return "none";
-  return row.company_id === companyId || row.main_contractor_id === companyId ? [requested] : "none";
+  return row.company_id === companyId ? [requested] : "none";
 }
 
 /**

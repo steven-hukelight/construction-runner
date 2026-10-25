@@ -78,7 +78,7 @@ describe("documentSiteScope (mobile)", () => {
 
   it("refuses an admin a site from another company", async () => {
     mockSupabaseResponseQueue.push({
-      data: { company_id: "co-2", main_contractor_id: null },
+      data: { company_id: "co-2" },
       error: null,
     });
     await expect(
