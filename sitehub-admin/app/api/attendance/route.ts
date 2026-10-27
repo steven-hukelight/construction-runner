@@ -28,6 +28,7 @@ import { enrichAttendanceApiFields, exitIsoFromBody, normalizeAttendanceAction }
 import { sendAttendanceAutoSignOutPush } from "@/lib/attendanceAutoSignOutPush";
 import { dispatchPendingAttendancePushNotifications } from "@/lib/dispatchAttendancePushQueue";
 import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
+import { canViewTeamAttendance } from "@/lib/auth/roles";
 import { userHasValidSiteInduction } from "@/lib/induction/listInductedSites";
 import { userIsAssignedToSite } from "@/lib/induction/listAssignedSites";
 
@@ -228,8 +229,7 @@ export async function GET(req: Request) {
       return NextResponse.json([]);
     }
 
-    const roleLower = (role ?? "").toLowerCase();
-    if (roleLower === "operative") {
+    if (!canViewTeamAttendance(role)) {
       let operativeUserId: string | null = null;
       const emailForMe = cookieStore.get("user_email")?.value ?? mobileAuth.userEmail ?? "";
       if (emailForMe) {

@@ -11,6 +11,9 @@ import { enrichAttendanceApiFields } from "@/lib/attendanceRowEnrich";
 import { isAttendanceCronAuthorized } from "@/lib/attendanceCronAuth";
 import { runAttendanceDailyArchive } from "@/lib/attendanceArchiveRun";
 import { parseYmd } from "@/lib/attendanceLondonDay";
+import { canViewTeamAttendance } from "@/lib/auth/roles";
+import { getRestrictedSiteIds, resolveCallerUserId } from "@/lib/auth/siteScope";
+import { resolvePreInductionAuth } from "@/app/api/pre-induction/_utils/mobileAuth";
 
 async function normalizeArchiveRows(rows: Record<string, unknown>[]): Promise<Record<string, unknown>[]> {
   if (!rows.length) return [];
@@ -63,8 +66,9 @@ export async function GET(req: Request) {
     }
 
     const cookieStore = await cookies();
-    let role = cookieStore.get("role")?.value;
-    let companyId = cookieStore.get("companyId")?.value;
+    const mobileAuth = await resolvePreInductionAuth({ req });
+    let role = cookieStore.get("role")?.value ?? mobileAuth.role ?? undefined;
+    let companyId = cookieStore.get("companyId")?.value ?? mobileAuth.companyId ?? undefined;
     if ((!role || !companyId) && role !== "superuser") {
       const email = cookieStore.get("user_email")?.value;
       if (email) {
@@ -85,7 +89,8 @@ export async function GET(req: Request) {
     if (!parseYmd(dateParam)) {
       return NextResponse.json({ error: "Invalid date format" }, { status: 400 });
     }
-    if (role === "superuser") {
+    const isSuperuser = role === "superuser";
+    if (isSuperuser) {
       companyId = url.searchParams.get("companyId") ?? companyId ?? undefined;
     }
     let q = supabaseAdmin
@@ -94,11 +99,23 @@ export async function GET(req: Request) {
       .eq("archive_date", dateParam)
       .order("timestamp", { ascending: false })
       .limit(limit);
-    if (companyId) {
-      const { data: users } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
-      const userIds = (users ?? []).map((u) => u.id);
-      if (userIds.length === 0) return NextResponse.json([]);
-      q = q.in("user_id", userIds);
+    const callerId = (await resolveCallerUserId()) ?? mobileAuth.uid ?? null;
+    if (!canViewTeamAttendance(role)) {
+      if (!callerId) return NextResponse.json([]);
+      q = q.eq("user_id", callerId);
+    } else {
+      if (!companyId && !isSuperuser) return NextResponse.json([]);
+      if (companyId) {
+        const { data: users } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
+        const userIds = (users ?? []).map((u) => u.id);
+        if (userIds.length === 0) return NextResponse.json([]);
+        q = q.in("user_id", userIds);
+      }
+      const restrictedSites = await getRestrictedSiteIds(role, callerId);
+      if (restrictedSites) {
+        if (restrictedSites.length === 0) return NextResponse.json([]);
+        q = q.in("site_id", restrictedSites);
+      }
     }
     const { data } = await q;
     const normalized = await normalizeArchiveRows((data ?? []) as Record<string, unknown>[]);

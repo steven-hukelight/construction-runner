@@ -23,6 +23,12 @@ export function usesAssignedSites(role: string | null | undefined): boolean {
   return r === "site_admin" || r === "supervisor";
 }
 
+/** May see other people's attendance (sign-ins and sign-outs). Everyone else sees only their own. */
+export function canViewTeamAttendance(role: string | null | undefined): boolean {
+  const r = normalizeRole(role);
+  return r === "superuser" || r === "admin" || r === "site_admin" || r === "supervisor";
+}
+
 export function canCreateAndAssignSites(role: string | null | undefined): boolean {
   const r = normalizeRole(role);
   return r === "superuser" || r === "admin";
