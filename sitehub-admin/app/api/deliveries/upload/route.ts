@@ -5,6 +5,12 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 
 const ALLOWED_TYPES = ["pod", "load"] as const;
 const MAX_BYTES = 10 * 1024 * 1024; // 10MB
+const IMAGE_TYPES: Record<string, { ext: string; contentType: string }> = {
+  "image/jpeg": { ext: "jpg", contentType: "image/jpeg" },
+  "image/png": { ext: "png", contentType: "image/png" },
+  "image/webp": { ext: "webp", contentType: "image/webp" },
+  "image/heic": { ext: "heic", contentType: "image/heic" },
+};
 
 async function ensureDeliveryAccess(deliveryId: string): Promise<{ companyId: string; error: NextResponse | null }> {
   const cookieStore = await cookies();
@@ -60,13 +66,13 @@ export async function POST(req: Request) {
     }
 
     const bucket = type === "pod" ? "delivery_pod" : "delivery_load_photos";
-    const ext = "jpg";
+    const image = IMAGE_TYPES[file.type] ?? IMAGE_TYPES["image/jpeg"];
     const timestamp = Date.now();
-    const path = `${companyId}/${deliveryId}/${timestamp}.${ext}`;
+    const path = `${companyId}/${deliveryId}/${timestamp}.${image.ext}`;
 
     const { error: uploadErr } = await supabaseAdmin.storage
       .from(bucket)
-      .upload(path, bytes, { contentType: "image/jpeg", upsert: true });
+      .upload(path, bytes, { contentType: image.contentType, upsert: true });
 
     if (uploadErr) {
       console.error("deliveries/upload storage error:", uploadErr);
