@@ -174,6 +174,87 @@ export async function runAttendanceDailyArchive(opts?: {
   };
 }
 
+const SIGN_IN_ACTIONS = new Set(["SIGN_IN", "IN", "SIGNIN", "CHECKIN"]);
+
+function isSignInAction(action: unknown): boolean {
+  return SIGN_IN_ACTIONS.has(String(action ?? "").trim().toUpperCase().replace(/\s+/g, "_"));
+}
+
+/**
+ * People whose latest row is a sign-in are still on site: keep all their rows live.
+ * Rows without a timestamp sort first, so they never decide who is on site.
+ */
+export function splitForManualArchive(rows: AttendanceRow[]): {
+  archive: AttendanceRow[];
+  keptUserIds: Set<string>;
+} {
+  const latest = new Map<string, { at: number; row: AttendanceRow }>();
+  for (const row of rows) {
+    const userId = String(row.user_id ?? "");
+    if (!userId) continue;
+    const at = rowInstant(row)?.getTime() ?? Number.NEGATIVE_INFINITY;
+    const prev = latest.get(userId);
+    if (!prev || at >= prev.at) latest.set(userId, { at, row });
+  }
+  const keptUserIds = new Set<string>();
+  for (const [userId, { row }] of latest) {
+    if (isSignInAction(row.action)) keptUserIds.add(userId);
+  }
+  const archive = rows.filter((r) => !keptUserIds.has(String(r.user_id ?? "")));
+  return { archive, keptUserIds };
+}
+
+export type ManualAttendanceArchiveResult = AttendanceArchiveResult & { keptSignedIn: number };
+
+/**
+ * "Clear Day" from the app: one London calendar day, limited to [userIds] (the caller's company)
+ * and, when set, [siteIds]. Anyone still signed in stays on the live list.
+ */
+export async function runManualAttendanceArchive(opts: {
+  dateYmd: string;
+  userIds: string[];
+  siteIds: string[] | null;
+  now?: Date;
+}): Promise<ManualAttendanceArchiveResult> {
+  const ranAt = (opts.now ?? new Date()).toISOString();
+  const bounds = londonCalendarDayUtcBounds(opts.dateYmd);
+  const empty = {
+    success: true as const,
+    archived: 0,
+    deleted: 0,
+    keptSignedIn: 0,
+    archiveDate: opts.dateYmd,
+    cutoffIso: bounds.start,
+    ranAt,
+  };
+  if (!opts.userIds.length || (opts.siteIds && !opts.siteIds.length)) {
+    return { ...empty, message: "No entries to archive" };
+  }
+
+  const rows: AttendanceRow[] = [];
+  for (let i = 0; i < opts.userIds.length; i += CHUNK) {
+    const userSlice = opts.userIds.slice(i, i + CHUNK);
+    rows.push(
+      ...(await fetchAttendanceWhere((q) => {
+        let scoped = q.gte("timestamp", bounds.start).lt("timestamp", bounds.end).in("user_id", userSlice);
+        if (opts.siteIds) scoped = scoped.in("site_id", opts.siteIds);
+        return scoped;
+      }))
+    );
+  }
+
+  const { archive, keptUserIds } = splitForManualArchive(rows);
+  if (!archive.length) {
+    return {
+      ...empty,
+      keptSignedIn: keptUserIds.size,
+      message: keptUserIds.size ? "Everyone on the list is still signed in" : "No entries to archive",
+    };
+  }
+  await upsertAndDelete(archive, () => opts.dateYmd);
+  return { ...empty, archived: archive.length, deleted: archive.length, keptSignedIn: keptUserIds.size };
+}
+
 function addFallbackArchiveDate(todayLondon: string): string {
   const [y, m, d] = todayLondon.split("-").map(Number);
   const prev = new Date(Date.UTC(y, m - 1, d - 1));

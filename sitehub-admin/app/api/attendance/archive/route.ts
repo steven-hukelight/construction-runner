@@ -2,6 +2,8 @@
  * Attendance archive: GET reads from attendance_archive; cron GET / POST
  * archives live rows older than UK midnight and clears the live list.
  * Vercel Cron calls GET at 00:00 and 23:00 UTC (covers GMT and BST midnight).
+ * A signed-in POST ("Clear Day") needs `{ confirm: true }`, only touches the caller's
+ * company and assigned sites, and leaves anyone still signed in on the live list.
  */
 
 import { NextResponse } from "next/server";
@@ -9,8 +11,8 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { enrichAttendanceApiFields } from "@/lib/attendanceRowEnrich";
 import { isAttendanceCronAuthorized } from "@/lib/attendanceCronAuth";
-import { runAttendanceDailyArchive } from "@/lib/attendanceArchiveRun";
-import { parseYmd } from "@/lib/attendanceLondonDay";
+import { runAttendanceDailyArchive, runManualAttendanceArchive } from "@/lib/attendanceArchiveRun";
+import { londonYmd, parseYmd } from "@/lib/attendanceLondonDay";
 import { canViewTeamAttendance } from "@/lib/auth/roles";
 import { getRestrictedSiteIds, resolveCallerUserId } from "@/lib/auth/siteScope";
 import { resolvePreInductionAuth } from "@/app/api/pre-induction/_utils/mobileAuth";
@@ -131,24 +133,48 @@ export async function GET(req: Request) {
 
 export async function POST(req: Request) {
   try {
-    const cookieStore = await cookies();
-    const role = cookieStore.get("role")?.value;
-    const allowedByCron = isAttendanceCronAuthorized(req);
-    const allowedBySuperuser = role === "superuser";
-    const allowedBySupervisor = ["supervisor", "admin"].includes((role ?? "").toLowerCase());
-
-    if (!allowedByCron && !allowedBySuperuser && !allowedBySupervisor) {
-      return NextResponse.json({ error: "Unauthorized: CRON_SECRET or supervisor+ required" }, { status: 401 });
-    }
-
     const url = new URL(req.url);
     const dateParam = url.searchParams.get("date")?.trim();
     if (dateParam && !parseYmd(dateParam)) {
       return NextResponse.json({ error: "Invalid date format (use YYYY-MM-DD)" }, { status: 400 });
     }
 
-    const result = await runAttendanceDailyArchive({
-      dateYmd: dateParam || undefined,
+    if (isAttendanceCronAuthorized(req)) {
+      const result = await runAttendanceDailyArchive({
+        dateYmd: dateParam || undefined,
+      });
+      return NextResponse.json(result);
+    }
+
+    const cookieStore = await cookies();
+    const mobileAuth = await resolvePreInductionAuth({ req });
+    const role = (cookieStore.get("role")?.value ?? mobileAuth.role ?? "").toLowerCase();
+    if (!canViewTeamAttendance(role)) {
+      return NextResponse.json({ error: "Only supervisors and admins can clear the day" }, { status: 403 });
+    }
+
+    const body = (await req.json().catch(() => ({}))) as { confirm?: unknown };
+    if (body.confirm !== true) {
+      return NextResponse.json({ error: "Clearing the day needs confirming" }, { status: 400 });
+    }
+
+    const companyId =
+      role === "superuser"
+        ? url.searchParams.get("companyId")?.trim() || cookieStore.get("companyId")?.value?.trim()
+        : cookieStore.get("companyId")?.value?.trim() || mobileAuth.companyId?.trim();
+    if (!companyId) {
+      return NextResponse.json({ error: "Company required" }, { status: 400 });
+    }
+
+    const { data: users, error: usersErr } = await supabaseAdmin.from("users").select("id").eq("company_id", companyId);
+    if (usersErr) throw new Error(usersErr.message);
+    const callerId = (await resolveCallerUserId()) ?? mobileAuth.uid ?? null;
+    const siteIds = await getRestrictedSiteIds(role, callerId);
+
+    const result = await runManualAttendanceArchive({
+      dateYmd: dateParam || londonYmd(),
+      userIds: (users ?? []).map((u) => String(u.id)),
+      siteIds,
     });
     return NextResponse.json(result);
   } catch (e) {
