@@ -248,7 +248,7 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   return (
     <Table
       title="All deliveries"
-      subtitle={`${rows.length} deliveries tracked`}
+      subtitle={`${rows.length} ${rows.length === 1 ? "delivery" : "deliveries"} tracked`}
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">

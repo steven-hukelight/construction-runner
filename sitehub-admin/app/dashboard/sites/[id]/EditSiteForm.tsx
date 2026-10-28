@@ -98,8 +98,8 @@ export default function EditSiteForm({ site }: { site: any }) {
   }
 
   return (
-    <div className="card w-full md:max-w-xl">
-      <h3 className="text-lg font-semibold text-slate-900 mb-4">Edit Site</h3>
+    <div className="card w-full">
+      <h3 className="text-lg font-semibold text-slate-900 mb-4">Edit site</h3>
       <div className="space-y-5">
         <Input
           label="Site Name"
@@ -119,8 +119,8 @@ export default function EditSiteForm({ site }: { site: any }) {
           onChange={(id) => setForm((prev) => ({ ...prev, managerId: id }))}
         />
 
-        <details className="bg-white/5 rounded-md p-3 text-sm">
-          <summary className="cursor-pointer text-slate-700 font-medium mb-2">
+        <details className="rounded-xl border border-blue-100 bg-white p-3 text-sm dark:border-slate-600 dark:bg-slate-800">
+          <summary className="cursor-pointer text-sm font-medium text-blue-900 dark:text-blue-200 mb-2">
             Advanced: latitude / longitude
           </summary>
           <div className="mt-3 grid grid-cols-2 gap-3">
@@ -144,7 +144,7 @@ export default function EditSiteForm({ site }: { site: any }) {
           onChange={(e: any) => setForm({ ...form, radius: e.target.value })}
         />
 
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
           <input
             type="checkbox"
             checked={form.showOnMap}
@@ -155,7 +155,7 @@ export default function EditSiteForm({ site }: { site: any }) {
           />
           Show on mobile map
         </label>
-        <label className="flex items-center gap-2 text-sm text-slate-700">
+        <label className="flex items-center gap-2 text-sm text-slate-700 dark:text-slate-300">
           <input
             type="checkbox"
             checked={form.inductionRequired}
@@ -170,11 +170,11 @@ export default function EditSiteForm({ site }: { site: any }) {
         <div className="space-y-4 pt-2">
           <Button
             type="button"
-            variant="primary"
+            variant="secondary"
             className="w-full justify-center"
             onClick={() => setShowMap((v) => !v)}
           >
-            {showMap ? "Hide map selector" : "Show map selector"}
+            {showMap ? "Hide map selector" : "Select location from map"}
           </Button>
 
           {showMap && (
@@ -195,7 +195,7 @@ export default function EditSiteForm({ site }: { site: any }) {
         </div>
 
         {error ? (
-          <div className="text-sm text-red-400 mt-1">{error}</div>
+          <div className="text-sm text-red-600 dark:text-red-400 mt-1">{error}</div>
         ) : null}
 
         <div className="flex gap-3 pt-1">

@@ -1,6 +1,6 @@
 import { formatTime, type TimeFormat } from "@/app/DisplayPreferencesProvider";
 import type { AttendanceSession } from "./attendanceSessionTypes";
-import { leftSiteAutoSignOutReasonSuffix } from "./sessionNotesFormat";
+import { formatLeftSiteLine } from "./sessionNotesFormat";
 import {
   formatDurationBetween,
   getSessionAutoSignOutReason,
@@ -21,7 +21,6 @@ export function getAttendanceRowModel(
   const signedOut = getSessionSignedOutDate(session);
   const end = getSessionEndDate(session);
   const active = isActiveWorkSession(session);
-  const reasonSuffix = leftSiteAutoSignOutReasonSuffix(getSessionAutoSignOutReason(session));
   const timeOpts = timeFormat ? { timeFormat } : undefined;
   const hm = (d: Date) => formatTime(d, timeOpts);
 
@@ -34,9 +33,9 @@ export function getAttendanceRowModel(
     if (start) timeLines.push(`Signed in: ${hm(start)}`);
     const outAt = signedOut ?? (leave ? null : end);
     if (leave && outAt && hm(leave) === hm(outAt)) {
-      timeLines.push(`Left site: ${hm(leave)} (auto)`);
+      timeLines.push(formatLeftSiteLine(hm(leave), getSessionAutoSignOutReason(session) || "fallback"));
     } else {
-      if (leave) timeLines.push(`Left site: ${hm(leave)}${reasonSuffix}`);
+      if (leave) timeLines.push(formatLeftSiteLine(hm(leave), getSessionAutoSignOutReason(session)));
       if (outAt) timeLines.push(`Signed out: ${hm(outAt)}`);
     }
   }

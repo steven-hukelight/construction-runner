@@ -34,19 +34,31 @@ export async function GET(_req: Request, { params }: { params: Promise<{ id: str
   const companyId = cookieStore.get("companyId")?.value;
   const { data } = await supabaseAdmin
     .from("deliveries")
-    .select("id, reference, site_id, company_id, created_by, status, scheduled_at, notes, wholesaler, pod_url, pod_photos, load_url, load_photos, site_wide, created_at")
+    .select("id, reference, site_id, company_id, created_by, delivered_by, status, scheduled_at, notes, wholesaler, pod_url, pod_photos, load_url, load_photos, site_wide, created_at")
     .eq("id", id)
     .maybeSingle();
   if (!data || (data as { company_id?: string }).company_id !== companyId) {
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
   const siteId = (data as { site_id?: string }).site_id;
+  const deliveredById = (data as { delivered_by?: string | null }).delivered_by;
   let site = "";
+  let deliveredByName = "";
   if (siteId) {
     const { data: siteRow } = await supabaseAdmin.from("sites").select("name").eq("id", siteId).maybeSingle();
     site = (siteRow?.name as string) ?? "";
   }
-  return NextResponse.json({ ...data, site });
+  if (deliveredById) {
+    const { data: userRow } = await supabaseAdmin
+      .from("users")
+      .select("display_name, email")
+      .eq("id", deliveredById)
+      .maybeSingle();
+    deliveredByName =
+      String((userRow as { display_name?: string | null } | null)?.display_name ?? "").trim() ||
+      String((userRow as { email?: string | null } | null)?.email ?? "").trim();
+  }
+  return NextResponse.json({ ...data, site, deliveredByName });
 }
 
 export async function PATCH(req: Request, { params }: { params: Promise<{ id: string }> }) {

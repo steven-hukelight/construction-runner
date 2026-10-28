@@ -7,6 +7,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { writeAuditLog } from "@/lib/auditLog";
+import { isLastCompanySuperAdmin } from "@/lib/auth/lastCompanyAdmin";
 
 export const dynamic = "force-dynamic";
 
@@ -30,6 +31,10 @@ export async function POST(req: Request) {
 
     const userId = targetUserId ?? actorId;
     const isSelf = userId === actorId;
+
+    if (await isLastCompanySuperAdmin(userId)) {
+      return NextResponse.json({ error: "You cannot delete the last Super Admin." }, { status: 400 });
+    }
 
     if (isSelf) {
       if (!confirm) {

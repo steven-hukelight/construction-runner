@@ -239,7 +239,7 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
     <>
       <Table
         title="All tasks"
-        subtitle={`${rows.length} tasks assigned`}
+        subtitle={`${rows.length} ${rows.length === 1 ? "task" : "tasks"} assigned`}
         actions={
           rows.length > 0 ? (
             <div className="flex items-center gap-2">

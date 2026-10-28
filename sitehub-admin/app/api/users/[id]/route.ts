@@ -3,6 +3,7 @@ import { resolveCompanyId } from "@/lib/auth/companyId";
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { canAssignSuperAdminRole, isCompanySuperAdmin, normalizeRole, usesAssignedSites } from "@/lib/auth/roles";
+import { isLastCompanySuperAdmin } from "@/lib/auth/lastCompanyAdmin";
 
 function cid(u: { company_id?: string | null }): string {
   return String(u.company_id ?? "").trim();
@@ -216,6 +217,9 @@ export async function DELETE(_req: Request, { params }: { params: Promise<{ id: 
     if (cid(userRow) !== companyId) {
       return NextResponse.json({ error: "Forbidden: cannot delete user in another company" }, { status: 403 });
     }
+  }
+  if (await isLastCompanySuperAdmin(id)) {
+    return NextResponse.json({ error: "You cannot delete the last Super Admin." }, { status: 400 });
   }
 
   // Remove Supabase Auth identity (otherwise they can still sign in; public.users row is only app profile)

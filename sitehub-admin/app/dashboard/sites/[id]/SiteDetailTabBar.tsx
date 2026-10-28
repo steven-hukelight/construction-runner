@@ -1,25 +1,16 @@
 "use client";
 
-import { useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 
 export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
-  useEffect(() => {
-    if (siteId && typeof document !== "undefined") {
-      try {
-        document.cookie = `currentSiteId=${siteId}; path=/; max-age=${60 * 60 * 24 * 7}; SameSite=Lax`;
-      } catch {
-        /* cookie access */
-      }
-    }
-  }, [siteId]);
   const pathname = usePathname();
   const base = `/dashboard/sites/${siteId}`;
   const isDetails = pathname === base;
   const isSubcontractors = pathname === `${base}/subcontractors`;
   const isInduction = pathname === `${base}/induction`;
   const isSafety = pathname === `${base}/safety`;
+  const isEmergency = pathname === `${base}/emergency`;
 
   return (
     <div className="flex gap-0 admin-tabs">
@@ -34,6 +25,9 @@ export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
       </Link>
       <Link href={`${base}/safety`} className={isSafety ? "active" : ""} aria-current={isSafety ? "page" : undefined}>
         Safety info
+      </Link>
+      <Link href={`${base}/emergency`} className={isEmergency ? "active" : ""} aria-current={isEmergency ? "page" : undefined}>
+        Emergency
       </Link>
     </div>
   );

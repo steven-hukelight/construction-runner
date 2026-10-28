@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { loadAcknowledgementPeople } from "@/lib/acknowledgementPeople";
+import { loadOutstandingPeople } from "@/lib/documentReminders";
 
 export const dynamic = "force-dynamic";
 
@@ -84,6 +85,15 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       };
     });
 
+    const outstanding = await loadOutstandingPeople({
+      kind: "briefing",
+      documentId: briefingId,
+      companyId,
+      siteId: briefing.site_id ? String(briefing.site_id) : null,
+      acknowledgedUserIds: (acks ?? []).map((a) => String(a.user_id ?? "")),
+      requireInduction: true,
+    });
+
     return NextResponse.json({
       briefing: {
         id: briefing.id,
@@ -93,6 +103,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         createdAt: briefing.created_at,
       },
       acknowledgements,
+      outstanding,
     });
   } catch (e) {
     console.error("GET /api/briefings/[id]/acknowledgements:", e);

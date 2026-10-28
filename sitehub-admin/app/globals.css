@@ -394,7 +394,6 @@ h1, h2, h3, h4, h5, h6 {
   box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
   padding: var(--space-24);
   width: 100%;
-  max-width: 100%;
   transition: border-color 120ms ease;
   border: 1px solid #e5e7eb;
 }
@@ -943,8 +942,28 @@ a {
    only when html has data-theme="dark".
    ============================================= */
 
+html,
+html[data-theme="light"] {
+  color-scheme: light;
+}
+
 [data-theme="dark"] {
   color-scheme: dark;
+}
+
+/* Native checkboxes/radios follow the page theme, not the OS. Unticked
+   controls must not render as solid dark squares on a light page. */
+input[type="checkbox"],
+input[type="radio"] {
+  accent-color: #2563eb;
+  color-scheme: light;
+  background-color: #fff;
+}
+[data-theme="dark"] input[type="checkbox"],
+[data-theme="dark"] input[type="radio"] {
+  accent-color: #60a5fa;
+  color-scheme: dark;
+  background-color: transparent;
 }
 
 html.dashboard-lock,

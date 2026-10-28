@@ -52,6 +52,8 @@ jest.mock("next/headers", () => ({
 jest.mock("@/lib/auth/siteScope", () => ({
   getRestrictedSiteIds: async () => null,
   siteIdsForFilter: () => "all",
+  dashboardSiteScope: async () => "all",
+  isMobileClientRequest: () => false,
   assertWritableSiteId: async () => null,
 }));
 

@@ -13,6 +13,7 @@ const subTabs = [
   { name: "Site rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
   { name: "COSHH", href: "/dashboard/health-and-safety/coshh", showNearMissCount: false },
   { name: "Alerts", href: "/dashboard/health-and-safety/alerts", showNearMissCount: false },
+  { name: "Alarms", href: "/dashboard/health-and-safety/alarms", showNearMissCount: false },
   { name: "Near miss", href: "/dashboard/health-and-safety/near-miss", showNearMissCount: true },
 ];
 

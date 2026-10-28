@@ -422,8 +422,8 @@ export default function NotificationDropdown() {
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 max-h-[400px] overflow-hidden rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl z-[9999]">
-          <div className="p-3 border-b border-gray-100 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50">
+        <div className="absolute right-0 mt-2 w-80 max-h-[min(28rem,calc(100dvh-8rem))] flex flex-col overflow-hidden rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 shadow-xl z-[9999]">
+          <div className="shrink-0 p-3 border-b border-gray-100 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50">
             <h3 className="font-semibold text-gray-900 dark:text-slate-100">Notifications</h3>
             <p className="text-xs text-gray-500 dark:text-slate-400 mt-0.5">
               {unseenCount > 0
@@ -442,7 +442,7 @@ export default function NotificationDropdown() {
                 : `Last 7 days · ${displayItems.length} item${displayItems.length === 1 ? "" : "s"}`}
             </p>
           </div>
-          <div className="max-h-[340px] overflow-y-auto">
+          <div className="min-h-0 flex-1 overflow-y-auto">
             {loading ? (
               <div className="p-6 text-center text-sm text-gray-500 dark:text-slate-400">Loading…</div>
             ) : displayItems.length === 0 ? (
@@ -515,7 +515,7 @@ export default function NotificationDropdown() {
             )}
           </div>
           {displayItems.length > 0 && (
-            <div className="p-2 border-t border-gray-100 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50">
+            <div className="shrink-0 p-2 border-t border-gray-100 dark:border-slate-600 bg-gray-50 dark:bg-slate-700/50">
               <Link
                 href={
                   displayItems.some((i) => i.type === "message")

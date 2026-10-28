@@ -20,6 +20,7 @@ export default function RAMSUploadModal() {
   const [description, setDescription] = useState("");
   const [siteId, setSiteId] = useState("");
   const [siteWide, setSiteWide] = useState(false);
+  const [reviewDate, setReviewDate] = useState("");
   const [sites, setSites] = useState<Site[]>([]);
   const [companyLogoUrl, setCompanyLogoUrl] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
@@ -74,6 +75,7 @@ export default function RAMSUploadModal() {
       if (siteWide) form.append("siteWide", "true");
       form.append("title", title.trim() || file.name.replace(/\.pdf$/i, "") || file.name);
       form.append("description", description.trim());
+      if (reviewDate.trim()) form.append("reviewDate", reviewDate.trim());
       const impersonatedCompanyId = getCompanyIdFromClient();
       if (impersonatedCompanyId) {
         form.append("companyId", impersonatedCompanyId);
@@ -93,6 +95,7 @@ export default function RAMSUploadModal() {
       setFile(null);
       setTitle("");
       setDescription("");
+      setReviewDate("");
       setSiteId("");
       window.location.reload();
     } finally {
@@ -159,6 +162,19 @@ export default function RAMSUploadModal() {
                   placeholder="e.g. Site X – Excavation RAMS"
                   className="w-full"
                 />
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1">Review date</label>
+                <Input
+                  type="date"
+                  value={reviewDate}
+                  onChange={(e) => setReviewDate(e.target.value)}
+                  className="w-full"
+                />
+                <p className="mt-1 text-xs text-slate-500">
+                  Optional office review-by date. Overdue documents are flagged on the list.
+                </p>
               </div>
 
               <div>

@@ -25,6 +25,8 @@ export default async function SiteInductionPage({
       mainContractorId={data.site.mainContractorId}
       operatives={data.operatives}
       companyOptions={data.companyOptions}
+      initialRole={role ?? ""}
+      initialCompanyId={companyId ?? null}
     />
   );
 }

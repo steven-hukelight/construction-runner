@@ -69,7 +69,7 @@ export default async function SuperuserDashboardPage() {
         </h1>
         <p className="text-gray-600">
           Manage tenants, users, and system settings. Use the company switcher in the top bar to
-          impersonate a company and view their dashboard.
+          view a company dashboard.
         </p>
       </div>
 
@@ -111,7 +111,7 @@ export default async function SuperuserDashboardPage() {
             href={companyId ? "/dashboard" : "/dashboard/companies"}
             className="inline-flex items-center gap-2 text-blue-600 font-medium hover:underline"
           >
-            {companyId ? "Open Dashboard" : "Go to Companies"}
+            {companyId ? "View company dashboard" : "Go to Companies"}
             <ArrowRight className="w-4 h-4" />
           </Link>
         </div>

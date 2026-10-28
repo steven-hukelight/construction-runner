@@ -18,18 +18,22 @@ export default function SiteInductionClient({
   mainContractorId: _mainContractorId,
   operatives: initialOperatives,
   companyOptions,
+  initialRole = "",
+  initialCompanyId = null,
 }: {
   siteId: string;
   siteName: string;
   mainContractorId: string | null;
   operatives: SiteInductionOperative[];
   companyOptions: { id: string; name: string }[];
+  initialRole?: string;
+  initialCompanyId?: string | null;
 }) {
   const [operatives, setOperatives] = useState(initialOperatives);
   const [status, setStatus] = useState<StatusFilter>("all");
   const [companyId, setCompanyId] = useState<CompanyFilter>("all");
-  const [myCompanyId, setMyCompanyId] = useState<string | null>(null);
-  const [role, setRole] = useState("");
+  const [myCompanyId, setMyCompanyId] = useState<string | null>(initialCompanyId);
+  const [role, setRole] = useState(initialRole.toLowerCase());
   const [companyOperatives, setCompanyOperatives] = useState<Operative[]>([]);
   const [addOperativeId, setAddOperativeId] = useState("");
   const [adding, setAdding] = useState(false);

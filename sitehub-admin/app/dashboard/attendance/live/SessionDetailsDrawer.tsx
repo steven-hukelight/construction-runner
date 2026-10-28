@@ -4,10 +4,11 @@ import { useState } from "react";
 import type { ReactNode } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import type { AttendanceLog, AttendanceSession } from "./attendanceSessionTypes";
-import { describeAttendanceAutoSignOutReason, formatAttendanceNotesDisplay } from "./sessionNotesFormat";
+import { describeAttendanceAutoSignOutReason, formatAttendanceNotesDisplay, leftSiteExitVerb } from "./sessionNotesFormat";
 import ExitReasonBadge from "./ExitReasonBadge";
 import {
   getExitReasonKind,
+  getSessionAutoSignOutReason,
   getSessionEndDate,
   getSessionLeaveDate,
   getSessionSignedOutDate,
@@ -74,7 +75,7 @@ function logMetaRows(log: AttendanceLog | null, title: string) {
         "Time on attendance record",
         ts ? formatDateTime(ts) : log.timestamp != null ? String(log.timestamp) : undefined
       )}
-      {exitDt ? fieldBlock("Left site", formatDateTime(exitDt)) : null}
+      {exitDt ? fieldBlock(leftSiteExitVerb(autoReason), formatDateTime(exitDt)) : null}
       {signOutDt && (signOutDiffers || !exitDt)
         ? fieldBlock("Signed out", formatDateTime(signOutDt))
         : null}
@@ -205,7 +206,10 @@ export default function SessionDetailsDrawer({
                     ? `${formatDateTime(start)}${leave || signedOutAt ? "" : " (still on site)"}`
                     : undefined
                 )}
-                {fieldBlock("Left site", leave ? formatDateTime(leave) : start && !end ? "—" : undefined)}
+                {fieldBlock(
+                  leftSiteExitVerb(getSessionAutoSignOutReason(session)),
+                  leave ? formatDateTime(leave) : start && !end ? "—" : undefined
+                )}
                 {fieldBlock(
                   "Signed out",
                   signedOutAt

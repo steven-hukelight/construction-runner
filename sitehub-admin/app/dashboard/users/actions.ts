@@ -102,12 +102,17 @@ export async function updateUserRole(id: string, role: string): Promise<{ succes
   }
 }
 
-export async function deleteUser(id: string) {
+export async function deleteUser(id: string): Promise<{ success: true } | { success: false; error: string }> {
   const base = await getServerRequestBaseUrl();
   const url = `${base}/api/users/${id}`;
   const cookieHeader = (await cookies()).getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  await fetch(url, {
+  const res = await fetch(url, {
     method: "DELETE",
     headers: cookieHeader ? { Cookie: cookieHeader } : undefined,
   });
+  const data = (await res.json().catch(() => ({}))) as { error?: string };
+  if (!res.ok) {
+    return { success: false, error: data.error || "Failed to delete user" };
+  }
+  return { success: true };
 }

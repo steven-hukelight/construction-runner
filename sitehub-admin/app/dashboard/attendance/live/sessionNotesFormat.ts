@@ -56,23 +56,47 @@ function formatFenceLoggedDisplay(meta: AutoSignOutNoteMeta): string | null {
   return `${dd}/${mm}/${yyyy} : ${hh}:${mi}`;
 }
 
+function isAutoCapReason(reason: string | undefined): boolean {
+  const key = (reason ?? "").trim().toLowerCase();
+  return (
+    key === "fallback" ||
+    key === "fallback_max_shift" ||
+    key === "fallback_stale_outside" ||
+    key === "location_fallback" ||
+    key.startsWith("fallback_")
+  );
+}
+
+/** "Auto sign-out" when the 12h cap or server fallback ended the session. */
+export function leftSiteExitVerb(reason: string | undefined): string {
+  return isAutoCapReason(reason) ? "Auto sign-out" : "Left site";
+}
+
 /**
- * Parenthetical after "Left site: HH:mm", same wording as the Flutter
- * live / role-call cards so supervisors see one vocabulary on both surfaces.
+ * Parenthetical after "Left site: HH:mm" / "Auto sign-out: HH:mm".
+ * Same vocabulary as the Flutter live / role-call cards.
  */
 export function leftSiteAutoSignOutReasonSuffix(reason: string | undefined): string {
   const key = (reason ?? "").trim().toLowerCase();
-  if (!key || key === "fallback") return "";
+  if (!key) return "";
   const labels: Record<string, string> = {
+    fallback: "12h limit",
+    fallback_max_shift: "12h limit",
     fallback_stale_outside: "auto sign-out",
-    fallback_max_shift: "shift limit",
-    native_geofence: "left site",
-    geofence_exit: "left site",
-    geofence_exit_immediate: "left site",
+    native_geofence: "",
+    geofence_exit: "",
+    geofence_exit_immediate: "",
     location_fallback: "auto sign-out",
   };
-  const label = labels[key];
-  return label ? ` (${label})` : ` (${key})`;
+  if (key in labels) {
+    const label = labels[key];
+    return label ? ` (${label})` : "";
+  }
+  return ` (${key})`;
+}
+
+export function formatLeftSiteLine(time: string, reason: string | undefined): string {
+  return `${leftSiteExitVerb(reason)}: ${time}${leftSiteAutoSignOutReasonSuffix(reason)}`;
 }
 
 /** Shared copy for Notes panel + attendance record card */

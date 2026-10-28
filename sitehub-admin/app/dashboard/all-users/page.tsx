@@ -1,26 +1,25 @@
 "use client";
 import toast from "react-hot-toast";
 
-import { useEffect, useState } from "react";
-import { createPortal } from "react-dom";
-import { formatDateTime } from "@/app/DisplayPreferencesProvider";
-import PageHeader from "../components/PageHeader";
+import { useEffect, useMemo, useState } from "react";
 import Table from "../components/ui/Table";
-import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
 import Link from "next/link";
-import { Users, UserCog, Building2, Trash2, KeyRound, MoreHorizontal, CheckCircle, Circle, User } from "lucide-react";
-import { CardSelect } from "../components/ui/CardSelect";
+import { Building2, Trash2, KeyRound, CheckCircle, Circle, User } from "lucide-react";
 import { CompanyPicker } from "../components/ui/SitePicker";
-import {
-  ACTION_MENU_ITEM_CLASS,
-  ACTION_MENU_ITEM_DANGER_CLASS,
-  ACTION_MENU_PANEL_CLASS,
-  ACTION_MENU_WIDTH,
-} from "../components/ui/TableActions";
+import Modal from "../components/ui/Modal";
+import { assignableStaffRoles, roleDisplayName } from "@/lib/auth/roles";
+import TableActions, { type TableActionItem } from "../components/ui/TableActions";
 
-const ROLES = ["ADMIN", "SUPERVISOR", "VIEWER", "OPERATIVE"] as const;
+const ROLE_OPTIONS = [
+  ...assignableStaffRoles("superuser"),
+  { value: "VIEWER", label: "Viewer" },
+];
+
+function roleKey(role: string | null | undefined): string {
+  return (role ?? "").trim().toUpperCase();
+}
 
 type UserRow = {
   id: string;
@@ -41,15 +40,12 @@ export default function AllUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
   const [companies, setCompanies] = useState<Company[]>([]);
   const [loading, setLoading] = useState(true);
-  const [roleModal, setRoleModal] = useState<{ user: UserRow } | null>(null);
-  const [newRole, setNewRole] = useState<string>("");
   const [companyModal, setCompanyModal] = useState<{ user: UserRow } | null>(null);
   const [newCompanyId, setNewCompanyId] = useState<string>("");
   const [saving, setSaving] = useState(false);
   const [resetSentId, setResetSentId] = useState<string | null>(null);
-  const [actionsOpenId, setActionsOpenId] = useState<string | null>(null);
-  const [menuAnchor, setMenuAnchor] = useState<{ top: number; right: number } | null>(null);
   const [companyFilter, setCompanyFilter] = useState<string>("");
+  const [query, setQuery] = useState("");
 
   const companyMap = companies.reduce<Record<string, string>>((acc, c) => {
     acc[c.id] = c.name ?? c.id;
@@ -76,21 +72,19 @@ export default function AllUsersPage() {
       .catch(() => setCompanies([]));
   }, []);
 
-  async function handleChangeRole() {
-    if (!roleModal || !newRole) return;
+  async function handleChangeRole(user: UserRow, nextRole: string) {
+    if (roleKey(user.role) === nextRole) return;
     setSaving(true);
     try {
-      const res = await fetch(`/api/users/${roleModal.user.id}`, {
+      const res = await fetch(`/api/users/${user.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
         credentials: "include",
-        body: JSON.stringify({ role: newRole, email: roleModal.user.email }),
+        body: JSON.stringify({ role: nextRole, email: user.email }),
       });
       if (res.ok) {
-        setUsers((prev) =>
-          prev.map((u) => (u.id === roleModal.user.id ? { ...u, role: newRole } : u))
-        );
-        setRoleModal(null);
+        setUsers((prev) => prev.map((u) => (u.id === user.id ? { ...u, role: nextRole } : u)));
+        toast.success(`Role set to ${roleDisplayName(nextRole)}`);
       } else {
         const err = await res.json();
         toast.error(err.error || "Failed to update role");
@@ -213,22 +207,34 @@ export default function AllUsersPage() {
   }
 
   const columns = [
-    { header: "Name", accessor: "name", render: (row: UserRow) => {
+    {
+      header: "Name",
+      accessor: "name",
+      render: (row: UserRow) => {
         const label = row.name || row.email || "—";
-        return <TableNameCell initials={initialsFromLabel(label)} label={label} role={row.role} />;
-      } },
+        return (
+          <Link
+            href={`/dashboard/users/${row.id}`}
+            className="table-link whitespace-nowrap"
+          >
+            {label}
+          </Link>
+        );
+      },
+    },
     { header: "Email", accessor: "email", render: (row: UserRow) => row.email || "—" },
     {
       header: "Role",
       accessor: "role",
       render: (row: UserRow) => <RoleBadge role={row.role} />,
     },
-    { header: "Company", accessor: "company_id", render: (row: UserRow) => { const cid = row.company_id ?? row.companyId; return cid ? (companyMap[cid] ?? cid) : "—"; } },
     {
-      header: "Last login",
-      accessor: "lastLogin",
-      render: (row: UserRow) =>
-        row.lastLogin ? formatDateTime(row.lastLogin) : "—",
+      header: "Company",
+      accessor: "company_id",
+      render: (row: UserRow) => {
+        const cid = row.company_id ?? row.companyId;
+        return cid ? (companyMap[cid] ?? cid) : "—";
+      },
     },
     {
       header: "Profile",
@@ -236,18 +242,14 @@ export default function AllUsersPage() {
       render: (row: UserRow) => {
         const hasPhoneOrAvatar = !!(row.phone?.trim?.() || row.avatar?.trim?.());
         return (
-          <Link
-            href={`/dashboard/users/${row.id}`}
-            className="inline-flex items-center gap-1.5 text-blue-600 hover:text-blue-700 hover:underline"
-            title="View profile"
-          >
+          <span className="inline-flex items-center gap-1.5 text-xs text-slate-600">
             {hasPhoneOrAvatar ? (
-              <CheckCircle className="w-4 h-4 text-emerald-600 shrink-0" aria-hidden />
+              <CheckCircle className="w-3.5 h-3.5 text-emerald-600 shrink-0" aria-hidden />
             ) : (
-              <Circle className="w-4 h-4 text-gray-300 shrink-0" aria-hidden />
+              <Circle className="w-3.5 h-3.5 text-gray-300 shrink-0" aria-hidden />
             )}
-            <span className="text-xs">{hasPhoneOrAvatar ? "Complete" : "Blank"}</span>
-          </Link>
+            {hasPhoneOrAvatar ? "Complete" : "Blank"}
+          </span>
         );
       },
     },
@@ -273,173 +275,103 @@ export default function AllUsersPage() {
     {
       header: "Actions",
       accessor: "actions",
-      render: (row: UserRow) => (
-        <div className="relative">
-          <Button
-            size="sm"
-            variant="secondary"
-            onClick={(e: React.MouseEvent<HTMLButtonElement>) => {
-              const target = e.currentTarget;
-              const rect = target.getBoundingClientRect();
-              if (actionsOpenId === row.id) {
-                setActionsOpenId(null);
-                setMenuAnchor(null);
-              } else {
-                setMenuAnchor({ top: rect.bottom, right: rect.right });
-                setActionsOpenId(row.id);
-              }
-            }}
-            disabled={saving}
-            className="inline-flex items-center gap-1"
-            title="Actions"
-          >
-            <MoreHorizontal className="w-4 h-4" />
-            Actions
-          </Button>
-          {actionsOpenId === row.id && menuAnchor && typeof document !== "undefined" &&
-            createPortal(
-              <>
-                <div className="fixed inset-0 z-40" onClick={() => { setActionsOpenId(null); setMenuAnchor(null); }} aria-hidden />
-                <div
-                  role="menu"
-                  className={`${ACTION_MENU_PANEL_CLASS} overflow-y-auto`}
-                  style={{
-                    position: "fixed",
-                    zIndex: 50,
-                    top: menuAnchor.top + 4,
-                    left: Math.max(8, menuAnchor.right - ACTION_MENU_WIDTH),
-                    width: ACTION_MENU_WIDTH,
-                    height: "fit-content",
-                    maxHeight: "calc(100vh - 16px)",
-                  }}
-                >
-                  <Link
-                    href={`/dashboard/users/${row.id}`}
-                    onClick={() => { setActionsOpenId(null); setMenuAnchor(null); }}
-                    className={ACTION_MENU_ITEM_CLASS}
-                    role="menuitem"
-                  >
-                    <User className="h-4 w-4 shrink-0 text-gray-400" /> View profile
-                  </Link>
-                  <button
-                    type="button"
-                    onClick={() => { setRoleModal({ user: row }); setNewRole(row.role || "VIEWER"); setActionsOpenId(null); setMenuAnchor(null); }}
-                    disabled={saving}
-                    className={ACTION_MENU_ITEM_CLASS}
-                    role="menuitem"
-                  >
-                    <UserCog className="h-4 w-4 shrink-0 text-gray-400" /> Change role
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { setCompanyModal({ user: row }); setNewCompanyId((row.company_id ?? row.companyId) || ""); setActionsOpenId(null); setMenuAnchor(null); }}
-                    disabled={saving}
-                    className={ACTION_MENU_ITEM_CLASS}
-                    role="menuitem"
-                  >
-                    <Building2 className="h-4 w-4 shrink-0 text-gray-400" /> Move to company
-                  </button>
-                  <button
-                    type="button"
-                    onClick={() => { handleSendPasswordReset(row); setActionsOpenId(null); setMenuAnchor(null); }}
-                    disabled={saving || !row.email}
-                    title={!row.email ? "No email" : undefined}
-                    className={ACTION_MENU_ITEM_CLASS}
-                    role="menuitem"
-                  >
-                    <KeyRound className="h-4 w-4 shrink-0 text-gray-400" /> {resetSentId === row.id ? "Sent" : "Send reset email"}
-                  </button>
-                  <div className="my-1 border-t border-gray-100 dark:border-slate-600" />
-                  <button
-                    type="button"
-                    onClick={() => { handleDelete(row); setActionsOpenId(null); setMenuAnchor(null); }}
-                    disabled={saving}
-                    className={ACTION_MENU_ITEM_DANGER_CLASS}
-                    role="menuitem"
-                  >
-                    <Trash2 className="h-4 w-4 shrink-0 text-red-600" /> Delete user
-                  </button>
-                </div>
-              </>,
-              document.body
-            )
-          }
-        </div>
-      ),
+      render: (row: UserRow) => {
+        const current = roleKey(row.role);
+        const items: TableActionItem[] = [
+          {
+            label: "View profile",
+            icon: User,
+            onClick: () => window.location.assign(`/dashboard/users/${row.id}`),
+          },
+          ...ROLE_OPTIONS.map((opt, i) => ({
+            label: current === opt.value ? `${opt.label} (current)` : opt.label,
+            heading: i === 0 ? `Set role · currently ${roleDisplayName(row.role)}` : undefined,
+            onClick: () => void handleChangeRole(row, opt.value),
+          })),
+          {
+            label: "Move to company",
+            icon: Building2,
+            divider: true,
+            onClick: () => {
+              setCompanyModal({ user: row });
+              setNewCompanyId((row.company_id ?? row.companyId) || "");
+            },
+          },
+          {
+            label: resetSentId === row.id ? "Sent" : "Send reset email",
+            icon: KeyRound,
+            onClick: () => void handleSendPasswordReset(row),
+          },
+          {
+            label: "Delete user",
+            icon: Trash2,
+            variant: "danger" as const,
+            onClick: () => void handleDelete(row),
+          },
+        ];
+        return <TableActions items={items} />;
+      },
     },
   ];
 
+  const visibleUsers = useMemo(() => {
+    const q = query.trim().toLowerCase();
+    return users.filter((u) => {
+      const cid = u.company_id ?? u.companyId;
+      if (companyFilter && cid !== companyFilter) return false;
+      if (!q) return true;
+      const hay = `${u.name ?? ""} ${u.email ?? ""} ${companyMap[cid ?? ""] ?? cid ?? ""}`.toLowerCase();
+      return hay.includes(q);
+    });
+  }, [users, companyFilter, query, companyMap]);
+
   return (
-    <div className="relative space-y-8">
-
-      <PageHeader
-        title="All users"
-        description="View and manage users across all companies."
-      />
-
-      <div className="w-64 mb-6">
-        <CompanyPicker
-          companies={companies}
-          value={companyFilter}
-          onChange={setCompanyFilter}
-          variant="compact"
-          allowNone
-          noneValue=""
-          noneLabel="All companies"
-          placeholder="All companies"
-        />
-      </div>
-
+    <div className="relative">
       <Table
+        density="compact"
         title="All users"
-        subtitle={`${users.length} users`}
+        subtitle={loading ? "Loading…" : `${visibleUsers.length}${visibleUsers.length !== users.length ? ` of ${users.length}` : ""} users`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              type="search"
+              value={query}
+              onChange={(e) => setQuery(e.target.value)}
+              placeholder="Search name or email"
+              className="table-toolbar-input w-52"
+              aria-label="Search users"
+            />
+            <CompanyPicker
+              companies={companies}
+              value={companyFilter}
+              onChange={setCompanyFilter}
+              variant="compact"
+              allowNone
+              noneValue=""
+              noneLabel="All companies"
+              placeholder="All companies"
+              className="w-52"
+            />
+          </div>
+        }
         columns={columns}
-        data={loading ? [] : companyFilter ? users.filter((u) => (u.company_id ?? u.companyId) === companyFilter) : users}
-        emptyMessage={loading ? "Loading…" : "No users found."}
+        data={visibleUsers}
+        loading={loading}
+        emptyMessage="No users found."
+        thing="users"
+        things="users"
       />
 
-      {roleModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => !saving && setRoleModal(null)}
-        >
-          <div
-            className="card max-w-md w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Change role</h3>
-            <p className="text-sm text-gray-600 mb-4">{roleModal.user.email}</p>
-            <CardSelect
-              items={ROLES.map((r) => ({ id: r, name: r }))}
-              value={newRole}
-              onChange={setNewRole}
-              icon={UserCog}
-              fieldLabel="Role"
-              className="mb-6"
-            />
-            <div className="flex gap-3 justify-end">
-              <Button type="button" variant="secondary" onClick={() => setRoleModal(null)} disabled={saving}>
-                Cancel
-              </Button>
-              <Button onClick={handleChangeRole} disabled={saving}>
-                {saving ? "Saving…" : "Save"}
-              </Button>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {companyModal && (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40 backdrop-blur-sm"
-          onClick={() => !saving && setCompanyModal(null)}
-        >
-          <div
-            className="card max-w-md w-full shadow-2xl"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <h3 className="text-xl font-semibold text-gray-900 mb-2">Move to company</h3>
-            <p className="text-sm text-gray-600 mb-4">{companyModal.user.email}</p>
+      <Modal
+        open={!!companyModal}
+        onClose={() => {
+          if (!saving) setCompanyModal(null);
+        }}
+        title="Move to company"
+      >
+        {companyModal ? (
+          <>
+            <p className="text-sm text-gray-600 dark:text-slate-400 mb-4">{companyModal.user.email}</p>
             <CompanyPicker
               companies={companies}
               value={newCompanyId}
@@ -457,9 +389,9 @@ export default function AllUsersPage() {
                 {saving ? "Saving…" : "Save"}
               </Button>
             </div>
-          </div>
-        </div>
-      )}
+          </>
+        ) : null}
+      </Modal>
     </div>
   );
 }

@@ -6,7 +6,7 @@ import { useEffect, useState, type ChangeEvent } from "react";
 import PageHeader from "../components/PageHeader";
 import { useTheme } from "@/app/ThemeProvider";
 import { useDisplayPreferences, formatDate, formatTime, formatDateTime } from "@/app/DisplayPreferencesProvider";
-import { Mail, Calendar, Clock, Rows3, User, Building2, Bell, Lock, Palette, Database } from "lucide-react";
+import { Mail, Calendar, Clock, Rows3, Building2, Bell, Lock, Palette } from "lucide-react";
 import { CardSelect } from "../components/ui/CardSelect";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useClientSession } from "../components/ClientSessionProvider";
@@ -15,16 +15,13 @@ import AttendanceAlertSettings from "./AttendanceAlertSettings";
 
 export default function SettingsPage() {
   const { t } = useDisplayPreferences();
-  const activeTabDefault = "personal";
-  const [activeTab, setActiveTab] = useState(activeTabDefault);
+  const [activeTab, setActiveTab] = useState("company");
 
   const tabs = [
-    { id: "personal", label: t("Personal information"), icon: User },
     { id: "company", label: t("Company"), icon: Building2 },
     { id: "notifications", label: t("Notifications"), icon: Bell },
     { id: "security", label: t("Security"), icon: Lock },
     { id: "display", label: t("Display"), icon: Palette },
-    { id: "data", label: t("Data & privacy"), icon: Database },
   ];
 
   return (
@@ -53,33 +50,13 @@ export default function SettingsPage() {
 
         {/* Content Area */}
         <div>
-          {activeTab === "personal" && <PersonalInformationSettings />}
           {activeTab === "company" && <CompanySettings />}
           {activeTab === "notifications" && <NotificationSettings />}
           {activeTab === "security" && <SecuritySettings />}
           {activeTab === "display" && <DisplaySettings />}
-          {activeTab === "data" && <DataPrivacySettings />}
         </div>
       </div>
     </>
-  );
-}
-
-function PersonalInformationSettings() {
-  return (
-    <div className="card p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Personal information</h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Edit your name, email, phone, address, emergency contact, NI number, and other personal details in your Profile.
-        This is the single place for your account details, used across the app.
-      </p>
-      <a
-        href="/dashboard/profile"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-      >
-        Open Profile →
-      </a>
-    </div>
   );
 }
 
@@ -394,12 +371,15 @@ function NotificationSettings() {
     applyPrefs(data);
   }
 
-  async function handleSaveEmailPrefs() {
+  async function handleToggleEmailPrefs(next: boolean) {
+    const previous = operativePendingApproval;
+    setOperativePendingApproval(next);
     setSaving(true);
     setSaveError(null);
     try {
-      await patchPrefs({ operativePendingApproval });
+      await patchPrefs({ operativePendingApproval: next });
     } catch (e) {
+      setOperativePendingApproval(previous);
       setSaveError(e instanceof Error ? e.message : "Could not save");
     } finally {
       setSaving(false);
@@ -425,28 +405,7 @@ function NotificationSettings() {
     <div className="card p-6">
       <h2 className="text-xl font-bold text-gray-900 mb-6">Notification Preferences</h2>
       <div className="space-y-4">
-        <div className="flex items-center justify-between py-3 border-b">
-          <div>
-            <p className="font-semibold text-gray-900">New Health &amp; Safety Documents</p>
-            <p className="text-sm text-gray-600">Get notified when new RAMS or briefings are uploaded</p>
-          </div>
-          <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
-        </div>
-        <div className="flex items-center justify-between py-3 border-b">
-          <div>
-            <p className="font-semibold text-gray-900">Task Assignments</p>
-            <p className="text-sm text-gray-600">Receive alerts when tasks are assigned to you</p>
-          </div>
-          <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
-        </div>
         <AttendanceAlertSettings />
-        <div className="flex items-center justify-between py-3 border-b">
-          <div>
-            <p className="font-semibold text-gray-900">Safety alerts</p>
-            <p className="text-sm text-gray-600">Critical alerts from Safety → Alerts (push when published)</p>
-          </div>
-          <input type="checkbox" className="w-5 h-5 rounded border-gray-300" defaultChecked />
-        </div>
         <div className="flex items-center justify-between py-3 border-b">
           <div>
             <label htmlFor="pref-asset-inspection-reminders" className="font-semibold text-gray-900">
@@ -473,8 +432,8 @@ function NotificationSettings() {
               <div>
                 <p className="font-semibold text-gray-900">Operative pending approval (email)</p>
                 <p className="text-sm text-gray-600">
-                  Email when a new operative registers and needs approval. A copy also goes to info@construction-runner.com.
-                  Requires the platform email toggle in Global settings.
+                  Email when a new operative registers and needs approval. A copy also goes to
+                  info@construction-runner.com. Company email sending must be on.
                 </p>
                 {saveError && (
                   <p className="text-sm text-red-600 mt-2" role="alert">
@@ -488,35 +447,14 @@ function NotificationSettings() {
                 type="checkbox"
                 className="w-5 h-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 checked={operativePendingApproval}
-                onChange={(e) => setOperativePendingApproval(e.target.checked)}
-                disabled={loading}
+                onChange={(e) => void handleToggleEmailPrefs(e.target.checked)}
+                disabled={loading || saving}
                 title="Receive email when an operative is pending approval"
                 aria-label="Email me when an operative registration is pending approval"
               />
-              <button
-                type="button"
-                className="text-sm font-medium text-blue-600 hover:text-blue-800 disabled:opacity-50"
-                onClick={() => void handleSaveEmailPrefs()}
-                disabled={saving || loading}
-              >
-                {saving ? "Saving…" : "Save"}
-              </button>
             </div>
           </div>
         )}
-
-        <div className="flex items-center justify-between py-3 border-b">
-          <div>
-            <p className="font-semibold text-gray-900">Email Digest</p>
-            <p className="text-sm text-gray-600">Weekly summary of site activity</p>
-          </div>
-          <input type="checkbox" className="w-5 h-5 rounded border-gray-300" />
-        </div>
-        <div className="pt-4 border-t">
-          <button type="button" className="button">
-            Save Preferences
-          </button>
-        </div>
       </div>
     </div>
   );
@@ -677,7 +615,7 @@ function DisplaySettings() {
               </label>
               <p className="text-sm text-gray-600 dark:text-slate-400 mb-2">
                 Direct <code className="text-xs bg-gray-100 dark:bg-slate-800 px-1 rounded">https://</code> link
-                to a PNG or JPEG (e.g. from Supabase storage or your CDN).
+                to a PNG or JPEG hosted on your image host or CDN.
               </p>
               <div className="flex flex-col sm:flex-row gap-2">
                 <input
@@ -879,23 +817,6 @@ function SecuritySettings() {
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-function DataPrivacySettings() {
-  return (
-    <div className="card p-6">
-      <h2 className="text-xl font-bold text-gray-900 mb-6">Data & privacy</h2>
-      <p className="text-sm text-gray-600 mb-6">
-        Download your data or request erasure from Profile → Privacy &amp; Data. That is the live GDPR path.
-      </p>
-      <a
-        href="/dashboard/profile"
-        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-blue-600 text-white font-medium hover:bg-blue-700 transition-colors"
-      >
-        Open Profile →
-      </a>
     </div>
   );
 }

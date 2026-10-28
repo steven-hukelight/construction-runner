@@ -3,13 +3,12 @@ import toast from "react-hot-toast";
 
 import { useEffect, useState } from "react";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
-import PageHeader from "../components/PageHeader";
 import { PortalOverlay } from "../components/PortalOverlay";
 import Table from "../components/ui/Table";
 import { TableNameCell } from "../components/ui/TableChrome";
 import Button from "../components/ui/Button";
 import TableActions from "../components/ui/TableActions";
-import { Archive, Ban, Building2, LayoutDashboard, Pencil, Plus, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
+import { Building2, LayoutDashboard, Pencil, Plus, Copy, Check, RefreshCw, Trash2 } from "lucide-react";
 import { CompanyPicker } from "../components/ui/SitePicker";
 
 type Company = {
@@ -17,7 +16,6 @@ type Company = {
   name: string | null;
   inviteCode: string | null;
   createdAt: string | null;
-  status: string;
   userCount?: number;
   siteCount?: number;
 };
@@ -117,27 +115,6 @@ export default function CompaniesPage() {
     }
   }
 
-  async function handleSetStatus(companyId: string, status: string) {
-    setUpdating(true);
-    try {
-      const res = await fetch(`/api/companies/${companyId}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ status }),
-      });
-      if (res.ok) {
-        setCompanies((prev) =>
-          prev.map((c) => (c.id === companyId ? { ...c, status } : c))
-        );
-      } else {
-        const err = await res.json();
-        toast.error(err.error || "Failed to update");
-      }
-    } finally {
-      setUpdating(false);
-    }
-  }
-
   async function handleDeleteCompany(company: Company, force: boolean) {
     try {
       const res = await fetch(`/api/companies/${company.id}?force=${force}`, { method: "DELETE" });
@@ -227,23 +204,6 @@ export default function CompaniesPage() {
       render: (row: Company) =>
         row.createdAt ? formatDate(row.createdAt) : "—",
     },
-    {
-      header: "Status",
-      accessor: "status",
-      render: (row: Company) => (
-        <span
-          className={`status-chip ${
-            row.status === "Active"
-              ? "status-chip--ok"
-              : row.status === "Archived"
-                ? "status-chip--muted"
-                : "status-chip--info"
-          }`}
-        >
-          {row.status || "Active"}
-        </span>
-      ),
-    },
     { header: "Users", accessor: "userCount", render: (row: Company) => row.userCount ?? "—" },
     { header: "Sites", accessor: "siteCount", render: (row: Company) => row.siteCount ?? "—" },
     {
@@ -252,7 +212,7 @@ export default function CompaniesPage() {
       render: (row: Company) => {
         const hasData = (row.userCount ?? 0) > 0 || (row.siteCount ?? 0) > 0;
         const menuItems = [
-          { label: "Enter dashboard", icon: LayoutDashboard, onClick: () => handleEnterDashboard(row.id) },
+          { label: "View company dashboard", icon: LayoutDashboard, onClick: () => handleEnterDashboard(row.id) },
           {
             label: regeneratingId === row.id ? "Regenerating…" : "Regenerate invite code",
             icon: RefreshCw,
@@ -266,8 +226,6 @@ export default function CompaniesPage() {
               setEditName(row.name || "");
             },
           },
-          ...(row.status !== "Disabled" ? [{ label: "Disable", icon: Ban, onClick: () => handleSetStatus(row.id, "Disabled") }] : []),
-          ...(row.status !== "Archived" ? [{ label: "Archive", icon: Archive, onClick: () => handleSetStatus(row.id, "Archived") }] : []),
           {
             label: "Delete company",
             icon: Trash2,
@@ -285,7 +243,7 @@ export default function CompaniesPage() {
               onClick={() => handleEnterDashboard(row.id)}
               className="inline-flex items-center px-2.5 py-1.5 text-xs font-medium rounded-lg bg-blue-600 text-white hover:bg-blue-700 transition-colors"
             >
-              Enter dashboard
+              Open
             </button>
             <TableActions items={menuItems} />
           </div>
@@ -294,39 +252,39 @@ export default function CompaniesPage() {
     },
   ];
 
+  const visibleCompanies = companyFilter ? companies.filter((c) => c.id === companyFilter) : companies;
+
   return (
-    <div className="relative space-y-8">
-
-      <PageHeader
-        title="Companies"
-        description="Manage tenants and invite codes. Enter a company to view their dashboard."
-        action={
-          <Button onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2">
-            <Plus className="w-4 h-4" />
-            Create company
-          </Button>
-        }
-      />
-
-      <div className="w-64 mb-4">
-        <CompanyPicker
-          companies={companies}
-          value={companyFilter}
-          onChange={setCompanyFilter}
-          variant="compact"
-          allowNone
-          noneValue=""
-          noneLabel="All companies"
-          placeholder="All companies"
-        />
-      </div>
-
+    <div className="relative">
       <Table
-        title="All companies"
-        subtitle={`${companies.length} companies`}
+        density="compact"
+        title="Companies"
+        subtitle={loading ? "Loading…" : `${visibleCompanies.length}${companyFilter ? ` of ${companies.length}` : ""} tenants`}
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <CompanyPicker
+              companies={companies}
+              value={companyFilter}
+              onChange={setCompanyFilter}
+              variant="compact"
+              allowNone
+              noneValue=""
+              noneLabel="All companies"
+              placeholder="All companies"
+              className="w-56"
+            />
+            <Button onClick={() => setCreateOpen(true)} className="inline-flex items-center gap-2" size="sm">
+              <Plus className="w-4 h-4" />
+              Create company
+            </Button>
+          </div>
+        }
         columns={columns}
-        data={loading ? [] : companyFilter ? companies.filter((c) => c.id === companyFilter) : companies}
-        emptyMessage={loading ? "Loading…" : "No companies yet. Create one to get started."}
+        data={visibleCompanies}
+        loading={loading}
+        emptyMessage="No companies yet. Create one to get started."
+        thing="companies"
+        things="companies"
       />
 
       {createOpen && (
@@ -336,7 +294,7 @@ export default function CompaniesPage() {
             onClick={() => !creating && setCreateOpen(false)}
           >
             <div
-              className="card max-w-lg w-full max-h-[90vh] overflow-y-auto shadow-2xl"
+              className="modal-panel max-w-lg w-full max-h-[90vh] overflow-y-auto rounded-xl bg-white border border-gray-200 shadow-xl p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-semibold text-gray-900 mb-1">Create company</h3>
@@ -430,7 +388,7 @@ export default function CompaniesPage() {
             onClick={() => !updating && setEditModal(null)}
           >
             <div
-              className="card max-w-md w-full shadow-2xl"
+              className="modal-panel max-w-md w-full rounded-xl bg-white border border-gray-200 shadow-xl p-6"
               onClick={(e) => e.stopPropagation()}
             >
               <h3 className="text-xl font-semibold text-gray-900 mb-4">Edit company</h3>

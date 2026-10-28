@@ -38,7 +38,10 @@ export type AuditAction =
   | "clear_system_logs"
   | "rams_upload_failed"
   | "my_info_edited_on_behalf"
-  | "password_change";
+  | "password_change"
+  | "site_alarm_raised"
+  | "site_alarm_stood_down"
+  | "site_emergency_plan_updated";
 
 export interface AuditLogEntry {
   userId: string;

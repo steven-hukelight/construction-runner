@@ -449,6 +449,18 @@ export default function ProfilePage() {
       console.error("Invalid phone number:", profile.phone);
       return;
     }
+    if (extra.emergencyContactPhone && !isValidUkPhone(extra.emergencyContactPhone)) {
+      toast.error("Please enter a valid UK phone number.");
+      return;
+    }
+    if (extra.niNumber && !isValidNi(extra.niNumber)) {
+      toast.error("Please enter a valid NI number (e.g., QQ123456C).");
+      return;
+    }
+    if (extra.utrNumber && !isValidUtr(extra.utrNumber)) {
+      toast.error("Please enter a valid 10-digit UTR.");
+      return;
+    }
 
     setSaving(true);
     try {
@@ -496,41 +508,6 @@ export default function ProfilePage() {
       toast.error("Failed to save profile: " + message);
     } finally {
       setSaving(false);
-    }
-  }
-
-  /** Saves personal info to users/{userId}/profile/data via API (called from "Save Personal Info" button). */
-  async function saveExtraProfile() {
-    try {
-      if (!userId) return;
-      const day = extra.dobDay.padStart(2, "0");
-      const month = extra.dobMonth.padStart(2, "0");
-      const year = extra.dobYear;
-      const dobIso = day && month && year ? `${year}-${month}-${day}` : "";
-      const res = await fetch("/api/profiles", {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          userId,
-          displayName: profile.name || profile.email || "",
-          phone: profile.phone,
-          bio: profile.bio,
-          addressLine1: profile.location,
-          jobTitle: extra.jobTitle || "",
-          emergencyContactName: extra.emergencyContactName || "",
-          emergencyContactPhone: extra.emergencyContactPhone || "",
-          niNumber: extra.niNumber || "",
-          utrNumber: extra.utrNumber || "",
-          dateOfBirth: dobIso || undefined,
-        }),
-      });
-      if (!res.ok) throw new Error("Failed to save");
-      setIsDirty(false);
-      await loadProfileViaApi(true);
-      toast.success("Profile saved");
-    } catch (e) {
-      console.error("Error saving extra profile:", e);
     }
   }
 
@@ -701,8 +678,8 @@ export default function ProfilePage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Settings"
-        description="Manage your account information and preferences"
+        title="Profile"
+        description="Your account details and preferences"
         action={
           <button onClick={handleSave} className="button" disabled={saving}>
             {saving ? "Saving..." : "Save Changes"}
@@ -829,7 +806,7 @@ export default function ProfilePage() {
                   </span>
                 </div>
                 <div className="flex items-start justify-between">
-                  <span className="text-slate-500">Location</span>
+                  <span className="text-slate-500">Home address</span>
                   <span className="text-slate-900 font-medium">{profile.location || "Not set"}</span>
                 </div>
                 <div className="flex items-start justify-between">
@@ -938,13 +915,13 @@ export default function ProfilePage() {
                   </div>
                   
                   <div>
-                    <label className="block text-sm font-medium text-slate-700 mb-2">Location</label>
+                    <label className="block text-sm font-medium text-slate-700 mb-2">Home address</label>
                     <input
                       type="text"
                       value={profile.location}
                       onChange={(e) => updateProfile({ location: e.target.value })}
                       className="input w-full"
-                      placeholder="Enter location"
+                      placeholder="Street, town, postcode"
                     />
                   </div>
 
@@ -1106,19 +1083,9 @@ export default function ProfilePage() {
                     />
                   </div>
                 </div>
-                <div className="mt-4">
-                  <button
-                    onClick={() => {
-                      if (extra.emergencyContactPhone && !isValidUkPhone(extra.emergencyContactPhone)) { toast.error('Please enter a valid UK phone number.'); return; }
-                      if (extra.niNumber && !isValidNi(extra.niNumber)) { toast.error('Please enter a valid NI number (e.g., QQ123456C).'); return; }
-                      if (extra.utrNumber && !isValidUtr(extra.utrNumber)) { toast.error('Please enter a valid 10-digit UTR.'); return; }
-                      saveExtraProfile();
-                    }}
-                    className="button"
-                  >
-                    Save Personal Info
-                  </button>
-                </div>
+                <p className="mt-4 text-sm text-slate-500">
+                  Use Save Changes at the top of the page to save this section.
+                </p>
               </div>
 
               <div className="card">

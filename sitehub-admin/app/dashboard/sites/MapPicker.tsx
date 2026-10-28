@@ -47,6 +47,8 @@ export default function MapPicker({
     async function init() {
       const leaflet = await import("leaflet");
       const L = (leaflet as any).default || leaflet;
+      const { applyLeafletDefaultIcon } = await import("@/lib/leafletDefaultIcon");
+      applyLeafletDefaultIcon(L);
 
       if (!containerRef.current || !isMounted) return;
 
@@ -255,6 +257,8 @@ export default function MapPicker({
 
       const leaflet = await import("leaflet");
       const L = (leaflet as any).default || leaflet;
+      const { applyLeafletDefaultIcon } = await import("@/lib/leafletDefaultIcon");
+      applyLeafletDefaultIcon(L);
 
       const centerLat = lat ? parseFloat(lat) : 51.505;
       const centerLng = lng ? parseFloat(lng) : -0.09;
@@ -326,6 +330,8 @@ export default function MapPicker({
       } else {
         const leaflet = await import("leaflet");
         const L = (leaflet as any).default || leaflet;
+        const { applyLeafletDefaultIcon } = await import("@/lib/leafletDefaultIcon");
+        applyLeafletDefaultIcon(L);
         markerRef.current = L.marker([cLat, cLng]).addTo(mapRef.current);
       }
 

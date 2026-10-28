@@ -1,25 +1,25 @@
 import { render, screen, waitFor } from "@testing-library/react";
 import { DashboardContent } from "@/app/dashboard/components/DashboardContent";
 import * as cookies from "@/lib/utils/cookies";
-import * as fetchTableModule from "@/lib/supabase/fetchTable";
 
 jest.mock("@/lib/utils/cookies", () => ({
   getCompanyIdFromClient: jest.fn(),
   getRoleFromClient: jest.fn(),
+  getCurrentSiteIdFromCookie: jest.fn(() => null),
 }));
 
-jest.mock("@/lib/supabase/fetchTable", () => ({
-  fetchTable: jest.fn(),
-}));
+jest.mock("next/dynamic", () => () => {
+  function MockCharts() {
+    return <div>charts</div>;
+  }
+  return MockCharts;
+});
 
 const mockGetCompanyIdFromClient = cookies.getCompanyIdFromClient as jest.MockedFunction<
   typeof cookies.getCompanyIdFromClient
 >;
 const mockGetRoleFromClient = cookies.getRoleFromClient as jest.MockedFunction<
   typeof cookies.getRoleFromClient
->;
-const mockFetchTable = fetchTableModule.fetchTable as jest.MockedFunction<
-  typeof fetchTableModule.fetchTable
 >;
 
 const defaultProps = {
@@ -42,113 +42,71 @@ const defaultProps = {
   ],
 };
 
+function jsonResponse(body: unknown, ok = true) {
+  return Promise.resolve({
+    ok,
+    json: async () => body,
+  } as Response);
+}
+
 beforeEach(() => {
   jest.clearAllMocks();
+  mockGetCompanyIdFromClient.mockReturnValue("co-a-uuid");
+  mockGetRoleFromClient.mockReturnValue("admin");
+  global.fetch = jest.fn((input: RequestInfo | URL) => {
+    const url = String(input);
+    if (url.includes("/api/auth/registrations")) return jsonResponse([]);
+    if (url.includes("count=unreviewed")) return jsonResponse({ count: 0 });
+    if (url.includes("/api/admin/missing-info")) return jsonResponse([{ userId: "u1" }, { userId: "u2" }]);
+    if (url.includes("/api/assets")) {
+      return jsonResponse([
+        { id: "a1", next_inspection_due: "2020-01-01", inspection_required: true },
+        { id: "a2", next_inspection_due: "2099-01-01", inspection_required: true },
+      ]);
+    }
+    return jsonResponse([]);
+  }) as jest.Mock;
 });
 
 describe("DashboardContent", () => {
-  it("renders correct company data when companyId is set", async () => {
-    mockGetCompanyIdFromClient.mockReturnValue("co-a-uuid");
-    mockGetRoleFromClient.mockReturnValue("admin");
-    mockFetchTable.mockImplementation((table: string) => {
-      const dataMap: Record<string, unknown[]> = {
-        sites: [
-          { id: "s1", name: "Site Alpha", company_id: "co-a", created_at: "2024-01-15T10:00:00Z" },
-          { id: "s2", name: "Site Beta", company_id: "co-a", created_at: "2024-01-16T10:00:00Z" },
-        ],
-        rams: [{ id: "r1", title: "RAMS Doc", status: "APPROVED" }],
-        users: [{ id: "u1", display_name: "Alice" }],
-        tasks: [{ id: "t1", title: "Task 1" }],
-      };
-      return Promise.resolve({ data: dataMap[table] ?? [], error: null });
-    });
-
+  it("renders stats from props and latest activity", async () => {
     render(<DashboardContent {...defaultProps} />);
 
     await waitFor(() => {
-      expect(mockFetchTable).toHaveBeenCalledWith("sites", "admin", "co-a-uuid");
+      expect(global.fetch).toHaveBeenCalled();
     });
-
-    expect(screen.getByText("Total Sites")).toBeInTheDocument();
-    await waitFor(() => {
-      expect(screen.getByText(/Site added: Site Alpha/)).toBeInTheDocument();
-    });
-    const siteCounts = screen.getAllByText("2");
-    expect(siteCounts.length).toBeGreaterThan(0);
+    expect(screen.getByText("Sites")).toBeInTheDocument();
+    expect(screen.getByText("Approved RAMS")).toBeInTheDocument();
+    expect(screen.getByText("People")).toBeInTheDocument();
+    expect(screen.getByText("Open tasks")).toBeInTheDocument();
+    expect(screen.getByText(/Site set up: Site Alpha/)).toBeInTheDocument();
   });
 
-  it("superuser sees all companies (fetchTable called without company filter)", async () => {
-    mockGetCompanyIdFromClient.mockReturnValue(null);
-    mockGetRoleFromClient.mockReturnValue("superuser");
-    mockFetchTable.mockImplementation((table: string) =>
-      Promise.resolve({
-        data: table === "sites"
-          ? [
-              { id: "s1", name: "Site A", company_id: "co-a" },
-              { id: "s2", name: "Site B", company_id: "co-b" },
-            ]
-          : [],
-        error: null,
-      })
-    );
-
+  it("feeds overdue inspections and missing info into Needs attention", async () => {
     render(<DashboardContent {...defaultProps} />);
 
     await waitFor(() => {
-      expect(mockFetchTable).toHaveBeenCalledWith("sites", "superuser", null);
+      expect(screen.getByText("1 asset inspection overdue")).toBeInTheDocument();
     });
-
-    expect(screen.getByText("Total Sites")).toBeInTheDocument();
-    expect(screen.getByText("Quick Actions")).toBeInTheDocument();
+    expect(screen.getByText("2 people are missing emergency or medical info")).toBeInTheDocument();
   });
 
-  it("null companyId with non-superuser shows props-based data (no fetch)", async () => {
-    mockGetCompanyIdFromClient.mockReturnValue(null);
-    mockGetRoleFromClient.mockReturnValue("admin");
+  it("shows empty attention state when nothing is waiting", async () => {
+    (global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("count=unreviewed")) return jsonResponse({ count: 0 });
+      return jsonResponse([]);
+    });
 
     render(
       <DashboardContent
         {...defaultProps}
-        sites={[]}
-        rams={[]}
-        users={[]}
-        tasks={[]}
-        totalSites={0}
-        totalUsers={0}
-        totalTasks={0}
-        activeRAMS={0}
+        tasks={[{ id: "t1", title: "Done", company_id: "co-a", status: "DONE" }]}
       />
     );
 
     await waitFor(() => {
-      expect(mockFetchTable).not.toHaveBeenCalled();
+      expect(screen.getByText(/Nothing waiting/)).toBeInTheDocument();
     });
-
-    expect(screen.getByText("Total Sites")).toBeInTheDocument();
-    const zeroCounts = screen.getAllByText("0");
-    expect(zeroCounts.length).toBeGreaterThan(0);
-    expect(screen.queryByText(/Site added:/)).not.toBeInTheDocument();
-  });
-
-  it("renders stat cards and quick actions", async () => {
-    mockGetCompanyIdFromClient.mockReturnValue("co-a");
-    mockGetRoleFromClient.mockReturnValue("admin");
-    mockFetchTable.mockImplementation((table: string) =>
-      Promise.resolve({
-        data: table === "sites" ? defaultProps.sites : [],
-        error: null,
-      })
-    );
-
-    render(<DashboardContent {...defaultProps} />);
-
-    expect(screen.getByText("Total Sites")).toBeInTheDocument();
-    expect(screen.getByText("Active RAMS")).toBeInTheDocument();
-    expect(screen.getByText("Users")).toBeInTheDocument();
-    expect(screen.getByText("Tasks")).toBeInTheDocument();
-    expect(screen.getByText("Quick Actions")).toBeInTheDocument();
-    expect(screen.getByText("Add Site")).toBeInTheDocument();
-    expect(screen.getByText("Upload RAMS")).toBeInTheDocument();
-    expect(screen.getByText("Invite User")).toBeInTheDocument();
   });
 });

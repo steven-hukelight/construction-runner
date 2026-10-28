@@ -196,7 +196,8 @@ export default function SuperuserAdminClient() {
               <div key={entry.id} className="rounded-xl px-4 py-2.5 hover:bg-blue-50/70">
                 <p className="text-sm text-slate-900">{entry.message}</p>
                 <p className="mt-0.5 text-xs text-slate-500">
-                  {entry.time} {entry.source && `· ${entry.source}`}
+                  {entry.time ? formatDateTime(entry.time) : ""}
+                  {entry.source ? ` · ${entry.source}` : ""}
                 </p>
               </div>
             ))}

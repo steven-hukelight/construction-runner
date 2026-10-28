@@ -62,7 +62,7 @@ export default function SuperuserCompanyGate({
           placeholder="Select company"
         />
         <Button onClick={openCompany} disabled={loading || !selected.trim()}>
-          {loading ? "Opening…" : "Open company"}
+          {loading ? "Opening…" : "View company dashboard"}
         </Button>
         {error ? <p className="text-sm text-red-600">{error}</p> : null}
       </div>

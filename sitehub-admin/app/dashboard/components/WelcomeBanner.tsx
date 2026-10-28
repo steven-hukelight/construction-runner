@@ -63,8 +63,9 @@ export default function WelcomeBanner({ subtitle, showSiteAttendance = false, ac
           {mounted ? formattedDate : "\u00A0"}
         </p>
         <h1 className="mt-1 text-2xl font-semibold text-gray-900 dark:text-slate-100">
-          {getGreeting()}
-          {isValidating ? "" : `, ${userName || "there"}`}
+          {userName || !isValidating
+            ? `${getGreeting()}, ${userName || "there"}`
+            : getGreeting()}
         </h1>
         <p className="mt-1 max-w-xl text-sm text-gray-500 dark:text-slate-400">
           {subtitle ?? "Overview of sites and team activity"}

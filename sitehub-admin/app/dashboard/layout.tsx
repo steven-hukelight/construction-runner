@@ -7,6 +7,7 @@ import SuperuserSidebar from "./components/layout/SuperuserSidebar";
 import Topbar from "./components/layout/Topbar";
 import SessionTimeoutHandler from "./components/SessionTimeoutHandler";
 import GlobalBanner from "./components/GlobalBanner";
+import ActiveAlarmBanner from "./components/ActiveAlarmBanner";
 import NativeDatePickerOpener from "./components/NativeDatePickerOpener";
 import OneSignalProvider from "./components/OneSignalProvider";
 import { DashboardMainShell } from "./components/DashboardMainShell";
@@ -109,6 +110,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
           {showSidebar}
           <DashboardMainShell>
             <GlobalBanner />
+            <ActiveAlarmBanner />
             <Topbar />
             {children}
           </DashboardMainShell>

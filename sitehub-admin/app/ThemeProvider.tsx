@@ -46,6 +46,7 @@ function applyTheme(theme: Theme) {
   if (typeof document === "undefined") return;
   const resolved = getResolvedTheme(theme);
   document.documentElement.dataset.theme = resolved;
+  document.documentElement.style.colorScheme = resolved;
 }
 
 export function ThemeProvider({ children }: { children: ReactNode }) {

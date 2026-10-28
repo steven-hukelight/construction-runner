@@ -1,7 +1,13 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { assertWritableSiteId, getRestrictedSiteIds, siteIdsForFilter } from "@/lib/auth/siteScope";
+import {
+  assertWritableSiteId,
+  dashboardSiteScope,
+  getRestrictedSiteIds,
+  isMobileClientRequest,
+  siteIdsForFilter,
+} from "@/lib/auth/siteScope";
 import { authorizeNearMissViewer } from "@/lib/auth/nearMissAccess";
 
 export async function GET(req: Request) {
@@ -21,6 +27,9 @@ export async function GET(req: Request) {
     const siteId = url.searchParams.get("siteId")?.trim();
     const search = url.searchParams.get("search")?.trim().toLowerCase();
     const sort = url.searchParams.get("sort") || "newest";
+    const siteScope = isMobileClientRequest(req)
+      ? siteIdsForFilter(await getRestrictedSiteIds(auth.role, auth.uid), siteId)
+      : await dashboardSiteScope(auth.role, siteId, auth.uid);
 
     if (countOnly) {
       let countQuery = supabaseAdmin
@@ -28,8 +37,6 @@ export async function GET(req: Request) {
         .select("id", { count: "exact", head: true })
         .is("reviewed_at", null);
       if (companyId) countQuery = countQuery.eq("company_id", companyId);
-      const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
-      const siteScope = siteIdsForFilter(restricted, siteId);
       if (siteScope === "none") return NextResponse.json({ count: 0 });
       if (siteScope !== "all") countQuery = countQuery.in("site_id", siteScope);
       if (filterToReporterOnly) countQuery = countQuery.eq("reported_by", uid);
@@ -44,13 +51,10 @@ export async function GET(req: Request) {
       .select("*")
       .limit(limit);
     if (companyId) query = query.eq("company_id", companyId);
-    const restricted = await getRestrictedSiteIds(auth.role, auth.uid);
-    const siteScope = siteIdsForFilter(restricted, siteId);
     if (siteScope === "none") return NextResponse.json([]);
     if (siteScope !== "all") query = query.in("site_id", siteScope);
     if (unreviewedOnly) query = query.is("reviewed_at", null);
     if (filterToReporterOnly) query = query.eq("reported_by", uid);
-    if (siteId) query = query.eq("site_id", siteId);
     if (status) {
       if (status === "reviewed") {
         query = query.not("reviewed_at", "is", null);

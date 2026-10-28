@@ -10,7 +10,7 @@ import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
-import { canAssignSuperAdminRole, roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
+import { canAssignSuperAdminRole, isCompanySuperAdmin, roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
 import { rolePrivilege, roleStyleKey } from "@/lib/ui/roleStyles";
 
 type UserRow = {
@@ -258,8 +258,20 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   }
 
   async function handleDelete(id: string) {
+    const target = rows.find((row) => row.id === id);
+    if (target && isCompanySuperAdmin(target.role)) {
+      const otherAdmins = rows.filter((row) => row.id !== id && isCompanySuperAdmin(row.role));
+      if (otherAdmins.length === 0) {
+        toast.error("You cannot delete the last Super Admin.");
+        return;
+      }
+    }
     if (!window.confirm("Are you sure you want to delete this user?")) return;
-    await deleteUser(id);
+    const result = await deleteUser(id);
+    if (result && result.success === false) {
+      toast.error(result.error || "Could not delete user");
+      return;
+    }
     setRows((prev) => prev.filter((row) => row.id !== id));
   }
 
@@ -345,21 +357,25 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
           { label: "Medical records", icon: HeartPulse, onClick: () => window.location.assign(`/dashboard/operatives/${row.id}`) },
         ];
         if (canChangeRole) {
+          const currentRoleKey = roleStyleKey(row.role);
+          const roleLabel = (value: string, name: string) =>
+            currentRoleKey === value ? `${name} (current)` : name;
+          const setRoleHeading = `Set role · currently ${roleDisplayName(row.role)}`;
           if (canAssignSuperAdminRole(currentUserRole)) {
             items.push({
-              label: "Super Admin",
-              heading: "Set role",
+              label: roleLabel("admin", "Super Admin"),
+              heading: setRoleHeading,
               onClick: () => handleRoleChange(row.id, "admin", row),
             });
           }
           items.push(
             {
-              label: "Site Admin",
-              heading: canAssignSuperAdminRole(currentUserRole) ? undefined : "Set role",
+              label: roleLabel("site_admin", "Site Admin"),
+              heading: canAssignSuperAdminRole(currentUserRole) ? undefined : setRoleHeading,
               onClick: () => handleRoleChange(row.id, "site_admin", row),
             },
-            { label: "Supervisor", onClick: () => handleRoleChange(row.id, "supervisor", row) },
-            { label: "Operative", onClick: () => handleRoleChange(row.id, "operative", row) }
+            { label: roleLabel("supervisor", "Supervisor"), onClick: () => handleRoleChange(row.id, "supervisor", row) },
+            { label: roleLabel("operative", "Operative"), onClick: () => handleRoleChange(row.id, "operative", row) }
           );
           if (usesAssignedSites(row.role)) {
             items.push({ label: "Assign sites…", icon: MapPin, divider: true, onClick: () => { void openAssignSites(row); } });

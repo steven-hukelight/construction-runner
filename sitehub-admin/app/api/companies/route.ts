@@ -33,7 +33,7 @@ export async function GET() {
 
     const { data: companies, error } = await supabaseAdmin
       .from("companies")
-      .select("id, name, created_at, updated_at")
+      .select("id, name, invite_code, created_at, updated_at")
       .order("created_at", { ascending: false })
       .limit(500);
 
@@ -69,9 +69,8 @@ export async function GET() {
       return {
         id: c.id,
         name: c.name ?? null,
-        inviteCode: null,
+        inviteCode: (c as { invite_code?: string | null }).invite_code ?? null,
         createdAt: createdAt ? new Date(createdAt).toISOString() : null,
-        status: "Active",
         userCount: userCountByCo[c.id] ?? 0,
         siteCount: siteCountByCo[c.id] ?? 0,
       };

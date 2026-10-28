@@ -6,6 +6,7 @@ import { writeAuditLog } from "@/lib/auditLog";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { assertDocumentSiteAccess } from "@/lib/auth/siteScope";
+import { parseReviewDateInput } from "@/lib/ramsReviewDate";
 
 function cid(x: { company_id?: string | null }): string | null {
   return (x.company_id ?? null) as string | null;
@@ -98,6 +99,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     companyId: ram.company_id ?? null,
     createdAt: ram.created_at ?? null,
     updatedAt: ram.updated_at ?? null,
+    reviewDate: (ram as { review_date?: string | null }).review_date ?? null,
   });
 }
 
@@ -106,12 +108,32 @@ export async function PATCH(req: Request, { params }: { params: Promise<{ id: st
   const forbid = await ensureRAMAccess(id);
   if (forbid) return forbid;
   const body = await req.json();
-  const newStatus = (body.status as string) || "";
+  const newStatus = typeof body.status === "string" ? body.status.trim() : "";
+  const reviewRaw = body.reviewDate ?? body.review_date;
+  if (
+    ("reviewDate" in body || "review_date" in body) &&
+    reviewRaw != null &&
+    String(reviewRaw).trim() &&
+    parseReviewDateInput(reviewRaw) === undefined
+  ) {
+    return NextResponse.json({ error: "reviewDate must be YYYY-MM-DD" }, { status: 400 });
+  }
+  const reviewDate = parseReviewDateInput(reviewRaw);
 
   const { data: ram } = await supabaseAdmin.from("rams").select("site_id").eq("id", id).single();
   const siteId = ram?.site_id ?? null;
 
-  await supabaseAdmin.from("rams").update({ status: newStatus }).eq("id", id);
+  const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
+  if (newStatus) updates.status = newStatus;
+  if (reviewDate !== undefined) updates.review_date = reviewDate;
+  if (!newStatus && reviewDate === undefined) {
+    return NextResponse.json({ error: "Nothing to update" }, { status: 400 });
+  }
+
+  const { error: updateErr } = await supabaseAdmin.from("rams").update(updates).eq("id", id);
+  if (updateErr) {
+    return NextResponse.json({ error: updateErr.message }, { status: 400 });
+  }
 
   if (newStatus === "APPROVED" && siteId) {
     try {

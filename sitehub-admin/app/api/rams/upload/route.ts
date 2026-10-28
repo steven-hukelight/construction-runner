@@ -9,6 +9,7 @@ import { RAMS_MAX_UPLOAD_BYTES, RAMS_MAX_UPLOAD_LABEL } from "@/lib/ramsUploadLi
 import { assertWritableSiteId } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { parseReviewDateInput } from "@/lib/ramsReviewDate";
 
 export const maxDuration = 120;
 
@@ -128,6 +129,7 @@ export async function POST(req: Request) {
   const fileUrl = urlData.publicUrl;
 
   const displayTitle = titleRaw || safeName.replace(/\.pdf$/i, "") || safeName;
+  const reviewDate = parseReviewDateInput(form.get("reviewDate") ?? form.get("review_date"));
 
   const row: Record<string, unknown> = {
     id: randomUUID(),
@@ -139,6 +141,7 @@ export async function POST(req: Request) {
     status: "PENDING",
     site_wide: siteWide,
   };
+  if (reviewDate) row.review_date = reviewDate;
 
   let { data: inserted, error } = await supabaseAdmin
     .from("rams")
@@ -148,12 +151,13 @@ export async function POST(req: Request) {
 
   if (error) {
     const msg = (error.message ?? "").toLowerCase();
-    if (msg.includes("description")) {
-      const rowNoDesc = { ...row };
-      delete rowNoDesc.description;
+    if (msg.includes("description") || msg.includes("review_date")) {
+      const rowRetry = { ...row };
+      if (msg.includes("description")) delete rowRetry.description;
+      if (msg.includes("review_date")) delete rowRetry.review_date;
       const retry = await supabaseAdmin
         .from("rams")
-        .insert(rowNoDesc)
+        .insert(rowRetry)
         .select("id")
         .single();
       inserted = retry.data;

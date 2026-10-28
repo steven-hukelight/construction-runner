@@ -2,11 +2,12 @@
 import toast from "react-hot-toast";
 
 import { useCallback, useEffect, useState } from "react";
-import { X, FileDown, Users } from "lucide-react";
+import { Bell, X, FileDown, Users } from "lucide-react";
 import Button from "../../components/ui/Button";
 import { PortalOverlay } from "../../components/PortalOverlay";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
-import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
+import { postDocumentRemind } from "@/lib/documentRemindToast";
 
 type Briefing = {
   id: string;
@@ -27,6 +28,14 @@ type AckRow = {
   signatureUrl?: string | null;
 };
 
+type OutstandingRow = {
+  userId: string;
+  name: string;
+  role: string;
+  lastRemindedAt: string | null;
+  inducted: boolean;
+};
+
 export default function BriefingDetailModal({
   briefing,
   companyId,
@@ -39,10 +48,12 @@ export default function BriefingDetailModal({
   onClose: () => void;
 }) {
   const [acks, setAcks] = useState<AckRow[]>([]);
+  const [outstanding, setOutstanding] = useState<OutstandingRow[]>([]);
   const [meta, setMeta] = useState<{ siteName: string | null } | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [reminding, setReminding] = useState(false);
 
   const fileUrl = briefing?.fileUrl ?? briefing?.file_url;
 
@@ -63,13 +74,16 @@ export default function BriefingDetailModal({
       if (!res.ok) throw new Error("Failed to load");
       const json = (await res.json()) as {
         acknowledgements?: AckRow[];
+        outstanding?: OutstandingRow[];
         briefing?: { siteName?: string | null };
       };
       setAcks(Array.isArray(json.acknowledgements) ? json.acknowledgements : []);
+      setOutstanding(Array.isArray(json.outstanding) ? json.outstanding : []);
       setMeta({ siteName: json.briefing?.siteName ?? null });
     } catch {
       setError("Could not load acknowledgements.");
       setAcks([]);
+      setOutstanding([]);
     } finally {
       setLoading(false);
     }
@@ -78,6 +92,35 @@ export default function BriefingDetailModal({
   useEffect(() => {
     void loadAcks();
   }, [loadAcks]);
+
+  async function handleRemind() {
+    if (!briefing?.id || !companyId) return;
+    const remindable = outstanding.filter((p) => p.inducted).length;
+    const pending = outstanding.length;
+    if (pending <= 0) {
+      toast("Everyone assigned has already acknowledged this briefing.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Remind ${remindable || pending} ${ (remindable || pending) === 1 ? "person" : "people"} who have not acknowledged this briefing?`
+      )
+    ) {
+      return;
+    }
+    setReminding(true);
+    try {
+      const result = await postDocumentRemind("briefing", briefing.id, companyId);
+      if (result.ok) {
+        toast.success(result.message);
+        await loadAcks();
+      } else {
+        toast.error(result.message);
+      }
+    } finally {
+      setReminding(false);
+    }
+  }
 
   async function exportCsv() {
     if (!briefing?.id || !companyId) return;
@@ -180,6 +223,18 @@ export default function BriefingDetailModal({
                 )}
               </h4>
               <div className="flex flex-wrap gap-2">
+                {outstanding.length > 0 ? (
+                  <Button
+                    variant="secondary"
+                    size="sm"
+                    type="button"
+                    disabled={reminding || loading}
+                    onClick={() => void handleRemind()}
+                  >
+                    <Bell className="w-4 h-4 inline mr-1.5 align-text-bottom" />
+                    {reminding ? "Reminding…" : `Remind outstanding (${outstanding.filter((p) => p.inducted).length})`}
+                  </Button>
+                ) : null}
                 <Button
                   variant="secondary"
                   size="sm"
@@ -219,6 +274,41 @@ export default function BriefingDetailModal({
             )}
             {error && <p className="text-sm text-amber-700 dark:text-amber-300 mb-2">{error}</p>}
             {loading && <p className="text-sm text-slate-500">Loading…</p>}
+            {!loading && !error && outstanding.length > 0 && (
+              <div className="mb-5 overflow-x-auto rounded-xl border border-amber-200 dark:border-amber-900/50">
+                <table className="w-full min-w-[32rem] text-sm">
+                  <thead>
+                    <tr className="border-b border-amber-100 bg-amber-50 text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-slate-400">
+                      <th className="px-4 py-3">Outstanding</th>
+                      <th className="px-4 py-3">Role</th>
+                      <th className="px-4 py-3">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {outstanding.map((r) => (
+                      <tr
+                        key={r.userId}
+                        className="border-b border-slate-100/90 text-slate-800 last:border-b-0 dark:border-slate-700/80 dark:text-slate-200"
+                      >
+                        <td className="max-w-[10rem] truncate px-4 py-3 font-semibold" title={r.name}>
+                          {r.name}
+                        </td>
+                        <td className="max-w-[14rem] truncate px-4 py-3" title={r.role}>
+                          {r.role}
+                        </td>
+                        <td className="whitespace-nowrap px-4 py-3 text-slate-500">
+                          {!r.inducted
+                            ? "Induction incomplete"
+                            : r.lastRemindedAt
+                              ? `Reminded ${formatTime(r.lastRemindedAt)}`
+                              : "Not signed"}
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+            )}
             {!loading && !error && acks.length === 0 && (
               <p className="text-sm text-slate-500 dark:text-slate-400">No acknowledgements yet.</p>
             )}

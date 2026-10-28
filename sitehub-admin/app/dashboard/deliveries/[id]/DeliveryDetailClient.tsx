@@ -29,6 +29,7 @@ interface Delivery {
   load_photos?: string[];
   proof_photos?: string[];
   delivered_by?: string;
+  deliveredByName?: string;
 }
 
 export default function DeliveryDetailClient({ deliveryId }: { deliveryId: string }) {
@@ -123,8 +124,16 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <dd>{delivery.site || delivery.siteId || delivery.site_id || "—"}</dd>
           </div>
           <div>
+            <dt className="text-sm text-slate-500">Supplier</dt>
+            <dd>{delivery.wholesaler || "—"}</dd>
+          </div>
+          <div>
             <dt className="text-sm text-slate-500">Scheduled</dt>
             <dd>{formatDate(delivery.scheduledAt || delivery.scheduled_at || delivery.createdAt || delivery.created_at)}</dd>
+          </div>
+          <div>
+            <dt className="text-sm text-slate-500">Received by</dt>
+            <dd>{delivery.deliveredByName || "—"}</dd>
           </div>
           {delivery.notes && (
             <div className="md:col-span-2">
@@ -137,6 +146,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
 
       <PhotoGroup
         title="Load photos"
+        hint="Pictures of the goods on the vehicle or as they arrive, before they are signed for."
         empty="No load photos yet."
         photos={loadPhotos}
         onUpload={async (files) => {
@@ -149,6 +159,7 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
       />
       <PhotoGroup
         title="Proof of delivery"
+        hint="Signed ticket or photo confirming the delivery was received."
         empty="No POD photos yet."
         photos={podPhotos}
         onUpload={async (files) => {
@@ -167,7 +178,15 @@ export default function DeliveryDetailClient({ deliveryId }: { deliveryId: strin
             <Button onClick={() => handleStatus("RECEIVED")}>Mark Received</Button>
           )}
           {delivery.status !== "PENDING" && (
-            <Button variant="secondary" onClick={() => handleStatus("PENDING")}>Mark Pending</Button>
+            <Button
+              variant="secondary"
+              onClick={() => {
+                if (!window.confirm("Move this received delivery back to pending?")) return;
+                void handleStatus("PENDING");
+              }}
+            >
+              Mark Pending
+            </Button>
           )}
         </div>
       </div>
@@ -183,11 +202,13 @@ function uniquePhotos(many: string[] | undefined, single?: string): string[] {
 
 function PhotoGroup({
   title,
+  hint,
   empty,
   photos,
   onUpload,
 }: {
   title: string;
+  hint?: string;
   empty: string;
   photos: string[];
   onUpload: (files: File[]) => Promise<void>;
@@ -208,7 +229,10 @@ function PhotoGroup({
   return (
     <div className="card p-6 space-y-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h3 className="font-semibold">{title}</h3>
+        <div>
+          <h3 className="font-semibold">{title}</h3>
+          {hint ? <p className="mt-1 text-sm text-slate-500">{hint}</p> : null}
+        </div>
         <div className="flex flex-wrap gap-2">
           <label className="inline-flex cursor-pointer items-center rounded-lg border border-gray-200 px-3 py-2 text-sm text-gray-700 hover:bg-gray-50">
             {busy ? "Uploading…" : "Add photos"}

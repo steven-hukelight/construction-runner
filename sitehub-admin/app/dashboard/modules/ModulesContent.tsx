@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Messaging from "../companies/Messaging";
 import AssetManagement from "../companies/AssetManagement";
-import { MessageSquare, Package } from "lucide-react";
+import { MessageSquare, Boxes } from "lucide-react";
 
 type Tab = "messaging" | "assets";
 
@@ -12,7 +12,7 @@ export default function ModulesContent({ companyId, canDeleteMessages = false }:
 
   const tabs: { id: Tab; label: string; icon: typeof MessageSquare }[] = [
     { id: "messaging", label: "Messaging", icon: MessageSquare },
-    { id: "assets", label: "Assets", icon: Package },
+    { id: "assets", label: "Assets", icon: Boxes },
   ];
 
   return (

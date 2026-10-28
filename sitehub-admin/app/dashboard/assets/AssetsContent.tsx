@@ -306,8 +306,132 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     return <div className="text-slate-500 py-12 text-center">Loading assets...</div>;
   }
 
+  const addFieldClass =
+    "input w-full rounded-lg border border-gray-300 dark:border-slate-600 bg-white dark:bg-slate-700 px-3 py-2 text-sm text-gray-900 dark:text-slate-100";
+
   return (
     <div className="space-y-6">
+      <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] dark:border-slate-600 dark:bg-slate-800">
+        <h3 className="text-base font-semibold text-slate-900 dark:text-slate-100">Add asset</h3>
+        <p className="mt-1 mb-4 text-sm text-slate-500 dark:text-slate-400">
+          Register equipment, vehicles, tools or PPE. Filters for the list sit on the table below.
+        </p>
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 xl:grid-cols-3">
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-name">
+              Name
+            </label>
+            <input
+              id="new-asset-name"
+              type="text"
+              className={addFieldClass}
+              placeholder="e.g. Tower scaffold"
+              value={newAsset.name}
+              onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-category">
+              Type
+            </label>
+            <select
+              id="new-asset-category"
+              className={addFieldClass}
+              value={newAsset.category}
+              onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value })}
+            >
+              <option value="equipment">Equipment</option>
+              <option value="vehicle">Vehicle</option>
+              <option value="tool">Tool</option>
+              <option value="ppe">PPE</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-serial">
+              Serial number
+            </label>
+            <input
+              id="new-asset-serial"
+              type="text"
+              className={addFieldClass}
+              placeholder="Optional"
+              value={newAsset.serial_number}
+              onChange={(e) => setNewAsset({ ...newAsset, serial_number: e.target.value })}
+            />
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-condition">
+              Condition
+            </label>
+            <select
+              id="new-asset-condition"
+              className={addFieldClass}
+              value={newAsset.condition}
+              onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value })}
+            >
+              <option value="good">Good</option>
+              <option value="fair">Fair</option>
+              <option value="poor">Poor</option>
+              <option value="damaged">Damaged</option>
+            </select>
+          </div>
+          <div>
+            <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-interval">
+              Inspection interval
+            </label>
+            <select
+              id="new-asset-interval"
+              className={addFieldClass}
+              value={newAsset.inspection_interval_days}
+              onChange={(e) =>
+                setNewAsset({ ...newAsset, inspection_interval_days: e.target.value })
+              }
+            >
+              <option value="">No schedule</option>
+              {ASSET_INSPECTION_INTERVAL_PRESETS.map((p) => (
+                <option key={p.days} value={String(p.days)}>
+                  Every {p.label}
+                </option>
+              ))}
+            </select>
+          </div>
+          {newAsset.inspection_interval_days ? (
+            <div>
+              <label className="mb-1 block text-sm font-medium text-slate-700 dark:text-slate-300" htmlFor="new-asset-due">
+                First inspection due
+              </label>
+              <input
+                id="new-asset-due"
+                type="date"
+                className={addFieldClass}
+                value={newAsset.next_inspection_due}
+                onChange={(e) =>
+                  setNewAsset({ ...newAsset, next_inspection_due: e.target.value })
+                }
+              />
+            </div>
+          ) : null}
+          <div>
+            <SitePicker
+              sites={companySites}
+              value={newAsset.site_id}
+              onChange={(site_id) => setNewAsset({ ...newAsset, site_id })}
+              placeholder="Select site…"
+              className="w-full"
+            />
+          </div>
+        </div>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <SiteWideField
+            checked={newAsset.site_wide}
+            onChange={(site_wide) => setNewAsset({ ...newAsset, site_wide })}
+          />
+          <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()}>
+            Add asset
+          </Button>
+        </div>
+      </div>
+
       <DataTableShell
         title="All assets"
         subtitle={`${filteredAssets.length} asset${filteredAssets.length === 1 ? "" : "s"}`}
@@ -387,85 +511,6 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
                 className="w-48"
               />
             ) : null}
-          </div>
-        }
-        extra={
-          <div className="flex flex-wrap gap-3 pt-1">
-            <input
-              type="text"
-              className="table-toolbar-input min-w-[180px] flex-1"
-              placeholder="Asset name"
-              value={newAsset.name}
-              onChange={(e) => setNewAsset({ ...newAsset, name: e.target.value })}
-            />
-            <select
-              className="table-toolbar-input w-36"
-              value={newAsset.category}
-              onChange={(e) => setNewAsset({ ...newAsset, category: e.target.value })}
-            >
-              <option value="equipment">Equipment</option>
-              <option value="vehicle">Vehicle</option>
-              <option value="tool">Tool</option>
-              <option value="ppe">PPE</option>
-            </select>
-            <input
-              type="text"
-              className="table-toolbar-input min-w-[120px] flex-1"
-              placeholder="Serial number"
-              value={newAsset.serial_number}
-              onChange={(e) => setNewAsset({ ...newAsset, serial_number: e.target.value })}
-            />
-            <select
-              className="table-toolbar-input w-28"
-              value={newAsset.condition}
-              onChange={(e) => setNewAsset({ ...newAsset, condition: e.target.value })}
-            >
-              <option value="good">Good</option>
-              <option value="fair">Fair</option>
-              <option value="poor">Poor</option>
-              <option value="damaged">Damaged</option>
-            </select>
-            <select
-              className="table-toolbar-input w-36"
-              value={newAsset.inspection_interval_days}
-              onChange={(e) =>
-                setNewAsset({ ...newAsset, inspection_interval_days: e.target.value })
-              }
-              title="Inspection interval"
-            >
-              <option value="">No schedule</option>
-              {ASSET_INSPECTION_INTERVAL_PRESETS.map((p) => (
-                <option key={p.days} value={String(p.days)}>
-                  Inspect every {p.label}
-                </option>
-              ))}
-            </select>
-            {newAsset.inspection_interval_days ? (
-              <input
-                type="date"
-                className="table-toolbar-input w-40"
-                title="First inspection due"
-                value={newAsset.next_inspection_due}
-                onChange={(e) =>
-                  setNewAsset({ ...newAsset, next_inspection_due: e.target.value })
-                }
-              />
-            ) : null}
-            <SitePicker
-              sites={companySites}
-              value={newAsset.site_id}
-              onChange={(site_id) => setNewAsset({ ...newAsset, site_id })}
-              variant="compact"
-              placeholder="Site"
-              className="w-48"
-            />
-            <SiteWideField
-              checked={newAsset.site_wide}
-              onChange={(site_wide) => setNewAsset({ ...newAsset, site_wide })}
-            />
-            <Button onClick={addAsset} disabled={loading || !newAsset.name.trim()} size="sm">
-              Add Asset
-            </Button>
           </div>
         }
       >

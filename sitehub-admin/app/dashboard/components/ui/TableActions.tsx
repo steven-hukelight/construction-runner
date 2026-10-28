@@ -46,12 +46,15 @@ export default function TableActions({ items }: { items: TableActionItem[] }) {
     const menuEl = menuRef.current;
     menuEl.style.maxHeight = "none";
     const menuHeight = menuEl.scrollHeight;
+    const headerSafeTop = 80;
     const spaceBelow = window.innerHeight - trigger.bottom - 8;
-    const spaceAbove = trigger.top - 8;
+    const spaceAbove = trigger.top - headerSafeTop - 8;
     const openUp = spaceBelow < menuHeight && spaceAbove > spaceBelow;
     const available = openUp ? spaceAbove : spaceBelow;
     const maxHeight = Math.max(120, available);
-    const top = openUp ? Math.max(8, trigger.top - Math.min(menuHeight, maxHeight) - 4) : trigger.bottom + 4;
+    const top = openUp
+      ? Math.max(headerSafeTop, trigger.top - Math.min(menuHeight, maxHeight) - 4)
+      : trigger.bottom + 4;
     const left = Math.min(
       Math.max(8, trigger.right - ACTION_MENU_WIDTH),
       Math.max(8, window.innerWidth - ACTION_MENU_WIDTH - 8)

@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { loadAcknowledgementPeople } from "@/lib/acknowledgementPeople";
+import { loadOutstandingPeople } from "@/lib/documentReminders";
 
 export const dynamic = "force-dynamic";
 
@@ -41,7 +42,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
 
     const { data: ram, error: rErr } = await supabaseAdmin
       .from("rams")
-      .select("id, title, company_id, site_id, created_at, description")
+      .select("id, title, company_id, site_id, site_wide, created_at, description")
       .eq("id", ramsId)
       .maybeSingle();
 
@@ -82,6 +83,16 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
       };
     });
 
+    const siteWide = Boolean((ram as { site_wide?: boolean }).site_wide);
+    const outstanding = await loadOutstandingPeople({
+      kind: "rams",
+      documentId: ramsId,
+      companyId,
+      siteId: siteWide ? null : ram.site_id ? String(ram.site_id) : null,
+      acknowledgedUserIds: (acks ?? []).map((a) => String(a.user_id ?? "")),
+      requireInduction: false,
+    });
+
     return NextResponse.json({
       rams: {
         id: ram.id,
@@ -92,6 +103,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
         description: ram.description ?? null,
       },
       acknowledgements,
+      outstanding,
     });
   } catch (e) {
     console.error("GET /api/rams/[id]/acknowledgements:", e);

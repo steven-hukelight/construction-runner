@@ -32,7 +32,7 @@ export const metadata = {
     images: ['/Logo.png'],
   },
   other: {
-    "color-scheme": "light dark",
+    "color-scheme": "light",
   },
 };
 

@@ -1,10 +1,9 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import Link from "next/link";
 import PageHeader from "../components/PageHeader";
 import Button from "../components/ui/Button";
-import { Palette, ToggleLeft, Megaphone, Sparkles, MessageSquare, Package, Award, ExternalLink, Mail } from "lucide-react";
+import { Palette, ToggleLeft, Megaphone, Mail } from "lucide-react";
 
 export default function GlobalSettingsPage() {
   const [branding, setBranding] = useState({ appName: "Construction Runner", supportEmail: "" });
@@ -227,65 +226,6 @@ export default function GlobalSettingsPage() {
             </Button>
           </div>
         </div>
-
-        <div className="card lg:col-span-2">
-          <h3 className="text-lg font-semibold text-gray-900 mb-2">Security (beta)</h3>
-          <p className="text-sm text-gray-600">
-            Login is limited to 10 attempts per minute per IP. Web idle logout is 30 minutes. Password
-            reset and first-time setup links expire after 1 hour. Two-factor authentication, password
-            expiry, and account lockout are not available in beta, those toggles were removed so they
-            cannot be saved as if they were live.
-          </p>
-        </div>
-      </div>
-
-      <div className="card">
-        <div className="flex items-center gap-3 mb-6">
-          <Sparkles className="w-5 h-5 shrink-0 text-gray-400" aria-hidden />
-          <div>
-            <h3 className="text-lg font-semibold text-gray-900">Modules</h3>
-            <p className="text-sm text-gray-600">Messaging, assets, and operative qualifications, all active.</p>
-          </div>
-        </div>
-        <ul className="space-y-3">
-          <li className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50/80 border border-emerald-100">
-            <div className="flex items-center gap-3 min-w-0">
-              <MessageSquare className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div>
-                <span className="font-medium text-gray-900">Messaging</span>
-                <p className="text-xs text-gray-500">In-app messaging between users and teams.</p>
-              </div>
-            </div>
-            <Link href="/dashboard/messaging" className="shrink-0 text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              Open <ExternalLink size={14} />
-            </Link>
-          </li>
-          <li className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50/80 border border-emerald-100">
-            <div className="flex items-center gap-3 min-w-0">
-              <Package className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div>
-                <span className="font-medium text-gray-900">Asset management</span>
-                <p className="text-xs text-gray-500">Track equipment, vehicles, and tools by site or company.</p>
-              </div>
-            </div>
-            <Link href="/dashboard/assets" className="shrink-0 text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              Open <ExternalLink size={14} />
-            </Link>
-          </li>
-          <li className="flex items-center justify-between gap-3 p-3 rounded-lg bg-emerald-50/80 border border-emerald-100">
-            <div className="flex items-center gap-3 min-w-0">
-              <Award className="w-5 h-5 text-emerald-600 shrink-0" />
-              <div>
-                <span className="font-medium text-gray-900">Operative qualifications</span>
-                <p className="text-xs text-gray-500">Certifications, training, and expiry tracking per operative.</p>
-              </div>
-            </div>
-            <Link href="/dashboard/certifications" className="shrink-0 text-sm font-medium text-emerald-600 hover:text-emerald-700 flex items-center gap-1">
-              Open <ExternalLink size={14} />
-            </Link>
-          </li>
-        </ul>
-        <p className="text-xs text-gray-500 mt-4">All modules are active. Use the sidebar to access Messages, Assets, and Certifications.</p>
       </div>
     </div>
   );

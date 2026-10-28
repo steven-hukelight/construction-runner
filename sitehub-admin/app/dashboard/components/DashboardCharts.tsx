@@ -15,6 +15,7 @@ import {
   CartesianGrid,
   Tooltip,
   Legend,
+  LabelList,
   ResponsiveContainer,
 } from "recharts";
 import type {
@@ -32,7 +33,7 @@ interface DashboardChartsProps {
   tasks: DashboardDataTask[];
 }
 
-const SERIES = { primary: "#2563eb", secondary: "#60a5fa", tertiary: "#bfdbfe" };
+const SERIES = { primary: "#2563eb", secondary: "#475569", tertiary: "#d97706" };
 
 const STATUS_COLORS: Record<string, string> = {
   Approved: "#059669",
@@ -170,7 +171,8 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
       const r = (role ?? "").toLowerCase();
       if (r === "operative") return "Operatives";
       if (r === "supervisor") return "Supervisors";
-      if (r === "admin" || r === "site_admin") return "Admins";
+      if (r === "admin") return "Super Admins";
+      if (r === "site_admin") return "Site Admins";
       if (r === "sub_admin") return "Subcontractor admins";
       if (r === "superuser") return "Superusers";
       return role ? role.replace(/_/g, " ") : "Other";
@@ -249,6 +251,15 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
         </div>
         {ramsStatusData.length === 0 ? (
           <EmptyChart message="No RAMS yet. Upload method statements under Health & safety → RAMS." />
+        ) : ramsStatusData.length === 1 && ramsView === "pie" ? (
+          <div className="flex h-[280px] flex-col items-center justify-center text-center">
+            <p className="text-4xl font-semibold text-gray-900 dark:text-slate-100">
+              {ramsStatusData[0].value}
+            </p>
+            <p className="mt-2 text-sm text-gray-500 dark:text-slate-400">
+              {ramsStatusData[0].name}
+            </p>
+          </div>
         ) : ramsView === "pie" ? (
           <ResponsiveContainer width="100%" height={280}>
             <PieChart>
@@ -312,12 +323,14 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
             <EmptyChart message="No people in this company yet. Invite the team from Users." />
           ) : (
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={roleData} layout="vertical" margin={{ left: 24, right: 16 }}>
+              <BarChart data={roleData} layout="vertical" margin={{ left: 24, right: 28 }}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis type="number" allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
                 <YAxis type="category" dataKey="name" width={140} stroke="#6b7280" style={{ fontSize: "12px" }} />
                 <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill={SERIES.primary} radius={[0, 8, 8, 0]} name="People" />
+                <Bar dataKey="value" fill={SERIES.primary} radius={[0, 8, 8, 0]} name="People">
+                  <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "#374151" }} />
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )

@@ -18,7 +18,7 @@ export default async function MissingInfoPage() {
     return <SuperuserCompanyGate title="Missing info" description="Select a company to see workers with missing details." />;
   }
 
-  const isPrivilegedRole = ["admin", "supervisor", "superuser"].includes(role);
+  const isPrivilegedRole = ["admin", "supervisor", "superuser", "site_admin", "sub_admin"].includes(role);
   if (!isPrivilegedRole) {
     return (
       <div className="space-y-6">

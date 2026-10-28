@@ -3,10 +3,13 @@ import toast from "react-hot-toast";
 
 import React, { useCallback, useEffect, useState } from "react";
 import Link from "next/link";
-import { FileDown } from "lucide-react";
-import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { Bell, FileDown } from "lucide-react";
+import { formatDate, formatDateTime, formatTime } from "@/app/DisplayPreferencesProvider";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
+import { postDocumentRemind } from "@/lib/documentRemindToast";
+import { isReviewOverdue, reviewDateForDisplay } from "@/lib/ramsReviewDate";
 import Button from "../../../components/ui/Button";
+import Input from "../../../components/ui/Input";
 import { DataTableShell } from "../../../components/ui/TableChrome";
 import { updateRAMSStatus } from "../../../rams/actions";
 
@@ -24,6 +27,7 @@ interface RAMS {
   companyId?: string | null;
   createdAt?: string | null;
   updatedAt?: string | null;
+  reviewDate?: string | null;
 }
 
 type AckRow = {
@@ -32,6 +36,14 @@ type AckRow = {
   role: string;
   acknowledgedAt: string | null;
   hasSignature: boolean;
+};
+
+type OutstandingRow = {
+  userId: string;
+  name: string;
+  role: string;
+  lastRemindedAt: string | null;
+  inducted: boolean;
 };
 
 export default function RAMSDetailClient({
@@ -47,9 +59,13 @@ export default function RAMSDetailClient({
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [acks, setAcks] = useState<AckRow[]>([]);
+  const [outstanding, setOutstanding] = useState<OutstandingRow[]>([]);
   const [acksLoading, setAcksLoading] = useState(false);
   const [acksError, setAcksError] = useState<string | null>(null);
   const [exporting, setExporting] = useState(false);
+  const [reminding, setReminding] = useState(false);
+  const [reviewDraft, setReviewDraft] = useState("");
+  const [savingReview, setSavingReview] = useState(false);
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -70,6 +86,7 @@ export default function RAMSDetailClient({
       }
       const data = await res.json();
       setRams(data);
+      setReviewDraft(String(data?.reviewDate ?? "").slice(0, 10));
     } catch {
       setError("Could not load RAMS");
       setRams(null);
@@ -101,8 +118,9 @@ export default function RAMSDetailClient({
         return;
       }
       if (!res.ok) throw new Error("Failed to load");
-      const json = (await res.json()) as { acknowledgements?: AckRow[] };
+      const json = (await res.json()) as { acknowledgements?: AckRow[]; outstanding?: OutstandingRow[] };
       setAcks(Array.isArray(json.acknowledgements) ? json.acknowledgements : []);
+      setOutstanding(Array.isArray(json.outstanding) ? json.outstanding : []);
     } catch {
       setAcksError("Could not load acknowledgements.");
       setAcks([]);
@@ -141,12 +159,65 @@ export default function RAMSDetailClient({
     }
   }
 
+  async function handleRemind() {
+    const cid = companyId ?? rams?.companyId;
+    if (!cid) return;
+    if (outstanding.length === 0) {
+      toast("Everyone assigned has already acknowledged this RAMS.");
+      return;
+    }
+    if (
+      !window.confirm(
+        `Remind ${outstanding.length} ${outstanding.length === 1 ? "person" : "people"} who have not signed this RAMS?`
+      )
+    ) {
+      return;
+    }
+    setReminding(true);
+    try {
+      const result = await postDocumentRemind("rams", ramsId, cid);
+      if (result.ok) {
+        toast.success(result.message);
+        await loadAcks();
+      } else {
+        toast.error(result.message);
+      }
+    } finally {
+      setReminding(false);
+    }
+  }
+
+  async function saveReviewDate() {
+    setSavingReview(true);
+    try {
+      const res = await fetch(`/api/rams/${encodeURIComponent(ramsId)}`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ reviewDate: reviewDraft.trim() || null }),
+      });
+      const body = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        toast.error(typeof body?.error === "string" ? body.error : "Could not save review date");
+        return;
+      }
+      setRams((r) => (r ? { ...r, reviewDate: reviewDraft.trim() || null } : null));
+      toast.success(reviewDraft.trim() ? "Review date saved" : "Review date cleared");
+    } catch {
+      toast.error("Could not save review date");
+    } finally {
+      setSavingReview(false);
+    }
+  }
+
   async function handleApprove() {
+    if (!window.confirm("Approve this RAMS?")) return;
     await updateRAMSStatus(ramsId, "APPROVED");
     setRams((r) => (r ? { ...r, status: "APPROVED" } : null));
   }
 
   async function handleReject() {
+    if (!window.confirm("Reject this RAMS?")) return;
     await updateRAMSStatus(ramsId, "REJECTED");
     setRams((r) => (r ? { ...r, status: "REJECTED" } : null));
   }
@@ -200,6 +271,9 @@ export default function RAMSDetailClient({
                   v{rams.version}
                 </span>
               )}
+              {isReviewOverdue(rams.reviewDate) ? (
+                <span className="status-chip status-chip--danger">Review overdue</span>
+              ) : null}
             </div>
           </div>
           <Link href="/dashboard/health-and-safety/rams">
@@ -232,6 +306,31 @@ export default function RAMSDetailClient({
               {rams.updatedAt || rams.createdAt
                 ? formatDateTime(rams.updatedAt || rams.createdAt!)
                 : "—"}
+            </dd>
+          </div>
+          <div className="md:col-span-2">
+            <dt className="text-sm text-slate-500 mb-1">Review date</dt>
+            <dd className="flex flex-wrap items-center gap-3">
+              <Input
+                type="date"
+                value={reviewDraft}
+                onChange={(e: React.ChangeEvent<HTMLInputElement>) => setReviewDraft(e.target.value)}
+                className="max-w-xs"
+              />
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                disabled={savingReview}
+                onClick={() => void saveReviewDate()}
+              >
+                {savingReview ? "Saving…" : "Save review date"}
+              </Button>
+              {rams.reviewDate ? (
+                <span className="text-sm text-slate-500">
+                  Current: {formatDate(reviewDateForDisplay(rams.reviewDate) ?? rams.reviewDate)}
+                </span>
+              ) : null}
             </dd>
           </div>
         </dl>
@@ -274,26 +373,67 @@ export default function RAMSDetailClient({
           title="Acknowledgements"
           subtitle="Operatives acknowledge RAMS in the mobile app. Per-document signatures are listed here."
           actions={
-            <Button
-              variant="secondary"
-              size="sm"
-              type="button"
-              disabled={exporting || acksLoading}
-              onClick={() => void exportRamsPdf()}
-            >
-              {exporting ? (
-                "Exporting…"
-              ) : (
-                <>
-                  <FileDown className="w-4 h-4 mr-1.5 inline align-text-bottom" />
-                  Export PDF
-                </>
-              )}
-            </Button>
+            <div className="flex flex-wrap gap-2">
+              {outstanding.length > 0 && String(rams.status ?? "").toUpperCase() !== "REJECTED" ? (
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  type="button"
+                  disabled={reminding || acksLoading}
+                  onClick={() => void handleRemind()}
+                >
+                  <Bell className="w-4 h-4 mr-1.5 inline align-text-bottom" />
+                  {reminding ? "Reminding…" : `Remind outstanding (${outstanding.length})`}
+                </Button>
+              ) : null}
+              <Button
+                variant="secondary"
+                size="sm"
+                type="button"
+                disabled={exporting || acksLoading}
+                onClick={() => void exportRamsPdf()}
+              >
+                {exporting ? (
+                  "Exporting…"
+                ) : (
+                  <>
+                    <FileDown className="w-4 h-4 mr-1.5 inline align-text-bottom" />
+                    Export PDF
+                  </>
+                )}
+              </Button>
+            </div>
           }
         >
           {acksError ? <p className="px-5 py-8 text-sm text-amber-700">{acksError}</p> : null}
           {acksLoading ? <p className="px-5 py-8 text-sm text-slate-500">Loading…</p> : null}
+          {!acksLoading && !acksError && outstanding.length > 0 ? (
+            <div className="overflow-x-auto border-b border-amber-100 dark:border-amber-900/40">
+              <table className="data-table w-full text-sm">
+                <thead>
+                  <tr className="data-table-header border-b border-amber-100 bg-amber-50 text-left text-[12px] font-semibold uppercase tracking-[0.04em] text-slate-500 dark:border-amber-900/40 dark:bg-amber-950/30 dark:text-slate-400">
+                    <th className="px-5 py-3">Outstanding</th>
+                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {outstanding.map((r) => (
+                    <tr
+                      key={r.userId}
+                      className="data-table-row border-b border-slate-100/90 text-slate-800 last:border-b-0 dark:border-slate-700/80 dark:text-slate-200"
+                    >
+                      <td className="px-5 py-3 font-semibold">{r.name}</td>
+                      <td className="px-5 py-3">{r.role}</td>
+                      <td className="whitespace-nowrap px-5 py-3 text-slate-500">
+                        {r.lastRemindedAt ? `Reminded ${formatTime(r.lastRemindedAt)}` : "Not signed"}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
           {!acksLoading && !acksError && acks.length === 0 ? (
             <p className="px-5 py-16 text-center text-sm text-slate-500">No acknowledgements yet.</p>
           ) : null}

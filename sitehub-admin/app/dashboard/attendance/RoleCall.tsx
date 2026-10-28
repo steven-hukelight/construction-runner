@@ -8,7 +8,7 @@ import Table from "../components/ui/Table";
 import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import { SitePicker } from "../components/ui/SitePicker";
 import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
-import { leftSiteAutoSignOutReasonSuffix } from "./live/sessionNotesFormat";
+import { formatLeftSiteLine } from "./live/sessionNotesFormat";
 
 type TimestampLike = { toDate?: () => Date } | string | number | Date;
 type AttendanceLog = {
@@ -205,12 +205,11 @@ export default function RoleCall({
         data.signOutTime ?? data.sign_out_time ?? (actionNorm === "sign_out" ? data.timestamp : undefined)
       );
       const autoSignOutReason = String(data.autoSignOutReason ?? data.auto_sign_out_reason ?? "").trim();
-      const reasonSuffix = leftSiteAutoSignOutReasonSuffix(autoSignOutReason);
       const lastTime =
         actionNorm === "sign_in"
           ? (signedInTime ? `Signed in: ${signedInTime}` : formatTimestamp(data.timestamp))
           : [
-              leftSiteTime && `Left site: ${leftSiteTime}${reasonSuffix}`,
+              leftSiteTime && formatLeftSiteLine(leftSiteTime, autoSignOutReason),
               signedOutTime && `Signed out: ${signedOutTime}`,
             ]
               .filter(Boolean)
@@ -327,8 +326,7 @@ export default function RoleCall({
               ? `Signed in: ${p.signedInTime}`
               : p.lastTime
             : [
-                p.leftSiteTime &&
-                  `Left site: ${p.leftSiteTime}${leftSiteAutoSignOutReasonSuffix(p.autoSignOutReason)}`,
+                p.leftSiteTime && formatLeftSiteLine(p.leftSiteTime, p.autoSignOutReason),
                 p.signedOutTime && `Signed out: ${p.signedOutTime}`,
               ]
                 .filter(Boolean)
@@ -460,10 +458,9 @@ export default function RoleCall({
             </span>
           );
         }
-        const reasonSuffix = leftSiteAutoSignOutReasonSuffix(row.autoSignOutReason);
         return (
           <div className="tabular-nums text-sm text-slate-800 dark:text-slate-200 space-y-0.5">
-            {row.leftSiteTime ? <div>Left site: {row.leftSiteTime}{reasonSuffix}</div> : null}
+            {row.leftSiteTime ? <div>{formatLeftSiteLine(row.leftSiteTime, row.autoSignOutReason)}</div> : null}
             {row.signedOutTime ? <div>Signed out: {row.signedOutTime}</div> : null}
             {!row.leftSiteTime && !row.signedOutTime ? <div>{row.lastTime || "—"}</div> : null}
           </div>

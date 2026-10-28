@@ -22,6 +22,7 @@ const DashboardCharts = dynamic(
 );
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient, getCurrentSiteIdFromCookie, getRoleFromClient } from "@/lib/utils/cookies";
+import { assetInspectionDueStatus } from "@/lib/assets/inspectionSchedule";
 import type { DashboardDataSite, DashboardDataRams, DashboardDataUser, DashboardDataTask } from "./dashboardTypes";
 
 // Helper function to get relative time (ISO string or legacy { toDate } or Date)
@@ -73,6 +74,8 @@ export function DashboardContent({
   // again on every Realtime event, which made the home dashboard feel slow.
   const [pendingRegistrations, setPendingRegistrations] = useState<unknown[] | null>(null);
   const [unreviewedNearMiss, setUnreviewedNearMiss] = useState<number>(0);
+  const [overdueInspections, setOverdueInspections] = useState<number>(0);
+  const [missingInfoCount, setMissingInfoCount] = useState<number>(0);
 
   useEffect(() => {
     const role = getRoleFromClient();
@@ -92,7 +95,7 @@ export function DashboardContent({
 
     const fetchAttentionCounts = async () => {
       try {
-        const [regsRes, nearMissRes] = await Promise.all([
+        const [regsRes, nearMissRes, missingRes, assetsRes] = await Promise.all([
           fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
           canViewNearMiss
             ? fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, {
@@ -100,12 +103,31 @@ export function DashboardContent({
                 credentials: "include",
               })
             : Promise.resolve(null),
+          fetch(qs("/api/admin/missing-info"), { cache: "no-store", credentials: "include" }),
+          fetch(qs("/api/assets"), { cache: "no-store", credentials: "include" }),
         ]);
         const regsData = regsRes.ok ? await regsRes.json() : null;
         if (Array.isArray(regsData)) setPendingRegistrations(regsData);
         if (nearMissRes?.ok) {
           const nm = await nearMissRes.json();
           setUnreviewedNearMiss(typeof nm?.count === "number" ? nm.count : 0);
+        }
+        if (missingRes.ok) {
+          const missing = await missingRes.json();
+          setMissingInfoCount(Array.isArray(missing) ? missing.length : 0);
+        }
+        if (assetsRes.ok) {
+          const assets = await assetsRes.json();
+          const overdue = Array.isArray(assets)
+            ? assets.filter((a: { next_inspection_due?: string | null; inspection_reminder_days_before?: number | null; inspection_required?: boolean | null }) =>
+                assetInspectionDueStatus({
+                  nextDue: a.next_inspection_due,
+                  reminderDaysBefore: a.inspection_reminder_days_before,
+                  inspectionRequired: a.inspection_required,
+                }) === "overdue"
+              ).length
+            : 0;
+          setOverdueInspections(overdue);
         }
       } catch {
         /* ignore */
@@ -145,16 +167,19 @@ export function DashboardContent({
           {(() => {
             const pendingRAMS = effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING")?.length ?? 0;
             return pendingRAMS > 0 ? (
-              <PendingItem title={`${pendingRAMS} RAMS waiting for review`} priority="high" />
+              <PendingItem
+                href="/dashboard/health-and-safety/rams"
+                title={`${pendingRAMS} RAMS waiting for review`}
+                priority="high"
+              />
             ) : null;
           })()}
           {unreviewedNearMiss > 0 && (
-            <Link href="/dashboard/health-and-safety/near-miss?unreviewed=true">
-              <PendingItem
-                title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? "" : "es"} to review`}
-                priority="high"
-              />
-            </Link>
+            <PendingItem
+              href="/dashboard/health-and-safety/near-miss?unreviewed=true"
+              title={`${unreviewedNearMiss} near miss${unreviewedNearMiss === 1 ? "" : "es"} to review`}
+              priority="high"
+            />
           )}
           {(() => {
             const openTasks =
@@ -163,21 +188,42 @@ export function DashboardContent({
                 return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
               }).length ?? effOpenTasks;
             return openTasks > 0 ? (
-              <PendingItem title={`${openTasks} site task${openTasks === 1 ? "" : "s"} still open`} priority="medium" />
+              <PendingItem
+                href="/dashboard/tasks"
+                title={`${openTasks} site task${openTasks === 1 ? "" : "s"} still open`}
+                priority="medium"
+              />
             ) : null;
           })()}
           {(() => {
             const pendingCount = pendingRegistrations?.length ?? 0;
             return pendingCount > 0 ? (
               <PendingItem
+                href="/dashboard/pending-approvals"
                 title={`${pendingCount} registration${pendingCount === 1 ? "" : "s"} waiting for approval`}
                 priority="low"
               />
             ) : null;
           })()}
+          {overdueInspections > 0 && (
+            <PendingItem
+              href="/dashboard/assets"
+              title={`${overdueInspections} asset inspection${overdueInspections === 1 ? "" : "s"} overdue`}
+              priority="high"
+            />
+          )}
+          {missingInfoCount > 0 && (
+            <PendingItem
+              href="/dashboard/missing-info"
+              title={`${missingInfoCount} ${missingInfoCount === 1 ? "person is" : "people are"} missing emergency or medical info`}
+              priority="medium"
+            />
+          )}
           {(effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
             unreviewedNearMiss === 0 &&
             (pendingRegistrations?.length ?? 0) === 0 &&
+            overdueInspections === 0 &&
+            missingInfoCount === 0 &&
             (effTasks?.filter((t) => {
               const s = (t.status ?? "").toUpperCase();
               return s !== "COMPLETED" && s !== "DONE" && s !== "CANCELLED";
@@ -253,7 +299,15 @@ function ActivityItem({ icon: Icon, title, time }: { icon: LucideIcon; title: st
   );
 }
 
-function PendingItem({ title, priority }: { title: string; priority: "high" | "medium" | "low" }) {
+function PendingItem({
+  title,
+  priority,
+  href,
+}: {
+  title: string;
+  priority: "high" | "medium" | "low";
+  href: string;
+}) {
   const priorityLabels = {
     high: "Urgent",
     medium: "Open",
@@ -270,11 +324,14 @@ function PendingItem({ title, priority }: { title: string; priority: "high" | "m
     low: "bg-amber-50 dark:bg-amber-900/20",
   };
   return (
-    <div className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 ${rowTints[priority]}`}>
+    <Link
+      href={href}
+      className={`flex items-center justify-between gap-3 rounded-lg px-3 py-2.5 ${rowTints[priority]} hover:brightness-[0.98]`}
+    >
       <p className="text-sm text-gray-900 dark:text-slate-100">{title}</p>
       <span className={`status-chip ${priorityChips[priority]}`}>
         {priorityLabels[priority]}
       </span>
-    </div>
+    </Link>
   );
 }

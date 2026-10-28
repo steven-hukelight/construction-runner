@@ -158,10 +158,22 @@ export type PushOptions = {
   webUrl?: string;
   /** Stacks related pushes together (iOS thread, Android group). */
   groupId?: string;
+  /**
+   * Site alarms: iOS time-sensitive (breaks through Focus), the Android alarm channel when
+   * ONESIGNAL_ALARM_ANDROID_CHANNEL_ID is set, and a short lifetime so a stale alarm is not delivered.
+   */
+  urgent?: { ttlSeconds?: number };
 };
 
 function platformFields(options?: PushOptions): Record<string, unknown> {
   const out: Record<string, unknown> = {};
+  if (options?.urgent) {
+    out.ios_interruption_level = "time_sensitive";
+    out.ttl = options.urgent.ttlSeconds ?? 3600;
+    out.priority = 10;
+    const channelId = process.env.ONESIGNAL_ALARM_ANDROID_CHANNEL_ID?.trim();
+    if (channelId) out.android_channel_id = channelId;
+  }
   if (options?.platform === "mobile") {
     out.isIos = true;
     out.isAndroid = true;

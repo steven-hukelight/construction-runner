@@ -33,7 +33,7 @@ export default async function SiteDetailLayout({
     <div className="space-y-6">
       <PageHeader
         title={title}
-        description="Manage site details, subcontractors, operatives, induction, and safety information."
+        description="Manage site details, subcontractors, operatives, induction, safety information and emergency plans."
       />
       <SiteDetailTabBar siteId={id} />
       {children}

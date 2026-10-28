@@ -12,6 +12,7 @@ import {
   LayoutDashboard,
   FileText,
   Package,
+  Boxes,
   ListTodo,
   MessageSquare,
   Settings,
@@ -64,7 +65,7 @@ const topLevelItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
   { name: "Deliveries", href: "/dashboard/deliveries", icon: Package },
-  { name: "Assets", href: "/dashboard/assets", icon: Package },
+  { name: "Assets", href: "/dashboard/assets", icon: Boxes },
   { name: "Messages", href: "/dashboard/messaging", icon: MessageSquare },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
@@ -261,7 +262,7 @@ export default function Sidebar({ role }: SidebarProps) {
           ) : null}
           {inCompanyView &&
             topLevelItems.slice(1, 5).map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || Boolean(pathname?.startsWith(`${item.href}/`));
             const Icon = item.icon;
             return (
               <Link
@@ -278,7 +279,7 @@ export default function Sidebar({ role }: SidebarProps) {
           {inCompanyView && !showAdminNav && healthAndSafetyLink}
           {inCompanyView &&
             topLevelItems.slice(5, 7).map((item) => {
-            const active = pathname === item.href;
+            const active = pathname === item.href || Boolean(pathname?.startsWith(`${item.href}/`));
             const Icon = item.icon;
             return (
               <Link

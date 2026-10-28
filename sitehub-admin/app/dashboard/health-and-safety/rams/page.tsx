@@ -27,6 +27,9 @@ export default async function RAMSPage() {
   }
   const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
   const rams = await fetchRAMS(companyId ?? undefined, cookieHeader);
+  const roleLower = (role ?? "").toLowerCase();
+  const canViewAcknowledgements =
+    roleLower === "admin" || roleLower === "supervisor" || roleLower === "superuser";
 
   return (
       <div className="relative space-y-8">
@@ -35,7 +38,11 @@ export default async function RAMSPage() {
         description="Risk Assessments & Method Statements. Manage RAMS documents across your sites."
         action={<RAMSUploadModal />}
       />
-      <RAMSTable data={deepSerializeForClient(rams)} />
+      <RAMSTable
+        data={deepSerializeForClient(rams)}
+        canViewAcknowledgements={canViewAcknowledgements}
+        companyId={companyId ?? null}
+      />
     </div>
   );
 }
