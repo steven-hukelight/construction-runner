@@ -159,7 +159,7 @@ export async function sendDocumentReminders(opts: {
   }
 
   const copy = remindCopy(opts.kind, opts.title);
-  const pushData =
+  const pushData: Record<string, string> =
     opts.kind === "briefing"
       ? { type: "briefing_reminder", screen: "briefings", briefingId: opts.documentId }
       : { type: "rams_reminder", screen: "rams", ramsId: opts.documentId };
