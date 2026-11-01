@@ -28,13 +28,11 @@ export default function MusterPlanPin({
   }
 
   return (
-    <div
-      ref={box}
-      className={`relative overflow-hidden rounded-lg border border-slate-200 bg-slate-100 ${onPlace ? "cursor-crosshair" : ""}`}
-      onClick={click}
-    >
+    <div className="flex justify-center overflow-hidden rounded-lg border border-slate-200 bg-slate-100">
+      {/* Pins are fractions of the drawn image, so this wrapper must shrink to exactly the image's size. */}
+      <div ref={box} className={`relative min-w-0 ${onPlace ? "cursor-crosshair" : ""}`} onClick={click}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
-      <img src={src} alt="Site plan" className="block w-full h-auto max-h-[420px] object-contain mx-auto" />
+      <img src={src} alt="Site plan" className="block w-auto h-auto max-w-full max-h-[420px]" />
       {points.map((p, i) =>
         p.plan_x == null || p.plan_y == null ? null : (
           <span
@@ -49,6 +47,7 @@ export default function MusterPlanPin({
           </span>
         ),
       )}
+      </div>
     </div>
   );
 }

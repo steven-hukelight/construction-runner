@@ -9,6 +9,15 @@
 /* eslint-disable @typescript-eslint/no-require-imports */
 jest.mock("@/lib/supabaseAdmin", () => require("../mocks/supabase"));
 jest.mock("@/lib/onesignal", () => ({ sendPushToUsers: jest.fn().mockResolvedValue({ sent: true }) }));
+jest.mock("@/app/api/_utils/mobileAuth", () => ({
+  resolveMobileApiAuth: jest.fn().mockResolvedValue({
+    uid: "test-user-id",
+    role: "admin",
+    companyId: "test-company-id",
+    userEmail: "admin@test.com",
+    isSuperuser: false,
+  }),
+}));
 import {
   setMockCookies,
   clearMockCookies,
@@ -33,15 +42,17 @@ describe("Messaging regression tests", () => {
 
   it("should create thread", async () => {
     mockSupabaseResponseQueue.push(
-      { data: { id: userId, company_id: companyId }, error: null },
+      { data: [{ id: "other-user-id", company_id: companyId }], error: null },
+      { data: [], error: null },
       { data: { id: "thread-123" }, error: null },
+      { data: null, error: null },
       { data: null, error: null }
     );
 
     const { POST } = await import("@/app/api/messages/threads/route");
     const req = jsonRequest("http://test/api/messages/threads", {
       method: "POST",
-      body: { body: "Hello", recipientIds: [] },
+      body: { kind: "direct", body: "Hello", recipientIds: ["other-user-id"] },
     });
     const res = await POST(req);
     expect(res.status).toBe(201);

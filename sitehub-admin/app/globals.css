@@ -1405,3 +1405,10 @@ html.dashboard-lock[data-theme="dark"] body {
 .sensitive-disc {
   -webkit-text-security: disc;
 }
+
+/* Recharts makes charts focusable; keep the ring for keyboard focus only. */
+.recharts-wrapper:focus:not(:focus-visible),
+.recharts-surface:focus:not(:focus-visible),
+.recharts-wrapper *:focus:not(:focus-visible) {
+  outline: none;
+}

@@ -38,7 +38,7 @@ export default async function MessagingPage() {
     <div className="relative space-y-8">
       <PageHeader
         title="Messaging"
-        description="Only conversations you are in. New messages go to the people you pick unless you choose to broadcast."
+        description="Site chat is for everyone on that job. Private messages stay between the people you pick."
       />
       <MessagingContent companyId={companyId} canDelete={canDelete} />
     </div>

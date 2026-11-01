@@ -76,50 +76,50 @@ export async function GET(
       return NextResponse.json({ error: "Company required" }, { status: 400 });
     }
 
-    const { data: thread } = await supabaseAdmin
-      .from("message_threads")
-      .select("id, created_by, company_id, created_at")
-      .eq("id", id)
-      .single();
+    const [{ data: thread }, { data: inThread }] = await Promise.all([
+      supabaseAdmin
+        .from("message_threads")
+        .select("id, created_by, company_id, created_at")
+        .eq("id", id)
+        .single(),
+      supabaseAdmin
+        .from("message_recipients")
+        .select("user_id")
+        .eq("thread_id", id)
+        .eq("user_id", userId)
+        .maybeSingle(),
+    ]);
 
     if (!thread || (thread as { company_id: string }).company_id !== companyId) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
     }
-
-    const { data: inThread } = await supabaseAdmin
-      .from("message_recipients")
-      .select("user_id")
-      .eq("thread_id", id)
-      .eq("user_id", userId)
-      .maybeSingle();
-
     if (!inThread) {
       return NextResponse.json({ error: "Not a participant" }, { status: 403 });
     }
 
-    const upsertRow = { thread_id: id, user_id: userId, last_read_at: new Date().toISOString() };
-    const upsertFallback = { thread_id: id, user_id: userId };
-    const { error: readErr } = await supabaseAdmin
-      .from("message_recipients")
-      .upsert(upsertRow, { onConflict: "thread_id,user_id" });
-    if (readErr) {
-      await supabaseAdmin.from("message_recipients").upsert(upsertFallback, { onConflict: "thread_id,user_id" });
-    }
+    const markRead = async () => {
+      const upsertRow = { thread_id: id, user_id: userId, last_read_at: new Date().toISOString() };
+      const upsertFallback = { thread_id: id, user_id: userId };
+      const { error: readErr } = await supabaseAdmin
+        .from("message_recipients")
+        .upsert(upsertRow, { onConflict: "thread_id,user_id" });
+      if (readErr) {
+        await supabaseAdmin.from("message_recipients").upsert(upsertFallback, { onConflict: "thread_id,user_id" });
+      }
+    };
 
-    let recipients: Array<{ user_id: string; last_read_at?: string | null }> = [];
-    const { data: recData, error: recErr } = await supabaseAdmin
-      .from("message_recipients")
-      .select("user_id, last_read_at")
-      .eq("thread_id", id);
-    if (!recErr && recData) {
-      recipients = recData as Array<{ user_id: string; last_read_at?: string | null }>;
-    }
-
-    const { data: messages } = await supabaseAdmin
-      .from("messages_thread")
-      .select("id, sender_id, body, attachment_url, created_at")
-      .eq("thread_id", id)
-      .order("created_at", { ascending: true });
+    // Read ticks only consider other participants, so the caller's own read marker can update in parallel.
+    const [, { data: recData, error: recErr }, { data: messages }] = await Promise.all([
+      markRead(),
+      supabaseAdmin.from("message_recipients").select("user_id, last_read_at").eq("thread_id", id),
+      supabaseAdmin
+        .from("messages_thread")
+        .select("id, sender_id, body, attachment_url, created_at")
+        .eq("thread_id", id)
+        .order("created_at", { ascending: true }),
+    ]);
+    const recipients =
+      !recErr && recData ? (recData as Array<{ user_id: string; last_read_at?: string | null }>) : [];
 
     const senderIds = [...new Set((messages ?? []).map((m) => (m as { sender_id: string }).sender_id))];
     const senderMap = new Map<string, string>();

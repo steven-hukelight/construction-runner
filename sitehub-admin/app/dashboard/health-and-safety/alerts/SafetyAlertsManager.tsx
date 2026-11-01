@@ -34,13 +34,35 @@ export default function SafetyAlertsManager() {
   const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "" });
   const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<{ id: string; name?: string }[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [reloadKey, setReloadKey] = useState(0);
+
+  useEffect(() => {
+    const companyId = getCompanyIdFromClient();
+    if (!companyId) {
+      queueMicrotask(() => setStatus("ready"));
+      return;
+    }
+    let cancelled = false;
+    fetch("/api/safety-alerts", { cache: "no-store", credentials: "include" })
+      .then(async (r) => {
+        const json = r.ok ? await r.json() : null;
+        if (!Array.isArray(json)) throw new Error(`safety-alerts ${r.status}`);
+        if (cancelled) return;
+        setItems(json);
+        setStatus("ready");
+      })
+      .catch(() => {
+        if (!cancelled) setStatus("error");
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [reloadKey]);
 
   useEffect(() => {
     const companyId = getCompanyIdFromClient();
     if (!companyId) return;
-    fetch("/api/safety-alerts", { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
-      .then(setItems);
     fetch("/api/sites", { credentials: "include" })
       .then((r) => (r.ok ? r.json() : []))
       .then((arr) => {
@@ -62,18 +84,24 @@ export default function SafetyAlertsManager() {
       body: JSON.stringify({ ...form, siteWide }),
       credentials: "include",
     });
-    const data = await res.json();
-    if (data.id) {
-      setItems((prev) => [{ id: data.id, ...form }, ...prev]);
-      setAdding(false);
-      setSiteWide(false);
-      setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "" });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok || !data.id) {
+      toast.error(typeof data.error === "string" ? data.error : "Couldn't save the alert");
+      return;
     }
+    setItems((prev) => [{ id: data.id, ...form }, ...prev]);
+    setAdding(false);
+    setSiteWide(false);
+    setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "" });
   }
 
   async function remove(id: string) {
     if (!window.confirm("Delete this alert?")) return;
-    await fetch(`/api/safety-alerts/${id}`, { method: "DELETE", credentials: "include" });
+    const res = await fetch(`/api/safety-alerts/${id}`, { method: "DELETE", credentials: "include" }).catch(() => null);
+    if (!res?.ok) {
+      toast.error("Couldn't delete the alert");
+      return;
+    }
     setItems((prev) => prev.filter((i) => i.id !== id));
   }
 
@@ -185,7 +213,18 @@ export default function SafetyAlertsManager() {
         ))}
       </div>
       <div className="hidden md:block">
-        <Table embedded columns={columns} data={items} />
+        <Table
+          embedded
+          columns={columns}
+          data={items}
+          loading={status === "loading"}
+          error={status === "error"}
+          onRetry={() => {
+            setStatus("loading");
+            setReloadKey((k) => k + 1);
+          }}
+          thing="safety alerts"
+        />
       </div>
     </DataTableShell>
   );

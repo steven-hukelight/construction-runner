@@ -134,6 +134,9 @@ export async function GET(req: Request) {
     }
     const rows = assets ?? [];
     if (rows.length === 0) return NextResponse.json([]);
+    if (new URL(req.url).searchParams.get("fields") === "inspection") {
+      return NextResponse.json(rows);
+    }
 
     const assetIds = rows.map((r) => (r as { id: string }).id);
     const { data: assigns } = await supabaseAdmin

@@ -77,7 +77,8 @@ export async function GET(req: Request) {
 
     let userId: string | null = mobileAuth.uid ? String(mobileAuth.uid) : null;
     if (!userId && email) {
-      const { data: user } = await supabaseAdmin.from("users").select("id").eq("email", email).maybeSingle();
+      const { data: user, error: userErr } = await supabaseAdmin.from("users").select("id").eq("email", email).maybeSingle();
+      if (userErr) throw userErr;
       if (user) userId = String((user as { id: string }).id);
     }
     if (!userId) {
@@ -99,11 +100,12 @@ export async function GET(req: Request) {
     const cookieCompanyId =
       cookieStore.get("companyId")?.value?.trim() || cookieStore.get("company_id")?.value?.trim() || undefined;
 
-    const { data: profile } = await supabaseAdmin
+    const { data: profile, error: profileErr } = await supabaseAdmin
       .from("users")
       .select("company_id")
       .eq("id", userId)
       .maybeSingle();
+    if (profileErr) throw profileErr;
     const dbCompanyId = (profile as { company_id?: string | null } | null)?.company_id;
     const dbCompanyStr = dbCompanyId != null && String(dbCompanyId).trim() ? String(dbCompanyId).trim() : undefined;
 
@@ -146,7 +148,12 @@ export async function GET(req: Request) {
      * (2) timestamp in UTC day — legacy rows where client/server timestamp disagrees with created_at.
      * Merge, dedupe by id, sort newest first.
      */
-    const [{ data: byCreated }, { data: byTimestamp }, { data: absentCandidates }, lastEver] = await Promise.all([
+    const [
+      { data: byCreated, error: byCreatedErr },
+      { data: byTimestamp, error: byTimestampErr },
+      { data: absentCandidates, error: absentErr },
+      lastEver,
+    ] = await Promise.all([
       byCreatedPromise,
       byTimestampPromise,
       supabaseAdmin
@@ -159,6 +166,8 @@ export async function GET(req: Request) {
         .limit(200),
       fetchLatestAttendanceRowForUser(selectCols, userId, companyIdForScope),
     ]);
+    const queryErr = byCreatedErr ?? byTimestampErr ?? absentErr;
+    if (queryErr) throw queryErr;
 
     const merged = new Map<string, AttendanceRow>();
     for (const r of [...(byCreated ?? []), ...(byTimestamp ?? [])] as AttendanceRow[]) {
@@ -240,6 +249,7 @@ export async function GET(req: Request) {
     });
   } catch (e) {
     console.error("GET /api/me/attendance-status failed:", e);
-    return NextResponse.json(empty, { status: 200 });
+    // Not `empty`: a lookup failure must not read as "signed out" to the app or the dashboard.
+    return NextResponse.json({ error: "Could not load attendance status" }, { status: 500 });
   }
 }

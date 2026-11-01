@@ -59,8 +59,22 @@ type ContextValue = DisplayPreferences & {
 
 const DisplayPreferencesContext = createContext<ContextValue | null>(null);
 
+/** The stored entry can hold a multi-MB background image, so format helpers must not re-parse it per call. */
+let cachedPreferences: DisplayPreferences | null = null;
+
+if (typeof window !== "undefined") {
+  window.addEventListener("storage", (e) => {
+    if (e.key === STORAGE_KEY || e.key === null) cachedPreferences = null;
+  });
+}
+
 function loadPreferences(): DisplayPreferences {
   if (typeof window === "undefined") return defaults;
+  cachedPreferences ??= readStoredPreferences();
+  return cachedPreferences;
+}
+
+function readStoredPreferences(): DisplayPreferences {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
     if (!raw) return defaults;
@@ -91,6 +105,7 @@ function loadPreferences(): DisplayPreferences {
 
 function savePreferences(prefs: DisplayPreferences) {
   if (typeof window === "undefined") return;
+  cachedPreferences = prefs;
   try {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
   } catch {

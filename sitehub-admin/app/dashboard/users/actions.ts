@@ -21,7 +21,8 @@ export async function fetchUsers(companyId?: string, role?: string, cookieHeader
     if (effectiveCookie) headers.Cookie = effectiveCookie;
     const res = await fetch(url, { cache: "no-store", headers });
     if (!res.ok) return [];
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (e) {
     console.error("fetchUsers:", e);
     return [];

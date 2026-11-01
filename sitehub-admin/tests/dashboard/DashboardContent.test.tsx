@@ -55,7 +55,7 @@ beforeEach(() => {
   mockGetRoleFromClient.mockReturnValue("admin");
   global.fetch = jest.fn((input: RequestInfo | URL) => {
     const url = String(input);
-    if (url.includes("/api/auth/registrations")) return jsonResponse([]);
+    if (url.includes("/api/auth/registrations")) return jsonResponse({ count: 0 });
     if (url.includes("count=unreviewed")) return jsonResponse({ count: 0 });
     if (url.includes("/api/admin/missing-info")) return jsonResponse([{ userId: "u1" }, { userId: "u2" }]);
     if (url.includes("/api/assets")) {
@@ -107,6 +107,52 @@ describe("DashboardContent", () => {
 
     await waitFor(() => {
       expect(screen.getByText(/Nothing waiting/)).toBeInTheDocument();
+    });
+  });
+
+  it("does not show the all-clear before attention counts have loaded", () => {
+    (global.fetch as jest.Mock).mockImplementation(() => new Promise(() => {}));
+
+    render(
+      <DashboardContent
+        {...defaultProps}
+        tasks={[{ id: "t1", title: "Done", company_id: "co-a", status: "DONE" }]}
+      />
+    );
+
+    expect(screen.queryByText(/Nothing waiting/)).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Loading items that need attention")).toBeInTheDocument();
+  });
+
+  it("shows a retry instead of the all-clear when a count fails to load", async () => {
+    (global.fetch as jest.Mock).mockImplementation((input: RequestInfo | URL) => {
+      const url = String(input);
+      if (url.includes("/api/admin/missing-info")) return jsonResponse({ error: "boom" }, false);
+      if (url.includes("count=unreviewed")) return jsonResponse({ count: 0 });
+      return jsonResponse([]);
+    });
+
+    render(
+      <DashboardContent
+        {...defaultProps}
+        tasks={[{ id: "t1", title: "Done", company_id: "co-a", status: "DONE" }]}
+      />
+    );
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: "Try again" })).toBeInTheDocument();
+    });
+    expect(screen.queryByText(/Nothing waiting/)).not.toBeInTheDocument();
+  });
+
+  it("requests the lightweight assets payload", async () => {
+    render(<DashboardContent {...defaultProps} />);
+
+    await waitFor(() => {
+      expect(global.fetch).toHaveBeenCalledWith(
+        expect.stringContaining("/api/assets?companyId=co-a-uuid&fields=inspection"),
+        expect.anything()
+      );
     });
   });
 });

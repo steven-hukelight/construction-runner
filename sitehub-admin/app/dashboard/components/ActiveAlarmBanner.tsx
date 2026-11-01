@@ -1,7 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { usePolling } from "@/lib/hooks/usePolling";
 import { ALARM_LABELS, londonClock, type AlarmType } from "@/lib/siteAlarms/types";
 
 type ActiveAlarm = {
@@ -17,25 +18,13 @@ type ActiveAlarm = {
 export default function ActiveAlarmBanner() {
   const [alarms, setAlarms] = useState<ActiveAlarm[]>([]);
 
-  useEffect(() => {
-    let cancelled = false;
-    async function load() {
-      try {
-        const res = await fetch("/api/me/active-alarm?plan=0", { credentials: "include", cache: "no-store" });
-        if (!res.ok) return;
-        const data = await res.json();
-        if (!cancelled) setAlarms(Array.isArray(data.alarms) ? data.alarms : []);
-      } catch {
-        /* leave last known */
-      }
-    }
-    void load();
-    const id = window.setInterval(() => void load(), 15000);
-    return () => {
-      cancelled = true;
-      window.clearInterval(id);
-    };
+  const load = useCallback(async (signal: AbortSignal) => {
+    const res = await fetch("/api/me/active-alarm?plan=0", { credentials: "include", cache: "no-store", signal });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (!signal.aborted) setAlarms(Array.isArray(data.alarms) ? data.alarms : []);
   }, []);
+  usePolling(load, 15_000);
 
   if (!alarms.length) return null;
 

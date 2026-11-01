@@ -1,14 +1,25 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { currentSignedInSiteId } from "@/lib/auth/siteScope";
+import { fetchLatestAttendanceRowForUser } from "@/lib/attendanceLatestRow";
+import { isOpenSignInAction } from "@/lib/attendanceStatusRow";
 import { alarmView, loadSites, staffSiteIds } from "@/lib/siteAlarms/service";
 import type { SiteAlarmRow } from "@/lib/siteAlarms/types";
+
+const CHECK_FAILED = { error: "Could not check for alarms" };
+
+/** Unlike `currentSignedInSiteId`, lookup errors throw: "not signed in" here would hide the caller's alarm. */
+async function signedInSiteOrThrow(uid: string): Promise<string | null> {
+  const latest = await fetchLatestAttendanceRowForUser("action, site_id, created_at, timestamp", uid);
+  if (!latest || !isOpenSignInAction(latest.action as string | null)) return null;
+  return String(latest.site_id ?? "").trim() || null;
+}
 
 /**
  * Active alarms the caller should see: the site they are signed in to, plus every site they
  * look after as staff. The app checks this on open / resume so a missed push still shows the alarm.
  * `?plan=0` skips the emergency plan (the web banner only needs the summary).
+ * Lookup failures return 500 so callers keep their last known alarms rather than clearing them.
  */
 export async function GET(req: Request) {
   try {
@@ -18,7 +29,7 @@ export async function GET(req: Request) {
     if (!uid) return NextResponse.json({ alarms: [] });
     const withPlan = new URL(req.url).searchParams.get("plan") !== "0";
 
-    const [signedInSite, managed] = await Promise.all([currentSignedInSiteId(uid), staffSiteIds(auth)]);
+    const [signedInSite, managed] = await Promise.all([signedInSiteOrThrow(uid), staffSiteIds(auth)]);
 
     let query = supabaseAdmin.from("site_alarms").select("*").eq("status", "active").order("raised_at", { ascending: false });
     if (managed === null) {
@@ -41,7 +52,7 @@ export async function GET(req: Request) {
     const { data, error } = await query.limit(20);
     if (error) {
       console.error("GET /api/me/active-alarm:", error);
-      return NextResponse.json({ alarms: [] });
+      return NextResponse.json(CHECK_FAILED, { status: 500 });
     }
     const alarms = (data ?? []) as SiteAlarmRow[];
     const sites = await loadSites(alarms.map((a) => a.site_id));
@@ -57,6 +68,6 @@ export async function GET(req: Request) {
     return NextResponse.json({ alarms: views.filter(Boolean) });
   } catch (e) {
     console.error("GET /api/me/active-alarm failed:", e);
-    return NextResponse.json({ alarms: [] });
+    return NextResponse.json(CHECK_FAILED, { status: 500 });
   }
 }

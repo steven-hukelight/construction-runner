@@ -8,6 +8,7 @@ import Image from "next/image";
 import { setUserCookies } from "@/app/login/actions";
 import FeedbackLink from "@/app/components/FeedbackLink";
 import { getAuthRedirectOrigin } from "@/lib/url";
+import { dashboardHomeForRole } from "@/lib/auth/dashboardHome";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
@@ -117,7 +118,7 @@ function LoginPageContent() {
         setLoading(false);
         return;
       }
-      router.push("/dashboard");
+      router.push(dashboardHomeForRole(result.role));
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
       setError(

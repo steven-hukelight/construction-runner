@@ -40,7 +40,7 @@ export function DashboardMainShell({ children }: { children: ReactNode }) {
             }}
           />
           <div
-            className="absolute inset-0 backdrop-blur-[1px]"
+            className="absolute inset-0"
             style={{
               backgroundColor:
                 resolvedTheme === "dark" ? `rgba(15, 23, 42, ${dashboardBackgroundOverlay})` : `rgba(255, 255, 255, ${dashboardBackgroundOverlay})`,

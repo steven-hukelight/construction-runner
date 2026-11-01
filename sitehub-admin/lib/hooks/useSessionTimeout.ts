@@ -8,7 +8,10 @@ import {
 import { getSessionStartedAtFromClient } from "@/lib/utils/cookies";
 import { clearServerAuthCookies } from "@/lib/clientLogout";
 
-const ACTIVITY_EVENTS = ["mousedown", "keydown", "scroll", "touchstart"];
+const ACTIVITY_EVENTS = ["mousedown", "mousemove", "keydown", "scroll", "wheel", "touchstart"];
+/** Dashboard content scrolls inside `.main-content`, and scroll does not bubble, so listen in the capture phase. */
+const LISTENER_OPTIONS: AddEventListenerOptions = { capture: true, passive: true };
+const ACTIVITY_THROTTLE_MS = 1000;
 
 /**
  * Session timeout: idle (30 min) + absolute (24h).
@@ -29,7 +32,11 @@ export function useSessionTimeout() {
     const startedUnix = getSessionStartedAtFromClient();
     const startedAt = startedUnix != null ? startedUnix * 1000 : null;
 
+    let lastActivityAt = 0;
     const resetIdleTimer = () => {
+      const now = Date.now();
+      if (now - lastActivityAt < ACTIVITY_THROTTLE_MS) return;
+      lastActivityAt = now;
       if (idleTimeoutId) clearTimeout(idleTimeoutId);
       idleTimeoutId = setTimeout(() => logout("idle"), SESSION_IDLE_TIMEOUT_MS);
     };
@@ -49,14 +56,14 @@ export function useSessionTimeout() {
     scheduleAbsolute();
 
     ACTIVITY_EVENTS.forEach((event) => {
-      window.addEventListener(event, resetIdleTimer);
+      window.addEventListener(event, resetIdleTimer, LISTENER_OPTIONS);
     });
 
     return () => {
       if (idleTimeoutId) clearTimeout(idleTimeoutId);
       if (absoluteTimeoutId) clearTimeout(absoluteTimeoutId);
       ACTIVITY_EVENTS.forEach((event) => {
-        window.removeEventListener(event, resetIdleTimer);
+        window.removeEventListener(event, resetIdleTimer, LISTENER_OPTIONS);
       });
     };
   }, [logout]);

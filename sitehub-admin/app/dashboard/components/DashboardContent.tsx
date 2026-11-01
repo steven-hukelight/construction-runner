@@ -6,6 +6,7 @@ import Link from "next/link";
 import { FileText, MapPin, Users, ListTodo, type LucideIcon } from "lucide-react";
 import { StatCard } from "./ui/stat-card";
 import { EnhancedCard } from "./ui/enhanced-card";
+import Skeleton from "./ui/Skeleton";
 import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
 
 const DashboardCharts = dynamic(
@@ -72,16 +73,24 @@ export function DashboardContent({
   // Trust SSR props for the heavy lists, previously this client re-fetched
   // sites/rams/users/tasks on mount (duplicate of the server round-trip) and
   // again on every Realtime event, which made the home dashboard feel slow.
-  const [pendingRegistrations, setPendingRegistrations] = useState<unknown[] | null>(null);
+  const [pendingRegistrations, setPendingRegistrations] = useState<number | null>(null);
   const [unreviewedNearMiss, setUnreviewedNearMiss] = useState<number>(0);
   const [overdueInspections, setOverdueInspections] = useState<number>(0);
   const [missingInfoCount, setMissingInfoCount] = useState<number>(0);
+  const [attentionStatus, setAttentionStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [attentionReloadKey, setAttentionReloadKey] = useState(0);
 
   useEffect(() => {
     const role = getRoleFromClient();
     const companyId = getCompanyIdFromClient();
     const siteId = getCurrentSiteIdFromCookie();
-    if (!role) return;
+    if (!role) {
+      queueMicrotask(() => setAttentionStatus("ready"));
+      return;
+    }
+
+    // 401/403 means the count does not apply to this role, not that loading failed.
+    const failed = (res: Response | null) => !!res && !res.ok && res.status !== 401 && res.status !== 403;
 
     const qs = (base: string) => {
       const params = new URLSearchParams();
@@ -96,7 +105,7 @@ export function DashboardContent({
     const fetchAttentionCounts = async () => {
       try {
         const [regsRes, nearMissRes, missingRes, assetsRes] = await Promise.all([
-          fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" }),
+          fetch("/api/auth/registrations?count=1", { cache: "no-store", credentials: "include" }),
           canViewNearMiss
             ? fetch(`${qs("/api/near-miss")}${qs("/api/near-miss").includes("?") ? "&" : "?"}count=unreviewed`, {
                 cache: "no-store",
@@ -104,10 +113,13 @@ export function DashboardContent({
               })
             : Promise.resolve(null),
           fetch(qs("/api/admin/missing-info"), { cache: "no-store", credentials: "include" }),
-          fetch(qs("/api/assets"), { cache: "no-store", credentials: "include" }),
+          fetch(`${qs("/api/assets")}${qs("/api/assets").includes("?") ? "&" : "?"}fields=inspection`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
         ]);
         const regsData = regsRes.ok ? await regsRes.json() : null;
-        if (Array.isArray(regsData)) setPendingRegistrations(regsData);
+        if (typeof regsData?.count === "number") setPendingRegistrations(regsData.count);
         if (nearMissRes?.ok) {
           const nm = await nearMissRes.json();
           setUnreviewedNearMiss(typeof nm?.count === "number" ? nm.count : 0);
@@ -129,15 +141,22 @@ export function DashboardContent({
             : 0;
           setOverdueInspections(overdue);
         }
+        const anyFailed = [regsRes, nearMissRes, missingRes, assetsRes].some(failed);
+        setAttentionStatus(anyFailed ? "error" : "ready");
       } catch {
-        /* ignore */
+        setAttentionStatus("error");
       }
     };
 
     void fetchAttentionCounts();
     const interval = setInterval(fetchAttentionCounts, 120_000);
     return () => clearInterval(interval);
-  }, []);
+  }, [attentionReloadKey]);
+
+  const retryAttention = () => {
+    setAttentionStatus("loading");
+    setAttentionReloadKey((k) => k + 1);
+  };
 
   const effSites = sites;
   const effRAMS = rams;
@@ -196,7 +215,7 @@ export function DashboardContent({
             ) : null;
           })()}
           {(() => {
-            const pendingCount = pendingRegistrations?.length ?? 0;
+            const pendingCount = pendingRegistrations ?? 0;
             return pendingCount > 0 ? (
               <PendingItem
                 href="/dashboard/pending-approvals"
@@ -219,9 +238,30 @@ export function DashboardContent({
               priority="medium"
             />
           )}
-          {(effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
+          {attentionStatus === "loading" && (
+            <div className="space-y-3" aria-busy="true" aria-label="Loading items that need attention">
+              <Skeleton className="h-10 rounded-lg bg-gray-100 dark:bg-slate-700" />
+              <Skeleton className="h-10 rounded-lg bg-gray-100 dark:bg-slate-700" />
+            </div>
+          )}
+          {attentionStatus === "error" && (
+            <div className="flex items-center justify-between gap-3 py-2">
+              <p className="text-sm text-gray-700 dark:text-slate-300">
+                Some outstanding items could not be loaded.
+              </p>
+              <button
+                type="button"
+                onClick={retryAttention}
+                className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 transition-colors duration-[120ms] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+              >
+                Try again
+              </button>
+            </div>
+          )}
+          {attentionStatus === "ready" &&
+            (effRAMS?.filter((r) => (r.status ?? "").toUpperCase() === "PENDING").length ?? 0) === 0 &&
             unreviewedNearMiss === 0 &&
-            (pendingRegistrations?.length ?? 0) === 0 &&
+            (pendingRegistrations ?? 0) === 0 &&
             overdueInspections === 0 &&
             missingInfoCount === 0 &&
             (effTasks?.filter((t) => {

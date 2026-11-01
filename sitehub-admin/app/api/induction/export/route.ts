@@ -9,6 +9,28 @@ function cid(x: { company_id?: string | null; main_contractor_id?: string | null
   return (x.main_contractor_id ?? x.company_id ?? null) as string | null;
 }
 
+type InductionRow = { user_id: string; site_id: string; status: string | null; completed_at: string | null };
+
+const PAGE_SIZE = 1000;
+
+/** All inductions for the given sites, keyed by `userId:siteId`. Paged because PostgREST caps rows per request. */
+async function loadInductions(siteIds: string[]): Promise<Map<string, InductionRow>> {
+  const out = new Map<string, InductionRow>();
+  if (!siteIds.length) return out;
+  for (let from = 0; ; from += PAGE_SIZE) {
+    const { data, error } = await supabaseAdmin
+      .from("user_site_inductions")
+      .select("user_id, site_id, status, completed_at")
+      .in("site_id", siteIds)
+      .order("user_id")
+      .order("site_id")
+      .range(from, from + PAGE_SIZE - 1);
+    if (error) throw error;
+    for (const row of (data ?? []) as InductionRow[]) out.set(`${row.user_id}:${row.site_id}`, row);
+    if (!data || data.length < PAGE_SIZE) return out;
+  }
+}
+
 export async function POST(req: Request) {
   try {
     const cookieStore = await cookies();
@@ -47,6 +69,8 @@ export async function POST(req: Request) {
     const { data: companies } = companyIds.length ? await supabaseAdmin.from("companies").select("id, name").in("id", companyIds) : { data: [] };
     const companyNames = Object.fromEntries((companies ?? []).map((c) => [c.id, c.name ?? c.id]));
 
+    const inductions = await loadInductions(sites.map((s) => s.id));
+
     const now = new Date();
     const rows: string[][] = [["userName", "userCompany", "siteName", "status", "completedAt"]];
 
@@ -60,12 +84,7 @@ export async function POST(req: Request) {
         const siteId = site.id;
         const siteName = site.name ?? siteId;
 
-        const { data: ind } = await supabaseAdmin
-          .from("user_site_inductions")
-          .select("status, completed_at")
-          .eq("user_id", uid)
-          .eq("site_id", siteId)
-          .maybeSingle();
+        const ind = inductions.get(`${uid}:${siteId}`);
 
         let status = "not_started";
         let completedAt = "";

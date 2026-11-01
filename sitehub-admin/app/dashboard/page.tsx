@@ -1,5 +1,6 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
+import { dashboardHomeForRole } from "@/lib/auth/dashboardHome";
 
 const VALID_ROLES = new Set([
   "superuser",
@@ -25,18 +26,5 @@ export default async function DashboardPage() {
     redirect("/admin/login");
   }
 
-  if (roleLower === "superuser" && !impersonating) {
-    redirect("/dashboard/superuser-dashboard");
-  }
-
-  if (roleLower === "admin" || roleLower === "site_admin" || roleLower === "sub_admin") {
-    redirect("/dashboard/admin-dashboard");
-  }
-
-  if (roleLower === "supervisor") {
-    redirect("/dashboard/supervisor-dashboard");
-  }
-
-  // Superuser impersonating → company (admin) dashboard
-  redirect("/dashboard/admin-dashboard");
+  redirect(dashboardHomeForRole(roleLower, impersonating));
 }

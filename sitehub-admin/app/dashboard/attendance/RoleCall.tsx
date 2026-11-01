@@ -164,8 +164,11 @@ export default function RoleCall({
   selectedDate: selectedDateProp,
   onArchived,
 }: { selectedDate?: string; onArchived?: () => void }) {
-  const [people, setPeople] = useState<PersonStatus[]>([]);
   const [attendanceLogs, setAttendanceLogs] = useState<AttendanceLog[]>([]);
+  const [logsStatus, setLogsStatus] = useState<"loading" | "ready" | "error">("loading");
+  const [lastUpdatedAt, setLastUpdatedAt] = useState<Date | null>(null);
+  const [refreshFailed, setRefreshFailed] = useState(false);
+  const [reloadKey, setReloadKey] = useState(0);
   const [users, setUsers] = useState<User[]>([]);
   const [profiles, setProfiles] = useState<Profile[]>([]);
   const [sites, setSites] = useState<Site[]>([]);
@@ -182,8 +185,7 @@ export default function RoleCall({
     return s?.name || selectedSiteId;
   })();
 
-  // Process attendance logs into people list (re-runs when logs, users, profiles, or site filter change)
-  useEffect(() => {
+  const people = useMemo<PersonStatus[]>(() => {
     const filtered =
       selectedSiteId === "all"
         ? attendanceLogs
@@ -228,7 +230,7 @@ export default function RoleCall({
       });
     });
 
-    setPeople(Array.from(seen.values()));
+    return Array.from(seen.values());
   }, [attendanceLogs, selectedSiteId, users, profiles]);
 
   const signedInPeople = useMemo(
@@ -243,7 +245,16 @@ export default function RoleCall({
 
   // Load attendance from API (today = live; past days = archive)
   useEffect(() => {
-    const load = async () => {
+    let controller: AbortController | null = null;
+    let disposed = false;
+    setLogsStatus("loading");
+    setRefreshFailed(false);
+    setAttendanceLogs([]);
+
+    const load = async (background: boolean) => {
+      if (background && (document.hidden || controller)) return;
+      const current = new AbortController();
+      controller = current;
       try {
         const params = new URLSearchParams({ limit: "500" });
         if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
@@ -258,26 +269,47 @@ export default function RoleCall({
           res = await fetch(`/api/attendance?${params}`, {
             cache: "no-store",
             credentials: "include",
+            signal: current.signal,
           });
         } else {
           params.set("date", selectedDate);
           res = await fetch(`/api/attendance/archive?${params}`, {
             cache: "no-store",
             credentials: "include",
+            signal: current.signal,
           });
         }
+        if (!res.ok) throw new Error(`attendance ${res.status}`);
         const json = await res.json();
-        setAttendanceLogs(Array.isArray(json) ? (json as AttendanceLog[]) : []);
+        if (!Array.isArray(json)) throw new Error("attendance: unexpected response");
+        if (disposed) return;
+        setAttendanceLogs(json as AttendanceLog[]);
+        setLogsStatus("ready");
+        setRefreshFailed(false);
+        setLastUpdatedAt(new Date());
       } catch {
-        setAttendanceLogs([]);
+        if (disposed || current.signal.aborted) return;
+        // A failed refresh keeps the last good list on screen (flagged as stale) rather than blanking the roll call.
+        if (background) setRefreshFailed(true);
+        else setLogsStatus("error");
+      } finally {
+        if (controller === current) controller = null;
       }
     };
-    load();
-    const interval = isToday ? setInterval(load, 30000) : undefined;
-    return () => {
-      if (interval) clearInterval(interval);
+
+    void load(false);
+    const interval = isToday ? setInterval(() => void load(true), 30000) : undefined;
+    const onVisible = () => {
+      if (!document.hidden && isToday) void load(true);
     };
-  }, [selectedDate, selectedSiteId, isToday]);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      disposed = true;
+      controller?.abort();
+      if (interval) clearInterval(interval);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
+  }, [selectedDate, selectedSiteId, isToday, reloadKey]);
 
   // Load users/profiles/sites from API
   useEffect(() => {
@@ -411,7 +443,6 @@ export default function RoleCall({
       const data = await res.json();
       if (res.ok) {
         setLocalDate(todayStr());
-        setPeople([]);
         setAttendanceLogs([]);
         onArchived?.();
         toast.success(`Role call for ${selectedDate} archived. Ready for next session.`);
@@ -519,6 +550,16 @@ export default function RoleCall({
             placeholder="All sites"
             className="w-52"
           />
+          {logsStatus === "ready" && lastUpdatedAt && (
+            <span
+              className={`status-chip ${refreshFailed ? "status-chip--warn" : "status-chip--muted"}`}
+              role={refreshFailed ? "alert" : undefined}
+            >
+              {refreshFailed
+                ? `Couldn't refresh. Showing list from ${formatTime(lastUpdatedAt)}`
+                : `Updated ${formatTime(lastUpdatedAt)}`}
+            </span>
+          )}
           {people.length > 0 && (
             <>
               <span className="status-chip status-chip--muted">Date: {formatDate(new Date(`${selectedDate}T12:00:00`))}</span>
@@ -556,6 +597,10 @@ export default function RoleCall({
       }
       columns={columns}
       data={displayedPeople}
+      loading={logsStatus === "loading"}
+      error={logsStatus === "error"}
+      onRetry={() => setReloadKey((k) => k + 1)}
+      thing="the roll call"
       emptyMessage={
         people.length === 0
           ? isToday

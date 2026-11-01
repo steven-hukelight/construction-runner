@@ -1,7 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import Link from "next/link";
+import { usePolling } from "@/lib/hooks/usePolling";
 import {
   ALARM_LABELS,
   STAND_DOWN_OUTCOMES,
@@ -65,25 +66,23 @@ export default function MusterBoardClient({ alarmId }: { alarmId: string }) {
   const [busy, setBusy] = useState(false);
   const [exporting, setExporting] = useState(false);
 
-  const load = useCallback(async () => {
+  const load = useCallback(async (signal?: AbortSignal) => {
     try {
-      const res = await fetch(`/api/alarms/${alarmId}?plan=0`, { credentials: "include", cache: "no-store" });
+      const res = await fetch(`/api/alarms/${alarmId}?plan=0`, { credentials: "include", cache: "no-store", signal });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Couldn't load the alarm");
+      if (signal?.aborted) return;
       setAlarm(data.alarm);
       setBoard(data.board ?? null);
       setError(null);
       if (data.alarm?.is_drill) setOutcome("drill");
     } catch (e) {
+      if (signal?.aborted) return;
       setError(e instanceof Error ? e.message : "Couldn't load the alarm");
     }
   }, [alarmId]);
 
-  useEffect(() => {
-    void load();
-    const id = window.setInterval(() => void load(), 5000);
-    return () => window.clearInterval(id);
-  }, [load]);
+  usePolling(load, 5000, { enabled: alarm?.status !== "stood_down" });
 
   async function standDown() {
     if (!reason.trim()) return;

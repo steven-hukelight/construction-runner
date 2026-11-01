@@ -29,7 +29,7 @@ export default function WelcomeBanner({ subtitle, showSiteAttendance = false, ac
     showSiteAttendance ? "/api/me/attendance-status" : null,
     async (url) => {
       const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) return { signedIn: false };
+      if (!res.ok) throw new Error(`attendance-status ${res.status}`);
       return res.json() as Promise<{ signedIn: boolean; siteName?: string }>;
     },
     { revalidateOnFocus: false, dedupingInterval: 30_000 },

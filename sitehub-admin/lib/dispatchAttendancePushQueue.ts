@@ -25,7 +25,7 @@ const MAX_PUSH_AGE_MS = 30 * 60 * 1000;
  *     (user_id, attendance_id) as a defensive measure and mark all rows in a
  *     group as dispatched after one push.
  *
- * Idempotent via push_dispatched_at.
+ * Idempotent via push_dispatched_at, which is claimed atomically before each send.
  */
 export async function dispatchPendingAttendancePushNotifications(limit = 50): Promise<{
   attempted: number;
@@ -98,6 +98,21 @@ export async function dispatchPendingAttendancePushNotifications(limit = 50): Pr
         ) as Record<string, string>)
       : undefined;
 
+    // Claim before sending: overlapping drains (polled GETs, cron) race on the same rows,
+    // and only the caller whose conditional update returns the row may send it.
+    const nowIso = new Date().toISOString();
+    const { data: claimed, error: claimErr } = await supabaseAdmin
+      .from("notifications")
+      .update({ push_dispatched_at: nowIso })
+      .eq("id", primary.id)
+      .is("push_dispatched_at", null)
+      .select("id");
+    if (claimErr) {
+      errors.push(claimErr.message);
+      continue;
+    }
+    if (!claimed || claimed.length === 0) continue;
+
     const res = await sendPushToUsers(
       [uid],
       primary.title || "Attendance",
@@ -106,17 +121,12 @@ export async function dispatchPendingAttendancePushNotifications(limit = 50): Pr
     );
     if (!res.sent) {
       if (res.error) errors.push(res.error);
-      // Leave both primary and duplicates queued for retry next tick.
-      continue;
-    }
-
-    const nowIso = new Date().toISOString();
-    const { error: updErr } = await supabaseAdmin
-      .from("notifications")
-      .update({ push_dispatched_at: nowIso })
-      .eq("id", primary.id);
-    if (updErr) {
-      errors.push(updErr.message);
+      const { error: releaseErr } = await supabaseAdmin
+        .from("notifications")
+        .update({ push_dispatched_at: null })
+        .eq("id", primary.id)
+        .eq("push_dispatched_at", nowIso);
+      if (releaseErr) errors.push(releaseErr.message);
       continue;
     }
     sent++;

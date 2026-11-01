@@ -3,7 +3,13 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { sendApprovalWelcomeEmailToUser } from "@/lib/sendApprovalWelcomeEmail";
 import { findUserByIdOrEmail, findAuthUserIdByEmail, authUserExists } from "@/lib/auth/findUser";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { canApproveRegistrations, classifySignupStatus, isApprovalQueueStatus } from "@/lib/signupRegistration";
+import {
+  canApproveRegistrations,
+  classifySignupStatus,
+  isApprovalQueueStatus,
+  SIGNUP_PENDING_STATUSES,
+  SIGNUP_UNVERIFIED_STATUS,
+} from "@/lib/signupRegistration";
 
 export async function GET(req: Request) {
   try {
@@ -15,16 +21,30 @@ export async function GET(req: Request) {
     }
 
     const companyId = (auth.companyId ?? "").trim();
-    const { data } = await supabaseAdmin.from("registrations").select("id, company_id, data");
+    const countOnly = new URL(req.url).searchParams.get("count") === "1";
+    const seesAllCompanies = (auth.isSuperuser || roleLower === "superuser") && !companyId;
+    if (!seesAllCompanies && !companyId) {
+      return NextResponse.json(countOnly ? { count: 0 } : []);
+    }
+    const queueStatuses = [SIGNUP_UNVERIFIED_STATUS, ...SIGNUP_PENDING_STATUSES];
+
+    if (countOnly) {
+      let countQuery = supabaseAdmin
+        .from("registrations")
+        .select("id", { count: "exact", head: true })
+        .in("data->>status", queueStatuses);
+      if (!seesAllCompanies) countQuery = countQuery.eq("company_id", companyId);
+      const { count, error } = await countQuery;
+      if (error) throw error;
+      return NextResponse.json({ count: count ?? 0 });
+    }
+
+    let query = supabaseAdmin.from("registrations").select("id, company_id, data").in("data->>status", queueStatuses);
+    if (!seesAllCompanies) query = query.eq("company_id", companyId);
+    const { data, error } = await query;
+    if (error) throw error;
     const regs = (data ?? [])
       .filter((r) => isApprovalQueueStatus((r.data as { status?: string })?.status))
-      .filter((r) => {
-        const rowCid = r.company_id ? String(r.company_id).trim() : "";
-        if (auth.isSuperuser || roleLower === "superuser") {
-          return companyId ? rowCid === companyId : true;
-        }
-        return rowCid === companyId;
-      })
       .map((r) => {
         const d = { ...((r.data as Record<string, unknown>) ?? {}) };
         delete d.emailOtpHash;
@@ -42,7 +62,7 @@ export async function GET(req: Request) {
     return NextResponse.json(regs);
   } catch (err) {
     console.error("registrations GET error", err);
-    return NextResponse.json([], { status: 200 });
+    return NextResponse.json({ error: "Could not load registrations" }, { status: 500 });
   }
 }
 

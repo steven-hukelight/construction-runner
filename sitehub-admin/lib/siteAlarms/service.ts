@@ -28,7 +28,8 @@ export async function loadSite(siteId: string): Promise<SiteRef | null> {
 export async function loadSites(siteIds: string[]): Promise<Map<string, SiteRef>> {
   const ids = [...new Set(siteIds.filter(Boolean))];
   if (!ids.length) return new Map();
-  const { data } = await supabaseAdmin.from("sites").select("id, company_id, name, manager_id").in("id", ids);
+  const { data, error } = await supabaseAdmin.from("sites").select("id, company_id, name, manager_id").in("id", ids);
+  if (error) throw error;
   return new Map(
     (data ?? []).map((row) => {
       const r = row as { id: string; company_id: string | null; name: string | null; manager_id: string | null };
@@ -76,11 +77,13 @@ export async function staffSiteIds(caller: AlarmCaller): Promise<string[] | null
   if (role === "superuser" || caller.isSuperuser || role === "admin") return null;
   const ids = new Set<string>();
   if (usesAssignedSites(role)) {
-    const { data } = await supabaseAdmin.from("user_sites").select("site_id").eq("user_id", uid);
+    const { data, error } = await supabaseAdmin.from("user_sites").select("site_id").eq("user_id", uid);
+    if (error) throw error;
     for (const row of data ?? []) ids.add(String((row as { site_id: string }).site_id));
   }
   if (caller.companyId) {
-    const { data } = await supabaseAdmin.from("sites").select("id").eq("manager_id", uid).eq("company_id", caller.companyId);
+    const { data, error } = await supabaseAdmin.from("sites").select("id").eq("manager_id", uid).eq("company_id", caller.companyId);
+    if (error) throw error;
     for (const row of data ?? []) ids.add(String((row as { id: string }).id));
   }
   return [...ids];

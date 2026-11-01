@@ -41,7 +41,15 @@ export default function PreInductionLayoutWithRefresh({
   // Subscribe to Supabase realtime so data from mobile or other tabs refreshes automatically
   useEffect(() => {
     if (!userId) return;
-    const refresh = () => router.refresh();
+    // One mobile save writes several tables; coalesce their events into a single refresh.
+    let timer: ReturnType<typeof setTimeout> | null = null;
+    const refresh = () => {
+      if (timer) clearTimeout(timer);
+      timer = setTimeout(() => {
+        timer = null;
+        router.refresh();
+      }, 500);
+    };
     let channel = supabase
       .channel(`pre-induction-${userId}`)
       .on("postgres_changes", {
@@ -60,6 +68,7 @@ export default function PreInductionLayoutWithRefresh({
     }
     channel.subscribe();
     return () => {
+      if (timer) clearTimeout(timer);
       supabase.removeChannel(channel);
     };
   }, [userId, router]);

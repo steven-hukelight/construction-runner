@@ -64,12 +64,27 @@ export async function GET(req: Request) {
         query = query.eq("status", status);
       }
     }
+    if (search) {
+      // Characters that would break PostgREST's or() syntax or act as wildcards.
+      const term = search.replace(/[,()*%\\:"]/g, " ").trim();
+      if (term) {
+        let siteMatch = supabaseAdmin.from("sites").select("id").ilike("name", `%${term}%`).limit(200);
+        if (companyId) siteMatch = siteMatch.eq("company_id", companyId);
+        const { data: matchedSites, error: siteErr } = await siteMatch;
+        if (siteErr) throw siteErr;
+        const ids = (matchedSites ?? []).map((s) => String((s as { id: string }).id));
+        const clauses = [`description.ilike.*${term}*`, `status.ilike.*${term}*`, `site_id.ilike.*${term}*`];
+        if (ids.length) clauses.push(`site_id.in.(${ids.join(",")})`);
+        query = query.or(clauses.join(","));
+      }
+    }
     query = query.order(
       sort === "site" ? "site_id" : sort === "status" ? "status" : "created_at",
       { ascending: sort === "site" || sort === "status" },
     );
 
-    const { data } = await query;
+    const { data, error } = await query;
+    if (error) throw error;
     const reports = data ?? [];
     const siteIds = [...new Set(reports.map((r: { site_id?: string }) => r.site_id).filter(Boolean))];
     const siteMap = new Map<string, string>();
@@ -79,27 +94,11 @@ export async function GET(req: Request) {
         siteMap.set((s as { id: string }).id, (s as { name?: string }).name ?? "");
       }
     }
-    let rows: Array<Record<string, unknown> & {
-      site_name: string | null;
-      attachment_count: number;
-    }> = reports.map((d: Record<string, unknown>) => ({
+    const rows = reports.map((d: Record<string, unknown>) => ({
       ...d,
       site_name: d.site_id ? siteMap.get(String(d.site_id)) ?? null : null,
       attachment_count: Array.isArray(d.attachments) ? d.attachments.length : 0,
     }));
-    if (search) {
-      rows = rows.filter((row) => {
-        const haystack = [
-          row.description,
-          row.status,
-          row.site_name,
-          row.site_id,
-        ]
-          .map((value) => String(value ?? "").toLowerCase())
-          .join(" ");
-        return haystack.includes(search);
-      });
-    }
     return NextResponse.json(rows, {
       headers: { "Cache-Control": "no-store, no-cache, must-revalidate" },
     });

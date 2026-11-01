@@ -28,9 +28,15 @@ export default function SignInOut({ embedded = false, onRecorded }: SignInOutPro
 
   useEffect(() => {
     fetch("/api/users")
-      .then((r) => r.json())
-      .then((json) => setUsers(json || []))
-      .catch(() => setUsers([]));
+      .then(async (r) => {
+        const json = r.ok ? await r.json() : null;
+        if (!Array.isArray(json)) throw new Error(`users ${r.status}`);
+        setUsers(json);
+      })
+      .catch(() => {
+        setUsers([]);
+        toast.error("Couldn't load people. Refresh to try again.");
+      });
   }, []);
 
   useEffect(() => {

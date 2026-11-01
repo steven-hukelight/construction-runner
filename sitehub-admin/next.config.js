@@ -10,11 +10,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval'",
-      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://api.onesignal.com",
+      "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://onesignal.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://onesignal.com https://*.onesignal.com",
+      "worker-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
     ].join('; '),
@@ -32,7 +33,7 @@ const nextConfig = {
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
-      exclude: ['error', 'warn'],
+      exclude: ['error', 'warn', 'info'],
     } : false,
   },
   async headers() {

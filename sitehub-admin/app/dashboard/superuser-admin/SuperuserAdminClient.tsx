@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { toSentenceCase } from "@/lib/utils/sentenceCase";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import Table from "../components/ui/Table";
@@ -32,14 +32,39 @@ export default function SuperuserAdminClient() {
   const { data, isLoading, mutate } = useSWR(
     "superuser-admin-dashboard",
     fetcher,
-    { refreshInterval: 15_000 }
+    { refreshInterval: 60_000 }
   );
 
-  const companies = data?.companies ?? [];
-  const users = data?.users ?? [];
-  const sites = data?.sites ?? [];
-  const registrations = data?.registrations ?? [];
+  const companies = useMemo(() => data?.companies ?? [], [data]);
+  const users = useMemo(() => data?.users ?? [], [data]);
+  const sites = useMemo(() => data?.sites ?? [], [data]);
+  const registrations = useMemo(() => data?.registrations ?? [], [data]);
   const logs = data?.logs ?? [];
+
+  const companyMap = useMemo(
+    () =>
+      companies.reduce<Record<string, string>>((acc, c) => {
+        acc[c.id] = c.name ?? c.id;
+        return acc;
+      }, {}),
+    [companies],
+  );
+  const filteredCompanies = useMemo(
+    () => (companyFilter ? companies.filter((c) => c.id === companyFilter) : companies),
+    [companies, companyFilter],
+  );
+  const filteredUsers = useMemo(
+    () => (companyFilter ? users.filter((u) => u.company_id === companyFilter) : users),
+    [users, companyFilter],
+  );
+  const filteredSites = useMemo(
+    () => (companyFilter ? sites.filter((s) => s.company_id === companyFilter) : sites),
+    [sites, companyFilter],
+  );
+  const filteredRegistrations = useMemo(
+    () => (companyFilter ? registrations.filter((r) => r.company_id === companyFilter) : registrations),
+    [registrations, companyFilter],
+  );
 
   if (isLoading) {
     return (
@@ -48,16 +73,6 @@ export default function SuperuserAdminClient() {
       </div>
     );
   }
-
-  const companyMap = companies.reduce<Record<string, string>>((acc, c) => {
-    acc[c.id] = c.name ?? c.id;
-    return acc;
-  }, {});
-
-  const filteredCompanies = companyFilter ? companies.filter((c) => c.id === companyFilter) : companies;
-  const filteredUsers = companyFilter ? users.filter((u) => u.company_id === companyFilter) : users;
-  const filteredSites = companyFilter ? sites.filter((s) => s.company_id === companyFilter) : sites;
-  const filteredRegistrations = companyFilter ? registrations.filter((r) => r.company_id === companyFilter) : registrations;
 
   return (
     <div className="space-y-10">

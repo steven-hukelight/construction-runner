@@ -114,12 +114,16 @@ function ChartHeader({ title, description }: { title: string; description: strin
   );
 }
 
-const tooltipStyle = {
-  backgroundColor: "#fff",
-  border: "1px solid #e5e7eb",
-  borderRadius: "8px",
-  boxShadow: "0 4px 12px rgba(0,0,0,0.1)",
-};
+const valueLabelStyle = { fontSize: 12, fill: "#374151" };
+const hideZero = (v: unknown) => (Number(v) === 0 ? "" : String(v));
+const fadeTransition = { transition: "fill-opacity 120ms" };
+const lineGuide = { stroke: "#9ca3af", strokeDasharray: "3 3" };
+
+const LINE_SERIES = [
+  { key: "people", label: "People", color: SERIES.tertiary },
+  { key: "rams", label: "RAMS", color: SERIES.secondary },
+  { key: "sites", label: "Sites", color: SERIES.primary },
+] as const;
 
 function EmptyChart({ message }: { message: string }) {
   return (
@@ -133,6 +137,15 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
   const [activityView, setActivityView] = useState<"added" | "tasks">("added");
   const [ramsView, setRamsView] = useState<"pie" | "bar">("pie");
   const [peopleView, setPeopleView] = useState<"roles" | "tasks">("roles");
+  const [hovered, setHovered] = useState<{ chart: string; index: number } | null>(null);
+  const [activeMonth, setActiveMonth] = useState<number | null>(null);
+
+  const hoverHandlers = (chart: string) => ({
+    onMouseEnter: (_: unknown, index: number) => setHovered({ chart, index }),
+    onMouseLeave: () => setHovered(null),
+  });
+  const opacityFor = (chart: string, index: number) =>
+    hovered && hovered.chart === chart && hovered.index !== index ? 0.35 : 1;
 
   const monthlyOpsData = useMemo(
     () => getMonthlyOpsData(sites, rams, users, tasks),
@@ -210,27 +223,66 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
           </button>
         </div>
         {activityView === "added" ? (
-          <ResponsiveContainer width="100%" height={280}>
-            <LineChart data={monthlyOpsData}>
-              <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
-              <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: "12px" }} />
-              <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Line type="linear" dataKey="sites" stroke={SERIES.primary} strokeWidth={2.5} dot={{ r: 3 }} name="Sites" />
-              <Line type="linear" dataKey="rams" stroke={SERIES.secondary} strokeWidth={2.5} dot={{ r: 3 }} name="RAMS" />
-              <Line type="linear" dataKey="people" stroke={SERIES.tertiary} strokeWidth={2.5} dot={{ r: 3 }} name="People" />
-            </LineChart>
-          </ResponsiveContainer>
+          <>
+            <div className="mb-2 flex min-h-6 flex-wrap items-center gap-x-4 gap-y-1 text-sm" aria-live="polite">
+              <span className="w-24 text-xs text-gray-500 dark:text-slate-400">
+                {activeMonth != null ? monthlyOpsData[activeMonth]?.month : "Last 6 months"}
+              </span>
+              {LINE_SERIES.map((s) => (
+                <span key={s.key} className="flex items-center gap-2 text-gray-700 dark:text-slate-300">
+                  <span className="h-2 w-2 rounded-full" style={{ backgroundColor: s.color }} aria-hidden />
+                  {s.label}
+                  <span className="font-medium text-gray-900 dark:text-slate-100">
+                    {activeMonth != null
+                      ? monthlyOpsData[activeMonth]?.[s.key] ?? 0
+                      : monthlyOpsData.reduce((sum, m) => sum + m[s.key], 0)}
+                  </span>
+                </span>
+              ))}
+            </div>
+            <ResponsiveContainer width="100%" height={250}>
+              <LineChart
+                data={monthlyOpsData}
+                margin={{ top: 20, right: 16 }}
+                onMouseMove={(state) =>
+                  setActiveMonth(state?.activeTooltipIndex != null ? Number(state.activeTooltipIndex) : null)
+                }
+                onMouseLeave={() => setActiveMonth(null)}
+              >
+                <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
+                <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: "12px" }} />
+                <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
+                <Tooltip content={() => null} cursor={lineGuide} />
+                {LINE_SERIES.map((s) => (
+                  <Line
+                    key={s.key}
+                    type="linear"
+                    dataKey={s.key}
+                    stroke={s.color}
+                    strokeWidth={2.5}
+                    dot={{ r: 3 }}
+                    activeDot={{ r: 5, stroke: "#fff", strokeWidth: 2 }}
+                    name={s.label}
+                  >
+                    <LabelList dataKey={s.key} position="top" offset={10} formatter={hideZero} style={{ fontSize: 12, fill: s.color }} />
+                  </Line>
+                ))}
+              </LineChart>
+            </ResponsiveContainer>
+          </>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={monthlyOpsData}>
+            <BarChart data={monthlyOpsData} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="month" stroke="#6b7280" style={{ fontSize: "12px" }} />
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
-              <Tooltip contentStyle={tooltipStyle} />
               <Legend wrapperStyle={{ fontSize: "12px" }} />
-              <Bar dataKey="tasks" fill={SERIES.primary} radius={[8, 8, 0, 0]} name="Tasks raised" />
+              <Bar dataKey="tasks" fill={SERIES.primary} radius={[8, 8, 0, 0]} name="Tasks raised" {...hoverHandlers("monthly")}>
+                {monthlyOpsData.map((entry, i) => (
+                  <Cell key={`monthly-${entry.month}`} fillOpacity={opacityFor("monthly", i)} style={fadeTransition} />
+                ))}
+                <LabelList dataKey="tasks" position="top" formatter={hideZero} style={valueLabelStyle} />
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         )}
@@ -272,25 +324,35 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
                 outerRadius={95}
                 fill={SERIES.primary}
                 dataKey="value"
+                {...hoverHandlers("rams-pie")}
               >
-                {ramsStatusData.map((entry) => (
-                  <Cell key={`rams-${entry.name}`} fill={statusColor(entry.name)} />
+                {ramsStatusData.map((entry, i) => (
+                  <Cell
+                    key={`rams-${entry.name}`}
+                    fill={statusColor(entry.name)}
+                    fillOpacity={opacityFor("rams-pie", i)}
+                    style={fadeTransition}
+                  />
                 ))}
               </Pie>
-              <Tooltip contentStyle={tooltipStyle} />
             </PieChart>
           </ResponsiveContainer>
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={ramsStatusData}>
+            <BarChart data={ramsStatusData} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="RAMS">
-                {ramsStatusData.map((entry) => (
-                  <Cell key={`rams-bar-${entry.name}`} fill={statusColor(entry.name)} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="RAMS" {...hoverHandlers("rams-bar")}>
+                {ramsStatusData.map((entry, i) => (
+                  <Cell
+                    key={`rams-bar-${entry.name}`}
+                    fill={statusColor(entry.name)}
+                    fillOpacity={opacityFor("rams-bar", i)}
+                    style={fadeTransition}
+                  />
                 ))}
+                <LabelList dataKey="value" position="top" style={valueLabelStyle} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>
@@ -327,9 +389,11 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
                 <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
                 <XAxis type="number" allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
                 <YAxis type="category" dataKey="name" width={140} stroke="#6b7280" style={{ fontSize: "12px" }} />
-                <Tooltip contentStyle={tooltipStyle} />
-                <Bar dataKey="value" fill={SERIES.primary} radius={[0, 8, 8, 0]} name="People">
-                  <LabelList dataKey="value" position="right" style={{ fontSize: 12, fill: "#374151" }} />
+                <Bar dataKey="value" fill={SERIES.primary} radius={[0, 8, 8, 0]} name="People" {...hoverHandlers("roles")}>
+                  {roleData.map((entry, i) => (
+                    <Cell key={`role-${entry.name}`} fillOpacity={opacityFor("roles", i)} style={fadeTransition} />
+                  ))}
+                  <LabelList dataKey="value" position="right" style={valueLabelStyle} />
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -338,15 +402,20 @@ export function DashboardCharts({ sites, rams, users, tasks }: DashboardChartsPr
           <EmptyChart message="No site tasks yet. Create tasks from the Tasks page." />
         ) : (
           <ResponsiveContainer width="100%" height={280}>
-            <BarChart data={taskStatusData}>
+            <BarChart data={taskStatusData} margin={{ top: 20 }}>
               <CartesianGrid strokeDasharray="3 3" stroke="#e5e7eb" />
               <XAxis dataKey="name" stroke="#6b7280" style={{ fontSize: "12px" }} />
               <YAxis allowDecimals={false} stroke="#6b7280" style={{ fontSize: "12px" }} />
-              <Tooltip contentStyle={tooltipStyle} />
-              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="Tasks">
-                {taskStatusData.map((entry) => (
-                  <Cell key={`task-${entry.name}`} fill={statusColor(entry.name)} />
+              <Bar dataKey="value" radius={[8, 8, 0, 0]} name="Tasks" {...hoverHandlers("tasks")}>
+                {taskStatusData.map((entry, i) => (
+                  <Cell
+                    key={`task-${entry.name}`}
+                    fill={statusColor(entry.name)}
+                    fillOpacity={opacityFor("tasks", i)}
+                    style={fadeTransition}
+                  />
                 ))}
+                <LabelList dataKey="value" position="top" style={valueLabelStyle} />
               </Bar>
             </BarChart>
           </ResponsiveContainer>

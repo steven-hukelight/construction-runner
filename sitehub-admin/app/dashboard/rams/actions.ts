@@ -21,7 +21,8 @@ export async function fetchRAMS(companyId?: string, cookieHeader?: string) {
     if (cookie) headersInit.Cookie = cookie;
     const res = await fetch(url, { cache: "no-store", headers: headersInit });
     if (!res.ok) return [];
-    return res.json();
+    const data = await res.json();
+    return Array.isArray(data) ? data : [];
   } catch (e) {
     console.error("fetchRAMS:", e);
     return [];

@@ -5,6 +5,7 @@ import { getRoleFromClient } from "@/lib/utils/cookies";
 import { useClientSession } from "../ClientSessionProvider";
 import { useNearMissCount } from "../NearMissCountProvider";
 import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
+import { usePolling } from "@/lib/hooks/usePolling";
 import Link from "next/link";
 import Image from "next/image";
 import { usePathname } from "next/navigation";
@@ -85,23 +86,17 @@ export default function Sidebar({ role }: SidebarProps) {
   const nearMissCount = canRoleViewNearMiss(sessionRole) ? rawNearMissCount : 0;
   const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
 
-  const fetchPendingApprovalsBadge = useCallback(() => {
+  const loadPendingApprovalsBadge = useCallback(async (signal: AbortSignal) => {
     const r = (getRoleFromClient() ?? "").toLowerCase();
-    if (!r || r === "operative") return;
     if (!["admin", "supervisor", "sub_admin", "superuser", "site_admin"].includes(r)) return;
-    fetch("/api/auth/registrations", { cache: "no-store", credentials: "include" })
-      .then((res) => res.json())
-      .then((d) => setPendingApprovalsBadge(Array.isArray(d) ? d.length : 0))
-      .catch(() => setPendingApprovalsBadge(0));
+    const res = await fetch("/api/auth/registrations?count=1", { cache: "no-store", credentials: "include", signal });
+    if (!res.ok) return;
+    const d = await res.json();
+    if (!signal.aborted) setPendingApprovalsBadge(typeof d?.count === "number" ? d.count : 0);
   }, []);
-
-  useEffect(() => {
-    fetchPendingApprovalsBadge();
-    // Poll occasionally; do NOT refetch on every client navigation, that was
-    // doubling API load across the whole dashboard shell.
-    const interval = setInterval(fetchPendingApprovalsBadge, 120_000);
-    return () => clearInterval(interval);
-  }, [fetchPendingApprovalsBadge]);
+  // Poll occasionally; do NOT refetch on every client navigation, that was
+  // doubling API load across the whole dashboard shell.
+  const fetchPendingApprovalsBadge = usePolling(loadPendingApprovalsBadge, 120_000);
 
   useEffect(() => {
     window.addEventListener("pending-approvals-changed", fetchPendingApprovalsBadge);

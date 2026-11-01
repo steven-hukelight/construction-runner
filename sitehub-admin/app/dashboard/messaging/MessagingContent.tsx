@@ -6,14 +6,19 @@ import Link from "next/link";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { Check, CheckCheck } from "lucide-react";
 import Button from "../components/ui/Button";
+import Skeleton from "../components/ui/Skeleton";
 
 interface Thread {
   id: string;
   createdBy: string;
   createdAt: string;
+  title?: string | null;
+  kind?: "site" | "direct";
+  siteName?: string | null;
   lastMessage: string | null;
   lastAt: string;
   inThread: boolean;
+  unread?: boolean;
 }
 
 interface Message {
@@ -33,6 +38,11 @@ interface CompanyUser {
   role?: string | null;
 }
 
+interface CompanySite {
+  id: string;
+  name?: string | null;
+}
+
 export default function MessagingContent({ companyId, canDelete = false }: { companyId: string; canDelete?: boolean }) {
   const [threads, setThreads] = useState<Thread[]>([]);
   const [selectedThread, setSelectedThread] = useState<{ id: string; messages: Message[] } | null>(null);
@@ -47,14 +57,22 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
 
   const [composeOpen, setComposeOpen] = useState(false);
   const [composeBody, setComposeBody] = useState("");
-  const [composeMode, setComposeMode] = useState<"broadcast" | "pick">("pick");
+  const [composeMode, setComposeMode] = useState<"site" | "pick">("pick");
   const [companyUsers, setCompanyUsers] = useState<CompanyUser[]>([]);
+  const [companySites, setCompanySites] = useState<CompanySite[]>([]);
+  const [selectedSiteId, setSelectedSiteId] = useState("");
   const [loadingComposeUsers, setLoadingComposeUsers] = useState(false);
   const [myUserId, setMyUserId] = useState<string | null>(null);
   const [selectedRecipientIds, setSelectedRecipientIds] = useState<string[]>([]);
 
-  const fetchThreads = useCallback(async () => {
-    setLoading(true);
+  const [threadLoading, setThreadLoading] = useState(false);
+  const threadsInFlight = useRef(false);
+  const threadInFlight = useRef(false);
+
+  const fetchThreads = useCallback(async (options?: { background?: boolean }) => {
+    if (threadsInFlight.current) return;
+    if (options?.background && document.hidden) return;
+    threadsInFlight.current = true;
     try {
       const res = await fetch(`/api/messages/threads?companyId=${encodeURIComponent(companyId)}`, {
         credentials: "include",
@@ -62,8 +80,9 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
       const data = await res.json();
       setThreads(Array.isArray(data) ? data : []);
     } catch {
-      setThreads([]);
+      if (!options?.background) setThreads([]);
     } finally {
+      threadsInFlight.current = false;
       setLoading(false);
     }
   }, [companyId]);
@@ -78,16 +97,20 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
     void (async () => {
       setLoadingComposeUsers(true);
       try {
-        const [meRes, usersRes] = await Promise.all([
+        const [meRes, usersRes, sitesRes] = await Promise.all([
           fetch("/api/me", { credentials: "include", cache: "no-store" }),
           fetch(`/api/users?companyId=${encodeURIComponent(companyId)}`, { credentials: "include", cache: "no-store" }),
+          fetch(`/api/sites?companyId=${encodeURIComponent(companyId)}`, { credentials: "include", cache: "no-store" }),
         ]);
         const me = await meRes.json().catch(() => ({}));
         const usersJson = await usersRes.json().catch(() => []);
+        const sitesJson = await sitesRes.json().catch(() => []);
         if (cancelled) return;
         setMyUserId(typeof me?.id === "string" ? me.id : null);
         setCompanyUsers(Array.isArray(usersJson) ? usersJson : []);
+        setCompanySites(Array.isArray(sitesJson) ? sitesJson : []);
         setSelectedRecipientIds([]);
+        setSelectedSiteId("");
       } finally {
         if (!cancelled) setLoadingComposeUsers(false);
       }
@@ -104,7 +127,8 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
 
   const refreshSelectedThread = useCallback(async () => {
     const id = selectedThreadIdRef.current;
-    if (!id) return;
+    if (!id || threadInFlight.current || document.hidden) return;
+    threadInFlight.current = true;
     try {
       const res = await fetch(`/api/messages/thread/${id}?companyId=${encodeURIComponent(companyId)}`, {
         credentials: "include",
@@ -115,12 +139,14 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
       }
     } catch (e) {
       console.error(e);
+    } finally {
+      threadInFlight.current = false;
     }
   }, [companyId]);
 
   const MESSAGE_REFRESH_SEC = 3;
   useEffect(() => {
-    const id = setInterval(fetchThreads, MESSAGE_REFRESH_SEC * 1000);
+    const id = setInterval(() => void fetchThreads({ background: true }), MESSAGE_REFRESH_SEC * 1000);
     return () => clearInterval(id);
   }, [fetchThreads]);
 
@@ -131,16 +157,26 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
   }, [selectedThread?.id, refreshSelectedThread]);
 
   async function openThread(id: string) {
+    selectedThreadIdRef.current = id;
+    setSelectedThread({ id, messages: [] });
+    setThreadLoading(true);
+    setThreads((prev) => prev.map((t) => (t.id === id ? { ...t, unread: false } : t)));
     try {
       const res = await fetch(`/api/messages/thread/${id}?companyId=${encodeURIComponent(companyId)}`, {
         credentials: "include",
       });
       const data = await res.json();
+      if (selectedThreadIdRef.current !== id) return;
       if (data?.messages) {
         setSelectedThread({ id, messages: data.messages });
+      } else {
+        toast.error(data?.error ?? "Could not load this conversation");
       }
     } catch (e) {
       console.error(e);
+      if (selectedThreadIdRef.current === id) toast.error("Could not load this conversation");
+    } finally {
+      if (selectedThreadIdRef.current === id) setThreadLoading(false);
     }
   }
 
@@ -245,17 +281,48 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
       toast.error("Could not resolve your account. Refresh the page and try again.");
       return;
     }
-    const others = companyUsers.filter((u) => u.id !== myUserId);
-    const recipientIds =
-      composeMode === "broadcast"
-        ? others.map((u) => u.id)
-        : selectedRecipientIds.filter((id) => id !== myUserId);
+    const opening = composeBody.trim();
+    if (composeMode === "site") {
+      if (!selectedSiteId) {
+        toast.error("Pick a site for this channel.");
+        return;
+      }
+      setSending(true);
+      try {
+        const res = await fetch("/api/messages/threads", {
+          method: "POST",
+          credentials: "include",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            kind: "site",
+            site_id: selectedSiteId,
+            ...(opening ? { body: opening } : {}),
+          }),
+        });
+        const data = await res.json().catch(() => ({}));
+        if (!res.ok) {
+          toast.error(typeof data?.error === "string" ? data.error : "Failed to create conversation");
+          return;
+        }
+        if (data?.id) {
+          setComposeOpen(false);
+          setComposeBody("");
+          setSelectedRecipientIds([]);
+          setComposeMode("pick");
+          await fetchThreads();
+          await openThread(data.id as string);
+        }
+      } catch (e) {
+        console.error(e);
+        toast.error("Failed to create conversation");
+      } finally {
+        setSending(false);
+      }
+      return;
+    }
+    const recipientIds = selectedRecipientIds.filter((id) => id !== myUserId);
     if (recipientIds.length === 0) {
-      toast.error(
-        composeMode === "broadcast"
-          ? "There are no other users in this company to message."
-          : "Select at least one recipient."
-      );
+      toast.error("Select at least one recipient.");
       return;
     }
     setSending(true);
@@ -265,8 +332,9 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
         credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
+          kind: "direct",
           recipientIds,
-          body: composeBody.trim() || "Started conversation",
+          ...(opening ? { body: opening } : {}),
         }),
       });
       const data = await res.json().catch(() => ({}));
@@ -320,7 +388,25 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
   }
 
   if (loading && threads.length === 0) {
-    return <div className="text-slate-500 py-12 text-center">Loading threads...</div>;
+    return (
+      <div className="card overflow-hidden" aria-busy="true" aria-label="Loading conversations">
+        <div className="flex flex-col md:flex-row min-h-[400px]">
+          <div className="w-full md:w-80 border-b md:border-b-0 md:border-r border-gray-200">
+            <div className="p-4 border-b border-gray-200 space-y-2">
+              <Skeleton className="h-4 w-16 rounded bg-gray-200" />
+              <Skeleton className="h-3 w-20 rounded bg-gray-100" />
+            </div>
+            {[0, 1, 2].map((i) => (
+              <div key={i} className="px-4 py-3 border-b border-gray-100 space-y-2">
+                <Skeleton className="h-4 w-40 rounded bg-gray-200" />
+                <Skeleton className="h-3 w-52 rounded bg-gray-100" />
+              </div>
+            ))}
+          </div>
+          <div className="flex-1" />
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -341,7 +427,7 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
                 New conversation
               </h2>
               <p className="text-sm text-slate-500 mt-1">
-                Pick who should see this conversation. Broadcast still sends to everyone in the company.
+                Site chat is for everyone on that job. Private is only the people you pick.
               </p>
             </div>
             <div className="p-4 overflow-y-auto flex-1 space-y-4">
@@ -355,19 +441,42 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
                       checked={composeMode === "pick"}
                       onChange={() => setComposeMode("pick")}
                     />
-                    Choose one or more recipients
+                    Private — only the people you pick
                   </label>
                   <label className="flex items-center gap-2 cursor-pointer text-sm">
                     <input
                       type="radio"
                       name="composeMode"
-                      checked={composeMode === "broadcast"}
-                      onChange={() => setComposeMode("broadcast")}
+                      checked={composeMode === "site"}
+                      onChange={() => setComposeMode("site")}
                     />
-                    Broadcast to all company users
+                    Site chat — everyone on that site
                   </label>
                 </div>
               </div>
+              {composeMode === "site" && (
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Site</label>
+                  {loadingComposeUsers ? (
+                    <div className="p-3 text-sm text-slate-500">Loading sites…</div>
+                  ) : companySites.length === 0 ? (
+                    <div className="p-3 text-sm text-slate-500">No sites found.</div>
+                  ) : (
+                    <select
+                      className="input w-full"
+                      value={selectedSiteId}
+                      onChange={(e) => setSelectedSiteId(e.target.value)}
+                    >
+                      <option value="">Choose a site</option>
+                      {companySites.map((s) => (
+                        <option key={s.id} value={s.id}>
+                          {s.name || s.id}
+                        </option>
+                      ))}
+                    </select>
+                  )}
+                </div>
+              )}
               {composeMode === "pick" && (
                 <div className="border border-gray-200 rounded-lg max-h-48 overflow-y-auto divide-y divide-gray-100">
                   {loadingComposeUsers ? (
@@ -444,8 +553,17 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
                   onClick={() => openThread(t.id)}
                   className="flex-1 min-w-0 text-left px-4 py-3"
                 >
-                  <div className="font-medium truncate">{t.lastMessage ?? "No messages"}</div>
-                  <div className="text-xs text-slate-500">{new Date(t.lastAt).toLocaleString()}</div>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <div className={`font-medium truncate ${t.unread ? "font-semibold" : ""}`}>
+                      {t.kind === "site" ? t.siteName || t.title || "Site chat" : t.title || t.lastMessage || "Conversation"}
+                    </div>
+                    {t.unread ? <span className="shrink-0 w-2 h-2 rounded-full bg-blue-600" /> : null}
+                  </div>
+                  <div className="text-xs text-slate-500 truncate">
+                    {t.kind === "site" ? "Site chat · " : t.kind === "direct" ? "Private · " : ""}
+                    {t.lastMessage || "No messages"}
+                    {t.lastAt ? ` · ${formatDateTime(t.lastAt)}` : ""}
+                  </div>
                 </button>
                 <div className="flex items-center gap-1 pr-2 opacity-0 group-hover/row:opacity-100 transition-opacity">
                   <button
@@ -502,6 +620,19 @@ export default function MessagingContent({ companyId, canDelete = false }: { com
                 </div>
               </div>
               <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-64">
+                {threadLoading && selectedThread.messages.length === 0 && (
+                  <div className="space-y-4" aria-busy="true" aria-label="Loading messages">
+                    {[0, 1].map((i) => (
+                      <div key={i} className="rounded-lg border border-gray-100 bg-gray-50 p-3.5 space-y-2">
+                        <Skeleton className="h-4 w-32 rounded bg-gray-200" />
+                        <Skeleton className="h-3 w-3/4 rounded bg-gray-200" />
+                      </div>
+                    ))}
+                  </div>
+                )}
+                {!threadLoading && selectedThread.messages.length === 0 && (
+                  <p className="text-sm text-gray-500">No messages yet. Write the first one below.</p>
+                )}
                 {selectedThread.messages.map((m) => (
                   <div key={m.id} className="rounded-lg bg-gray-50 border border-gray-100 p-3.5 group">
                     <div className="flex justify-between items-center gap-3 mb-2">

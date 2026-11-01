@@ -4,6 +4,7 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { sendPushToUsers } from "@/lib/onesignal";
+import { siteChannelMemberIds, syncThreadRecipients } from "@/lib/messages/siteThread";
 
 async function ensureCookieAccess(req: Request): Promise<{
   companyId: string;
@@ -91,11 +92,17 @@ export async function POST(req: Request) {
 
     const { data: thread } = await supabaseAdmin
       .from("message_threads")
-      .select("company_id")
+      .select("company_id, kind, site_id")
       .eq("id", threadId)
       .maybeSingle();
     if (!thread || (thread as { company_id: string }).company_id !== companyId) {
       return NextResponse.json({ error: "Thread not found" }, { status: 404 });
+    }
+
+    const row = thread as { company_id: string; kind?: string | null; site_id?: string | null };
+    if (row.kind === "site" && row.site_id) {
+      const members = await siteChannelMemberIds(companyId, String(row.site_id));
+      await syncThreadRecipients(String(threadId), members);
     }
 
     const { data: inThread } = await supabaseAdmin
