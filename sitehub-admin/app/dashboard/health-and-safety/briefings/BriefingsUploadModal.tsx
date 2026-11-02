@@ -1,4 +1,5 @@
 "use client";
+import { appendStagedFile } from "@/lib/client/stagedUpload";
 import toast from "react-hot-toast";
 
 import { useState, useEffect, type ChangeEvent } from "react";
@@ -47,7 +48,7 @@ export default function BriefingsUploadModal() {
     setUploading(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      await appendStagedFile(form, "briefing", file);
       form.append("title", title.trim() || file.name);
       form.append("body", body.trim());
       form.append("siteId", siteId.trim());
@@ -84,6 +85,8 @@ export default function BriefingsUploadModal() {
       setBody("");
       setSiteId("");
       window.location.reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
     }

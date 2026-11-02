@@ -57,7 +57,7 @@ beforeEach(() => {
     const url = String(input);
     if (url.includes("/api/auth/registrations")) return jsonResponse({ count: 0 });
     if (url.includes("count=unreviewed")) return jsonResponse({ count: 0 });
-    if (url.includes("/api/admin/missing-info")) return jsonResponse([{ userId: "u1" }, { userId: "u2" }]);
+    if (url.includes("/api/admin/missing-info")) return jsonResponse({ count: 2 });
     if (url.includes("/api/assets")) {
       return jsonResponse([
         { id: "a1", next_inspection_due: "2020-01-01", inspection_required: true },

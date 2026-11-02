@@ -45,6 +45,45 @@ export async function assignedActiveUserIds(
   return [...ids];
 }
 
+/**
+ * Every active assigned operative in the company, overall and per site, in one pass.
+ * Same rules as `assignedActiveUserIds`, for screens that need many sites at once.
+ */
+export async function assignedActiveUsersBySite(
+  companyId: string
+): Promise<{ all: Set<string>; bySite: Map<string, Set<string>> }> {
+  const all = new Set<string>();
+  const bySite = new Map<string, Set<string>>();
+  const cid = companyId.trim();
+  if (!cid) return { all, bySite };
+
+  const { data: companySites } = await supabaseAdmin.from("sites").select("id").eq("company_id", cid);
+  const companySiteIds = (companySites ?? []).map((s) => String(s.id)).filter(Boolean);
+  if (companySiteIds.length === 0) return { all, bySite };
+
+  const [{ data: assigned }, { data: companyUsers }] = await Promise.all([
+    supabaseAdmin.from("assigned_operatives").select("user_id, userid, site_id").in("site_id", companySiteIds),
+    supabaseAdmin.from("users").select("id, status").eq("company_id", cid),
+  ]);
+  const activeIds = new Set(
+    (companyUsers ?? [])
+      .filter((u) => isActiveUserStatus((u as { status?: string }).status))
+      .map((u) => String((u as { id: string }).id))
+  );
+
+  for (const row of assigned ?? []) {
+    const rec = row as { user_id?: string; userid?: string; site_id?: string };
+    const uid = String(rec.user_id ?? rec.userid ?? "").trim();
+    const sid = String(rec.site_id ?? "").trim();
+    if (!uid || !sid || !activeIds.has(uid)) continue;
+    all.add(uid);
+    const set = bySite.get(sid) ?? new Set<string>();
+    set.add(uid);
+    bySite.set(sid, set);
+  }
+  return { all, bySite };
+}
+
 export async function inductedUserIdSet(
   userIds: string[],
   siteId: string | null

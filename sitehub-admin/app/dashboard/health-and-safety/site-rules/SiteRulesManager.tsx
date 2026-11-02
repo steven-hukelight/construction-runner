@@ -1,4 +1,5 @@
 "use client";
+import { appendStagedFile } from "@/lib/client/stagedUpload";
 import toast from "react-hot-toast";
 
 import { useEffect, useState, useRef } from "react";
@@ -65,7 +66,7 @@ export default function SiteRulesManager() {
         try {
           const fd = new FormData();
           fd.append("ruleId", rule.id);
-          fd.append("file", uploadFile);
+          await appendStagedFile(fd, "site-rule", uploadFile);
           const upRes = await fetch("/api/site-rules/upload", {
             method: "POST",
             body: fd,
@@ -73,6 +74,8 @@ export default function SiteRulesManager() {
           });
           const upData = await upRes.json();
           if (upData.file_url) rule = { ...rule, file_url: upData.file_url };
+        } catch (e) {
+          toast.error(`Rule saved, but the file didn't upload: ${e instanceof Error ? e.message : "try again"}`);
         } finally {
           setUploading(false);
         }
@@ -98,7 +101,7 @@ export default function SiteRulesManager() {
       try {
         const fd = new FormData();
         fd.append("ruleId", editing.id);
-        fd.append("file", uploadFile);
+        await appendStagedFile(fd, "site-rule", uploadFile);
         const upRes = await fetch("/api/site-rules/upload", {
           method: "POST",
           body: fd,
@@ -106,6 +109,8 @@ export default function SiteRulesManager() {
         });
         const upData = await upRes.json();
         if (upData.file_url) updated = { ...updated, file_url: upData.file_url };
+      } catch (e) {
+        toast.error(`Rule saved, but the file didn't upload: ${e instanceof Error ? e.message : "try again"}`);
       } finally {
         setUploading(false);
       }
@@ -121,7 +126,7 @@ export default function SiteRulesManager() {
     try {
       const fd = new FormData();
       fd.append("ruleId", ruleId);
-      fd.append("file", file);
+      await appendStagedFile(fd, "site-rule", file);
       const res = await fetch("/api/site-rules/upload", {
         method: "POST",
         body: fd,

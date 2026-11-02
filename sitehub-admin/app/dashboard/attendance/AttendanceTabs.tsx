@@ -3,6 +3,7 @@
 import { useState, useCallback, useEffect, useRef } from "react";
 import { useSearchParams } from "next/navigation";
 import LiveAttendance from "./LiveAttendance";
+import { useAttendanceLookups } from "./live/useAttendanceLookups";
 import SignInOut from "./SignInOut";
 import RoleCall from "./RoleCall";
 import { getRoleFromClient, getCompanyIdFromClient } from "@/lib/utils/cookies";
@@ -31,6 +32,7 @@ export default function AttendanceTabs() {
     linkedDate && /^\d{4}-\d{2}-\d{2}$/.test(linkedDate) ? linkedDate : todayStr()
   );
   const dateInputRef = useRef<HTMLInputElement>(null);
+  const lookups = useAttendanceLookups();
 
   useEffect(() => {
     const check = () => {
@@ -140,7 +142,12 @@ export default function AttendanceTabs() {
                 The live list archives automatically at midnight (UK). Pick a past date to view the archive.
               </p>
             </div>
-            <LiveAttendance refreshTrigger={refreshTrigger} selectedDate={selectedDate} initialSiteId={linkedSiteId} />
+            <LiveAttendance
+              refreshTrigger={refreshTrigger}
+              selectedDate={selectedDate}
+              initialSiteId={linkedSiteId}
+              lookups={lookups}
+            />
           </div>
         </div>
       )}

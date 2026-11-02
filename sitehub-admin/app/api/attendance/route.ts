@@ -210,16 +210,7 @@ export async function GET(req: Request) {
       const qCo = (url.searchParams.get("companyId") ?? "").trim();
       companyId = qCo || companyId;
       if (companyId) {
-        const { data: users, error: companyUsersErr } = await supabaseAdmin
-          .from("users")
-          .select("id")
-          .eq("company_id", companyId);
-        if (companyUsersErr) {
-          console.error("[GET /api/attendance] superuser company users:", companyUsersErr.message, companyUsersErr);
-        }
-        const userIds = (users ?? []).map((u) => u.id);
-        if (userIds.length === 0) return NextResponse.json([]);
-        let q = supabaseAdmin.from("attendance").select("*").in("user_id", userIds);
+        let q = supabaseAdmin.from("attendance").select("*").eq("company_id", companyId);
         q = applyExtraFilters(q);
         const { data: att, error: attErr } = await q.order("timestamp", { ascending: false }).limit(limit);
         if (attErr) console.error("[GET /api/attendance] attendance query:", attErr.message, attErr);
@@ -257,16 +248,7 @@ export async function GET(req: Request) {
     }
 
     if (companyId) {
-      const { data: users, error: adminUsersErr } = await supabaseAdmin
-        .from("users")
-        .select("id")
-        .eq("company_id", companyId);
-      if (adminUsersErr) {
-        console.error("[GET /api/attendance] admin company users:", adminUsersErr.message, adminUsersErr);
-      }
-      const userIds = (users ?? []).map((u) => u.id);
-      if (userIds.length === 0) return NextResponse.json([], { status: 200 });
-      let q = supabaseAdmin.from("attendance").select("*").in("user_id", userIds);
+      let q = supabaseAdmin.from("attendance").select("*").eq("company_id", companyId);
       const restrictedSites = await getRestrictedSiteIds(role);
       if (restrictedSites) {
         if (restrictedSites.length === 0) return NextResponse.json([], { status: 200 });
@@ -372,12 +354,9 @@ export async function POST(req: Request) {
       return NextResponse.json({ ok: true });
     }
 
-    const name = body.name;
     const siteId = body.site_id ?? body.siteId;
-    const siteName = body.site_name ?? body.siteName;
     const action = body.action;
     const notes = body.notes;
-    const email = body.email;
     if (!operativeId || !action) return NextResponse.json({ error: "operativeId and action required" }, { status: 400 });
 
     const mobileAuth = await resolvePreInductionAuth({ req });
@@ -387,34 +366,17 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Operatives can only sign in themselves" }, { status: 403 });
     }
 
-    let resolvedName: string | null = name ?? null;
-    try {
-      if (!resolvedName) {
-        const { data: user } = await supabaseAdmin.from("users").select("display_name, email").eq("id", operativeId).maybeSingle();
-        if (user) {
-          resolvedName = user.display_name ?? null;
-          if (!resolvedName && user.email) resolvedName = String(user.email).split("@")[0];
-        } else if (email) {
-          const { data: byEmail } = await supabaseAdmin.from("users").select("display_name, email").eq("email", String(email)).limit(1);
-          if (byEmail?.[0]) {
-            resolvedName = byEmail[0].display_name ?? null;
-            if (!resolvedName && byEmail[0].email) resolvedName = String(byEmail[0].email).split("@")[0];
-          }
-        }
-      }
-    } catch {
-      // non-fatal
-    }
-
-    let resolvedSiteName: string | null = siteName ?? null;
-    try {
-      if (!resolvedSiteName && siteId) {
-        const { data: site } = await supabaseAdmin.from("sites").select("name").eq("id", String(siteId)).maybeSingle();
-        if (site) resolvedSiteName = site.name ?? null;
-      }
-    } catch {
-      // ignore
-    }
+    const [{ data: operativeUser }, { data: siteRow }] = await Promise.all([
+      supabaseAdmin
+        .from("users")
+        .select("id, company_id, admin_pre_induction_override")
+        .eq("id", operativeId)
+        .maybeSingle(),
+      siteId
+        ? supabaseAdmin.from("sites").select("rams_version, ramsversion").eq("id", String(siteId)).maybeSingle()
+        : Promise.resolve({ data: null }),
+    ]);
+    const site = siteRow as { rams_version?: string | null; ramsversion?: string | null } | null;
 
     const cookieStore = await cookies();
     const role = cookieStore.get("role")?.value ?? mobileAuth.role ?? undefined;
@@ -438,12 +400,6 @@ export async function POST(req: Request) {
         ? (bodyCompanyId ?? queryCompanyId ?? companyId ?? null)
         : (companyId ?? bodyCompanyId ?? queryCompanyId ?? null);
 
-    // Verify operative exists in users table (required for FK)
-    const { data: operativeUser } = await supabaseAdmin
-      .from("users")
-      .select("id, company_id")
-      .eq("id", operativeId)
-      .maybeSingle();
     if (!operativeUser) {
       return NextResponse.json(
         { error: "User not found. The operative ID may not exist in the database." },
@@ -478,7 +434,10 @@ export async function POST(req: Request) {
       actionNormalized === "SIGNIN" ||
       actionNormalized === "CHECKIN";
     if (isSignInAction && siteId && roleLower === "operative") {
-      const assigned = await userIsAssignedToSite(String(operativeId), String(siteId));
+      const [assigned, inducted] = await Promise.all([
+        userIsAssignedToSite(String(operativeId), String(siteId)),
+        userHasValidSiteInduction(String(operativeId), String(siteId)),
+      ]);
       if (!assigned) {
         return NextResponse.json(
           {
@@ -488,7 +447,6 @@ export async function POST(req: Request) {
           { status: 403 },
         );
       }
-      const inducted = await userHasValidSiteInduction(String(operativeId), String(siteId));
       if (!inducted) {
         return NextResponse.json(
           {
@@ -679,16 +637,20 @@ export async function POST(req: Request) {
     }
 
     if (isSignIn && siteId) {
-      const { data: site } = await supabaseAdmin.from("sites").select("rams_version, ramsversion").eq("id", String(siteId)).maybeSingle();
       const siteRamsVersion = (site?.rams_version ?? site?.ramsversion ?? null) as string | null;
       const siteHasRams = !!siteRamsVersion;
 
       if (siteHasRams) {
-        const { data: user } = await supabaseAdmin.from("users").select("admin_pre_induction_override").eq("id", operativeId).maybeSingle();
-        const adminOverride = (user as { admin_pre_induction_override?: boolean })?.admin_pre_induction_override === true;
-        const { data: ind } = await supabaseAdmin.from("user_site_inductions").select("*").eq("user_id", operativeId).eq("site_id", siteId).maybeSingle();
+        const adminOverride = operativeUser.admin_pre_induction_override === true;
+        const [{ data: ind }, { data: trainingRow }] = await Promise.all([
+          supabaseAdmin.from("user_site_inductions").select("grandfathered").eq("user_id", operativeId).eq("site_id", siteId).maybeSingle(),
+          supabaseAdmin
+            .from("pre_induction_training")
+            .select("rams_version, rams_accepted, rams_accepted_at")
+            .eq("user_id", operativeId)
+            .maybeSingle(),
+        ]);
         const grandfathered = ind?.grandfathered === true;
-        const { data: trainingRow } = await supabaseAdmin.from("pre_induction_training").select("*").eq("user_id", operativeId).maybeSingle();
         const training = trainingRow ? { ramsVersion: trainingRow.rams_version, ramsAccepted: trainingRow.rams_accepted, ramsAcceptedAt: trainingRow.rams_accepted_at } as RamsTrainingData : null;
         const ramsCompliant = isRamsCompliant(
           { training, siteRamsVersion, siteHasRams },

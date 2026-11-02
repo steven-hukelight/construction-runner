@@ -1,7 +1,14 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { localCalendarDayToUtcIsoBounds } from "@/lib/attendanceLocalDayWindow";
+import { usePolling } from "@/lib/hooks/usePolling";
+import type {
+  AttendanceLookups,
+  AttendanceProfile,
+  AttendanceSite,
+  AttendanceUser,
+} from "./live/useAttendanceLookups";
 import AttendanceFilters from "./live/AttendanceFilters";
 import AttendanceTable from "./live/AttendanceTable";
 import AttendanceCards from "./live/AttendanceCards";
@@ -20,62 +27,11 @@ function todayStr() {
   return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
 }
 
-type User = {
-  id: string;
-  name?: string;
-  display_name?: string;
-  email?: string;
-  displayName?: string;
-  company_id?: string;
-  companyId?: string;
-};
-type Profile = { id?: string; userId?: string; displayName?: string };
-type Site = { id: string; name?: string };
+type User = AttendanceUser;
+type Profile = AttendanceProfile;
+type Site = AttendanceSite;
 
-const asString = (value: unknown): string | undefined => {
-  if (typeof value === "string") return value;
-  if (typeof value === "number") return String(value);
-  return undefined;
-};
-
-const normalizeUser = (value: unknown): User | null => {
-  if (!value || typeof value !== "object") return null;
-  const obj = value as Record<string, unknown>;
-  const id = asString(obj.id);
-  if (!id) return null;
-  return {
-    id,
-    name: asString(obj.name),
-    display_name: asString(obj.display_name),
-    displayName: asString(obj.displayName),
-    email: asString(obj.email),
-    company_id: asString(obj.company_id),
-    companyId: asString(obj.companyId),
-  };
-};
-
-const normalizeProfile = (value: unknown): Profile | null => {
-  if (!value || typeof value !== "object") return null;
-  const obj = value as Record<string, unknown>;
-  const pid = asString(obj.id ?? obj.userId);
-  if (!pid) return null;
-  return {
-    id: pid,
-    userId: asString(obj.userId),
-    displayName: asString(obj.displayName ?? obj.display_name),
-  };
-};
-
-const normalizeSite = (value: unknown): Site | null => {
-  if (!value || typeof value !== "object") return null;
-  const obj = value as Record<string, unknown>;
-  const id = asString(obj.id);
-  if (!id) return null;
-  return {
-    id,
-    name: asString(obj.name),
-  };
-};
+const LIVE_REFRESH_MS = 15_000;
 
 function resolveOperativeFromLog(
   log: AttendanceLog | null,
@@ -119,18 +75,22 @@ export default function LiveAttendance({
   refreshTrigger = 0,
   selectedDate: selectedDateProp,
   initialSiteId = null,
-}: { refreshTrigger?: number; selectedDate?: string; initialSiteId?: string | null }) {
+  lookups,
+}: {
+  refreshTrigger?: number;
+  selectedDate?: string;
+  initialSiteId?: string | null;
+  lookups: AttendanceLookups;
+}) {
+  const { users, sites, profiles, companyMap } = lookups;
   const [logs, setLogs] = useState<AttendanceLog[]>([]);
-  const [users, setUsers] = useState<User[]>([]);
-  const [sites, setSites] = useState<Site[]>([]);
-  const [profiles, setProfiles] = useState<Profile[]>([]);
+  const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
   const [selectedSiteId, setSelectedSiteId] = useState<string>(initialSiteId || "all");
   const [selectedUserId, setSelectedUserId] = useState<string>("all");
   const [localDate, setLocalDate] = useState<string>(() => todayStr());
   const selectedDate = selectedDateProp ?? localDate;
   const isToday = selectedDate === todayStr();
 
-  const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [activeSessionsOnly, setActiveSessionsOnly] = useState(false);
   const [drawerSession, setDrawerSession] = useState<AttendanceSession | null>(null);
   const [now, setNow] = useState(() => new Date());
@@ -162,104 +122,71 @@ export default function LiveAttendance({
     return [...list].sort((a, b) => Number(isActiveWorkSession(b)) - Number(isActiveWorkSession(a)));
   }, [sessions, activeSessionsOnly]);
 
-  useEffect(() => {
-    const fetchFromApi = async () => {
-      try {
-        let json: AttendanceLog[] = [];
-        if (isToday) {
-          const params = new URLSearchParams({ limit: "500" });
-          const bounds = localCalendarDayToUtcIsoBounds(selectedDate);
-          if (bounds) {
-            params.set("windowStart", bounds.start);
-            params.set("windowEnd", bounds.end);
-          } else {
-            params.set("date", selectedDate);
-          }
-          if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
-          if (selectedUserId !== "all") params.set("userId", selectedUserId);
-          const res = await fetch(`/api/attendance?${params}`, {
-            cache: "no-store",
-            credentials: "include",
-          });
-          const data = await res.json();
-          json = Array.isArray(data) ? (data as AttendanceLog[]) : [];
-        } else {
-          const params = new URLSearchParams({ date: selectedDate, limit: "500" });
-          const res = await fetch(`/api/attendance/archive?${params}`, {
-            cache: "no-store",
-            credentials: "include",
-          });
-          const data = await res.json();
-          if (Array.isArray(data)) {
-            json = data as AttendanceLog[];
-          } else if (data?.error) {
-            json = [];
-          } else {
-            json = [];
-          }
-        }
-        setLogs(json);
-      } catch {
-        setLogs([]);
-      }
-    };
+  const requestKey = `${selectedDate}|${selectedSiteId}|${selectedUserId}|${refreshTrigger}|${listEpoch}`;
+  const requestKeyRef = useRef(requestKey);
+  const wasTodayRef = useRef(isToday);
 
-    fetchFromApi();
-    const interval = isToday ? setInterval(fetchFromApi, 15000) : undefined;
-    return () => {
-      if (interval) clearInterval(interval);
-    };
-  }, [refreshTrigger, selectedDate, selectedSiteId, selectedUserId, isToday, listEpoch]);
+  const fetchToday = useCallback(
+    async (signal: AbortSignal) => {
+      const key = requestKeyRef.current;
+      const params = new URLSearchParams({ limit: "500" });
+      const bounds = localCalendarDayToUtcIsoBounds(selectedDate);
+      if (bounds) {
+        params.set("windowStart", bounds.start);
+        params.set("windowEnd", bounds.end);
+      } else {
+        params.set("date", selectedDate);
+      }
+      if (selectedSiteId !== "all") params.set("siteId", selectedSiteId);
+      if (selectedUserId !== "all") params.set("userId", selectedUserId);
+      try {
+        const res = await fetch(`/api/attendance?${params}`, { cache: "no-store", credentials: "include", signal });
+        if (!res.ok) throw new Error(`attendance ${res.status}`);
+        const data = await res.json();
+        if (key !== requestKeyRef.current) return;
+        setLogs(Array.isArray(data) ? (data as AttendanceLog[]) : []);
+        setStatus("ready");
+      } catch (e) {
+        if (signal.aborted || key !== requestKeyRef.current) return;
+        setStatus((s) => (s === "loading" ? "error" : s));
+        throw e;
+      }
+    },
+    [selectedDate, selectedSiteId, selectedUserId],
+  );
+  const refreshToday = usePolling(fetchToday, LIVE_REFRESH_MS, { enabled: isToday });
 
   useEffect(() => {
-    let cancelled = false;
-    const load = async () => {
+    const wasToday = wasTodayRef.current;
+    wasTodayRef.current = isToday;
+    if (requestKeyRef.current === requestKey) return;
+    requestKeyRef.current = requestKey;
+    queueMicrotask(() => setStatus("loading"));
+    if (isToday && wasToday) refreshToday();
+  }, [requestKey, isToday, refreshToday]);
+
+  useEffect(() => {
+    if (isToday) return;
+    const ac = new AbortController();
+    const params = new URLSearchParams({ date: selectedDate, limit: "500" });
+    void (async () => {
       try {
-        const [usersRes, sitesRes, profilesRes, companiesRes, meRes] = await Promise.all([
-          fetch("/api/users", { cache: "no-store", credentials: "include" }),
-          fetch("/api/sites", { cache: "no-store", credentials: "include" }),
-          fetch("/api/profiles", { cache: "no-store", credentials: "include" }),
-          fetch("/api/companies", { cache: "no-store", credentials: "include" }),
-          fetch("/api/me", { cache: "no-store", credentials: "include" }),
-        ]);
-        if (!cancelled) {
-          const [usersJson, sitesJson, profilesJson, companiesJson, meJson] = await Promise.all([
-            usersRes.json(),
-            sitesRes.json(),
-            profilesRes.json(),
-            companiesRes.json(),
-            meRes.json().catch(() => ({})),
-          ]);
-          setUsers(Array.isArray(usersJson) ? usersJson.map(normalizeUser).filter(Boolean) as User[] : []);
-          setSites(Array.isArray(sitesJson) ? sitesJson.map(normalizeSite).filter(Boolean) as Site[] : []);
-          setProfiles(Array.isArray(profilesJson) ? profilesJson.map(normalizeProfile).filter(Boolean) as Profile[] : []);
-          const cm: Record<string, string> = {};
-          if (Array.isArray(companiesJson)) {
-            companiesJson.forEach((c: { id?: string; name?: string }) => {
-              if (c?.id && c?.name) cm[String(c.id)] = String(c.name);
-            });
-          }
-          const meCid = meJson?.companyId ?? meJson?.company_id;
-          const meName = meJson?.companyName;
-          if (meCid && meName && String(meName).trim()) {
-            cm[String(meCid)] = String(meName).trim();
-          }
-          setCompanyMap(cm);
-        }
+        const res = await fetch(`/api/attendance/archive?${params}`, {
+          cache: "no-store",
+          credentials: "include",
+          signal: ac.signal,
+        });
+        if (!res.ok) throw new Error(`archive ${res.status}`);
+        const data = await res.json();
+        if (ac.signal.aborted) return;
+        setLogs(Array.isArray(data) ? (data as AttendanceLog[]) : []);
+        setStatus("ready");
       } catch {
-        if (!cancelled) {
-          setUsers([]);
-          setSites([]);
-          setProfiles([]);
-          setCompanyMap({});
-        }
+        if (!ac.signal.aborted) setStatus("error");
       }
-    };
-    load();
-    return () => {
-      cancelled = true;
-    };
-  }, []);
+    })();
+    return () => ac.abort();
+  }, [isToday, selectedDate, refreshTrigger, listEpoch]);
 
   const userMap = useMemo(() => {
     const m = new Map<string, User>();
@@ -366,11 +293,15 @@ export default function LiveAttendance({
         now={now}
         onOpenSession={setDrawerSession}
         emptyMessage={
-          activeSessionsOnly && sessions.length > 0
-            ? "No active entries match this filter."
-            : isToday
-              ? "No entries to show."
-              : `No entries for ${selectedDate}.`
+          status === "loading"
+            ? "Loading attendance…"
+            : status === "error"
+              ? "Could not load attendance."
+              : activeSessionsOnly && sessions.length > 0
+                ? "No active entries match this filter."
+                : isToday
+                  ? "No entries to show."
+                  : `No entries for ${selectedDate}.`
         }
       />
 

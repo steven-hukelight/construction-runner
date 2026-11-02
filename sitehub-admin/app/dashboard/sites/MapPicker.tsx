@@ -1,4 +1,5 @@
 "use client";
+import "leaflet/dist/leaflet.css";
 import toast from "react-hot-toast";
 
 /* eslint-disable @typescript-eslint/no-explicit-any */

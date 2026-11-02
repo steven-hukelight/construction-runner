@@ -1,36 +1,12 @@
 "use server";
 
-import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
-import { headers } from "next/headers";
+import { callRoute, callRouteList } from "@/lib/server/callRoute";
+import { GET as getTasks, POST as postTask } from "@/app/api/tasks/route";
+import { DELETE as deleteTaskRoute, PATCH as patchTask } from "@/app/api/tasks/[id]/route";
 
-async function getCookieHeader(): Promise<string | undefined> {
-  try {
-    return (await headers()).get("cookie") ?? undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export async function fetchTasks(companyId?: string, cookieHeader?: string) {
-  try {
-    const base = await getServerRequestBaseUrl();
-    let url = `${base}/api/tasks`;
-    if (companyId) url += `?companyId=${encodeURIComponent(companyId)}`;
-    const headersInit: HeadersInit = { "Cache-Control": "no-store" };
-    const cookie = cookieHeader ?? (await getCookieHeader());
-    if (cookie) headersInit.Cookie = cookie;
-    const res = await fetch(url, { cache: "no-store", headers: headersInit });
-    if (!res.ok) return [];
-    const data = await res.json();
-    return Array.isArray(data) ? data : [];
-  } catch (e) {
-    console.error("fetchTasks:", e);
-    return [];
-  }
-}
-
-async function tasksBase(): Promise<string> {
-  return getServerRequestBaseUrl();
+export async function fetchTasks(companyId?: string) {
+  const path = companyId ? `/api/tasks?companyId=${encodeURIComponent(companyId)}` : "/api/tasks";
+  return callRouteList(getTasks, path);
 }
 
 export async function createTask(data: {
@@ -44,16 +20,11 @@ export async function createTask(data: {
   if (!data.siteId?.trim()) {
     throw new Error("Select a site. This task will only appear for that site.");
   }
-  const base = await tasksBase();
-  const url = `${base}/api/tasks`;
-  const cookie = await getCookieHeader();
-  const headersInit: HeadersInit = { "Content-Type": "application/json" };
-  if (cookie) headersInit.Cookie = cookie;
   const payload = {
     ...data,
     assignedToIds: data.assignedToIds ?? (data.assignedTo ? [data.assignedTo] : []),
   };
-  const res = await fetch(url, { method: "POST", headers: headersInit, body: JSON.stringify(payload) });
+  const res = await callRoute(postTask, "/api/tasks", { method: "POST", body: payload });
   if (!res.ok) {
     const err = await res.json().catch(() => ({}));
     throw new Error((err as { error?: string }).error ?? "Failed to create task");
@@ -61,19 +32,9 @@ export async function createTask(data: {
 }
 
 export async function updateTaskStatus(id: string, status: string) {
-  const base = await tasksBase();
-  const url = `${base}/api/tasks/${id}`;
-  const cookie = await getCookieHeader();
-  const headersInit: HeadersInit = { "Content-Type": "application/json" };
-  if (cookie) headersInit.Cookie = cookie;
-  await fetch(url, { method: "PATCH", headers: headersInit, body: JSON.stringify({ status }) });
+  await callRoute(patchTask, `/api/tasks/${encodeURIComponent(id)}`, { method: "PATCH", body: { status }, params: { id } });
 }
 
 export async function deleteTask(id: string) {
-  const base = await tasksBase();
-  const url = `${base}/api/tasks/${id}`;
-  const cookie = await getCookieHeader();
-  const headersInit: HeadersInit = {};
-  if (cookie) headersInit.Cookie = cookie;
-  await fetch(url, { method: "DELETE", headers: headersInit });
+  await callRoute(deleteTaskRoute, `/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE", params: { id } });
 }

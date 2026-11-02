@@ -26,10 +26,10 @@ const securityHeaders = [
 const nextConfig = {
   reactStrictMode: true,
   outputFileTracingRoot: path.join(__dirname),
-  // Next defaults to 10MB for request body cloning; larger multipart uploads were truncated (RAMS etc.).
-  // Must be ≥ app limits in lib/ramsUploadLimits.ts and any other large upload routes.
+  // Vercel rejects function bodies over 4.5 MB, so larger files go straight to Storage
+  // (lib/storage/stagedUpload.ts) and never pass through the proxy.
   experimental: {
-    proxyClientMaxBodySize: '55mb',
+    proxyClientMaxBodySize: '5mb',
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {

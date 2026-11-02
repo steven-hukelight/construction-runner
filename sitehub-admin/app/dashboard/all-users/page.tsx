@@ -1,7 +1,7 @@
 "use client";
 import toast from "react-hot-toast";
 
-import { useEffect, useMemo, useState } from "react";
+import { useDeferredValue, useEffect, useMemo, useState } from "react";
 import Table from "../components/ui/Table";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
@@ -11,11 +11,14 @@ import { CompanyPicker } from "../components/ui/SitePicker";
 import Modal from "../components/ui/Modal";
 import { assignableStaffRoles, roleDisplayName } from "@/lib/auth/roles";
 import TableActions, { type TableActionItem } from "../components/ui/TableActions";
+import { useCompanies } from "@/lib/hooks/useDashboardData";
 
 const ROLE_OPTIONS = [
   ...assignableStaffRoles("superuser"),
   { value: "VIEWER", label: "Viewer" },
 ];
+
+const PAGE_SIZE = 100;
 
 function roleKey(role: string | null | undefined): string {
   return (role ?? "").trim().toUpperCase();
@@ -38,7 +41,11 @@ type Company = { id: string; name: string | null };
 
 export default function AllUsersPage() {
   const [users, setUsers] = useState<UserRow[]>([]);
-  const [companies, setCompanies] = useState<Company[]>([]);
+  const { data: companyData } = useCompanies();
+  const companies = useMemo<Company[]>(
+    () => (companyData ?? []).map((c) => ({ id: c.id, name: c.name ?? null })),
+    [companyData]
+  );
   const [loading, setLoading] = useState(true);
   const [companyModal, setCompanyModal] = useState<{ user: UserRow } | null>(null);
   const [newCompanyId, setNewCompanyId] = useState<string>("");
@@ -47,10 +54,17 @@ export default function AllUsersPage() {
   const [companyFilter, setCompanyFilter] = useState<string>("");
   const [query, setQuery] = useState("");
 
-  const companyMap = companies.reduce<Record<string, string>>((acc, c) => {
-    acc[c.id] = c.name ?? c.id;
-    return acc;
-  }, {});
+  const [visibleCount, setVisibleCount] = useState(PAGE_SIZE);
+  const deferredQuery = useDeferredValue(query);
+
+  const companyMap = useMemo(
+    () =>
+      companies.reduce<Record<string, string>>((acc, c) => {
+        acc[c.id] = c.name ?? c.id;
+        return acc;
+      }, {}),
+    [companies]
+  );
 
   function loadUsers() {
     setLoading(true);
@@ -63,13 +77,6 @@ export default function AllUsersPage() {
 
   useEffect(() => {
     loadUsers();
-  }, []);
-
-  useEffect(() => {
-    fetch("/api/companies")
-      .then((res) => res.json())
-      .then((data) => setCompanies(Array.isArray(data) ? data : []))
-      .catch(() => setCompanies([]));
   }, []);
 
   async function handleChangeRole(user: UserRow, nextRole: string) {
@@ -315,7 +322,7 @@ export default function AllUsersPage() {
   ];
 
   const visibleUsers = useMemo(() => {
-    const q = query.trim().toLowerCase();
+    const q = deferredQuery.trim().toLowerCase();
     return users.filter((u) => {
       const cid = u.company_id ?? u.companyId;
       if (companyFilter && cid !== companyFilter) return false;
@@ -323,7 +330,8 @@ export default function AllUsersPage() {
       const hay = `${u.name ?? ""} ${u.email ?? ""} ${companyMap[cid ?? ""] ?? cid ?? ""}`.toLowerCase();
       return hay.includes(q);
     });
-  }, [users, companyFilter, query, companyMap]);
+  }, [users, companyFilter, deferredQuery, companyMap]);
+  const shownUsers = useMemo(() => visibleUsers.slice(0, visibleCount), [visibleUsers, visibleCount]);
 
   return (
     <div className="relative">
@@ -336,7 +344,10 @@ export default function AllUsersPage() {
             <input
               type="search"
               value={query}
-              onChange={(e) => setQuery(e.target.value)}
+              onChange={(e) => {
+                setQuery(e.target.value);
+                setVisibleCount(PAGE_SIZE);
+              }}
               placeholder="Search name or email"
               className="table-toolbar-input w-52"
               aria-label="Search users"
@@ -344,7 +355,10 @@ export default function AllUsersPage() {
             <CompanyPicker
               companies={companies}
               value={companyFilter}
-              onChange={setCompanyFilter}
+              onChange={(v) => {
+                setCompanyFilter(v);
+                setVisibleCount(PAGE_SIZE);
+              }}
               variant="compact"
               allowNone
               noneValue=""
@@ -355,12 +369,19 @@ export default function AllUsersPage() {
           </div>
         }
         columns={columns}
-        data={visibleUsers}
+        data={shownUsers}
         loading={loading}
         emptyMessage="No users found."
         thing="users"
         things="users"
       />
+      {!loading && visibleUsers.length > shownUsers.length ? (
+        <div className="mt-3 flex justify-center">
+          <Button type="button" variant="secondary" onClick={() => setVisibleCount((n) => n + PAGE_SIZE)}>
+            Show more ({visibleUsers.length - shownUsers.length} remaining)
+          </Button>
+        </div>
+      ) : null}
 
       <Modal
         open={!!companyModal}

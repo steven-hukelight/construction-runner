@@ -1,6 +1,6 @@
 "use client";
 
-import React, { type ReactNode } from "react";
+import React, { useMemo, type ReactNode } from "react";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 import Button from "./Button";
 import Skeleton from "./Skeleton";
@@ -73,16 +73,24 @@ function Table({
 	const showLoading = loading;
 	const showError = !showLoading && error;
 	const isEmpty = !showLoading && !showError && (!data || data.length === 0);
-	const cells: ReactNode[][] = isEmpty
-		? []
-		: data.map((row: any) =>
-				columns.map((col: any) =>
-					col.render ? col.render(row) : (row[col.accessor || col.key || col.label] ?? "—")
-				)
-			);
-	const visibleCols = columns
-		.map((col: any, j: number) => ({ col, j }))
-		.filter(({ j }) => isEmpty || cells.some((rowCells) => !isBlankCell(rowCells[j])));
+	const cells: ReactNode[][] = useMemo(
+		() =>
+			isEmpty
+				? []
+				: data.map((row: any) =>
+						columns.map((col: any) =>
+							col.render ? col.render(row) : (row[col.accessor || col.key || col.label] ?? "—")
+						)
+					),
+		[isEmpty, data, columns]
+	);
+	const visibleCols = useMemo(
+		() =>
+			columns
+				.map((col: any, j: number) => ({ col, j }))
+				.filter(({ j }: { j: number }) => isEmpty || cells.some((rowCells) => !isBlankCell(rowCells[j]))),
+		[columns, cells, isEmpty]
+	);
 	const toolbarNode =
 		toolbar ??
 		((title || subtitle || actions || extra) ? (
@@ -137,7 +145,7 @@ function Table({
 					) : (
 						data.map((row: any, i: number) => (
 							<tr
-								key={i}
+								key={row?.id ?? i}
 								className={`data-table-row group ${rowMinH} ${rowClassName?.(row) ?? "bg-white dark:bg-slate-800"} border-b border-slate-100/90 transition-colors duration-[120ms] last:border-b-0 hover:bg-blue-50/50 dark:border-slate-700/60 dark:hover:bg-slate-700/80`}
 							>
 								{visibleCols.map(({ col, j }) => {

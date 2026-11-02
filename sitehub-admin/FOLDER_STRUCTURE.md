@@ -543,12 +543,7 @@ sitehub-admin/
 │   └── copilot-session-2026-01-29.md
 ├── public/
 │   ├── Logo.png
-│   ├── favicon.png
-│   ├── file.svg
-│   ├── globe.svg
-│   ├── next.svg
-│   ├── vercel.svg
-│   └── window.svg
+│   └── icon.png
 ├── scripts/
 │   ├── Untitled
 │   ├── backfill-attendance-names.js

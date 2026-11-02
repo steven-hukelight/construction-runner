@@ -23,8 +23,7 @@ export default async function TasksPage() {
         role,
       })) || undefined;
   }
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  const tasks = await fetchTasks(companyId ?? undefined, cookieHeader);
+  const tasks = await fetchTasks(companyId ?? undefined);
 
   return <TasksSection data={deepSerializeForClient(tasks)} />;
 }

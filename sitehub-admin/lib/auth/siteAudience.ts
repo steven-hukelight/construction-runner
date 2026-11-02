@@ -1,5 +1,5 @@
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { currentSignedInSiteId } from "@/lib/auth/siteScope";
+import { isOpenSignInAction } from "@/lib/attendanceStatusRow";
 
 /** Open sign-ins are auto-closed after 12 hours, so older rows cannot be open. */
 const OPEN_SIGN_IN_LOOKBACK_MS = 36 * 60 * 60 * 1000;
@@ -20,10 +20,43 @@ export async function userIdsSignedInAtSite(siteId: string): Promise<string[]> {
     .limit(2000);
   if (error) throw new Error(`userIdsSignedInAtSite: ${error.message}`);
   const candidates = [...new Set((data ?? []).map((r) => String((r as { user_id?: string }).user_id ?? "")).filter(Boolean))];
-  const checks = await Promise.all(
-    candidates.map(async (uid) => ((await currentSignedInSiteId(uid)) === sid ? uid : null)),
+  const latest = await latestRowsSince(candidates, since);
+  return candidates.filter((uid) => {
+    const row = latest.get(uid);
+    return !!row && isOpenSignInAction(row.action) && String(row.site_id ?? "").trim() === sid;
+  });
+}
+
+type LatestRow = { user_id: string; action: string | null; site_id: string | null };
+
+/**
+ * Newest attendance row per user among rows since `since`. Every candidate has a row in the
+ * window, so the newest row in the window is also their newest row overall.
+ */
+async function latestRowsSince(userIds: string[], since: string): Promise<Map<string, LatestRow>> {
+  const latest = new Map<string, LatestRow>();
+  const chunks: string[][] = [];
+  for (let i = 0; i < userIds.length; i += 200) chunks.push(userIds.slice(i, i + 200));
+  const results = await Promise.all(
+    chunks.map((ids) =>
+      supabaseAdmin
+        .from("attendance")
+        .select("user_id, action, site_id")
+        .in("user_id", ids)
+        .or(`timestamp.gte.${since},created_at.gte.${since}`)
+        .order("created_at", { ascending: false, nullsFirst: false })
+        .order("timestamp", { ascending: false })
+        .limit(10000),
+    ),
   );
-  return checks.filter((uid): uid is string => uid !== null);
+  for (const { data, error } of results) {
+    if (error) throw new Error(`userIdsSignedInAtSite: ${error.message}`);
+    for (const row of (data ?? []) as LatestRow[]) {
+      const uid = String(row.user_id ?? "");
+      if (uid && !latest.has(uid)) latest.set(uid, row);
+    }
+  }
+  return latest;
 }
 
 /**
@@ -35,17 +68,14 @@ export async function staffIdsForSite(companyId: string, siteId: string): Promis
   if (!companyId || !sid) return [];
   const ids = new Set<string>();
 
-  const { data: admins } = await supabaseAdmin
-    .from("users")
-    .select("id")
-    .eq("company_id", companyId)
-    .eq("role", "admin");
+  const [{ data: admins }, { data: assigned }, { data: site }] = await Promise.all([
+    supabaseAdmin.from("users").select("id").eq("company_id", companyId).eq("role", "admin"),
+    supabaseAdmin.from("user_sites").select("user_id").eq("site_id", sid),
+    supabaseAdmin.from("sites").select("manager_id").eq("id", sid).maybeSingle(),
+  ]);
   for (const row of admins ?? []) addId(ids, (row as { id: string }).id);
-
-  const { data: assigned } = await supabaseAdmin.from("user_sites").select("user_id").eq("site_id", sid);
   const assignedIds = (assigned ?? []).map((r) => String((r as { user_id?: string }).user_id ?? "")).filter(Boolean);
 
-  const { data: site } = await supabaseAdmin.from("sites").select("manager_id").eq("id", sid).maybeSingle();
   const managerId = String((site as { manager_id?: string | null } | null)?.manager_id ?? "").trim();
 
   const toCheck = [...new Set([...assignedIds, ...(managerId ? [managerId] : [])])];
@@ -85,33 +115,19 @@ export async function userIdsForSiteContent(companyId: string, siteId: string): 
   const sid = siteId.trim();
   if (!sid) return [];
 
-  const { data: siteUsers } = await supabaseAdmin
-    .from("user_sites")
-    .select("user_id")
-    .eq("site_id", sid);
+  const [{ data: siteUsers }, { data: assigned }, { data: inducted }, { data: site }] = await Promise.all([
+    supabaseAdmin.from("user_sites").select("user_id").eq("site_id", sid),
+    supabaseAdmin.from("assigned_operatives").select("user_id, userid").eq("site_id", sid),
+    supabaseAdmin.from("user_site_inductions").select("user_id").eq("site_id", sid),
+    supabaseAdmin.from("sites").select("manager_id").eq("id", sid).maybeSingle(),
+  ]);
   for (const row of siteUsers ?? []) addId(ids, (row as { user_id?: string }).user_id);
-
-  const { data: assigned } = await supabaseAdmin
-    .from("assigned_operatives")
-    .select("user_id, userid")
-    .eq("site_id", sid);
   for (const row of assigned ?? []) {
     const record = row as { user_id?: string; userid?: string };
     addId(ids, record.user_id);
     addId(ids, record.userid);
   }
-
-  const { data: inducted } = await supabaseAdmin
-    .from("user_site_inductions")
-    .select("user_id")
-    .eq("site_id", sid);
   for (const row of inducted ?? []) addId(ids, (row as { user_id?: string }).user_id);
-
-  const { data: site } = await supabaseAdmin
-    .from("sites")
-    .select("manager_id")
-    .eq("id", sid)
-    .maybeSingle();
   addId(ids, (site as { manager_id?: string } | null)?.manager_id);
 
   if (companyId && ids.size > 0) {

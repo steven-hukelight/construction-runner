@@ -112,7 +112,10 @@ export function DashboardContent({
                 credentials: "include",
               })
             : Promise.resolve(null),
-          fetch(qs("/api/admin/missing-info"), { cache: "no-store", credentials: "include" }),
+          fetch(`${qs("/api/admin/missing-info")}${qs("/api/admin/missing-info").includes("?") ? "&" : "?"}count=1`, {
+            cache: "no-store",
+            credentials: "include",
+          }),
           fetch(`${qs("/api/assets")}${qs("/api/assets").includes("?") ? "&" : "?"}fields=inspection`, {
             cache: "no-store",
             credentials: "include",
@@ -126,7 +129,7 @@ export function DashboardContent({
         }
         if (missingRes.ok) {
           const missing = await missingRes.json();
-          setMissingInfoCount(Array.isArray(missing) ? missing.length : 0);
+          setMissingInfoCount(typeof missing?.count === "number" ? missing.count : 0);
         }
         if (assetsRes.ok) {
           const assets = await assetsRes.json();

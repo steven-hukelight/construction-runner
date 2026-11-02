@@ -21,11 +21,6 @@ export const metadata = {
   metadataBase: safeMetadataBase(),
   title: "Construction Runner",
   description: "Attendance, induction and RAMS sign-off for construction sites.",
-  icons: {
-    icon: '/Logo.png',
-    shortcut: '/Logo.png',
-    apple: '/Logo.png',
-  },
   openGraph: {
     title: "Construction Runner",
     description: "Attendance, induction and RAMS sign-off for construction sites.",
@@ -47,8 +42,6 @@ export default function RootLayout({ children }: any) {
             __html: `(function(){var d=document.documentElement,t=localStorage.getItem('theme');var r='light';if(t==='dark'||t==='light')r=t;else if(t==='system')r=window.matchMedia('(prefers-color-scheme: dark)').matches?'dark':'light';d.dataset.theme=r;})();`,
           }}
         />
-        <link rel="icon" href="/Logo.png?v=3" type="image/png" />
-        <link rel="apple-touch-icon" href="/Logo.png?v=3" />
       </head>
       <body className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white transition-colors duration-300 min-h-screen flex flex-col font-sf">
         <div className="app-body flex-1 flex flex-col">

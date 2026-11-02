@@ -2,13 +2,17 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
+import { claimStagedUpload } from "@/lib/storage/stagedUpload";
 
 export async function POST(req: Request) {
   try {
     const form = await req.formData();
-    const file = form.get("file") as File;
+    const fileEntry = form.get("file");
+    const file = fileEntry instanceof Blob && fileEntry.size > 0 ? (fileEntry as File) : null;
+    const stagedToken = ((form.get("stagedToken") as string) ?? "").trim();
+    const fileName = file?.name || ((form.get("fileName") as string) ?? "").trim() || "document";
     const assetId = form.get("assetId") as string;
-    if (!file || !assetId) {
+    if ((!file && !stagedToken) || !assetId) {
       return NextResponse.json({ error: "file and assetId required" }, { status: 400 });
     }
 
@@ -37,18 +41,20 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "Asset not found or forbidden" }, { status: 403 });
     }
 
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-    const path = `assets/${assetId}/${Date.now()}-${file.name.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+    const path = `assets/${assetId}/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
 
     const bucket = "assets";
-    const { error: uploadError } = await supabaseAdmin.storage
-      .from(bucket)
-      .upload(path, buffer, { contentType: file.type, upsert: true });
-
-    if (uploadError) {
-      console.error("asset document upload error:", uploadError);
-      return NextResponse.json({ error: "Upload failed. Ensure 'assets' storage bucket exists." }, { status: 500 });
+    if (file) {
+      const { error: uploadError } = await supabaseAdmin.storage
+        .from(bucket)
+        .upload(path, Buffer.from(await file.arrayBuffer()), { contentType: file.type, upsert: true });
+      if (uploadError) {
+        console.error("asset document upload error:", uploadError);
+        return NextResponse.json({ error: "Upload failed. Ensure 'assets' storage bucket exists." }, { status: 500 });
+      }
+    } else {
+      const claimed = await claimStagedUpload("asset-document", stagedToken, path);
+      if ("error" in claimed) return NextResponse.json({ error: claimed.error }, { status: 400 });
     }
 
     const { data: urlData } = supabaseAdmin.storage.from(bucket).getPublicUrl(path);

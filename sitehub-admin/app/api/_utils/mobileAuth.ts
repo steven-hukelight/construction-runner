@@ -2,6 +2,7 @@ import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { bearerTokenFrom, expectedRoleCookie, verifyApiCredentials } from "@/lib/auth/apiAuth";
+import { PROXY_IDENTITY_HEADER } from "@/lib/auth/proxyIdentity";
 
 export type MobileApiAuth = {
   uid: string | null;
@@ -33,6 +34,7 @@ export async function resolveMobileApiAuth(req: Request): Promise<MobileApiAuth 
     cookieRole,
     cookieCompanyId,
     cookieEmail: cookieUserEmail,
+    proxyIdentity: req.headers.get(PROXY_IDENTITY_HEADER),
   });
   if (!outcome.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });

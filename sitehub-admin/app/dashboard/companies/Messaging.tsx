@@ -1,9 +1,12 @@
 "use client";
 import toast from "react-hot-toast";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useCallback } from "react";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { usePolling } from "@/lib/hooks/usePolling";
 import Button from "../components/ui/Button";
+
+const MESSAGE_REFRESH_MS = 10_000;
 
 interface Message {
   id: string;
@@ -18,24 +21,16 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
   const [loading, setLoading] = useState(false);
   const [deletingId, setDeletingId] = useState<string | null>(null);
 
-  const fetchMessages = useCallback(async () => {
-    try {
-      const res = await fetch(`/api/companies/${companyId}/messages`);
+  const fetchMessages = useCallback(
+    async (signal: AbortSignal) => {
+      const res = await fetch(`/api/companies/${companyId}/messages`, { signal });
+      if (!res.ok) throw new Error(`messages ${res.status}`);
       const data = await res.json();
-      setMessages(Array.isArray(data) ? data : []);
-    } catch {
-      setMessages([]);
-    }
-  }, [companyId]);
-
-  useEffect(() => {
-    void fetchMessages();
-  }, [fetchMessages]);
-
-  useEffect(() => {
-    const id = setInterval(fetchMessages, 3000);
-    return () => clearInterval(id);
-  }, [fetchMessages]);
+      if (Array.isArray(data)) setMessages(data);
+    },
+    [companyId],
+  );
+  const refreshMessages = usePolling(fetchMessages, MESSAGE_REFRESH_MS);
 
   async function deleteMessage(messageId: string) {
     if (!canDelete) return;
@@ -59,13 +54,24 @@ export default function Messaging({ companyId, canDelete = false }: { companyId:
   async function sendMessage() {
     if (!newMessage.trim()) return;
     setLoading(true);
-    await fetch(`/api/companies/${companyId}/messages`, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ content: newMessage }),
-    });
-    setNewMessage("");
-    void fetchMessages().finally(() => setLoading(false));
+    try {
+      const res = await fetch(`/api/companies/${companyId}/messages`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ content: newMessage }),
+      });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j?.error ?? "Failed to send message");
+        return;
+      }
+      setNewMessage("");
+      refreshMessages();
+    } catch {
+      toast.error("Failed to send message");
+    } finally {
+      setLoading(false);
+    }
   }
 
   return (

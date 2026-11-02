@@ -28,7 +28,10 @@ export async function GET(req: Request) {
       if (countOnly === "unread") return NextResponse.json({ count: 0 });
       return NextResponse.json([]);
     }
-    let query = supabaseAdmin.from("safety_alerts").select("*").eq("company_id", auth.companyId);
+    let query = supabaseAdmin
+      .from("safety_alerts")
+      .select((countOnly === "unread" ? "id" : "*") as "*")
+      .eq("company_id", auth.companyId);
     const siteScope = await documentSiteScope(req, { auth, siteId: url.searchParams.get("siteId") });
     if (siteScope === "none") {
       if (countOnly === "unread") return NextResponse.json({ count: 0 });

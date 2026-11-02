@@ -1,6 +1,6 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { createContext, useCallback, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
 import {
   APP_LANGUAGE_CODES,
   resolveAppLocale,
@@ -195,11 +195,14 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
     queueMicrotask(() => setPrefs(loadPreferences()));
   }, []);
 
-  const update = (partial: Partial<DisplayPreferences>) => {
-    const next = { ...prefs, ...partial };
-    setPrefs(next);
-    savePreferences(next);
-  };
+  const update = useCallback(
+    (partial: Partial<DisplayPreferences>) => {
+      const next = { ...prefs, ...partial };
+      setPrefs(next);
+      savePreferences(next);
+    },
+    [prefs]
+  );
 
   const resolvedLocale = useMemo(
     () =>
@@ -215,19 +218,22 @@ export function DisplayPreferencesProvider({ children }: { children: ReactNode }
     document.documentElement.lang = resolvedLocale === "en" ? "en-GB" : resolvedLocale;
   }, [resolvedLocale]);
 
-  const value: ContextValue = {
-    ...prefs,
-    setDateFormat: (v) => update({ dateFormat: v }),
-    setTimeFormat: (v) => update({ timeFormat: v }),
-    setTableDensity: (v) => update({ tableDensity: v }),
-    setDashboardBackgroundImageUrl: (v) => update({ dashboardBackgroundImageUrl: v }),
-    setDashboardBackgroundBlur: (v) => update({ dashboardBackgroundBlur: v }),
-    setDashboardBackgroundOverlay: (v) =>
-      update({ dashboardBackgroundOverlay: Math.min(0.92, Math.max(0.35, v)) }),
-    setLocale: (v) => update({ locale: v }),
-    resolvedLocale,
-    t: (key) => translateMessage(resolvedLocale, key),
-  };
+  const value = useMemo<ContextValue>(
+    () => ({
+      ...prefs,
+      setDateFormat: (v) => update({ dateFormat: v }),
+      setTimeFormat: (v) => update({ timeFormat: v }),
+      setTableDensity: (v) => update({ tableDensity: v }),
+      setDashboardBackgroundImageUrl: (v) => update({ dashboardBackgroundImageUrl: v }),
+      setDashboardBackgroundBlur: (v) => update({ dashboardBackgroundBlur: v }),
+      setDashboardBackgroundOverlay: (v) =>
+        update({ dashboardBackgroundOverlay: Math.min(0.92, Math.max(0.35, v)) }),
+      setLocale: (v) => update({ locale: v }),
+      resolvedLocale,
+      t: (key) => translateMessage(resolvedLocale, key),
+    }),
+    [prefs, update, resolvedLocale]
+  );
 
   return (
     <DisplayPreferencesContext.Provider value={value}>

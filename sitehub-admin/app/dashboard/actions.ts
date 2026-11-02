@@ -1,24 +1,16 @@
 "use server";
 /* eslint-disable @typescript-eslint/no-explicit-any */
 
-import { headers } from "next/headers";
-import { getBaseUrl } from "@/lib/url";
+import { callRouteList } from "@/lib/server/callRoute";
+import { GET as getSites } from "@/app/api/sites/route";
+import { GET as getRams } from "@/app/api/rams/route";
+import { GET as getUsers } from "@/app/api/users/route";
 
 export async function fetchDashboardMetrics() {
-  const base = getBaseUrl();
-  const cookieHeader = (await headers()).get("cookie") ?? "";
-  const fetchHeaders: HeadersInit = cookieHeader ? { Cookie: cookieHeader } : {};
-
-  const [sitesRes, ramsRes, usersRes] = await Promise.all([
-    fetch(`${base}/api/sites`, { cache: "no-store", headers: fetchHeaders }),
-    fetch(`${base}/api/rams`, { cache: "no-store", headers: fetchHeaders }),
-    fetch(`${base}/api/users`, { cache: "no-store", headers: fetchHeaders }),
-  ]);
-
   const [sites, rams, users] = await Promise.all([
-    sitesRes.json(),
-    ramsRes.json(),
-    usersRes.json(),
+    callRouteList(getSites, "/api/sites"),
+    callRouteList<any>(getRams, "/api/rams"),
+    callRouteList(getUsers, "/api/users"),
   ]);
 
   return {

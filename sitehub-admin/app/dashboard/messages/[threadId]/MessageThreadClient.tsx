@@ -1,11 +1,14 @@
 "use client";
 import toast from "react-hot-toast";
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
+import { usePolling } from "@/lib/hooks/usePolling";
 import { Check, CheckCheck } from "lucide-react";
 import Button from "../../components/ui/Button";
+
+const MESSAGE_REFRESH_MS = 10_000;
 
 interface Message {
   id: string;
@@ -26,19 +29,62 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
   const [deletingId, setDeletingId] = useState<string | null>(null);
   const [deletingThread, setDeletingThread] = useState(false);
 
-  const load = useCallback(async () => {
-    setLoading(true);
+  const [olderMessages, setOlderMessages] = useState<Message[]>([]);
+  const [hasMore, setHasMore] = useState(false);
+  const [loadingOlder, setLoadingOlder] = useState(false);
+  const olderLoaded = useRef(false);
+
+  const threadUrl = useCallback(
+    (before?: string) => {
+      const q = new URLSearchParams();
+      if (companyId) q.set("companyId", companyId);
+      if (before) q.set("before", before);
+      const qs = q.toString();
+      return `/api/messages/thread/${threadId}${qs ? `?${qs}` : ""}`;
+    },
+    [companyId, threadId],
+  );
+
+  const load = useCallback(
+    async (signal: AbortSignal) => {
+      try {
+        const res = await fetch(threadUrl(), { signal });
+        if (!res.ok) throw new Error(`thread ${res.status}`);
+        const data = await res.json();
+        if (Array.isArray(data?.messages)) {
+          setMessages(data.messages);
+          if (!olderLoaded.current) setHasMore(data.hasMore === true);
+        }
+      } finally {
+        if (!signal.aborted) setLoading(false);
+      }
+    },
+    [threadUrl],
+  );
+  const refresh = usePolling(load, MESSAGE_REFRESH_MS);
+
+  async function loadOlder() {
+    const oldest = (olderMessages[0] ?? messages[0])?.createdAt;
+    if (!oldest) return;
+    setLoadingOlder(true);
     try {
-      const q = companyId ? `?companyId=${encodeURIComponent(companyId)}` : "";
-      const res = await fetch(`/api/messages/thread/${threadId}${q}`);
+      const res = await fetch(threadUrl(oldest));
+      if (!res.ok) throw new Error(`thread ${res.status}`);
       const data = await res.json();
-      setMessages(data?.messages ?? []);
+      olderLoaded.current = true;
+      setOlderMessages((prev) => [...(data?.messages ?? []), ...prev]);
+      setHasMore(data?.hasMore === true);
     } catch {
-      setMessages([]);
+      toast.error("Could not load older messages");
     } finally {
-      setLoading(false);
+      setLoadingOlder(false);
     }
-  }, [companyId, threadId]);
+  }
+
+  const allMessages = useMemo(() => {
+    const seen = new Set(messages.map((m) => m.id));
+    return [...olderMessages.filter((m) => !seen.has(m.id)), ...messages];
+  }, [olderMessages, messages]);
 
   async function deleteMessage(messageId: string) {
     if (!canDelete) return;
@@ -48,6 +94,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
       const res = await fetch(`/api/messages/thread/${threadId}/message/${messageId}${q}`, { method: "DELETE", credentials: "include" });
       if (res.ok) {
         setMessages((prev) => prev.filter((m) => m.id !== messageId));
+        setOlderMessages((prev) => prev.filter((m) => m.id !== messageId));
       } else {
         const j = await res.json().catch(() => ({}));
         toast.error(j?.error ?? "Failed to delete message");
@@ -99,29 +146,25 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
     }
   }
 
-  useEffect(() => {
-    void load();
-  }, [load]);
-
-  const MESSAGE_REFRESH_SEC = 3;
-  useEffect(() => {
-    const id = setInterval(() => void load(), MESSAGE_REFRESH_SEC * 1000);
-    return () => clearInterval(id);
-  }, [load]);
-
   async function sendMessage() {
     if (!newMessage.trim()) return;
     setSending(true);
     try {
-      await fetch(`/api/messages/send?companyId=${encodeURIComponent(companyId)}`, {
+      const res = await fetch(`/api/messages/send?companyId=${encodeURIComponent(companyId)}`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ thread_id: threadId, body: newMessage.trim() }),
       });
+      if (!res.ok) {
+        const j = await res.json().catch(() => ({}));
+        toast.error(j?.error ?? "Failed to send message");
+        return;
+      }
       setNewMessage("");
-      void load();
+      refresh();
     } catch (e) {
       console.error(e);
+      toast.error("Failed to send message");
     } finally {
       setSending(false);
     }
@@ -156,7 +199,14 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
       </div>
       <div className="flex flex-col min-h-[400px]">
         <div className="flex-1 overflow-y-auto p-4 space-y-4 max-h-96">
-          {messages.map((m) => (
+          {hasMore && (
+            <div className="text-center">
+              <Button variant="secondary" size="sm" onClick={loadOlder} disabled={loadingOlder}>
+                {loadingOlder ? "Loading…" : "Load older messages"}
+              </Button>
+            </div>
+          )}
+          {allMessages.map((m) => (
             <div key={m.id} className="rounded-lg bg-gray-50 border border-gray-100 p-3.5 group">
               <div className="flex justify-between items-center gap-3 mb-2">
                 <span className="font-medium text-gray-900 text-sm">{m.sender_name ?? "Unknown"}</span>
@@ -194,7 +244,7 @@ export default function MessageThreadClient({ threadId, companyId, canDelete = f
               )}
             </div>
           ))}
-          {messages.length === 0 && (
+          {allMessages.length === 0 && (
             <div className="text-slate-500 text-center py-8">No messages yet.</div>
           )}
         </div>

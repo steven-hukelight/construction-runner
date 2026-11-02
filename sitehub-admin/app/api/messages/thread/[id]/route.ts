@@ -4,6 +4,8 @@ import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 
+const THREAD_PAGE_SIZE = 200;
+
 async function ensureAccess(req?: Request): Promise<{ companyId: string; userId: string; role: string | undefined; error: NextResponse | null }> {
   const cookieStore = await cookies();
   const uid = cookieStore.get("uid")?.value?.trim();
@@ -108,18 +110,33 @@ export async function GET(
       }
     };
 
-    // Read ticks only consider other participants, so the caller's own read marker can update in parallel.
-    const [, { data: recData, error: recErr }, { data: messages }] = await Promise.all([
-      markRead(),
+    const search = new URL(req.url).searchParams;
+    const before = search.get("before")?.trim() || null;
+    const limit = Math.min(Math.max(Number(search.get("limit")) || THREAD_PAGE_SIZE, 1), THREAD_PAGE_SIZE);
+    let messagesQuery = supabaseAdmin
+      .from("messages_thread")
+      .select("id, sender_id, body, attachment_url, created_at")
+      .eq("thread_id", id)
+      .order("created_at", { ascending: false })
+      .limit(limit + 1);
+    if (before) messagesQuery = messagesQuery.lt("created_at", before);
+
+    const [{ data: recData, error: recErr }, { data: newestFirst, error: msgErr }] = await Promise.all([
       supabaseAdmin.from("message_recipients").select("user_id, last_read_at").eq("thread_id", id),
-      supabaseAdmin
-        .from("messages_thread")
-        .select("id, sender_id, body, attachment_url, created_at")
-        .eq("thread_id", id)
-        .order("created_at", { ascending: true }),
+      messagesQuery,
     ]);
+    if (msgErr) throw msgErr;
     const recipients =
       !recErr && recData ? (recData as Array<{ user_id: string; last_read_at?: string | null }>) : [];
+    const hasMore = (newestFirst ?? []).length > limit;
+    const messages = (newestFirst ?? []).slice(0, limit).reverse();
+
+    // Read ticks only consider other participants, so the caller's own marker only needs writing when it is behind.
+    const newest = (messages[messages.length - 1] as { created_at?: string } | undefined)?.created_at;
+    const myLastRead = recipients.find((r) => r.user_id === userId)?.last_read_at;
+    if (!before && newest && (!myLastRead || new Date(myLastRead).getTime() < new Date(newest).getTime())) {
+      await markRead();
+    }
 
     const senderIds = [...new Set((messages ?? []).map((m) => (m as { sender_id: string }).sender_id))];
     const senderMap = new Map<string, string>();
@@ -146,6 +163,7 @@ export async function GET(
         createdAt: (thread as { created_at: string }).created_at,
         archived: (thread as { archived?: boolean }).archived ?? false,
       },
+      hasMore,
       messages: msgList.map((m) => {
         const sid = m.sender_id;
         const msgTime = new Date(m.created_at).getTime();

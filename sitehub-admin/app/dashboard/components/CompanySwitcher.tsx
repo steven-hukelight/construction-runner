@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useCompanies } from "@/lib/hooks/useDashboardData";
 import { usePathname } from "next/navigation";
 import { useClientSession } from "./ClientSessionProvider";
 import { X } from "lucide-react";
@@ -18,21 +19,13 @@ const HIDE_ON = [
 export default function CompanySwitcher() {
   const pathname = usePathname();
   const { role, companyId } = useClientSession();
-  const [companies, setCompanies] = useState<{ id: string; name?: string }[]>([]);
+  const isSuperuser = role?.toLowerCase() === "superuser";
+  const { data: companiesData, error: companiesError } = useCompanies(isSuperuser);
+  const companies = companiesData ?? [];
+  const loaded = companiesData !== undefined || companiesError !== undefined;
   const [selected, setSelected] = useState<string | null>(companyId);
   const [error, setError] = useState("");
-  const [loaded, setLoaded] = useState(false);
 
-  useEffect(() => {
-    if (role?.toLowerCase() !== "superuser") return;
-    fetch("/api/companies")
-      .then((res) => res.json())
-      .then((data) => setCompanies(Array.isArray(data) ? data : []))
-      .catch(() => setCompanies([]))
-      .finally(() => setLoaded(true));
-  }, [role]);
-
-  const isSuperuser = role?.toLowerCase() === "superuser";
   const impersonating = Boolean(isSuperuser && selected);
 
   if (!isSuperuser) return null;

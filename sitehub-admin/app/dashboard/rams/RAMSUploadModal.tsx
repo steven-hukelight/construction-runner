@@ -1,4 +1,5 @@
 "use client";
+import { appendStagedFile } from "@/lib/client/stagedUpload";
 import toast from "react-hot-toast";
 
 import Image from "next/image";
@@ -70,7 +71,7 @@ export default function RAMSUploadModal() {
     setUploading(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      await appendStagedFile(form, "rams", file);
       form.append("siteId", siteId.trim());
       if (siteWide) form.append("siteWide", "true");
       form.append("title", title.trim() || file.name.replace(/\.pdf$/i, "") || file.name);
@@ -98,6 +99,8 @@ export default function RAMSUploadModal() {
       setReviewDate("");
       setSiteId("");
       window.location.reload();
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed");
     } finally {
       setUploading(false);
     }

@@ -44,6 +44,8 @@ export async function GET(req: Request) {
     const url = new URL(req.url);
     const format = (url.searchParams.get("format") || "json").toLowerCase();
     const siteId = url.searchParams.get("siteId")?.trim() || null;
+    const countOnly = url.searchParams.get("count") === "1";
+    const empty = () => NextResponse.json(countOnly ? { count: 0 } : [], { status: 200 });
 
     const cookieStore = await cookies();
     const role = (cookieStore.get("role")?.value ?? "").toLowerCase();
@@ -62,15 +64,23 @@ export async function GET(req: Request) {
         })) || undefined;
     }
     if (!companyId) {
-      return NextResponse.json([], { status: 200 });
+      return empty();
     }
 
     // 1. Active users in this company only (skip inactive — no point chasing left company).
-    const userQuery = supabaseAdmin
-      .from("users")
-      .select("id, email, display_name, role, company_id, status")
-      .eq("company_id", companyId);
-    const { data: allUsersRaw, error: usersErr } = await userQuery;
+    // Selected site (query or the top-bar site) — only workers assigned there.
+    const siteAssignedPromise = dashboardSiteScope(role, siteId).then(async (scope) => {
+      if (scope === "none" || scope === "all") return scope;
+      const { data } = await supabaseAdmin.from("assigned_operatives").select("user_id").in("site_id", scope);
+      return new Set((data ?? []).map((r) => String((r as { user_id: string }).user_id)));
+    });
+    const [{ data: allUsersRaw, error: usersErr }, siteAssigned] = await Promise.all([
+      supabaseAdmin
+        .from("users")
+        .select("id, email, display_name, role, company_id, status")
+        .eq("company_id", companyId),
+      siteAssignedPromise,
+    ]);
     if (usersErr) throw new Error(`users query: ${usersErr.message}`);
 
     const allUsers = (allUsersRaw ?? []).filter((u) => {
@@ -82,20 +92,13 @@ export async function GET(req: Request) {
 
     let userIds = (allUsers ?? []).map((u) => String(u.id));
     if (userIds.length === 0) {
-      return NextResponse.json([], { status: 200 });
+      return empty();
     }
 
-    // Selected site (query or the top-bar site) — only workers assigned there.
-    const siteScope = await dashboardSiteScope(role, siteId);
-    if (siteScope === "none") return NextResponse.json([], { status: 200 });
-    if (siteScope !== "all") {
-      const { data: siteAssignments } = await supabaseAdmin
-        .from("assigned_operatives")
-        .select("user_id")
-        .in("site_id", siteScope);
-      const assignedIds = new Set((siteAssignments ?? []).map((r) => String((r as { user_id: string }).user_id)));
-      userIds = userIds.filter((id) => assignedIds.has(id));
-      if (userIds.length === 0) return NextResponse.json([], { status: 200 });
+    if (siteAssigned === "none") return empty();
+    if (siteAssigned !== "all") {
+      userIds = userIds.filter((id) => siteAssigned.has(id));
+      if (userIds.length === 0) return empty();
     }
 
     // 2. Fetch emergency contact from user_profile_data and pre_induction_personal (legacy)
@@ -163,7 +166,8 @@ export async function GET(req: Request) {
 
     // 3. Assemble rows and filter to only those with at least one missing piece.
     const rows: Row[] = [];
-    const filteredUsers = allUsers!.filter((u) => userIds.includes(String(u.id)));
+    const inScope = new Set(userIds);
+    const filteredUsers = allUsers.filter((u) => inScope.has(String(u.id)));
     for (const u of filteredUsers) {
       const uid = String(u.id);
       const profile = profileByUser.get(uid);
@@ -188,7 +192,8 @@ export async function GET(req: Request) {
       }
     }
 
-    // 4. CSV or JSON.
+    // 4. Count, CSV or JSON.
+    if (countOnly) return NextResponse.json({ count: rows.length });
     if (format === "csv") {
       const header = ["userId", "name", "email", "role", "missingEmergencyContact", "missingMedicalInfo"];
       const body = rows.map((r) =>

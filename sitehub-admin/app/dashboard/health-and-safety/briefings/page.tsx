@@ -19,8 +19,7 @@ export default async function BriefingsPage() {
     return <SuperuserCompanyGate title="Briefings" description="Select a company to manage briefings." />;
   }
 
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  const briefings = await fetchBriefings(companyId ?? undefined, cookieHeader);
+  const briefings = await fetchBriefings(companyId ?? undefined);
 
   const roleLower = role?.toLowerCase() ?? "";
   const canViewAcknowledgements =

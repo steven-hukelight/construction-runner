@@ -4,6 +4,7 @@ import { useEffect, useState, type ReactNode } from "react";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { Clock, LogIn } from "lucide-react";
 import useSWR from "swr";
+import { useProfileMe } from "@/lib/hooks/useDashboardData";
 
 type WelcomeBannerProps = {
   subtitle?: string;
@@ -14,17 +15,8 @@ type WelcomeBannerProps = {
 };
 
 export default function WelcomeBanner({ subtitle, showSiteAttendance = false, actions }: WelcomeBannerProps) {
-  const { data: userName, isValidating } = useSWR(
-    "/api/profiles/me",
-    async (url) => {
-      const res = await fetch(url, { credentials: "include" });
-      if (!res.ok) return "";
-      const arr = (await res.json()) as Array<{ name?: string; displayName?: string }> | { name?: string; displayName?: string };
-      const me = Array.isArray(arr) ? arr[0] : arr;
-      return (me?.name ?? me?.displayName ?? "").trim();
-    },
-    { revalidateOnFocus: false, dedupingInterval: 60_000 },
-  );
+  const { data: profile, isValidating } = useProfileMe();
+  const userName = profile === undefined ? undefined : (profile?.name ?? profile?.displayName ?? "").trim();
   const { data: attendanceStatus } = useSWR(
     showSiteAttendance ? "/api/me/attendance-status" : null,
     async (url) => {

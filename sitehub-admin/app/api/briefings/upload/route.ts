@@ -7,11 +7,15 @@ import { sendPushToUsers } from "@/lib/onesignal";
 import { assertWritableSiteId } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
+import { claimStagedUpload } from "@/lib/storage/stagedUpload";
 
 export async function POST(req: Request) {
   const form = await req.formData();
-  const file = form.get("file") as File;
-  const title = (form.get("title") as string) || (file?.name ?? "Untitled");
+  const fileEntry = form.get("file");
+  const file = fileEntry instanceof Blob && fileEntry.size > 0 ? (fileEntry as File) : null;
+  const stagedToken = ((form.get("stagedToken") as string) ?? "").trim();
+  const fileName = file?.name || ((form.get("fileName") as string) ?? "").trim() || "briefing";
+  const title = (form.get("title") as string) || fileName;
   const body = (form.get("body") as string) || "";
   const siteId = (form.get("siteId") as string) || "";
 
@@ -28,21 +32,25 @@ export async function POST(req: Request) {
   const email = cookieStore.get("user_email")?.value;
 
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
-  if (!file) return NextResponse.json({ error: "File required" }, { status: 400 });
+  if (!file && !stagedToken) return NextResponse.json({ error: "File required" }, { status: 400 });
   const siteForbid = await assertWritableSiteId(cookieStore.get("role")?.value, siteId);
   if (siteForbid) return siteForbid;
 
-  const path = `briefings/${siteId.trim()}/${Date.now()}-${file.name}`;
-  const { data: uploadData, error: uploadError } = await supabaseAdmin.storage
-    .from("briefings")
-    .upload(path, file, { contentType: file.type, upsert: true });
-
-  if (uploadError) {
-    console.error("Briefing upload failed:", uploadError);
-    return NextResponse.json({ error: uploadError.message }, { status: 500 });
+  const path = `briefings/${siteId.trim()}/${Date.now()}-${fileName}`;
+  if (file) {
+    const { error: uploadError } = await supabaseAdmin.storage
+      .from("briefings")
+      .upload(path, file, { contentType: file.type, upsert: true });
+    if (uploadError) {
+      console.error("Briefing upload failed:", uploadError);
+      return NextResponse.json({ error: uploadError.message }, { status: 500 });
+    }
+  } else {
+    const claimed = await claimStagedUpload("briefing", stagedToken, path);
+    if ("error" in claimed) return NextResponse.json({ error: claimed.error }, { status: 400 });
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from("briefings").getPublicUrl(uploadData.path);
+  const { data: urlData } = supabaseAdmin.storage.from("briefings").getPublicUrl(path);
   const fileUrl = urlData.publicUrl;
 
   const { data: users } = email ? await supabaseAdmin.from("users").select("id").eq("email", email).limit(1) : { data: [] };
@@ -51,7 +59,7 @@ export async function POST(req: Request) {
   const siteWide =
     String(form.get("siteWide") ?? "").toLowerCase() === "true" && canPublishSiteWide(cookieStore.get("role")?.value);
   const { data: briefing, error: insertError } = await supabaseAdmin.from("briefings").insert({
-    title: title.trim() || file.name,
+    title: title.trim() || fileName,
     body: body.trim() || null,
     file_url: fileUrl,
     company_id: companyId,
@@ -71,7 +79,7 @@ export async function POST(req: Request) {
     timestamp: new Date(),
     actorId: actorId ?? "unknown",
     actorEmail: email ?? null,
-    metadata: { briefingId: briefing?.id, title: title || file.name },
+    metadata: { briefingId: briefing?.id, title: title || fileName },
   });
 
   const userIds = siteWide
@@ -86,7 +94,7 @@ export async function POST(req: Request) {
       // Await so Vercel does not freeze the function before OneSignal is called.
       const result = await sendPushToUsers(
         userIds,
-        `New Briefing: ${title.trim() || file.name}`,
+        `New Briefing: ${title.trim() || fileName}`,
         "New toolbox talk / briefing added",
         {
           type: "briefing",

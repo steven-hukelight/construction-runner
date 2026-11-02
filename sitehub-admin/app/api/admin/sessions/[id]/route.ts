@@ -5,6 +5,7 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { listActiveSessions, revokeSession } from "@/lib/sessions";
+import { forgetVerifiedSession } from "@/lib/auth/apiAuth";
 
 export async function DELETE(
   _req: Request,
@@ -33,5 +34,6 @@ export async function DELETE(
   if (!ok) {
     return NextResponse.json({ error: "Failed to revoke session" }, { status: 500 });
   }
+  forgetVerifiedSession(sessionId);
   return NextResponse.json({ success: true });
 }

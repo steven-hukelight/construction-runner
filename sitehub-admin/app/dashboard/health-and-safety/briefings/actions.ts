@@ -1,19 +1,9 @@
 "use server";
 
-import { getServerRequestBaseUrl } from "@/lib/serverRequestBaseUrl";
+import { callRouteList } from "@/lib/server/callRoute";
+import { GET as getBriefings } from "@/app/api/briefings/route";
 
-export async function fetchBriefings(companyId?: string, cookieHeader?: string) {
-  try {
-    const base = await getServerRequestBaseUrl();
-    let url = `${base}/api/briefings`;
-    if (companyId) url += `?companyId=${encodeURIComponent(companyId)}`;
-    const headers: HeadersInit = {};
-    if (cookieHeader) headers.Cookie = cookieHeader;
-    const res = await fetch(url, { cache: "no-store", headers });
-    if (!res.ok) return [];
-    return res.json();
-  } catch (e) {
-    console.error("fetchBriefings:", e);
-    return [];
-  }
+export async function fetchBriefings(companyId?: string) {
+  const path = companyId ? `/api/briefings?companyId=${encodeURIComponent(companyId)}` : "/api/briefings";
+  return callRouteList(getBriefings, path);
 }

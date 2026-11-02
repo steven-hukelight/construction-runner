@@ -10,6 +10,7 @@ import RoleBadge from "../components/RoleBadge";
 import { updateUserRole, deleteUser } from "./actions";
 import { supabase } from "@/supabase/auth/client";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useCompanies, useMe } from "@/lib/hooks/useDashboardData";
 import { canAssignSuperAdminRole, isCompanySuperAdmin, roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
 import { rolePrivilege, roleStyleKey } from "@/lib/ui/roleStyles";
 
@@ -48,51 +49,32 @@ type MeResponse = {
 
 export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
-  const [usersLoading, setUsersLoading] = useState(true);
+  const [usersLoading, setUsersLoading] = useState(data === undefined);
+  const hasServerRows = useRef(data !== undefined);
   const [usersError, setUsersError] = useState(false);
   const reloadUsersRef = useRef<(() => void) | null>(null);
   const [roleFilter, setRoleFilter] = useState("all");
   const [roleSort, setRoleSort] = useState<"high" | "low" | null>(null);
-  const [companyMap, setCompanyMap] = useState<Record<string, string>>({});
   const [assignSitesFor, setAssignSitesFor] = useState<UserRow | null>(null);
   const [companySites, setCompanySites] = useState<{ id: string; name: string }[]>([]);
   const [selectedSiteIds, setSelectedSiteIds] = useState<string[]>([]);
   const [savingSites, setSavingSites] = useState(false);
-  const [currentCompanyName, setCurrentCompanyName] = useState<string | null>(null);
-  const [currentCompanyId, setCurrentCompanyId] = useState<string | null>(null);
+  const { data: companies } = useCompanies();
+  const companyMap = useMemo(() => {
+    const map: Record<string, string> = {};
+    for (const c of companies ?? []) if (c.id && c.name) map[c.id] = c.name;
+    return map;
+  }, [companies]);
 
-  useEffect(() => {
-    fetch("/api/companies")
-      .then((res) => res.json())
-      .then((companies) => {
-        if (Array.isArray(companies)) {
-          const map: Record<string, string> = {};
-          companies.forEach((c: { id?: string; name?: string }) => {
-            if (c.id && c.name) map[c.id] = c.name;
-          });
-          setCompanyMap(map);
-        }
-      })
-      .catch(() => setCompanyMap({}));
-  }, []);
-
-  const [currentUser, setCurrentUser] = useState<MeResponse | null>(null);
+  const { data: meData } = useMe();
+  const currentUser = (meData?.id ? meData : null) as MeResponse | null;
+  const currentCompanyName = meData?.companyName ?? null;
+  const currentCompanyId = meData?.company_id ?? meData?.companyId ?? null;
   const currentUserRef = useRef<MeResponse | null>(null);
 
   useEffect(() => {
     currentUserRef.current = currentUser;
   }, [currentUser]);
-
-  useEffect(() => {
-    fetch("/api/me")
-      .then((res) => (res.ok ? res.json() : {}))
-      .then((me: MeResponse) => {
-        if (me?.companyName) setCurrentCompanyName(me.companyName);
-        if (me?.company_id ?? me?.companyId) setCurrentCompanyId(me.company_id ?? me.companyId ?? null);
-        if (me?.id) setCurrentUser(me);
-      })
-      .catch(() => {});
-  }, []);
 
   const mergeCurrentUser = useCallback((incomingRows: UserRow[]) => {
     const me = currentUserRef.current;
@@ -121,8 +103,8 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
     let cancelled = false;
     const companyId = getCompanyIdFromClient();
 
-    const run = async () => {
-      setUsersLoading(true);
+    const run = async (background = false) => {
+      if (!background) setUsersLoading(true);
       setUsersError(false);
       const fetchFromApi = async () => {
         const res = await fetch("/api/users", { cache: "no-store", credentials: "include" });
@@ -163,7 +145,7 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
     reloadUsersRef.current = () => {
       void run();
     };
-    void run();
+    if (!hasServerRows.current) void run();
 
     if (!companyId) {
       return () => {
@@ -171,19 +153,41 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
       };
     }
 
+    let reloadTimer: ReturnType<typeof setTimeout> | null = null;
+    const scheduleReload = () => {
+      if (reloadTimer) clearTimeout(reloadTimer);
+      reloadTimer = setTimeout(() => void run(true), 500);
+    };
+
     const channel = supabase
       .channel("users-table")
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "users", filter: `company_id=eq.${companyId}` },
-        () => {
-          void run();
+        (payload) => {
+          const next = payload.new as UserRow | undefined;
+          const old = payload.old as UserRow | undefined;
+          if (payload.eventType === "DELETE" && old?.id) {
+            setRows((prev) => prev.filter((r) => r.id !== old.id));
+          } else if (next?.id) {
+            const row = { ...next, name: next.name ?? next.display_name ?? next.email ?? "" };
+            setRows((prev) => {
+              const i = prev.findIndex((r) => r.id === row.id);
+              if (i === -1) return [row, ...prev];
+              const copy = [...prev];
+              copy[i] = { ...copy[i], ...row };
+              return copy;
+            });
+          } else {
+            scheduleReload();
+          }
         }
       )
       .subscribe();
 
     return () => {
       cancelled = true;
+      if (reloadTimer) clearTimeout(reloadTimer);
       void supabase.removeChannel(channel);
     };
   }, [mergeCurrentUser]);

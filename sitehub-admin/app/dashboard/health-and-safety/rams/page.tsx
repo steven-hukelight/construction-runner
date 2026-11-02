@@ -25,8 +25,7 @@ export default async function RAMSPage() {
         role,
       })) || undefined;
   }
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  const rams = await fetchRAMS(companyId ?? undefined, cookieHeader);
+  const rams = await fetchRAMS(companyId ?? undefined);
   const roleLower = (role ?? "").toLowerCase();
   const canViewAcknowledgements =
     roleLower === "admin" || roleLower === "supervisor" || roleLower === "superuser";

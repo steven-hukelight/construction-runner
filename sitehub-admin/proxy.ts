@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import type { NextRequest } from "next/server";
 import { AUTH_COOKIE_NAMES, authCookieClearOptions } from "@/lib/authCookies";
 import { bearerTokenFrom, verifyApiCredentials } from "@/lib/auth/apiAuth";
+import { PROXY_IDENTITY_HEADER, signProxyIdentity } from "@/lib/auth/proxyIdentity";
 import {
   ATTENDANCE_ALERTS_DISPATCH_PATH,
   isAttendanceAlertsDispatchAuthorized,
@@ -42,22 +43,29 @@ function normalizeApiPath(path: string): string {
 
 async function guardApi(req: NextRequest): Promise<NextResponse> {
   const path = normalizeApiPath(req.nextUrl.pathname);
-  if (req.method === "OPTIONS" || PUBLIC_API_PATHS.has(path)) return NextResponse.next();
-  if (CRON_API_PATHS.has(path) && isAttendanceCronAuthorized(req)) return NextResponse.next();
-  if (path === ATTENDANCE_ALERTS_DISPATCH_PATH && isAttendanceAlertsDispatchAuthorized(req)) return NextResponse.next();
+  const headers = new Headers(req.headers);
+  headers.delete(PROXY_IDENTITY_HEADER);
+  const pass = () => NextResponse.next({ request: { headers } });
 
-  const outcome = await verifyApiCredentials({
+  if (req.method === "OPTIONS" || PUBLIC_API_PATHS.has(path)) return pass();
+  if (CRON_API_PATHS.has(path) && isAttendanceCronAuthorized(req)) return pass();
+  if (path === ATTENDANCE_ALERTS_DISPATCH_PATH && isAttendanceAlertsDispatchAuthorized(req)) return pass();
+
+  const creds = {
     sessionId: req.cookies.get("session_id")?.value ?? null,
     bearerToken: bearerTokenFrom(req.headers.get("authorization")),
     cookieUid: req.cookies.get("uid")?.value ?? null,
     cookieRole: req.cookies.get("role")?.value ?? null,
     cookieCompanyId: req.cookies.get("companyId")?.value ?? req.cookies.get("company_id")?.value ?? null,
     cookieEmail: req.cookies.get("user_email")?.value ?? null,
-  });
+  };
+  const outcome = await verifyApiCredentials(creds);
   if (!outcome.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
   }
-  return NextResponse.next();
+  const identity = signProxyIdentity(outcome.user, creds);
+  if (identity) headers.set(PROXY_IDENTITY_HEADER, identity);
+  return pass();
 }
 
 const DASHBOARD_ROLES = ["ADMIN", "admin", "SUPERVISOR", "supervisor", "superuser", "OPERATIVE", "operative", "sub_admin", "site_admin"];
@@ -76,10 +84,13 @@ const PUBLIC_PATHS = [
   "/forgot-password",
   "/contact",
   "/legal",
+  "/account-deletion",
 ];
 
+const STATIC_FILE = /\/[^/]+\.[a-z0-9]+$/i;
+
 function isPublicPath(path: string): boolean {
-  return PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
+  return STATIC_FILE.test(path) || PUBLIC_PATHS.some((p) => path === p || path.startsWith(p + "/"));
 }
 
 const ADMIN_LOGIN = "/admin/login";
@@ -127,6 +138,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|Logo.png|Logo_sitehub.png|login-bg-plexus.png|apple-icon.png|OneSignalSDKWorker.js|fonts/|marketing/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|Logo.png|login-bg-plexus.png|apple-icon.png|OneSignalSDKWorker.js|fonts/|marketing/).*)",
   ],
 };

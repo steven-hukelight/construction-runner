@@ -2,7 +2,6 @@
 
 import { useState } from "react";
 import Link from "next/link";
-import { motion } from "framer-motion";
 import { Mail } from "lucide-react";
 
 export default function ForgotPasswordPage() {
@@ -36,10 +35,8 @@ export default function ForgotPasswordPage() {
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-[#f3f7fb]">
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="bg-white rounded-xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-8 max-w-md w-full"
+      <div
+        className="fade-in-up bg-white rounded-xl border border-gray-200 shadow-[0_1px_2px_rgba(0,0,0,0.04)] p-8 max-w-md w-full"
       >
         <div className="text-center mb-6">
           <div className="w-16 h-16 mx-auto mb-4 rounded-xl bg-blue-600 flex items-center justify-center">
@@ -99,7 +96,7 @@ export default function ForgotPasswordPage() {
             </Link>
           </form>
         )}
-      </motion.div>
+      </div>
     </div>
   );
 }

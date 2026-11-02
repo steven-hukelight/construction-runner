@@ -1,4 +1,5 @@
 "use client";
+import { appendStagedFile } from "@/lib/client/stagedUpload";
 import toast from "react-hot-toast";
 
 import { useState, useEffect } from "react";
@@ -137,7 +138,12 @@ export default function SubcontractorSetupPage() {
       return;
     }
     const form = new FormData();
-    form.append("file", ramsFile);
+    try {
+      await appendStagedFile(form, "rams", ramsFile);
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Upload failed.");
+      return;
+    }
     form.append("siteId", ramsSiteId);
     form.append(
       "title",

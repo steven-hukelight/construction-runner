@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useClientSession } from "./ClientSessionProvider";
 import { SitePicker } from "./ui/SitePicker";
 import { getCurrentSiteIdFromCookie } from "@/lib/utils/cookies";
+import { useSites } from "@/lib/hooks/useDashboardData";
 
 const ALL = "";
 
@@ -18,25 +19,17 @@ function writeSiteCookie(siteId: string) {
 /** Picks the site used by deliveries, RAMS, briefings, assets and the other site lists. */
 export default function SiteSwitcher() {
   const { companyId, role } = useClientSession();
-  const [sites, setSites] = useState<{ id: string; name?: string | null }[]>([]);
-  const [selected, setSelected] = useState(ALL);
+  const { data: sitesData } = useSites(!!companyId);
+  const sites = sitesData ?? [];
+  const [selected, setSelected] = useState(() => getCurrentSiteIdFromCookie() ?? ALL);
 
   useEffect(() => {
-    if (!companyId) return;
-    const current = getCurrentSiteIdFromCookie() ?? ALL;
-    setSelected(current);
-    fetch("/api/sites", { credentials: "include", cache: "no-store" })
-      .then((res) => (res.ok ? res.json() : []))
-      .then((data) => {
-        const list = Array.isArray(data) ? data : [];
-        setSites(list);
-        if (current && !list.some((s: { id?: string }) => s.id === current)) {
-          writeSiteCookie("");
-          setSelected(ALL);
-        }
-      })
-      .catch(() => setSites([]));
-  }, [companyId]);
+    if (!sitesData || !selected) return;
+    if (!sitesData.some((s) => s.id === selected)) {
+      writeSiteCookie("");
+      queueMicrotask(() => setSelected(ALL));
+    }
+  }, [sitesData, selected]);
 
   if (!companyId || role?.toLowerCase() === "operative") return null;
   if (sites.length === 0) return null;

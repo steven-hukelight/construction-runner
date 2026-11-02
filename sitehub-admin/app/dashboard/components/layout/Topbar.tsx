@@ -1,6 +1,7 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect } from "react";
+import { useProfileMe } from "@/lib/hooks/useDashboardData";
 import LogoutButton from "../LogoutButton";
 import NotificationDropdown from "../NotificationDropdown";
 import FeedbackLink from "@/app/components/FeedbackLink";
@@ -36,27 +37,9 @@ export default function Topbar() {
     router.push("/dashboard/profile");
   }
 
-  const [profileInitials, setProfileInitials] = useState(() => getInitials(email || "U"));
-  useEffect(() => {
-    let cancelled = false;
-    if (email) setProfileInitials(getInitials(email));
-
-    fetch("/api/profiles/me", { cache: "no-store", credentials: "include" })
-      .then((res) => (res.ok ? res.json() : null))
-      .then((json) => {
-        if (cancelled || !json) return;
-        const me = Array.isArray(json) && json.length ? json[0] : json;
-        const label = String(me?.displayName || me?.name || me?.email || email || "").trim();
-        if (label) {
-          setProfileInitials(getInitials(label));
-        }
-      })
-      .catch(() => {});
-
-    return () => {
-      cancelled = true;
-    };
-  }, [email]);
+  const { data: profile } = useProfileMe();
+  const profileLabel = String(profile?.displayName || profile?.name || profile?.email || email || "").trim();
+  const profileInitials = getInitials(profileLabel || "U");
 
   // Clean cache-bust param from URL after company switch (keeps URL clean)
   useEffect(() => {

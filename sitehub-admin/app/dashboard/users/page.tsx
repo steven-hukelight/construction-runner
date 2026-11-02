@@ -2,7 +2,6 @@ import PageHeader from "../components/PageHeader";
 import UsersTable from "./UsersTable";
 import InviteUserModal from "./InviteUserModal";
 import { fetchUsers } from "./actions";
-import { fetchProfiles } from "./profileActions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
@@ -26,9 +25,7 @@ export default async function UsersPage() {
     return <SuperuserCompanyGate title="Users" description="Select a company to view and manage users." />;
   }
 
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
-  const users = await fetchUsers(companyId ?? undefined, role ?? undefined, cookieHeader);
-  const profiles = await fetchProfiles();
+  const users = await fetchUsers(companyId ?? undefined, role ?? undefined);
   const currentUserRole = cookieStore.get("role")?.value || "";
 
   return (
@@ -48,7 +45,6 @@ export default async function UsersPage() {
         
         <UsersTable
           data={deepSerializeForClient(users)}
-          profiles={deepSerializeForClient(profiles)}
           currentUserRole={currentUserRole}
         />
       </div>

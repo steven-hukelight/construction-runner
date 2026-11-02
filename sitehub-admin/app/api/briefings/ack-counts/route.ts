@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { latestReminderByDocument } from "@/lib/documentReminders";
+import { assignedActiveUsersBySite } from "@/lib/hsDocumentAudience";
 
 export const dynamic = "force-dynamic";
 
@@ -31,70 +32,37 @@ export async function GET(req: Request) {
       return NextResponse.json({ error: "Company required" }, { status: 400 });
     }
 
-    const { data: briefings } = await supabaseAdmin
+    const { data: briefings, error: briefingsErr } = await supabaseAdmin
       .from("briefings")
       .select("id, site_id")
       .eq("company_id", companyId);
-    const ids = (briefings ?? []).map((b) => b.id).filter(Boolean);
+    if (briefingsErr) throw briefingsErr;
+    const ids = (briefings ?? []).map((b) => String(b.id)).filter(Boolean);
     if (!ids.length) {
       return NextResponse.json({ counts: {}, totals: {}, outstanding: {}, lastReminded: {} });
     }
 
-    const { data: acks } = await supabaseAdmin.from("briefing_acknowledgements").select("briefing_id").in("briefing_id", ids);
+    const [{ data: ackRows, error: ackErr }, audience, lastReminded] = await Promise.all([
+      supabaseAdmin.rpc("briefing_ack_counts", { p_company_id: companyId }),
+      assignedActiveUsersBySite(companyId),
+      latestReminderByDocument("briefing", ids, companyId),
+    ]);
+    if (ackErr) throw ackErr;
 
     const counts: Record<string, number> = {};
     for (const id of ids) counts[id] = 0;
-    for (const a of acks ?? []) {
-      const bid = a.briefing_id as string;
-      if (bid) counts[bid] = (counts[bid] ?? 0) + 1;
+    for (const row of (ackRows ?? []) as { briefing_id: string; ack_count: number }[]) {
+      if (row.briefing_id in counts) counts[row.briefing_id] = Number(row.ack_count);
     }
 
-    const { data: companySites } = await supabaseAdmin.from("sites").select("id").eq("company_id", companyId);
-    const companySiteIds = (companySites ?? []).map((s) => String(s.id)).filter(Boolean);
     const totals: Record<string, number> = {};
-    for (const id of ids) totals[id] = 0;
-
-    if (companySiteIds.length > 0) {
-      const { data: assigned } = await supabaseAdmin
-        .from("assigned_operatives")
-        .select("user_id, site_id")
-        .in("site_id", companySiteIds);
-      const { data: companyUsers } = await supabaseAdmin
-        .from("users")
-        .select("id, status")
-        .eq("company_id", companyId);
-      const activeIds = new Set(
-        (companyUsers ?? [])
-          .filter((u) => {
-            const s = String((u as { status?: string }).status ?? "").toLowerCase();
-            return s !== "inactive" && s !== "disabled" && s !== "rejected";
-          })
-          .map((u) => String((u as { id: string }).id))
-      );
-      const bySite = new Map<string, Set<string>>();
-      const allAssigned = new Set<string>();
-      for (const row of assigned ?? []) {
-        const uid = String((row as { user_id?: string }).user_id ?? "");
-        const sid = String((row as { site_id?: string }).site_id ?? "");
-        if (!uid || !activeIds.has(uid) || !sid) continue;
-        allAssigned.add(uid);
-        const set = bySite.get(sid) ?? new Set<string>();
-        set.add(uid);
-        bySite.set(sid, set);
-      }
-      for (const briefing of briefings ?? []) {
-        const bid = String((briefing as { id?: string }).id ?? "");
-        if (!bid) continue;
-        const sid = String((briefing as { site_id?: string | null }).site_id ?? "").trim();
-        totals[bid] = sid ? (bySite.get(sid)?.size ?? 0) : allAssigned.size;
-      }
-    }
-
     const outstanding: Record<string, number> = {};
-    for (const id of ids) {
-      outstanding[id] = Math.max(0, (totals[id] ?? 0) - (counts[id] ?? 0));
+    for (const briefing of briefings ?? []) {
+      const bid = String(briefing.id);
+      const sid = String((briefing as { site_id?: string | null }).site_id ?? "").trim();
+      totals[bid] = sid ? (audience.bySite.get(sid)?.size ?? 0) : audience.all.size;
+      outstanding[bid] = Math.max(0, totals[bid] - (counts[bid] ?? 0));
     }
-    const lastReminded = await latestReminderByDocument("briefing", ids, companyId);
 
     return NextResponse.json({ counts, totals, outstanding, lastReminded });
   } catch (e) {

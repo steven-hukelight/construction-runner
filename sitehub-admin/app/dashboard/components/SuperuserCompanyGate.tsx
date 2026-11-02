@@ -1,6 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import { useCompanies } from "@/lib/hooks/useDashboardData";
 import { usePathname } from "next/navigation";
 import PageHeader from "./PageHeader";
 import Button from "./ui/Button";
@@ -14,17 +15,11 @@ export default function SuperuserCompanyGate({
   description: string;
 }) {
   const pathname = usePathname();
-  const [companies, setCompanies] = useState<{ id: string; name?: string | null }[]>([]);
+  const { data: companiesData } = useCompanies();
+  const companies = companiesData ?? [];
   const [selected, setSelected] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
-
-  useEffect(() => {
-    fetch("/api/companies", { credentials: "include" })
-      .then((res) => res.json())
-      .then((data) => setCompanies(Array.isArray(data) ? data : []))
-      .catch(() => setCompanies([]));
-  }, []);
 
   async function openCompany() {
     if (!selected.trim()) return;

@@ -1,4 +1,5 @@
 "use client";
+import { appendStagedFile } from "@/lib/client/stagedUpload";
 import toast from "react-hot-toast";
 
 import React, { useEffect, useState, useMemo, useCallback } from "react";
@@ -203,7 +204,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
     setUploading(true);
     try {
       const form = new FormData();
-      form.append("file", file);
+      await appendStagedFile(form, "asset-document", file);
       form.append("assetId", assetId);
       const res = await fetch("/api/assets/upload-document", { method: "POST", body: form });
       if (!res.ok) {

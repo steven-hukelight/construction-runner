@@ -10,6 +10,7 @@ import { assertWritableSiteId } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import { parseReviewDateInput } from "@/lib/ramsReviewDate";
+import { claimStagedUpload } from "@/lib/storage/stagedUpload";
 
 export const maxDuration = 120;
 
@@ -36,18 +37,15 @@ export async function POST(req: Request) {
   const titleRaw = ((form.get("title") as string) ?? "").trim();
   const descriptionRaw = ((form.get("description") as string) ?? "").trim();
   const siteWideRequested = String(form.get("siteWide") ?? "").toLowerCase() === "true";
+  const stagedToken = ((form.get("stagedToken") as string) ?? "").trim();
 
-  if (
-    !fileEntry ||
-    typeof fileEntry === "string" ||
-    !(fileEntry instanceof Blob) ||
-    fileEntry.size === 0
-  ) {
+  const hasFile = !!fileEntry && typeof fileEntry !== "string" && fileEntry instanceof Blob && fileEntry.size > 0;
+  if (!hasFile && !stagedToken) {
     return NextResponse.json({ error: "A non-empty PDF file is required" }, { status: 400 });
   }
 
-  const file = fileEntry as File;
-  if (file.size > RAMS_MAX_UPLOAD_BYTES) {
+  const file = hasFile ? (fileEntry as File) : null;
+  if (file && file.size > RAMS_MAX_UPLOAD_BYTES) {
     return NextResponse.json(
       { error: `File too large (max ${RAMS_MAX_UPLOAD_LABEL})` },
       { status: 400 }
@@ -88,20 +86,24 @@ export async function POST(req: Request) {
   const siteForbid = await assertWritableSiteId(role, sid);
   if (siteForbid) return siteForbid;
 
-  const bytes = await file.arrayBuffer();
-  const buffer = Buffer.from(bytes);
-  const safeName = sanitizeFileName(file.name || "rams.pdf");
+  const originalName = file?.name || ((form.get("fileName") as string) ?? "").trim() || "rams.pdf";
+  const safeName = sanitizeFileName(originalName);
   const path = sid ? `rams/${sid}/${Date.now()}-${safeName}` : `rams/${Date.now()}-${safeName}`;
 
-  const contentType =
-    file.type && file.type !== "application/octet-stream"
-      ? file.type
-      : "application/pdf";
-
-  const { error: uploadError } = await supabaseAdmin.storage.from("rams").upload(path, buffer, {
-    contentType,
-    upsert: true,
-  });
+  let uploadError: { message: string } | null = null;
+  if (file) {
+    const contentType =
+      file.type && file.type !== "application/octet-stream"
+        ? file.type
+        : "application/pdf";
+    ({ error: uploadError } = await supabaseAdmin.storage.from("rams").upload(path, Buffer.from(await file.arrayBuffer()), {
+      contentType,
+      upsert: true,
+    }));
+  } else {
+    const claimed = await claimStagedUpload("rams", stagedToken, path);
+    if ("error" in claimed) uploadError = { message: claimed.error };
+  }
   if (uploadError) {
     console.error("rams upload error:", uploadError);
     const aid = await actorIdForAudit(cookieStore, email);
@@ -115,7 +117,7 @@ export async function POST(req: Request) {
         stage: "storage",
         error: uploadError.message,
         siteId: sid || null,
-        fileName: file.name,
+        fileName: originalName,
         companyId: companyIdTrim,
       },
     });
@@ -183,7 +185,7 @@ export async function POST(req: Request) {
         stage: "database",
         error: error.message,
         siteId: sid || null,
-        fileName: file.name,
+        fileName: originalName,
         companyId: companyIdTrim,
       },
     });
@@ -197,7 +199,7 @@ export async function POST(req: Request) {
     timestamp: new Date(),
     actorId,
     actorEmail: email ?? null,
-    metadata: { ramsId: inserted?.id, siteId, fileName: file.name, companyId: companyIdTrim },
+    metadata: { ramsId: inserted?.id, siteId, fileName: originalName, companyId: companyIdTrim },
   });
 
   const pushSource = siteWide

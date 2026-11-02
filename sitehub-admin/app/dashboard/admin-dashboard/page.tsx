@@ -18,6 +18,34 @@ const headerButtonBase =
 const primaryHeaderButton = `${headerButtonBase} bg-blue-600 text-white hover:bg-blue-700`;
 const secondaryHeaderButton = `${headerButtonBase} border border-gray-200 bg-white text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200`;
 
+function isoOrNull(value: unknown): string | null {
+  if (value == null) return null;
+  if (typeof value === "string") return value;
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === "object" && typeof (value as { toDate?: () => Date }).toDate === "function") {
+    try {
+      return (value as { toDate: () => Date }).toDate().toISOString();
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
+/** Only the fields the dashboard cards and charts read: id, created date and the given extras. */
+type SlimRow = { id: string; created_at: string | null; status?: string; role?: string };
+
+function slimRows(rows: unknown, extra: ("status" | "role")[] = []): SlimRow[] {
+  if (!Array.isArray(rows)) return [];
+  return rows
+    .filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
+    .map((row) => {
+      const out: SlimRow = { id: String(row.id ?? ""), created_at: isoOrNull(row.created_at ?? row.createdAt) };
+      for (const key of extra) if (typeof row[key] === "string") out[key] = row[key] as string;
+      return out;
+    });
+}
+
 export default async function AdminDashboardPage() {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
@@ -32,64 +60,43 @@ export default async function AdminDashboardPage() {
     companyId = resolved || null;
   }
 
-  const cookieHeader = cookieStore.getAll().map((c) => `${c.name}=${c.value}`).join("; ");
 
-  const [allSites, rams, allUsers, tasks] = await Promise.all([
-    fetchSites(companyId ?? undefined, cookieHeader),
-    fetchRAMS(companyId ?? undefined, cookieHeader),
-    fetchUsers(companyId ?? undefined, role, cookieHeader),
-    fetchTasks(companyId ?? undefined, cookieHeader),
+  const selectedSiteId = cookieStore.get("currentSiteId")?.value?.trim();
+  const siteScope = selectedSiteId
+    ? (async () => {
+        const scope = await dashboardSiteScope(role, selectedSiteId, cookieStore.get("uid")?.value);
+        const siteIds = Array.isArray(scope) ? scope : [];
+        const memberIds = new Set(
+          (await Promise.all(siteIds.map((id) => userIdsForSiteContent(companyId ?? "", id)))).flat()
+        );
+        return { siteIds, memberIds };
+      })()
+    : null;
+
+  const [allSites, rams, allUsers, tasks, scope] = await Promise.all([
+    fetchSites(companyId ?? undefined),
+    fetchRAMS(companyId ?? undefined),
+    fetchUsers(companyId ?? undefined, role),
+    fetchTasks(companyId ?? undefined),
+    siteScope,
   ]);
 
   let sites = allSites;
   let users = allUsers;
-  const selectedSiteId = cookieStore.get("currentSiteId")?.value?.trim();
-  if (selectedSiteId) {
-    const scope = await dashboardSiteScope(role, selectedSiteId, cookieStore.get("uid")?.value);
-    const siteIds = Array.isArray(scope) ? scope : [];
-    const memberIds = new Set(
-      (await Promise.all(siteIds.map((id) => userIdsForSiteContent(companyId ?? "", id)))).flat()
-    );
-    sites = (allSites ?? []).filter((s: { id?: unknown }) => siteIds.includes(String(s?.id ?? "")));
-    users = (Array.isArray(allUsers) ? allUsers : []).filter((u: { id?: unknown }) =>
-      memberIds.has(String(u?.id ?? ""))
-    );
+  if (scope) {
+    sites = allSites.filter((s: { id?: unknown }) => scope.siteIds.includes(String(s?.id ?? "")));
+    users = allUsers.filter((u: { id?: unknown }) => scope.memberIds.has(String(u?.id ?? "")));
   }
 
-  const totalSites = sites?.length || 0;
-  const activeRAMS = (rams || []).filter((r) => r?.status === "APPROVED").length || 0;
-  const totalUsers = users?.length || 0;
-  const totalTasks = tasks?.length || 0;
+  const totalSites = sites.length;
+  const activeRAMS = rams.filter((r) => r?.status === "APPROVED").length;
+  const totalUsers = users.length;
+  const totalTasks = tasks.length;
 
-  const serializeData = (data: unknown) => {
-    if (!Array.isArray(data)) return [];
-    return data.map((item) => {
-      if (!item) return item;
-      const serialized = { ...item } as Record<string, unknown>;
-
-      const fix = (field: string) => {
-        const val = serialized[field];
-        if (val && typeof val === "object" && typeof (val as { toDate?: () => Date }).toDate === "function") {
-          try {
-            serialized[field] = (val as { toDate: () => Date }).toDate().toISOString();
-          } catch {
-            serialized[field] = null;
-          }
-        }
-      };
-
-      fix("createdAt");
-      fix("updatedAt");
-      fix("dueDate");
-
-      return serialized;
-    });
-  };
-
-  const serializedSites = serializeData(sites);
-  const serializedRAMS = serializeData(rams);
-  const serializedUsers = serializeData(users);
-  const serializedTasks = serializeData(tasks);
+  const serializedSites = slimRows(sites);
+  const serializedRAMS = slimRows(rams, ["status"]);
+  const serializedUsers = slimRows(users, ["role"]);
+  const serializedTasks = slimRows(tasks, ["status"]);
 
   return (
     <div className="space-y-8 pb-12">
