@@ -32,10 +32,18 @@ function isoOrNull(value: unknown): string | null {
   return null;
 }
 
-/** Only the fields the dashboard cards and charts read: id, created date and the given extras. */
-type SlimRow = { id: string; created_at: string | null; status?: string; role?: string };
+/** Only the fields the dashboard cards, charts and activity feed read: id, created date and the given extras. */
+type SlimRow = {
+  id: string;
+  created_at: string | null;
+  status?: string;
+  role?: string;
+  name?: string;
+  title?: string;
+  display_name?: string;
+};
 
-function slimRows(rows: unknown, extra: ("status" | "role")[] = []): SlimRow[] {
+function slimRows(rows: unknown, extra: ("status" | "role" | "name" | "title" | "display_name")[] = []): SlimRow[] {
   if (!Array.isArray(rows)) return [];
   return rows
     .filter((row): row is Record<string, unknown> => !!row && typeof row === "object")
@@ -93,9 +101,9 @@ export default async function AdminDashboardPage() {
   const totalUsers = users.length;
   const totalTasks = tasks.length;
 
-  const serializedSites = slimRows(sites);
-  const serializedRAMS = slimRows(rams, ["status"]);
-  const serializedUsers = slimRows(users, ["role"]);
+  const serializedSites = slimRows(sites, ["name"]);
+  const serializedRAMS = slimRows(rams, ["status", "title"]);
+  const serializedUsers = slimRows(users, ["role", "name", "display_name"]);
   const serializedTasks = slimRows(tasks, ["status"]);
 
   return (

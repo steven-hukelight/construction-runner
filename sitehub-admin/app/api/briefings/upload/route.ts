@@ -36,7 +36,7 @@ export async function POST(req: Request) {
   const siteForbid = await assertWritableSiteId(cookieStore.get("role")?.value, siteId);
   if (siteForbid) return siteForbid;
 
-  const path = `briefings/${siteId.trim()}/${Date.now()}-${fileName}`;
+  const path = `briefings/${siteId.trim()}/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
   if (file) {
     const { error: uploadError } = await supabaseAdmin.storage
       .from("briefings")

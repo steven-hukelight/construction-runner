@@ -41,6 +41,17 @@ function normalizeApiPath(path: string): string {
   return path.length > 1 && path.endsWith("/") ? path.slice(0, -1) : path;
 }
 
+function credentialsFrom(req: NextRequest) {
+  return {
+    sessionId: req.cookies.get("session_id")?.value ?? null,
+    bearerToken: bearerTokenFrom(req.headers.get("authorization")),
+    cookieUid: req.cookies.get("uid")?.value ?? null,
+    cookieRole: req.cookies.get("role")?.value ?? null,
+    cookieCompanyId: req.cookies.get("companyId")?.value ?? req.cookies.get("company_id")?.value ?? null,
+    cookieEmail: req.cookies.get("user_email")?.value ?? null,
+  };
+}
+
 async function guardApi(req: NextRequest): Promise<NextResponse> {
   const path = normalizeApiPath(req.nextUrl.pathname);
   const headers = new Headers(req.headers);
@@ -51,14 +62,7 @@ async function guardApi(req: NextRequest): Promise<NextResponse> {
   if (CRON_API_PATHS.has(path) && isAttendanceCronAuthorized(req)) return pass();
   if (path === ATTENDANCE_ALERTS_DISPATCH_PATH && isAttendanceAlertsDispatchAuthorized(req)) return pass();
 
-  const creds = {
-    sessionId: req.cookies.get("session_id")?.value ?? null,
-    bearerToken: bearerTokenFrom(req.headers.get("authorization")),
-    cookieUid: req.cookies.get("uid")?.value ?? null,
-    cookieRole: req.cookies.get("role")?.value ?? null,
-    cookieCompanyId: req.cookies.get("companyId")?.value ?? req.cookies.get("company_id")?.value ?? null,
-    cookieEmail: req.cookies.get("user_email")?.value ?? null,
-  };
+  const creds = credentialsFrom(req);
   const outcome = await verifyApiCredentials(creds);
   if (!outcome.ok) {
     return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
@@ -121,6 +125,17 @@ export async function proxy(req: NextRequest) {
   // If role cookie is missing or empty, treat as unauthenticated
   if (!role) {
     return NextResponse.redirect(new URL(ADMIN_LOGIN, req.url));
+  }
+
+  // Pages and server actions read role/companyId cookies directly, so they must match the session's user.
+  const outcome = await verifyApiCredentials({ ...credentialsFrom(req), bearerToken: null });
+  if (!outcome.ok) {
+    const timedOut = outcome.reason === "invalid_credentials";
+    const res = NextResponse.redirect(new URL(timedOut ? `${ADMIN_LOGIN}?timeout=1` : ADMIN_LOGIN, req.url));
+    for (const name of AUTH_COOKIE_NAMES) {
+      res.cookies.set(name, "", authCookieClearOptions());
+    }
+    return res;
   }
 
   // Protect /dashboard: allow ADMIN and superuser
