@@ -31,6 +31,12 @@ import { getRestrictedSiteIds } from "@/lib/auth/siteScope";
 import { canViewTeamAttendance } from "@/lib/auth/roles";
 import { userHasValidSiteInduction } from "@/lib/induction/listInductedSites";
 import { userIsAssignedToSite } from "@/lib/induction/listAssignedSites";
+import {
+  appendOfflineRecordedNote,
+  isOfflineRecordedBody,
+  resolveOfflineOccurredAt,
+} from "@/lib/attendance/offlineOccurredAt";
+import { companyAutoSignOutEnabled } from "@/lib/attendance/autoSignOutEnabled";
 
 export const dynamic = "force-dynamic";
 
@@ -867,6 +873,21 @@ export async function POST(req: Request) {
 
     const storedAction = isSignIn ? "SIGN IN" : "SIGN OUT";
     const autoSignOut = body.auto_sign_out === true || body.autoSignOut === true;
+    if (
+      isSignOut &&
+      autoSignOut &&
+      !(await companyAutoSignOutEnabled(
+        assignedCompanyId != null ? String(assignedCompanyId) : null
+      ))
+    ) {
+      return NextResponse.json(
+        {
+          error: "auto_sign_out_disabled",
+          message: "Sign out in the app while you are inside the site.",
+        },
+        { status: 409 }
+      );
+    }
     if (isSignOut && autoSignOut) {
       logAutoSignOutApiContext(
         "POST /api/attendance [client_auto_sign_out_insert]",
@@ -902,7 +923,48 @@ export async function POST(req: Request) {
     const lng = body.longitude ?? body.lng ?? body.lon;
     const acc = body.accuracy;
 
-    const nowIso = new Date().toISOString();
+    // Queued sign-outs replay with the time they happened on the phone.
+    // A newer open sign-in is left alone so a late upload cannot close it.
+    let occurredAtIso: string | null = null;
+    if (isOfflineRecordedBody(body) && isSignOut) {
+      const resolved = resolveOfflineOccurredAt(
+        body.occurredAt ?? body.occurred_at ?? body.timestamp
+      );
+      if (!resolved.ok) {
+        return NextResponse.json(
+          { error: "invalid_occurred_at", message: resolved.error },
+          { status: 400 }
+        );
+      }
+      if (!lastIsSignIn) {
+        return NextResponse.json(
+          { error: "already_signed_out", message: "Cannot sign out when not signed in." },
+          { status: 409 }
+        );
+      }
+      const sessionStartRaw = (lastRow as { timestamp?: string | null } | null)?.timestamp;
+      const sessionStart = sessionStartRaw ? new Date(sessionStartRaw) : null;
+      if (
+        sessionStart &&
+        !Number.isNaN(sessionStart.getTime()) &&
+        sessionStart.getTime() > new Date(resolved.iso).getTime()
+      ) {
+        return NextResponse.json(
+          {
+            error: "stale_offline_sign_out",
+            message: "A newer sign-in is already open, so this offline sign-out was dropped.",
+          },
+          { status: 409 }
+        );
+      }
+      occurredAtIso = resolved.iso;
+      notesStr = appendOfflineRecordedNote(
+        notesStr,
+        body.clientEventId ?? body.client_event_id
+      );
+    }
+
+    const nowIso = occurredAtIso ?? new Date().toISOString();
     const insertPayload: Record<string, unknown> = {
       id: randomUUID(),
       user_id: operativeId,

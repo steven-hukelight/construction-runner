@@ -7,6 +7,7 @@ import { compareAttendanceNewestFirst } from "@/lib/attendanceRowOrdering";
 import { fetchLatestAttendanceRowForUser } from "@/lib/attendanceLatestRow";
 import { resolveAttendanceStatusRow } from "@/lib/attendanceStatusRow";
 import { dispatchPendingAttendancePushNotifications } from "@/lib/dispatchAttendancePushQueue";
+import { companyAutoSignOutEnabled } from "@/lib/attendance/autoSignOutEnabled";
 
 export const dynamic = "force-dynamic";
 
@@ -68,6 +69,7 @@ export async function GET(req: Request) {
     exitTimeMillis: undefined as number | undefined,
     signOutTime: undefined as string | undefined,
     autoSignOutReason: undefined as string | undefined,
+    autoSignOutEnabled: false,
   };
 
   try {
@@ -116,6 +118,7 @@ export async function GET(req: Request) {
       companyIdForScope =
         (mobileAuth.companyId && String(mobileAuth.companyId).trim()) || dbCompanyStr || cookieCompanyId || undefined;
     }
+    const autoSignOutEnabled = await companyAutoSignOutEnabled(companyIdForScope);
 
     const selectCols =
       "id, action, site_id, company_id, timestamp, created_at, notes, auto_sign_out, auto_sign_out_reason, exit_time, exit_time_millis, sign_out_time";
@@ -197,6 +200,7 @@ export async function GET(req: Request) {
         ...empty,
         absentToday,
         signInOutLocked: absentToday,
+        autoSignOutEnabled,
       });
     }
     const lastNorm = normalizeAction(last.action);
@@ -246,6 +250,7 @@ export async function GET(req: Request) {
       exitTimeMillis,
       signOutTime,
       autoSignOutReason,
+      autoSignOutEnabled,
     });
   } catch (e) {
     console.error("GET /api/me/attendance-status failed:", e);

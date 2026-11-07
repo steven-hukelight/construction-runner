@@ -11,6 +11,7 @@ import {
   decideImmediateGeofenceExit,
   parseCoord,
 } from "@/lib/attendanceImmediateGeofence";
+import { companyAutoSignOutEnabled } from "@/lib/attendance/autoSignOutEnabled";
 
 export const dynamic = "force-dynamic";
 
@@ -45,7 +46,7 @@ export async function POST(req: Request) {
     const { data: row, error: fetchErr } = await supabaseAdmin
       .from("attendance")
       .select(
-        "id, user_id, action, timestamp, created_at, latitude, longitude, last_location_lat, last_location_lng, last_location_accuracy, last_location_outside_fence"
+        "id, user_id, company_id, action, timestamp, created_at, latitude, longitude, last_location_lat, last_location_lng, last_location_accuracy, last_location_outside_fence"
       )
       .eq("id", String(attendanceId))
       .maybeSingle();
@@ -206,7 +207,10 @@ export async function POST(req: Request) {
             outsideClearanceMeters: r.outsideClearanceMeters ?? r.outside_clearance_meters,
           });
         }
-        if (geofenceExitPing && outside && !skippedCoarsePing) {
+        const autoSignOutEnabled = await companyAutoSignOutEnabled(
+          (row as { company_id?: string | null }).company_id
+        );
+        if (autoSignOutEnabled && geofenceExitPing && outside && !skippedCoarsePing) {
           const decision = decideImmediateGeofenceExit({
             geofenceExitPing,
             geometryOutside: outside,
