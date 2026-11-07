@@ -20,10 +20,10 @@ function safeMetadataBase(): URL {
 export const metadata = {
   metadataBase: safeMetadataBase(),
   title: "Construction Runner",
-  description: "Attendance, induction and RAMS sign-off for construction sites.",
+  description: "Site operations and safety evidence for construction: attendance, induction, RAMS and briefings.",
   openGraph: {
     title: "Construction Runner",
-    description: "Attendance, induction and RAMS sign-off for construction sites.",
+    description: "Site operations and safety evidence for construction: attendance, induction, RAMS and briefings.",
     images: ['/Logo.png'],
   },
   other: {

@@ -29,8 +29,8 @@ const FEATURES = [
   },
   {
     icon: ClipboardCheck,
-    title: "RAMS and sign-off",
-    body: "Issue the method statement, collect digital acknowledgement, and keep the audit trail with the job.",
+    title: "Evidence, not just sign-off",
+    body: "Issue RAMS and briefings, record who acknowledged them and when, and keep that record with the job for clients and audits.",
   },
 ];
 
@@ -116,11 +116,11 @@ export default function LandingPage() {
           <div className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:p-8">
             <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl">
               Know who is on site.
-              <span className="mt-1 block text-blue-800">Know they are signed off.</span>
+              <span className="mt-1 block text-blue-800">Prove they were briefed.</span>
             </h1>
             <p className="mt-5 max-w-xl text-base leading-relaxed text-slate-600 sm:text-lg">
-              Construction Runner is built for live construction jobs: attendance, induction, RAMS,
-              and the office view that keeps the day under control.
+              Construction Runner runs the day on live construction jobs: attendance, induction, RAMS
+              and briefings, with a record of who was told what and when.
             </p>
             <div className="mt-8 flex flex-col gap-3 sm:flex-row sm:items-center">
               <button
