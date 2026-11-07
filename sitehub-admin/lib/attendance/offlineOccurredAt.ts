@@ -30,6 +30,14 @@ export function resolveOfflineOccurredAt(
   return { ok: true, iso: at.toISOString() };
 }
 
+/** True when the person's latest attendance record is newer than a replayed offline event. */
+export function lastEventIsNewerThan(occurredAtIso: string | null, lastEventTimestamp: string | null | undefined): boolean {
+  if (!occurredAtIso || !lastEventTimestamp) return false;
+  const last = new Date(lastEventTimestamp).getTime();
+  const occurred = new Date(occurredAtIso).getTime();
+  return Number.isFinite(last) && Number.isFinite(occurred) && last > occurred;
+}
+
 export function isOfflineRecordedBody(body: {
   offlineRecorded?: unknown;
   offline_recorded?: unknown;

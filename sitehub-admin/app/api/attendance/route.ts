@@ -34,6 +34,7 @@ import { userIsAssignedToSite } from "@/lib/induction/listAssignedSites";
 import {
   appendOfflineRecordedNote,
   isOfflineRecordedBody,
+  lastEventIsNewerThan,
   resolveOfflineOccurredAt,
 } from "@/lib/attendance/offlineOccurredAt";
 import { companyAutoSignOutEnabled } from "@/lib/attendance/autoSignOutEnabled";
@@ -690,6 +691,28 @@ export async function POST(req: Request) {
     const lastIsSignIn =
       lastNorm === "SIGN_IN" || lastNorm === "IN" || lastNorm === "SIGNIN" || lastNorm === "CHECKIN";
 
+    // Queued events replay with the time they happened on the phone. A queued sign-in older than
+    // the person's latest record is dropped: rows are ordered by insert, so it would wrongly reopen
+    // a session. A queued sign-out never closes a sign-in opened after it.
+    const offlineRecorded = isOfflineRecordedBody(body) && (isSignIn || isSignOut);
+    let occurredAtIso: string | null = null;
+    if (offlineRecorded) {
+      const resolved = resolveOfflineOccurredAt(
+        body.occurredAt ?? body.occurred_at ?? body.timestamp
+      );
+      if (!resolved.ok) {
+        return NextResponse.json(
+          { error: "invalid_occurred_at", message: resolved.error },
+          { status: 400 }
+        );
+      }
+      occurredAtIso = resolved.iso;
+    }
+    const lastEventIsNewer = lastEventIsNewerThan(
+      occurredAtIso,
+      (lastRow as { timestamp?: string | null } | null)?.timestamp,
+    );
+
     if (isSignIn) {
       if (lastIsSignIn) {
         return NextResponse.json(
@@ -697,10 +720,20 @@ export async function POST(req: Request) {
           { status: 409 }
         );
       }
+      if (offlineRecorded && lastEventIsNewer) {
+        return NextResponse.json(
+          {
+            error: "stale_offline_sign_in",
+            message: "A newer attendance record already exists, so this offline sign-in was dropped.",
+          },
+          { status: 409 }
+        );
+      }
 
       const lastFull = lastRow as Record<string, unknown> | null;
       const resumeExitAt = lastFull ? autoSignOutExitAt(lastFull) : null;
       if (
+        !offlineRecorded &&
         lastFull?.id &&
         shouldResumeAfterAutoSignOut({
           autoSignOut: lastFull.auto_sign_out === true,
@@ -923,32 +956,14 @@ export async function POST(req: Request) {
     const lng = body.longitude ?? body.lng ?? body.lon;
     const acc = body.accuracy;
 
-    // Queued sign-outs replay with the time they happened on the phone.
-    // A newer open sign-in is left alone so a late upload cannot close it.
-    let occurredAtIso: string | null = null;
-    if (isOfflineRecordedBody(body) && isSignOut) {
-      const resolved = resolveOfflineOccurredAt(
-        body.occurredAt ?? body.occurred_at ?? body.timestamp
-      );
-      if (!resolved.ok) {
-        return NextResponse.json(
-          { error: "invalid_occurred_at", message: resolved.error },
-          { status: 400 }
-        );
-      }
+    if (offlineRecorded && isSignOut) {
       if (!lastIsSignIn) {
         return NextResponse.json(
           { error: "already_signed_out", message: "Cannot sign out when not signed in." },
           { status: 409 }
         );
       }
-      const sessionStartRaw = (lastRow as { timestamp?: string | null } | null)?.timestamp;
-      const sessionStart = sessionStartRaw ? new Date(sessionStartRaw) : null;
-      if (
-        sessionStart &&
-        !Number.isNaN(sessionStart.getTime()) &&
-        sessionStart.getTime() > new Date(resolved.iso).getTime()
-      ) {
+      if (lastEventIsNewer) {
         return NextResponse.json(
           {
             error: "stale_offline_sign_out",
@@ -957,7 +972,8 @@ export async function POST(req: Request) {
           { status: 409 }
         );
       }
-      occurredAtIso = resolved.iso;
+    }
+    if (offlineRecorded) {
       notesStr = appendOfflineRecordedNote(
         notesStr,
         body.clientEventId ?? body.client_event_id

@@ -1,4 +1,5 @@
 import {
+  lastEventIsNewerThan,
   appendOfflineRecordedNote,
   resolveOfflineOccurredAt,
 } from "@/lib/attendance/offlineOccurredAt";
@@ -41,5 +42,22 @@ describe("appendOfflineRecordedNote", () => {
       offline_recorded: true,
       client_event_id: "11111111-2222-4333-8444-555555555555",
     });
+  });
+});
+
+describe("lastEventIsNewerThan", () => {
+  const signedInOffline = "2026-11-07T08:00:00.000Z";
+
+  it("drops an offline event when a later record already exists", () => {
+    expect(lastEventIsNewerThan(signedInOffline, "2026-11-07T09:30:00.000Z")).toBe(true);
+  });
+
+  it("keeps an offline event that is newer than the last record", () => {
+    expect(lastEventIsNewerThan(signedInOffline, "2026-11-06T17:00:00.000Z")).toBe(false);
+  });
+
+  it("keeps it when there is no previous record or no client time", () => {
+    expect(lastEventIsNewerThan(signedInOffline, null)).toBe(false);
+    expect(lastEventIsNewerThan(null, "2026-11-07T09:30:00.000Z")).toBe(false);
   });
 });
