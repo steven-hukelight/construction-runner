@@ -15,6 +15,7 @@ type Briefing = {
   body?: string;
   fileUrl?: string;
   file_url?: string;
+  video_url?: string | null;
   siteId?: string | null;
   site_id?: string | null;
 };
@@ -208,8 +209,17 @@ export default function BriefingDetailModal({
           </div>
         )}
 
-        {!briefing.body && !fileUrl && (
-          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">No description or document.</p>
+        {briefing.video_url && (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-slate-700 dark:text-slate-300 mb-2">Video</h4>
+            <a href={briefing.video_url} target="_blank" rel="noreferrer" className="text-sm text-blue-600 hover:underline">
+              Watch on the publisher&apos;s site
+            </a>
+          </div>
+        )}
+
+        {!briefing.body && !fileUrl && !briefing.video_url && (
+          <p className="text-sm text-slate-500 dark:text-slate-400 mb-6">No description, document or video.</p>
         )}
 
         {canViewAcknowledgements && companyId && (

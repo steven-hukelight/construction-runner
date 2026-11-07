@@ -17,6 +17,8 @@ export const STAGED_UPLOAD_KINDS = {
   briefing: { bucket: "briefings", maxBytes: DOCUMENT_MAX_BYTES },
   "site-rule": { bucket: "uploads", maxBytes: DOCUMENT_MAX_BYTES },
   "asset-document": { bucket: "assets", maxBytes: DOCUMENT_MAX_BYTES },
+  "training-video": { bucket: "training-videos", maxBytes: DOCUMENT_MAX_BYTES },
+  "training-document": { bucket: "training-documents", maxBytes: 20 * 1024 * 1024 },
 } as const;
 
 export type StagedUploadKind = keyof typeof STAGED_UPLOAD_KINDS;

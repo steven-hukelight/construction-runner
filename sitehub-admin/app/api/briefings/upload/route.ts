@@ -8,6 +8,7 @@ import { assertWritableSiteId } from "@/lib/auth/siteScope";
 import { canPublishSiteWide } from "@/lib/auth/roles";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import { claimStagedUpload } from "@/lib/storage/stagedUpload";
+import { isHttpsUrl } from "@/lib/utils/httpsUrl";
 
 export async function POST(req: Request) {
   const form = await req.formData();
@@ -18,6 +19,7 @@ export async function POST(req: Request) {
   const title = (form.get("title") as string) || fileName;
   const body = (form.get("body") as string) || "";
   const siteId = (form.get("siteId") as string) || "";
+  const videoUrl = ((form.get("videoUrl") as string) ?? "").trim();
 
   const cookieStore = await cookies();
   let companyId = cookieStore.get("companyId")?.value ?? null;
@@ -32,11 +34,15 @@ export async function POST(req: Request) {
   const email = cookieStore.get("user_email")?.value;
 
   if (!companyId) return NextResponse.json({ error: "Company required" }, { status: 400 });
-  if (!file && !stagedToken) return NextResponse.json({ error: "File required" }, { status: 400 });
+  if (videoUrl && !isHttpsUrl(videoUrl)) {
+    return NextResponse.json({ error: "The video link must start with https://" }, { status: 400 });
+  }
+  if (!file && !stagedToken && !videoUrl) return NextResponse.json({ error: "Add a PDF or a video link" }, { status: 400 });
   const siteForbid = await assertWritableSiteId(cookieStore.get("role")?.value, siteId);
   if (siteForbid) return siteForbid;
 
   const path = `briefings/${siteId.trim()}/${Date.now()}-${fileName.replace(/[^a-zA-Z0-9.-]/g, "_")}`;
+  const hasDocument = Boolean(file || stagedToken);
   if (file) {
     const { error: uploadError } = await supabaseAdmin.storage
       .from("briefings")
@@ -45,13 +51,12 @@ export async function POST(req: Request) {
       console.error("Briefing upload failed:", uploadError);
       return NextResponse.json({ error: uploadError.message }, { status: 500 });
     }
-  } else {
+  } else if (stagedToken) {
     const claimed = await claimStagedUpload("briefing", stagedToken, path);
     if ("error" in claimed) return NextResponse.json({ error: claimed.error }, { status: 400 });
   }
 
-  const { data: urlData } = supabaseAdmin.storage.from("briefings").getPublicUrl(path);
-  const fileUrl = urlData.publicUrl;
+  const fileUrl = hasDocument ? supabaseAdmin.storage.from("briefings").getPublicUrl(path).data.publicUrl : null;
 
   const { data: users } = email ? await supabaseAdmin.from("users").select("id").eq("email", email).limit(1) : { data: [] };
   const actorId = (users?.[0] as { id?: string })?.id ?? null;
@@ -62,6 +67,7 @@ export async function POST(req: Request) {
     title: title.trim() || fileName,
     body: body.trim() || null,
     file_url: fileUrl,
+    video_url: videoUrl || null,
     company_id: companyId,
     site_id: siteId.trim(),
     uploaded_by: actorId,

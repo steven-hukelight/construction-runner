@@ -9,6 +9,7 @@ import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
 const subTabs = [
   { name: "RAMS", href: "/dashboard/health-and-safety/rams", showNearMissCount: false },
   { name: "Briefings", href: "/dashboard/health-and-safety/briefings", showNearMissCount: false },
+  { name: "Training", href: "/dashboard/health-and-safety/training", showNearMissCount: false },
   { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", showNearMissCount: false },
   { name: "Site rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
   { name: "COSHH", href: "/dashboard/health-and-safety/coshh", showNearMissCount: false },

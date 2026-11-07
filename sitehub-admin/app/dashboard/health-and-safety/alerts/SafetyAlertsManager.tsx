@@ -26,12 +26,14 @@ type AlertItem = {
   severity?: string;
   createdAt?: unknown;
   site_id?: string | null;
+  source_url?: string | null;
+  source_name?: string | null;
 };
 
 export default function SafetyAlertsManager() {
   const [items, setItems] = useState<AlertItem[]>([]);
   const [adding, setAdding] = useState(false);
-  const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "" });
+  const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "", sourceUrl: "", sourceName: "" });
   const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<{ id: string; name?: string }[]>([]);
   const [status, setStatus] = useState<"loading" | "ready" | "error">("loading");
@@ -89,10 +91,13 @@ export default function SafetyAlertsManager() {
       toast.error(typeof data.error === "string" ? data.error : "Couldn't save the alert");
       return;
     }
-    setItems((prev) => [{ id: data.id, ...form }, ...prev]);
+    setItems((prev) => [
+      { id: data.id, ...form, source_url: form.sourceUrl.trim() || null, source_name: form.sourceName.trim() || null },
+      ...prev,
+    ]);
     setAdding(false);
     setSiteWide(false);
-    setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "" });
+    setForm({ title: "", description: "", severity: "info", siteId: sites.length === 1 ? sites[0].id : "", sourceUrl: "", sourceName: "" });
   }
 
   async function remove(id: string) {
@@ -117,6 +122,18 @@ export default function SafetyAlertsManager() {
   const columns = [
     { header: "Title", accessor: "title" },
     { header: "Description", accessor: "description" },
+    {
+      header: "Source",
+      accessor: "source_url",
+      render: (row: AlertItem) =>
+        row.source_url ? (
+          <a href={row.source_url} target="_blank" rel="noreferrer" className="text-blue-600 hover:underline">
+            {row.source_name || "Official page"}
+          </a>
+        ) : (
+          "—"
+        ),
+    },
     {
       header: "Severity",
       accessor: "severity",
@@ -164,6 +181,24 @@ export default function SafetyAlertsManager() {
             }
             placeholder="Details"
           />
+          <div className="grid gap-4 md:grid-cols-2">
+            <Input
+              label="Official source link (optional)"
+              value={form.sourceUrl}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((f) => ({ ...f, sourceUrl: e.target.value }))
+              }
+              placeholder="https://www.hse.gov.uk/..."
+            />
+            <Input
+              label="Source name"
+              value={form.sourceName}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
+                setForm((f) => ({ ...f, sourceName: e.target.value }))
+              }
+              placeholder="e.g. HSE safety bulletin"
+            />
+          </div>
           <div>
             <label className="block text-sm font-semibold text-gray-700 mb-1">
               Site <span className="text-red-600">*</span>

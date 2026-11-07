@@ -5,6 +5,7 @@ import { sendPushToUsers } from "@/lib/onesignal";
 import { applySiteVisibility, assertWritableSiteId, documentSiteScope } from "@/lib/auth/siteScope";
 import { userIdsForCompany, userIdsForSiteContent } from "@/lib/auth/siteAudience";
 import { canPublishSiteWide } from "@/lib/auth/roles";
+import { isHttpsUrl } from "@/lib/utils/httpsUrl";
 
 function severityBucket(raw: string | null | undefined): string {
   const value = (raw ?? "info").toLowerCase();
@@ -124,6 +125,11 @@ export async function POST(req: Request) {
   if (siteForbid) return siteForbid;
 
   const { title, description, severity } = body;
+  const sourceUrl = String(body.sourceUrl ?? "").trim();
+  if (sourceUrl && !isHttpsUrl(sourceUrl)) {
+    return NextResponse.json({ error: "The source link must start with https://" }, { status: 400 });
+  }
+  const sourceName = String(body.sourceName ?? "").trim().slice(0, 80);
   const { data, error } = await supabaseAdmin
     .from("safety_alerts")
     .insert({
@@ -134,6 +140,8 @@ export async function POST(req: Request) {
       site_id: body.siteId,
       site_wide: (body.siteWide === true || body.site_wide === true) && canPublishSiteWide(auth.role),
       expires_at: body.expiresAt ? new Date(body.expiresAt).toISOString() : null,
+      source_url: sourceUrl || null,
+      source_name: sourceUrl ? sourceName || null : null,
     })
     .select("id, severity, title, company_id, site_wide")
     .single();

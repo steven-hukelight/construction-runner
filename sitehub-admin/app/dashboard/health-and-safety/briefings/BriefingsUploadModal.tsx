@@ -16,6 +16,7 @@ export default function BriefingsUploadModal() {
   const [file, setFile] = useState<File | null>(null);
   const [title, setTitle] = useState("");
   const [body, setBody] = useState("");
+  const [videoUrl, setVideoUrl] = useState("");
   const [siteId, setSiteId] = useState("");
   const [siteWide, setSiteWide] = useState(false);
   const [sites, setSites] = useState<Site[]>([]);
@@ -40,7 +41,7 @@ export default function BriefingsUploadModal() {
   }, [open]);
 
   async function handleUpload() {
-    if (!file) return;
+    if (!file && !videoUrl.trim()) return;
     if (!siteId.trim()) {
       toast.error("Select a site. This briefing will only appear for that site.");
       return;
@@ -48,9 +49,10 @@ export default function BriefingsUploadModal() {
     setUploading(true);
     try {
       const form = new FormData();
-      await appendStagedFile(form, "briefing", file);
-      form.append("title", title.trim() || file.name);
+      if (file) await appendStagedFile(form, "briefing", file);
+      form.append("title", title.trim() || file?.name || "Toolbox talk");
       form.append("body", body.trim());
+      if (videoUrl.trim()) form.append("videoUrl", videoUrl.trim());
       form.append("siteId", siteId.trim());
       if (siteWide) form.append("siteWide", "true");
 
@@ -83,6 +85,7 @@ export default function BriefingsUploadModal() {
       setFile(null);
       setTitle("");
       setBody("");
+      setVideoUrl("");
       setSiteId("");
       window.location.reload();
     } catch (e) {
@@ -141,7 +144,7 @@ export default function BriefingsUploadModal() {
             </div>
           </div>
           <div>
-            <label className="block text-sm font-semibold text-gray-700 mb-1">PDF File</label>
+            <label className="block text-sm font-semibold text-gray-700 mb-1">PDF File {videoUrl.trim() ? "(optional)" : ""}</label>
             <input
               type="file"
               accept=".pdf"
@@ -149,10 +152,21 @@ export default function BriefingsUploadModal() {
               className="block w-full text-sm text-gray-900 border border-gray-200 rounded-xl px-4 py-3"
             />
           </div>
+          <div>
+            <Input
+              label="Video link (optional)"
+              value={videoUrl}
+              onChange={(e: React.ChangeEvent<HTMLInputElement>) => setVideoUrl(e.target.value)}
+              placeholder="https://… toolbox talk video on the publisher's site"
+            />
+            <p className="mt-1 text-xs text-slate-500">
+              Operatives watch it on the publisher&apos;s player, then sign as usual. The video is not copied into the app.
+            </p>
+          </div>
           <div className="flex gap-2 pt-2">
             <Button
               onClick={handleUpload}
-              disabled={!file || !siteId || uploading}
+              disabled={(!file && !videoUrl.trim()) || !siteId || uploading}
               className="flex-1"
             >
               {uploading ? "Uploading…" : "Upload"}
