@@ -17,6 +17,11 @@ export type CatalogueModule = {
   minWatchSeconds: number | null;
   ready: boolean;
   questionCount: number;
+  /** The company wrote its own questions for this module. */
+  customQuestions: boolean;
+  /** The company created this module; it can rename or remove it. */
+  ownModule: boolean;
+  requiredForSignIn: boolean;
   enabled: boolean;
   refreshMonths: number | null;
   scope: "company" | "sites";

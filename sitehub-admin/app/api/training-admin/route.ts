@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveTrainingOfficeAuth } from "@/lib/training/officeAuth";
-import { loadCatalogue, loadCompanySettings, loadModuleSites, withCompanyMaterial } from "@/lib/training/service";
+import { loadCatalogue, loadCompanySettings, loadModuleSites, questionCounts, withCompanyMaterial } from "@/lib/training/service";
 import { isPlayable } from "@/lib/training/rules";
 
 export const dynamic = "force-dynamic";
@@ -12,17 +12,12 @@ export async function GET(req: Request) {
   if (auth instanceof NextResponse) return auth;
   try {
     const [catalogue, settings, moduleSites, questions, sites] = await Promise.all([
-      loadCatalogue(),
+      loadCatalogue(auth.companyId),
       loadCompanySettings(auth.companyId),
       loadModuleSites(auth.companyId),
-      supabaseAdmin.from("training_questions").select("module_id"),
+      questionCounts(auth.companyId),
       supabaseAdmin.from("sites").select("id, name").eq("company_id", auth.companyId).order("name", { ascending: true }),
     ]);
-    const questionCount = new Map<string, number>();
-    for (const q of questions.data ?? []) {
-      const id = String(q.module_id);
-      questionCount.set(id, (questionCount.get(id) ?? 0) + 1);
-    }
     return NextResponse.json({
       canConfigure: auth.canConfigure,
       canRecord: auth.canRecord,
@@ -46,8 +41,13 @@ export async function GET(req: Request) {
           publisher: m.external_publisher,
           acknowledgement: m.external_acknowledgement,
           minWatchSeconds: m.min_watch_seconds,
-          ready: m.kind === "record" || isPlayable(withCompanyMaterial(m, s)),
-          questionCount: questionCount.get(m.id) ?? 0,
+          ready:
+            m.kind === "record" ||
+            (isPlayable(withCompanyMaterial(m, s)) && (questions.counts.get(m.id) ?? 0) > 0),
+          questionCount: questions.counts.get(m.id) ?? 0,
+          customQuestions: questions.custom.has(m.id),
+          ownModule: m.company_id === auth.companyId,
+          requiredForSignIn: s?.required_for_sign_in === true,
           enabled: s?.enabled === true,
           refreshMonths: s ? s.refresh_months : 12,
           scope: s?.scope ?? "company",

@@ -139,3 +139,57 @@ export function campaignIsLive(campaign: { starts_on: string; ends_on: string },
   const today = dateOnly(now);
   return String(campaign.starts_on).slice(0, 10) <= today && today <= String(campaign.ends_on).slice(0, 10);
 }
+
+/** Shown when sign-in is refused because required training isn't passed. */
+export function trainingRequiredMessage(titles: string[]): string {
+  if (!titles.length) return "Pass your required training before signing in.";
+  const list =
+    titles.length === 1 ? titles[0] : `${titles.slice(0, -1).join(", ")} and ${titles[titles.length - 1]}`;
+  return `Pass ${list} in Training before signing in.`;
+}
+
+/** How long a module watched with no signal can wait to sync. */
+export const OFFLINE_ATTEMPT_MAX_AGE_DAYS = 30;
+const OFFLINE_CLOCK_SKEW_MS = 2 * 60 * 1000;
+
+export type OfflineAttemptTimes =
+  | { ok: true; startedAt: string; completedAt: string; answeredAt: string }
+  | { ok: false; error: string; message: string };
+
+/**
+ * Times sent with a module watched and answered on the phone with no signal. Start, finish and
+ * answer must be in order, not in the future, no older than 30 days, and watched long enough.
+ */
+export function checkOfflineAttemptTimes(input: {
+  startedAt: unknown;
+  completedAt: unknown;
+  answeredAt: unknown;
+  requiredSeconds: number;
+  now?: Date;
+}): OfflineAttemptTimes {
+  const now = input.now ?? new Date();
+  const parse = (v: unknown) => (typeof v === "string" && v.trim() ? new Date(v) : null);
+  const started = parse(input.startedAt);
+  const completed = parse(input.completedAt);
+  const answered = parse(input.answeredAt);
+  if (!started || !completed || !answered || [started, completed, answered].some((d) => Number.isNaN(d.getTime()))) {
+    return { ok: false, error: "invalid_times", message: "The watch times are missing." };
+  }
+  const latest = now.getTime() + OFFLINE_CLOCK_SKEW_MS;
+  const earliest = now.getTime() - OFFLINE_ATTEMPT_MAX_AGE_DAYS * 24 * 60 * 60 * 1000;
+  if (started.getTime() < earliest) {
+    return { ok: false, error: "too_old", message: "This was watched too long ago to count. Watch it again." };
+  }
+  if (completed < started || answered < completed || answered.getTime() > latest) {
+    return { ok: false, error: "invalid_times", message: "The watch times don't add up." };
+  }
+  if (!watchedLongEnough(started.toISOString(), completed, input.requiredSeconds)) {
+    return { ok: false, error: "watch_incomplete", message: "It wasn't watched all the way through." };
+  }
+  return {
+    ok: true,
+    startedAt: started.toISOString(),
+    completedAt: completed.toISOString(),
+    answeredAt: answered.toISOString(),
+  };
+}

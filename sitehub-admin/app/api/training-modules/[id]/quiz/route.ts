@@ -1,6 +1,6 @@
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
-import { loadQuestions, moduleForUser, userProgress } from "@/lib/training/service";
+import { moduleForUser, questionsForCompany, userProgress } from "@/lib/training/service";
 import { quizForPhone } from "@/lib/training/rules";
 
 /** Five questions in a fresh order, without the answers. Locked until the video has been watched. */
@@ -19,7 +19,7 @@ export async function GET(req: Request, { params }: { params: Promise<{ id: stri
     if (!progress.quizViewId) {
       return NextResponse.json({ error: "watch_first", message: "Watch the video before the quiz." }, { status: 409 });
     }
-    const questions = await loadQuestions(id);
+    const questions = await questionsForCompany(id, companyId);
     if (!questions.length) return NextResponse.json({ error: "No questions for this module" }, { status: 404 });
 
     return NextResponse.json({

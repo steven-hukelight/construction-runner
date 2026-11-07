@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
-import { loadQuestions, moduleForUser, noteRepeatedFails, userProgress } from "@/lib/training/service";
+import { moduleForUser, questionsForCompany, noteRepeatedFails, userProgress } from "@/lib/training/service";
 import { failsInARow, scoreQuiz } from "@/lib/training/rules";
 
 /** `{ viewId, answers: { [questionId]: optionIndex } }`. Returns the score and which questions were right. */
@@ -29,7 +29,7 @@ export async function POST(req: Request, { params }: { params: Promise<{ id: str
       return NextResponse.json({ error: "watch_first", message: "Watch the video before the quiz." }, { status: 409 });
     }
 
-    const questions = await loadQuestions(id);
+    const questions = await questionsForCompany(id, companyId);
     if (!questions.length) return NextResponse.json({ error: "No questions for this module" }, { status: 404 });
     const result = scoreQuiz(questions, answers, found.module.pass_mark);
 

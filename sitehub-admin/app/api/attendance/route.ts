@@ -4,6 +4,8 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { getRamsStatusForSite, isRamsCompliant, type RamsTrainingData } from "@/lib/ramsCompliance";
+import { trainingBlockingSignIn } from "@/lib/training/service";
+import { trainingRequiredMessage } from "@/lib/training/rules";
 import {
   ABSENT_FOR_PREFIX,
   appendAbsentClearedNote,
@@ -376,7 +378,7 @@ export async function POST(req: Request) {
     const [{ data: operativeUser }, { data: siteRow }] = await Promise.all([
       supabaseAdmin
         .from("users")
-        .select("id, company_id, admin_pre_induction_override")
+        .select("id, company_id, role, admin_pre_induction_override")
         .eq("id", operativeId)
         .maybeSingle(),
       siteId
@@ -670,6 +672,23 @@ export async function POST(req: Request) {
             { status: 403 }
           );
         }
+      }
+    }
+
+    // An offline sign-in has already happened on site; the phone checked its saved training first.
+    const operativeRole = String((operativeUser as { role?: string | null }).role ?? "").toLowerCase();
+    if (isSignIn && targetCompanyId && operativeRole !== "superuser" && !isOfflineRecordedBody(body)) {
+      const blocking = await trainingBlockingSignIn(String(operativeId), targetCompanyId, siteId ? String(siteId) : null).catch(
+        (e) => {
+          console.error("[attendance] training check failed, sign-in allowed:", e);
+          return [];
+        }
+      );
+      if (blocking.length) {
+        return NextResponse.json(
+          { error: "training_required", modules: blocking, message: trainingRequiredMessage(blocking.map((m) => m.title)) },
+          { status: 403 }
+        );
       }
     }
 

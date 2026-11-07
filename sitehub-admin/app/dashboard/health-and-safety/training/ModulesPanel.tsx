@@ -5,6 +5,7 @@ import toast from "react-hot-toast";
 import Button from "../../components/ui/Button";
 import Input from "../../components/ui/Input";
 import { stageUpload } from "@/lib/client/stagedUpload";
+import QuestionsEditor from "./QuestionsEditor";
 import { readError, type CatalogueModule, type CatalogueResponse } from "./types";
 
 const REFRESH_OPTIONS = [
@@ -18,10 +19,22 @@ export default function ModulesPanel({ catalogue, onChanged }: { catalogue: Cata
   const [saving, setSaving] = useState<string | null>(null);
   const [editing, setEditing] = useState<string | null>(null);
   const [choosingSites, setChoosingSites] = useState<string | null>(null);
+  const [questionsFor, setQuestionsFor] = useState<string | null>(null);
+  const [detailsFor, setDetailsFor] = useState<string | null>(null);
+  const [adding, setAdding] = useState(false);
 
   async function patchSettings(
     module: CatalogueModule,
-    body: { enabled?: boolean; refreshMonths?: number | null; scope?: "company" | "sites"; siteIds?: string[] },
+    body: {
+      enabled?: boolean;
+      refreshMonths?: number | null;
+      scope?: "company" | "sites";
+      siteIds?: string[];
+      requiredForSignIn?: boolean;
+      title?: string;
+      summary?: string;
+      minutes?: number | null;
+    },
   ): Promise<boolean> {
     setSaving(module.id);
     try {
@@ -42,14 +55,61 @@ export default function ModulesPanel({ catalogue, onChanged }: { catalogue: Cata
     }
   }
 
+  async function removeModule(module: CatalogueModule) {
+    if (!window.confirm(`Remove ${module.title}? Past results stay on record.`)) return;
+    setSaving(module.id);
+    try {
+      const res = await fetch(`/api/training-admin/modules/${module.id}`, { method: "DELETE", credentials: "include" });
+      if (!res.ok) {
+        toast.error(await readError(res, "Couldn't remove it"));
+        return;
+      }
+      toast.success("Module removed");
+      await onChanged();
+    } finally {
+      setSaving(null);
+    }
+  }
+
   return (
     <div className="space-y-3">
       <p className="text-sm text-slate-500">
         A module turned on applies to everyone in the company, or only to people on the sites you choose. Operatives watch the video, then answer five questions. Four
         right is a pass. A module needs a video or PDF before it can be turned on. Upload your own MP4 (under 50 MB) or,
-        where there is no video, a PDF (under 20 MB) for people to read instead. The questions stay the same, so cover the
-        same points.
+        where there is no video, a PDF (under 20 MB) for people to read instead. If your material covers different points,
+        write your own questions. Tick &quot;Required before sign-in&quot; to stop people signing in until they have passed it.
       </p>
+      {catalogue.canConfigure &&
+        (adding ? (
+          <div className="rounded-xl border border-slate-200 bg-white p-4">
+            <CompanyModuleForm
+              heading="Add your own module"
+              submitLabel="Add module"
+              onCancel={() => setAdding(false)}
+              onSubmit={async (details) => {
+                const res = await fetch("/api/training-admin/modules", {
+                  method: "POST",
+                  credentials: "include",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify(details),
+                });
+                if (!res.ok) {
+                  toast.error(await readError(res, "Couldn't add the module"));
+                  return;
+                }
+                const json = (await res.json()) as { id: string };
+                toast.success("Module added. Upload a video or PDF and write the questions, then switch it on.");
+                setAdding(false);
+                await onChanged();
+                setQuestionsFor(json.id);
+              }}
+            />
+          </div>
+        ) : (
+          <Button size="sm" variant="secondary" onClick={() => setAdding(true)}>
+            Add your own module
+          </Button>
+        ))}
       <div className="overflow-x-auto rounded-xl border border-slate-200 bg-white">
         <table className="min-w-full text-sm">
           <thead className="bg-slate-50 text-left text-slate-600">
@@ -77,10 +137,23 @@ export default function ModulesPanel({ catalogue, onChanged }: { catalogue: Cata
                   if (await patchSettings(m, { scope, siteIds })) setChoosingSites(null);
                 }}
                 onEdit={() => setEditing(editing === m.id ? null : m.id)}
+                questionsOpen={questionsFor === m.id}
+                onQuestions={() => setQuestionsFor(questionsFor === m.id ? null : m.id)}
+                detailsOpen={detailsFor === m.id}
+                onDetails={() => setDetailsFor(detailsFor === m.id ? null : m.id)}
+                onSaveDetails={async (details) => {
+                  if (await patchSettings(m, details)) setDetailsFor(null);
+                }}
+                onRemove={() => removeModule(m)}
+                onRequired={(requiredForSignIn) => patchSettings(m, { requiredForSignIn })}
                 onToggle={(enabled) => patchSettings(m, { enabled })}
                 onRefresh={(value) => patchSettings(m, { refreshMonths: value === "off" ? null : Number(value) })}
                 onCatalogueSaved={async () => {
                   setEditing(null);
+                  await onChanged();
+                }}
+                onQuestionsSaved={async () => {
+                  setQuestionsFor(null);
                   await onChanged();
                 }}
               />
@@ -106,9 +179,17 @@ function ModuleRow({
   onChooseSites,
   onScope,
   onEdit,
+  questionsOpen,
+  onQuestions,
+  detailsOpen,
+  onDetails,
+  onSaveDetails,
+  onRemove,
+  onRequired,
   onToggle,
   onRefresh,
   onCatalogueSaved,
+  onQuestionsSaved,
 }: {
   module: CatalogueModule;
   canConfigure: boolean;
@@ -120,9 +201,17 @@ function ModuleRow({
   onChooseSites: () => void;
   onScope: (scope: "company" | "sites", siteIds: string[]) => Promise<void>;
   onEdit: () => void;
+  questionsOpen: boolean;
+  onQuestions: () => void;
+  detailsOpen: boolean;
+  onDetails: () => void;
+  onSaveDetails: (details: CompanyModuleDetails) => Promise<void>;
+  onRemove: () => void;
+  onRequired: (required: boolean) => void;
   onToggle: (enabled: boolean) => void;
   onRefresh: (value: string) => void;
   onCatalogueSaved: () => Promise<void>;
+  onQuestionsSaved: () => Promise<void>;
 }) {
   const isRecord = m.kind === "record";
   const sourceLabel = isRecord
@@ -133,18 +222,41 @@ function ModuleRow({
         ? "Default video"
         : m.source === "link"
           ? `${m.publisher || "Publisher"} page`
-          : "No video yet";
+          : m.ownModule
+            ? "No video or PDF yet"
+            : "No video yet";
 
   return (
     <>
       <tr className="border-t border-slate-100 align-top">
         <td className="px-4 py-3">
-          <div className="font-medium text-slate-900">{m.title}</div>
+          <div className="font-medium text-slate-900">
+            {m.title}
+            {m.ownModule && <span className="status-chip status-chip--info ml-2 align-middle">Your module</span>}
+          </div>
           <div className="text-xs text-slate-500">{m.summary}</div>
           {!isRecord && (
             <div className="mt-1 text-xs text-slate-400">
               {m.minutes ? `About ${m.minutes} min · ` : ""}
-              {m.questionCount} questions
+              {m.questionCount ? `${m.questionCount} questions` : "No questions yet"}
+              {m.customQuestions && !m.ownModule ? " · your own" : ""}
+            </div>
+          )}
+          {!isRecord && (
+            <div className="mt-1 flex flex-wrap gap-x-3 text-xs">
+              <button type="button" onClick={onQuestions} className="text-blue-600 hover:underline">
+                {questionsOpen ? "Close questions" : canConfigure ? "Edit questions" : "View questions"}
+              </button>
+              {canConfigure && m.ownModule && (
+                <>
+                  <button type="button" onClick={onDetails} className="text-blue-600 hover:underline">
+                    {detailsOpen ? "Close" : "Edit details"}
+                  </button>
+                  <button type="button" disabled={busy} onClick={onRemove} className="text-red-600 hover:underline">
+                    Remove
+                  </button>
+                </>
+              )}
             </div>
           )}
         </td>
@@ -156,7 +268,7 @@ function ModuleRow({
             </a>
           )}
           {canConfigure && !isRecord && <CompanyMaterialControl module={m} onChanged={onCatalogueSaved} />}
-          {canEditCatalogue && !isRecord && (
+          {canEditCatalogue && !isRecord && !m.ownModule && (
             <button type="button" onClick={onEdit} className="block text-xs text-slate-500 hover:underline">
               {editing ? "Close" : "Set default for every company"}
             </button>
@@ -215,8 +327,39 @@ function ModuleRow({
             />
             <span className="text-sm">{m.enabled ? "On" : "Off"}</span>
           </label>
+          {!isRecord && (
+            <label className="mt-2 flex items-center gap-2 text-xs text-slate-600">
+              <input
+                type="checkbox"
+                checked={m.requiredForSignIn}
+                disabled={!canConfigure || busy || (!m.enabled && !m.requiredForSignIn)}
+                onChange={(e) => onRequired(e.target.checked)}
+              />
+              Required before sign-in
+            </label>
+          )}
         </td>
       </tr>
+      {detailsOpen && (
+        <tr className="border-t border-slate-100 bg-slate-50/60">
+          <td colSpan={5} className="px-4 py-4">
+            <CompanyModuleForm
+              heading="Module details"
+              submitLabel="Save details"
+              initial={{ title: m.title, summary: m.summary, minutes: m.minutes }}
+              onCancel={onDetails}
+              onSubmit={onSaveDetails}
+            />
+          </td>
+        </tr>
+      )}
+      {questionsOpen && (
+        <tr className="border-t border-slate-100 bg-slate-50/60">
+          <td colSpan={5} className="px-4 py-4">
+            <QuestionsEditor module={m} canConfigure={canConfigure} onClose={onQuestions} onSaved={onQuestionsSaved} />
+          </td>
+        </tr>
+      )}
       {choosingSites && (
         <tr className="border-t border-slate-100 bg-slate-50/60">
           <td colSpan={5} className="px-4 py-4">
@@ -481,6 +624,70 @@ function CatalogueVideoForm({ module: m, onSaved }: { module: CatalogueModule; o
       <div className="md:col-span-2">
         <Button size="sm" disabled={saving} onClick={() => save(false)}>
           {saving ? "Saving…" : "Save video settings"}
+        </Button>
+      </div>
+    </div>
+  );
+}
+
+type CompanyModuleDetails = { title: string; summary: string; minutes: number | null };
+
+function CompanyModuleForm({
+  heading,
+  submitLabel,
+  initial,
+  onCancel,
+  onSubmit,
+}: {
+  heading: string;
+  submitLabel: string;
+  initial?: CompanyModuleDetails;
+  onCancel: () => void;
+  onSubmit: (details: CompanyModuleDetails) => Promise<void>;
+}) {
+  const [title, setTitle] = useState(initial?.title ?? "");
+  const [summary, setSummary] = useState(initial?.summary ?? "");
+  const [minutes, setMinutes] = useState(initial?.minutes ? String(initial.minutes) : "");
+  const [saving, setSaving] = useState(false);
+
+  async function submit() {
+    setSaving(true);
+    try {
+      await onSubmit({ title: title.trim(), summary: summary.trim(), minutes: minutes.trim() ? Number(minutes) : null });
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm font-semibold text-slate-800">{heading}</p>
+      <p className="text-xs text-slate-500">
+        Shown to your people as your company&apos;s own training, for example your site rules or a tool you use.
+      </p>
+      <div className="grid gap-3 md:grid-cols-3">
+        <Input label="Title" value={title} maxLength={80} onChange={(e: React.ChangeEvent<HTMLInputElement>) => setTitle(e.target.value)} />
+        <Input
+          label="Summary"
+          value={summary}
+          maxLength={400}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSummary(e.target.value)}
+        />
+        <Input
+          label="Length (minutes)"
+          type="number"
+          min={1}
+          max={60}
+          value={minutes}
+          onChange={(e: React.ChangeEvent<HTMLInputElement>) => setMinutes(e.target.value)}
+        />
+      </div>
+      <div className="flex gap-2">
+        <Button size="sm" disabled={saving || !title.trim()} onClick={submit}>
+          {saving ? "Saving…" : submitLabel}
+        </Button>
+        <Button size="sm" variant="secondary" disabled={saving} onClick={onCancel}>
+          Cancel
         </Button>
       </div>
     </div>

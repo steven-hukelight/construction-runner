@@ -36,6 +36,8 @@ export type TrainingModuleRow = {
   min_watch_seconds: number | null;
   pass_mark: number;
   active: boolean;
+  /** Null for the shared catalogue; the owning company for a company's own module. */
+  company_id: string | null;
 };
 
 export type CompanyModuleRow = {
@@ -50,6 +52,8 @@ export type CompanyModuleRow = {
   document_name: string | null;
   /** `sites`: only people linked to the sites in company_training_module_sites. */
   scope: "company" | "sites";
+  /** Sign-in is refused until the person has passed this module. */
+  required_for_sign_in: boolean;
 };
 
 export type ViewRow = {
@@ -102,30 +106,38 @@ export type CampaignRow = {
 };
 
 export const COMPANY_MODULE_COLUMNS =
-  "company_id, module_id, enabled, refresh_months, video_path, video_name, document_path, document_name, scope";
+  "company_id, module_id, enabled, refresh_months, video_path, video_name, document_path, document_name, scope, required_for_sign_in";
 
-const MODULE_COLUMNS =
-  "id, kind, title, summary, minutes, sort_order, video_path, external_url, external_publisher, external_acknowledgement, min_watch_seconds, pass_mark, active";
+export const MODULE_COLUMNS =
+  "id, kind, title, summary, minutes, sort_order, video_path, external_url, external_publisher, external_acknowledgement, min_watch_seconds, pass_mark, active, company_id";
 
-export async function loadCatalogue(): Promise<TrainingModuleRow[]> {
-  const { data, error } = await supabaseAdmin
-    .from("training_modules")
-    .select(MODULE_COLUMNS)
-    .eq("active", true)
-    .order("sort_order", { ascending: true });
-  if (error) throw new Error(`training_modules: ${error.message}`);
-  return (data ?? []) as TrainingModuleRow[];
+/** The shared catalogue, plus the company's own modules when `companyId` is given. */
+export async function loadCatalogue(companyId: string | null = null): Promise<TrainingModuleRow[]> {
+  const [shared, own] = await Promise.all([
+    supabaseAdmin.from("training_modules").select(MODULE_COLUMNS).eq("active", true).is("company_id", null),
+    companyId
+      ? supabaseAdmin.from("training_modules").select(MODULE_COLUMNS).eq("active", true).eq("company_id", companyId)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+  if (shared.error) throw new Error(`training_modules: ${shared.error.message}`);
+  if (own.error) throw new Error(`training_modules: ${own.error.message}`);
+  return ([...(shared.data ?? []), ...(own.data ?? [])] as TrainingModuleRow[]).sort(
+    (a, b) => a.sort_order - b.sort_order || a.title.localeCompare(b.title),
+  );
 }
 
-export async function loadModule(moduleId: string): Promise<TrainingModuleRow | null> {
+/** A shared module, or one owned by `companyId`. Another company's module is not found. */
+export async function loadModule(moduleId: string, companyId: string | null = null): Promise<TrainingModuleRow | null> {
   const { data, error } = await supabaseAdmin
     .from("training_modules")
     .select(MODULE_COLUMNS)
     .eq("id", moduleId)
     .eq("active", true)
-    .maybeSingle();
+    .maybeSingle<TrainingModuleRow>();
   if (error) throw new Error(`training_modules: ${error.message}`);
-  return (data as TrainingModuleRow | null) ?? null;
+  if (!data) return null;
+  if (data.company_id && data.company_id !== companyId) return null;
+  return data;
 }
 
 export async function loadCompanySettings(companyId: string): Promise<Map<string, CompanyModuleRow>> {
@@ -165,12 +177,13 @@ export type EnabledModule = {
   refreshMonths: number | null;
   /** Null for a whole-company module; otherwise the chosen sites. */
   siteIds: string[] | null;
+  requiredForSignIn: boolean;
 };
 
 /** Modules switched on for the company that a person can actually take, whoever they apply to. */
 export async function enabledModulesForCompany(companyId: string): Promise<EnabledModule[]> {
   const [catalogue, settings, moduleSites] = await Promise.all([
-    loadCatalogue(),
+    loadCatalogue(companyId),
     loadCompanySettings(companyId),
     loadModuleSites(companyId),
   ]);
@@ -184,6 +197,7 @@ export async function enabledModulesForCompany(companyId: string): Promise<Enabl
         module: m,
         refreshMonths: setting?.refresh_months ?? null,
         siteIds: setting?.scope === "sites" ? moduleSites.get(m.id) ?? [] : null,
+        requiredForSignIn: setting?.required_for_sign_in === true,
       };
     });
 }
@@ -217,6 +231,16 @@ export async function enabledModulesForUser(userId: string, companyId: string): 
   return enabled.filter((e) => applies(userId, e.module.id));
 }
 
+function toQuestions(rows: Record<string, unknown>[] | null): QuizQuestion[] {
+  return (rows ?? []).map((q) => ({
+    id: String(q.id),
+    stem: String(q.stem),
+    options: Array.isArray(q.options) ? q.options.map(String) : [],
+    correct_index: Number(q.correct_index),
+  }));
+}
+
+/** The shared questions for a module. */
 export async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
   const { data, error } = await supabaseAdmin
     .from("training_questions")
@@ -224,12 +248,45 @@ export async function loadQuestions(moduleId: string): Promise<QuizQuestion[]> {
     .eq("module_id", moduleId)
     .order("sort_order", { ascending: true });
   if (error) throw new Error(`training_questions: ${error.message}`);
-  return (data ?? []).map((q) => ({
-    id: String(q.id),
-    stem: String(q.stem),
-    options: Array.isArray(q.options) ? q.options.map(String) : [],
-    correct_index: Number(q.correct_index),
-  }));
+  return toQuestions(data);
+}
+
+/** The company's own questions for a module, or none. */
+export async function loadCompanyQuestions(moduleId: string, companyId: string): Promise<QuizQuestion[]> {
+  const { data, error } = await supabaseAdmin
+    .from("company_training_questions")
+    .select("id, stem, options, correct_index, sort_order")
+    .eq("company_id", companyId)
+    .eq("module_id", moduleId)
+    .order("sort_order", { ascending: true });
+  if (error) throw new Error(`company_training_questions: ${error.message}`);
+  return toQuestions(data);
+}
+
+/** What this company's people are asked: the company's own questions win over the shared ones. */
+export async function questionsForCompany(moduleId: string, companyId: string): Promise<QuizQuestion[]> {
+  const own = await loadCompanyQuestions(moduleId, companyId);
+  return own.length ? own : loadQuestions(moduleId);
+}
+
+/** Question counts per module: the company's own set where it has one, otherwise the shared set. */
+export async function questionCounts(companyId: string): Promise<{ counts: Map<string, number>; custom: Set<string> }> {
+  const [shared, own] = await Promise.all([
+    supabaseAdmin.from("training_questions").select("module_id"),
+    supabaseAdmin.from("company_training_questions").select("module_id").eq("company_id", companyId),
+  ]);
+  if (shared.error) throw new Error(`training_questions: ${shared.error.message}`);
+  if (own.error) throw new Error(`company_training_questions: ${own.error.message}`);
+  const tally = (rows: { module_id: unknown }[] | null) => {
+    const out = new Map<string, number>();
+    for (const r of rows ?? []) out.set(String(r.module_id), (out.get(String(r.module_id)) ?? 0) + 1);
+    return out;
+  };
+  const sharedCounts = tally(shared.data);
+  const ownCounts = tally(own.data);
+  const counts = new Map(sharedCounts);
+  for (const [id, n] of ownCounts) counts.set(id, n);
+  return { counts, custom: new Set(ownCounts.keys()) };
 }
 
 async function loadActivity(userIds: string[], moduleIds: string[]) {
@@ -330,6 +387,11 @@ export type PhoneModule = {
   publisher: string | null;
   external: boolean;
   format: "video" | "document";
+  /** Written by the worker's own company rather than the shared catalogue. */
+  fromCompany: boolean;
+  requiredForSignIn: boolean;
+  /** Where a required module blocks sign-in: null for every site, otherwise the chosen sites. */
+  requiredAtSiteIds: string[] | null;
 } & ModuleProgress;
 
 export type PhoneFaceFit = {
@@ -374,7 +436,7 @@ export async function myTraining(userId: string, companyId: string, now: Date = 
   const viewsByModule = groupBy(views, (v) => v.module_id);
   const attemptsByModule = groupBy(attempts, (a) => a.module_id);
 
-  const modules: PhoneModule[] = videoModules.map(({ module, refreshMonths }) => ({
+  const modules: PhoneModule[] = videoModules.map(({ module, refreshMonths, requiredForSignIn, siteIds }) => ({
     id: module.id,
     title: module.title,
     summary: module.summary,
@@ -382,6 +444,9 @@ export async function myTraining(userId: string, companyId: string, now: Date = 
     publisher: module.video_path || module.document_path ? null : module.external_publisher,
     external: !module.video_path && !module.document_path && Boolean(module.external_url),
     format: module.document_path ? "document" : "video",
+    fromCompany: module.company_id !== null,
+    requiredForSignIn,
+    requiredAtSiteIds: siteIds,
     ...progressFor(viewsByModule.get(module.id) ?? [], attemptsByModule.get(module.id) ?? [], refreshMonths, now),
   }));
 
@@ -578,4 +643,33 @@ export async function noteRepeatedFails(opts: {
   if (error) console.warn("[training] repeated-fail notification insert failed:", error.message);
   const res = await sendPushToUsers(staff, title, body, data);
   if (!res.sent) console.warn("[training] repeated-fail push failed:", res.error);
+}
+
+/**
+ * Modules marked "required before sign-in" that cover this site and that the person
+ * has not passed, or that are due again. Empty when nothing blocks the sign-in.
+ */
+export async function trainingBlockingSignIn(
+  userId: string,
+  companyId: string,
+  siteId: string | null,
+  now: Date = new Date(),
+): Promise<{ id: string; title: string }[]> {
+  const required = (await enabledModulesForCompany(companyId)).filter(
+    (e) =>
+      e.requiredForSignIn &&
+      e.module.kind === "video" &&
+      (e.siteIds === null || (siteId !== null && e.siteIds.includes(siteId))),
+  );
+  if (!required.length) return [];
+  const { views, attempts } = await loadActivity([userId], required.map((e) => e.module.id));
+  const viewsByModule = groupBy(views, (v) => v.module_id);
+  const attemptsByModule = groupBy(attempts, (a) => a.module_id);
+  return required
+    .filter(
+      (e) =>
+        progressFor(viewsByModule.get(e.module.id) ?? [], attemptsByModule.get(e.module.id) ?? [], e.refreshMonths, now)
+          .status !== "passed",
+    )
+    .map((e) => ({ id: e.module.id, title: e.module.title }));
 }

@@ -27,7 +27,7 @@ async function authorise(req: Request, moduleId: string): Promise<TrainingOffice
   const auth = await resolveTrainingOfficeAuth(req);
   if (auth instanceof NextResponse) return auth;
   if (!auth.canConfigure) return NextResponse.json({ error: "Only a Super Admin can change training material" }, { status: 403 });
-  const trainingModule = await loadModule(moduleId);
+  const trainingModule = await loadModule(moduleId, auth.companyId);
   if (!trainingModule || trainingModule.kind !== "video") return NextResponse.json({ error: "Not found" }, { status: 404 });
   return auth;
 }
@@ -110,7 +110,7 @@ export async function DELETE(req: Request, { params }: { params: Promise<{ id: s
     const existing = await loadSetting(auth.companyId, id);
     if (!existing?.video_path && !existing?.document_path) return NextResponse.json({ ok: true });
 
-    const fallback = await loadModule(id);
+    const fallback = await loadModule(id, auth.companyId);
     const stillPlayable = Boolean(fallback?.video_path || fallback?.external_url);
     const { error } = await supabaseAdmin
       .from("company_training_modules")
