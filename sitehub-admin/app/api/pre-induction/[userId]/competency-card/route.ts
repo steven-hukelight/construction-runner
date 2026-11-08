@@ -2,6 +2,12 @@ import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { authorizeActingOnUser } from "@/lib/auth/actingOnUser";
 import { updatePreInductionStatus } from "../_utils/status";
+import { CSCS_LEVELS } from "@/lib/competence/rules";
+
+function cscsLevelOrNull(value: unknown): string | null {
+  if (typeof value !== "string") return null;
+  return CSCS_LEVELS.find((l) => l.id.toLowerCase() === value.trim().toLowerCase())?.id ?? null;
+}
 
 function toTimestamp(val: string | null): string | null {
   if (!val) return null;
@@ -17,9 +23,11 @@ export async function POST(req: Request, { params }: { params: Promise<{ userId:
     const userId = access.targetUserId;
 
     const body = await req.json();
+    const cardType = body.cardType ?? "CSCS";
     const payload = {
       user_id: userId,
-      card_type: body.cardType ?? "CSCS",
+      card_type: cardType,
+      card_level: cardType === "CSCS" ? cscsLevelOrNull(body.cardLevel) : null,
       card_number: body.cardNumber ?? "",
       expiry: body.expiry ? toTimestamp(body.expiry as string) : null,
       file_url: body.fileUrl ?? null,

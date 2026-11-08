@@ -12,6 +12,7 @@ import Button from "../../../components/ui/Button";
 import Input from "../../../components/ui/Input";
 import { DataTableShell } from "../../../components/ui/TableChrome";
 import { updateRAMSStatus } from "../../../rams/actions";
+import RequiredCompetence from "../../../components/RequiredCompetence";
 
 interface RAMS {
   id: string;
@@ -335,6 +336,13 @@ export default function RAMSDetailClient({
           </div>
         </dl>
       </div>
+
+      {canViewAcknowledgements ? (
+        <div className="card p-6">
+          <h3 className="font-semibold mb-2">Required competence</h3>
+          <RequiredCompetence subjectType="rams" subjectId={ramsId} />
+        </div>
+      ) : null}
 
       {fileUrl && (
         <div className="card p-6">

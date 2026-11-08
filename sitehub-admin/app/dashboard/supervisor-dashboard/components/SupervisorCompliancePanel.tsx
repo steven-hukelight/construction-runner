@@ -6,6 +6,7 @@ import { CardSelect } from "../../components/ui/CardSelect";
 import { CompanyPicker, SitePicker } from "../../components/ui/SitePicker";
 import SupervisorOperativeCard from "./SupervisorOperativeCard";
 import SupervisorOperativeDrawer from "./SupervisorOperativeDrawer";
+import MissingCompetencePanel from "./MissingCompetencePanel";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import type {
   SupervisorOperativeRow,
@@ -167,6 +168,8 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
             <MetricCard icon={Calendar} label="Expiring" value={data.summary.expiringSoon} color="#D97706" />
             <MetricCard icon={FileWarning} label="Missing" value={data.summary.missingCritical} color="#DC2626" />
           </div>
+
+          <MissingCompetencePanel siteId={effectiveSiteId} />
 
           <div className="relative">
             {filteredOperatives.length === 0 ? (

@@ -7,6 +7,9 @@ import Button from "../components/ui/Button";
 import { openDocumentUrl } from "@/lib/openDocumentUrl";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
+import { canViewTeamAttendance } from "@/lib/auth/roles";
+import { useClientSession } from "../components/ClientSessionProvider";
+import RequiredCompetence from "../components/RequiredCompetence";
 
 type Task = {
   id: string;
@@ -37,6 +40,8 @@ export default function TaskDetailModal({
 }) {
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
+  const { role } = useClientSession();
+  const canEditRequirements = canViewTeamAttendance(role);
 
   useEffect(() => {
     if (!task?.id) return;
@@ -115,6 +120,13 @@ export default function TaskDetailModal({
             <p className="text-sm text-slate-600 whitespace-pre-wrap">{task.description}</p>
           </div>
         )}
+
+        {canEditRequirements ? (
+          <div className="mb-6">
+            <h4 className="text-sm font-semibold text-slate-700 mb-2">Required competence</h4>
+            <RequiredCompetence subjectType="task" subjectId={task.id} />
+          </div>
+        ) : null}
 
         <div className="mb-6">
           <h4 className="text-sm font-semibold text-slate-700 mb-2 flex items-center gap-2">

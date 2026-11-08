@@ -42,6 +42,8 @@ function mapCompetencyCardToCamelCase(row: Record<string, unknown> | null): Reco
     ...row,
     cardType: row.card_type ?? row.cardType,
     cardNumber: row.card_number ?? row.cardNumber,
+    cardLevel: row.card_level ?? row.cardLevel ?? null,
+    checkedAt: row.checked_at ?? row.checkedAt ?? null,
     fileUrl: row.file_url ?? row.fileUrl,
   };
 }
