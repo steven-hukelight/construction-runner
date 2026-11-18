@@ -40,6 +40,11 @@ export function canAssignOperativesToSites(role: string | null | undefined): boo
   return r === "superuser" || r === "admin" || r === "supervisor" || r === "site_admin";
 }
 
+/** Office staff who may change a site's place/activity list. `staff` is already site-scoped. */
+export function canEditWorkCatalogue(role: string | null | undefined, staff: boolean): boolean {
+  return staff && canAssignOperativesToSites(role);
+}
+
 /** Superuser, Super Admin, Supervisor, and Site Admin may publish an item to every site in the company. */
 export function canPublishSiteWide(role: string | null | undefined): boolean {
   const r = normalizeRole(role);

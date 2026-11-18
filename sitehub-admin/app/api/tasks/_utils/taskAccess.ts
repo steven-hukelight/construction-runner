@@ -3,8 +3,9 @@ import { cookies } from "next/headers";
 import { supabaseAdmin } from "@/lib/supabaseAdmin";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { resolveMobileApiAuth } from "@/app/api/_utils/mobileAuth";
+import { usesAssignedSites } from "@/lib/auth/roles";
 
-const STAFF_ROLES = new Set(["superuser", "admin", "supervisor", "sub_admin"]);
+const STAFF_ROLES = new Set(["superuser", "admin", "supervisor", "sub_admin", "site_admin"]);
 
 /**
  * Returns null if caller may read the task, otherwise a NextResponse error.
@@ -15,7 +16,7 @@ export async function ensureTaskReadAccess(req: Request, taskId: string): Promis
   if (auth instanceof NextResponse) return auth;
   const { data: task, error } = await supabaseAdmin
     .from("tasks")
-    .select("company_id, assigned_to")
+    .select("company_id, assigned_to, site_id")
     .eq("id", taskId)
     .maybeSingle();
 
@@ -23,12 +24,24 @@ export async function ensureTaskReadAccess(req: Request, taskId: string): Promis
     return NextResponse.json({ error: "Not found" }, { status: 404 });
   }
 
-  const t = task as { company_id?: string | null; assigned_to?: string | null };
+  const t = task as { company_id?: string | null; assigned_to?: string | null; site_id?: string | null };
   const roleLower = (auth.role ?? "").toLowerCase();
 
   if (auth.uid) {
     if (auth.isSuperuser || roleLower === "superuser") return null;
     if (STAFF_ROLES.has(roleLower) && auth.companyId && t.company_id === auth.companyId) {
+      if (usesAssignedSites(auth.role)) {
+        const siteId = String(t.site_id ?? "").trim();
+        if (siteId) {
+          const { data } = await supabaseAdmin
+            .from("user_sites")
+            .select("user_id")
+            .eq("site_id", siteId)
+            .eq("user_id", auth.uid)
+            .maybeSingle();
+          if (!data) return NextResponse.json({ error: "You can only change tasks on your sites" }, { status: 403 });
+        }
+      }
       return null;
     }
     const { data: asn } = await supabaseAdmin
@@ -38,7 +51,7 @@ export async function ensureTaskReadAccess(req: Request, taskId: string): Promis
       .eq("user_id", auth.uid)
       .maybeSingle();
     if (asn || t.assigned_to === auth.uid) return null;
-    return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+    return NextResponse.json({ error: "You can't change this task" }, { status: 403 });
   }
 
   const cookieStore = await cookies();
@@ -53,8 +66,8 @@ export async function ensureTaskReadAccess(req: Request, taskId: string): Promis
       })) || undefined;
   }
   if (role === "superuser") return null;
-  if (!companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
-  if (t.company_id !== companyId) return NextResponse.json({ error: "Forbidden" }, { status: 403 });
+  if (!companyId) return NextResponse.json({ error: "You can't change this task" }, { status: 403 });
+  if (t.company_id !== companyId) return NextResponse.json({ error: "You can't change this task" }, { status: 403 });
   return null;
 }
 

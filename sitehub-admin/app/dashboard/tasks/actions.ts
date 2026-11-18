@@ -36,5 +36,9 @@ export async function updateTaskStatus(id: string, status: string) {
 }
 
 export async function deleteTask(id: string) {
-  await callRoute(deleteTaskRoute, `/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE", params: { id } });
+  const res = await callRoute(deleteTaskRoute, `/api/tasks/${encodeURIComponent(id)}`, { method: "DELETE", params: { id } });
+  if (!res.ok) {
+    const err = await res.json().catch(() => ({}));
+    throw new Error((err as { error?: string }).error ?? "Couldn't delete that task");
+  }
 }

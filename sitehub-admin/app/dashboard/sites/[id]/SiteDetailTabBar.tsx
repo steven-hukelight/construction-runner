@@ -11,6 +11,7 @@ export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
   const isInduction = pathname === `${base}/induction`;
   const isSafety = pathname === `${base}/safety`;
   const isEmergency = pathname === `${base}/emergency`;
+  const isPlaces = pathname === `${base}/places`;
 
   return (
     <div className="flex gap-0 admin-tabs">
@@ -28,6 +29,9 @@ export default function SiteDetailTabBar({ siteId }: { siteId: string }) {
       </Link>
       <Link href={`${base}/emergency`} className={isEmergency ? "active" : ""} aria-current={isEmergency ? "page" : undefined}>
         Emergency
+      </Link>
+      <Link href={`${base}/places`} className={isPlaces ? "active" : ""} aria-current={isPlaces ? "page" : undefined}>
+        Who&apos;s where
       </Link>
     </div>
   );

@@ -11,6 +11,7 @@ import TableActions from "../components/ui/TableActions";
 import { TaskStatusPill } from "../components/ui/TaskStatusPill";
 import TaskDetailModal from "./TaskDetailModal";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
+import toast from "react-hot-toast";
 import { updateTaskStatus, deleteTask } from "./actions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 
@@ -72,8 +73,12 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
 
   async function handleDelete(id: string) {
     if (!window.confirm("Are you sure you want to delete this task?")) return;
-    await deleteTask(id);
-    setRows((prev) => prev.filter((row) => row.id !== id));
+    try {
+      await deleteTask(id);
+      setRows((prev) => prev.filter((row) => row.id !== id));
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : "Couldn't delete that task");
+    }
   }
 
   function handleExportCSV() {

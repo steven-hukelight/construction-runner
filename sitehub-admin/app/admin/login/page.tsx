@@ -152,8 +152,16 @@ function LoginPageContent() {
           <div className="w-full max-w-md">
             <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <div className="text-center mb-6">
-            <div className="w-28 h-28 mx-auto mb-4 flex items-center justify-center">
-              <Image src="/icon.png" alt="Construction Runner" width={112} height={112} className="object-contain" priority />
+            <div className="mx-auto mb-4 h-24 w-24 overflow-hidden rounded-[22px] shadow-sm">
+              <Image
+                src="/cr-logo.png"
+                alt="Construction Runner"
+                width={384}
+                height={384}
+                className="h-24 w-24 object-cover"
+                priority
+                unoptimized
+              />
             </div>
             <h1 className="text-xl font-semibold tracking-tight text-slate-900">
               {verifyDoneMessage ? t("Email verified") : verifyEmail ? t("Verify your email") : t("Sign In")}

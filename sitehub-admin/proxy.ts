@@ -27,12 +27,21 @@ export const PUBLIC_API_PATHS = new Set([
   "/api/feedback",
 ]);
 
+/** Public API trees. Visitor QR and hashed evidence-pack links rate-limit themselves. */
+export const PUBLIC_API_PREFIXES = ["/api/visit/", "/api/evidence/"];
+
 /** Scheduled jobs: allowed with `Authorization: Bearer CRON_SECRET`, otherwise need a user. */
 export const CRON_API_PATHS = new Set([
   "/api/attendance/archive",
   "/api/maintenance/retention-cleanup",
   "/api/maintenance/dispatch-attendance-push-queue",
   "/api/maintenance/dispatch-asset-inspection-reminders",
+  "/api/maintenance/dispatch-face-fit-reminders",
+  "/api/maintenance/dispatch-competence-expiry-reminders",
+  "/api/maintenance/dispatch-visitor-reminders",
+  "/api/maintenance/visitor-auto-sign-out",
+  "/api/maintenance/dispatch-permit-watch",
+  "/api/maintenance/dispatch-comprehension-generate",
   "/api/maintenance/attendance-fallback-sign-out",
   "/api/maintenance/dispatch-attendance-alerts",
 ]);
@@ -59,6 +68,7 @@ async function guardApi(req: NextRequest): Promise<NextResponse> {
   const pass = () => NextResponse.next({ request: { headers } });
 
   if (req.method === "OPTIONS" || PUBLIC_API_PATHS.has(path)) return pass();
+  if (PUBLIC_API_PREFIXES.some((p) => path.startsWith(p))) return pass();
   if (CRON_API_PATHS.has(path) && isAttendanceCronAuthorized(req)) return pass();
   if (path === ATTENDANCE_ALERTS_DISPATCH_PATH && isAttendanceAlertsDispatchAuthorized(req)) return pass();
 
@@ -89,6 +99,8 @@ const PUBLIC_PATHS = [
   "/contact",
   "/legal",
   "/account-deletion",
+  "/visit",
+  "/evidence",
 ];
 
 const STATIC_FILE = /\/[^/]+\.[a-z0-9]+$/i;
@@ -153,6 +165,6 @@ export async function proxy(req: NextRequest) {
 
 export const config = {
   matcher: [
-    "/((?!_next/static|_next/image|favicon.ico|icon.png|Logo.png|login-bg-plexus.png|apple-icon.png|OneSignalSDKWorker.js|fonts/|marketing/).*)",
+    "/((?!_next/static|_next/image|favicon.ico|icon.png|Logo.png|cr-logo.png|login-bg-plexus.png|apple-icon.png|OneSignalSDKWorker.js|fonts/|marketing/).*)",
   ],
 };

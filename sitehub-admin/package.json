@@ -28,6 +28,7 @@
     "@tailwindcss/postcss": "^4.1.18",
     "@upstash/ratelimit": "^2.0.8",
     "@upstash/redis": "^1.36.4",
+    "ai": "^7.0.166",
     "autoprefixer": "^10.4.24",
     "clsx": "^2.1.1",
     "jspdf": "^4.1.0",
@@ -36,6 +37,7 @@
     "next": "16.1.6",
     "nodemailer": "^7.0.13",
     "postcss": "^8.5.6",
+    "qrcode": "^1.5.4",
     "react": "^18.0.0",
     "react-dom": "^18.0.0",
     "react-hot-toast": "^2.6.0",
@@ -44,7 +46,9 @@
     "sharp": "^0.34.5",
     "swr": "^2.3.0",
     "tailwind-merge": "^3.4.0",
-    "tailwindcss": "^4.1.18"
+    "tailwindcss": "^4.1.18",
+    "unpdf": "^2.1.0",
+    "zod": "^4.6.7"
   },
   "overrides": {
     "next": "16.1.6"
@@ -54,6 +58,7 @@
     "@testing-library/jest-dom": "^6.9.1",
     "@testing-library/react": "^16.3.2",
     "@types/pg": "^8.16.0",
+    "@types/qrcode": "^1.5.6",
     "@types/react": "19.2.14",
     "dotenv": "^17.3.1",
     "eslint": "^9.39.2",
@@ -64,7 +69,6 @@
     "pg": "^8.18.0",
     "ts-jest": "^29.1.1",
     "typescript": "^5.0.0",
-    "undici": "^7.0.0",
-    "zod": "^4.3.6"
+    "undici": "^7.0.0"
   }
 }

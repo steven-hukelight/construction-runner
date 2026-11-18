@@ -10,11 +10,12 @@ const securityHeaders = [
     key: 'Content-Security-Policy',
     value: [
       "default-src 'self'",
-      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://api.onesignal.com",
+      "script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.onesignal.com https://api.onesignal.com https://challenges.cloudflare.com",
       "style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://onesignal.com",
       "font-src 'self' https://fonts.gstatic.com data:",
       "img-src 'self' data: https: blob:",
-      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://onesignal.com https://*.onesignal.com",
+      "connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.supabase.in https://onesignal.com https://*.onesignal.com https://challenges.cloudflare.com",
+      "frame-src https://challenges.cloudflare.com",
       "worker-src 'self'",
       "frame-ancestors 'none'",
       "base-uri 'self'",
@@ -30,6 +31,9 @@ const nextConfig = {
   // (lib/storage/stagedUpload.ts) and never pass through the proxy.
   experimental: {
     proxyClientMaxBodySize: '5mb',
+    serverActions: {
+      allowedOrigins: ['www.construction-runner.com', 'construction-runner.com'],
+    },
   },
   compiler: {
     removeConsole: process.env.NODE_ENV === 'production' ? {
