@@ -4,8 +4,8 @@ import { Suspense, useState, useEffect } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import Link from "next/link";
-import Image from "next/image";
 import { setUserCookies } from "@/app/login/actions";
+import AuthShell from "@/app/components/auth/AuthShell";
 import FeedbackLink from "@/app/components/FeedbackLink";
 import { getAuthRedirectOrigin } from "@/lib/url";
 import { dashboardHomeForRole } from "@/lib/auth/dashboardHome";
@@ -131,97 +131,78 @@ function LoginPageContent() {
     }
   }
 
+  const title = verifyDoneMessage
+    ? t("Email verified")
+    : verifyEmail
+      ? t("Verify your email")
+      : t("Sign in");
+
   return (
-    <div className="relative flex min-h-screen flex-1 flex-col overflow-hidden">
-      {/* Background + light vignette: keeps cyan/blue plexus visible; darkens edges for footer + card separation */}
-      <div className="pointer-events-none absolute inset-0 z-0" aria-hidden>
-        <Image
-          src="/login-bg-plexus.png"
-          alt=""
-          fill
-          priority
-          unoptimized
-          className="object-cover object-center brightness-[0.96] saturate-[0.96]"
-          sizes="100vw"
+    <AuthShell
+      title={title}
+      subtitle="Construction Runner"
+      footer={
+        <>
+          <LanguageSwitcher compact className="min-w-[12rem]" />
+          <FeedbackLink variant="landing" />
+        </>
+      }
+    >
+      {verifyDoneMessage ? (
+        <div className="text-center">
+          <p className="mb-6 text-sm text-gray-700">{verifyDoneMessage}</p>
+          <button
+            type="button"
+            className="w-full rounded-lg bg-blue-600 px-4 py-2.5 font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            onClick={() => {
+              setVerifyDoneMessage(null);
+              setVerifyEmail("");
+            }}
+          >
+            {t("Back to sign in")}
+          </button>
+        </div>
+      ) : verifyEmail ? (
+        <SignupVerifyForm
+          email={verifyEmail}
+          registrationId={verifyRegistrationId}
+          onVerified={(message) => {
+            setVerifyDoneMessage(message);
+            setVerifyEmail("");
+            setVerifyRegistrationId(null);
+          }}
+          onBack={() => {
+            setVerifyEmail("");
+            setVerifyRegistrationId(null);
+          }}
         />
-        <div className="absolute inset-0 bg-slate-950/40" />
-      </div>
-
-      <div className="relative z-10 flex flex-1 flex-col">
-        <div className="flex flex-1 items-center justify-center p-6 sm:p-8">
-          <div className="w-full max-w-md">
-            <div className="rounded-xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-              <div className="text-center mb-6">
-            <div className="mx-auto mb-4 h-24 w-24 overflow-hidden rounded-[22px] shadow-sm">
-              <Image
-                src="/cr-logo.png"
-                alt="Construction Runner"
-                width={384}
-                height={384}
-                className="h-24 w-24 object-cover"
-                priority
-                unoptimized
-              />
+      ) : (
+        <>
+          {inviteHint && !error && (
+            <div className="mb-4 rounded-xl border border-blue-200 bg-blue-50 px-4 py-3">
+              <p className="text-sm text-blue-800">
+                If you just joined, set your password from the email we sent (or Forgot password), then sign in.
+              </p>
             </div>
-            <h1 className="text-xl font-semibold tracking-tight text-slate-900">
-              {verifyDoneMessage ? t("Email verified") : verifyEmail ? t("Verify your email") : t("Sign In")}
-            </h1>
-            <p className="text-sm text-slate-500 mt-1">Construction Runner Admin</p>
-              </div>
+          )}
+          {error && (
+            <div className="mb-4 rounded-xl border border-red-200 bg-red-50 px-4 py-3">
+              <p className="text-sm text-red-600" data-testid="login-error">
+                {error}
+              </p>
+            </div>
+          )}
 
-              {verifyDoneMessage ? (
-                <div className="text-center">
-                  <p className="text-sm text-gray-600 mb-6">{verifyDoneMessage}</p>
-                  <button
-                    type="button"
-                    className="w-full bg-blue-600 text-white py-2.5 px-4 rounded-lg font-semibold hover:bg-blue-700"
-                    onClick={() => {
-                      setVerifyDoneMessage(null);
-                      setVerifyEmail("");
-                    }}
-                  >
-                    {t("Back to sign in")}
-                  </button>
-                </div>
-              ) : verifyEmail ? (
-                <SignupVerifyForm
-                  email={verifyEmail}
-                  registrationId={verifyRegistrationId}
-                  onVerified={(message) => {
-                    setVerifyDoneMessage(message);
-                    setVerifyEmail("");
-                    setVerifyRegistrationId(null);
-                  }}
-                  onBack={() => {
-                    setVerifyEmail("");
-                    setVerifyRegistrationId(null);
-                  }}
-                />
-              ) : (
-              <>
-              {inviteHint && !error && (
-                <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-3 mb-4">
-                  <p className="text-sm text-blue-800">
-                    If you just joined, set your password from the email we sent (or Forgot password), then sign in.
-                  </p>
-                </div>
-              )}
-              {error && (
-                <div className="bg-red-50 border border-red-200 rounded-xl px-4 py-3 mb-4">
-                  <p className="text-sm text-red-600" data-testid="login-error">{error}</p>
-                </div>
-              )}
-
-              <form onSubmit={handleSubmit} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div>
-              <label htmlFor="email" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="email" className="mb-1 block text-sm font-medium text-gray-700">
                 {t("Email")}
               </label>
               <input
                 id="email"
                 type="email"
                 placeholder="you@example.com"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/80 focus:border-blue-500"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 required
@@ -229,14 +210,14 @@ function LoginPageContent() {
               />
             </div>
             <div>
-              <label htmlFor="password" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="password" className="mb-1 block text-sm font-medium text-gray-700">
                 {t("Password")}
               </label>
               <input
                 id="password"
                 type={showPassword ? "text" : "password"}
                 placeholder="••••••••"
-                className="w-full px-3 py-2 rounded-xl border border-slate-200 bg-white text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-600/80 focus:border-blue-500"
+                className="w-full rounded-lg border border-gray-200 bg-white px-3 py-2 text-gray-900 placeholder:text-gray-500 focus:border-blue-500 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
@@ -244,47 +225,50 @@ function LoginPageContent() {
               />
             </div>
             <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
                   checked={showPassword}
                   onChange={(e) => setShowPassword(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 {t("Show password")}
               </label>
-              <label className="flex items-center gap-2 text-sm text-slate-600">
+              <label className="flex items-center gap-2 text-sm text-gray-700">
                 <input
                   type="checkbox"
                   checked={rememberMe}
                   onChange={(e) => setRememberMe(e.target.checked)}
-                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-600"
+                  className="h-4 w-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
                 />
                 {t("Remember me")}
               </label>
             </div>
             <div className="flex items-center justify-between text-sm">
-              <Link href="/forgot-password" className="text-slate-600 hover:text-slate-900">
+              <Link
+                href="/forgot-password"
+                className="text-gray-700 hover:text-gray-900 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+              >
                 {t("Forgot password?")}
               </Link>
             </div>
             <button
               type="submit"
               disabled={loading}
-              className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition-colors duration-[120ms] hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+              className="w-full rounded-lg bg-blue-600 py-2.5 font-medium text-white transition-colors duration-[120ms] hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:cursor-not-allowed disabled:opacity-50"
             >
               {loading ? t("Signing in...") : t("Sign in")}
             </button>
-              </form>
+          </form>
 
-              <div className="mt-6 pt-6 border-t border-slate-100">
+          <div className="mt-6 border-t border-gray-100 pt-6">
             <button
               type="button"
               onClick={handleGoogleLogin}
               disabled={loading}
-              className="w-full flex items-center justify-center gap-2 px-4 py-2.5 border border-gray-200 rounded-lg bg-white hover:bg-gray-50 text-slate-800 font-medium disabled:opacity-50 transition-colors duration-[120ms]"
+              className="flex w-full items-center justify-center gap-2 rounded-lg border border-gray-200 bg-white px-4 py-2.5 font-medium text-gray-800 transition-colors duration-[120ms] hover:bg-gray-50 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500 disabled:opacity-50"
             >
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
+              <svg className="h-5 w-5" viewBox="0 0 24 24" aria-hidden>
                 <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
                 <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
                 <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"/>
@@ -292,31 +276,18 @@ function LoginPageContent() {
               </svg>
               {t("Sign in with Google")}
             </button>
-              </div>
-
-              <p className="mt-6 text-center text-sm text-slate-500">
-                {t("Don't have an account?")}{" "}
-                <Link href="/register" className="text-slate-900 font-medium hover:underline">
-                  {t("Create account")}
-                </Link>
-              </p>
-              <LegalConsentLinks className="mt-4 text-center text-xs text-slate-500" />
-              <div className="mt-4 flex justify-center">
-                <LanguageSwitcher compact />
-              </div>
-              <p className="mt-4 flex justify-center">
-                <FeedbackLink variant="login" />
-              </p>
-              </>
-              )}
-            </div>
-            <p className="mt-5 text-center text-xs text-white/75 drop-shadow-[0_1px_2px_rgba(0,0,0,0.5)]">
-              © {new Date().getFullYear()} Construction Runner
-            </p>
           </div>
-        </div>
-      </div>
-    </div>
+
+          <p className="mt-6 text-center text-sm text-gray-500">
+            {t("Don't have an account?")}{" "}
+            <Link href="/register" className="font-medium text-gray-900 hover:underline">
+              {t("Create account")}
+            </Link>
+          </p>
+          <LegalConsentLinks className="mt-4 text-center text-xs text-gray-500" />
+        </>
+      )}
+    </AuthShell>
   );
 }
 
@@ -324,8 +295,8 @@ export default function AdminLoginPage() {
   return (
     <Suspense
       fallback={
-        <div className="relative min-h-screen flex flex-1 items-center justify-center bg-slate-950">
-          <div className="relative z-10 animate-spin h-8 w-8 rounded-full border-2 border-white/30 border-t-white" />
+        <div className="flex min-h-screen flex-1 items-center justify-center bg-[#f3f7fb]">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-gray-300 border-t-blue-600" />
         </div>
       }
     >

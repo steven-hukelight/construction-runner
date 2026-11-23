@@ -1,39 +1,17 @@
 "use client";
 
 import React, { useState } from "react";
-import Link from "next/link";
-import Image from "next/image";
 import {
   ArrowRight,
-  MessageSquareText,
-  ShieldCheck,
   CalendarDays,
+  Mail,
+  MessageSquareText,
 } from "lucide-react";
 import DemoModal from "@/app/components/marketing/modals/DemoModal";
+import MarketingHeader from "@/app/components/marketing/MarketingHeader";
 import MarketingShell from "@/app/components/marketing/MarketingShell";
 
-const MEMBER_LOGIN_URL = "/admin/login";
-
-const contactOptions = [
-  {
-    icon: <MessageSquareText className="h-6 w-6" />,
-    title: "Request a Demo",
-    description:
-      "Tell us about your sites, your team, and your rollout goals. We will follow up with the right next step.",
-  },
-  {
-    icon: <ShieldCheck className="h-6 w-6" />,
-    title: "Discuss Compliance",
-    description:
-      "Talk through onboarding, RAMS, attendance verification, and how Construction Runner fits your process.",
-  },
-  {
-    icon: <CalendarDays className="h-6 w-6" />,
-    title: "Plan Your Rollout",
-    description:
-      "Map out adoption across single-site or multi-site operations with a setup that matches your structure.",
-  },
-];
+const CONTACT_EMAIL = "info@construction-runner.com";
 
 export default function ContactPage() {
   const [isDemoModalOpen, setIsDemoModalOpen] = useState(false);
@@ -42,82 +20,72 @@ export default function ContactPage() {
     <>
       <MarketingShell>
         <div className="mx-auto max-w-5xl px-4 py-6 sm:px-8 sm:py-8">
-          <header className="flex items-center justify-between gap-4 rounded-xl border border-gray-200 bg-white px-4 py-3 shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-5">
-            <Link href="/" className="flex items-center gap-3">
-              <Image
-                src="/icon.png?v=3"
-                alt="Construction Runner logo"
-                width={48}
-                height={48}
-                unoptimized
-                className="h-12 w-12 shrink-0 object-contain"
-              />
-              <span className="text-lg font-semibold tracking-tight text-slate-900">
-                Construction Runner
-              </span>
-            </Link>
-            <div className="flex items-center gap-3">
-              <Link
-                href="/"
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
-              >
-                Home
-              </Link>
-              <Link
-                href={MEMBER_LOGIN_URL}
-                className="rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
-              >
-                Member Login
-              </Link>
-            </div>
-          </header>
+          <MarketingHeader current="contact" />
 
           <div className="mx-auto mt-8 max-w-4xl rounded-xl border border-gray-200 bg-white px-6 py-10 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)] sm:px-10">
-            <div className="inline-flex items-center rounded-full bg-blue-50 px-4 py-1.5 text-sm font-medium text-blue-700">
-              Contact Construction Runner
-            </div>
-
-            <h1 className="mt-6 text-4xl font-semibold tracking-tight text-slate-900 md:text-5xl">
+            <h1 className="text-4xl font-semibold tracking-tight text-gray-900 md:text-5xl">
               Start the conversation.
             </h1>
-
-            <p className="mx-auto mt-5 max-w-2xl text-lg text-slate-600">
-              Whether you are reviewing platforms, tightening compliance
-              workflows, or planning a wider rollout, we can help you assess fit
-              quickly.
+            <p className="mx-auto mt-5 max-w-2xl text-lg text-gray-700">
+              Tell us about your sites and we will follow up with the right next step.
             </p>
-
             <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
               <button
                 type="button"
                 onClick={() => setIsDemoModalOpen(true)}
-                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-7 py-3 text-base font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700"
+                className="inline-flex items-center gap-2 rounded-lg bg-blue-600 px-6 py-3 text-base font-semibold text-white transition-colors duration-[120ms] hover:bg-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                Request a Demo
+                Request a demo
                 <ArrowRight className="h-5 w-5" />
               </button>
-              <Link
-                href={MEMBER_LOGIN_URL}
-                className="rounded-lg border border-gray-200 bg-white px-7 py-3 text-base font-semibold text-slate-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700"
+              <a
+                href={`mailto:${CONTACT_EMAIL}`}
+                className="rounded-lg border border-gray-200 bg-white px-6 py-3 text-base font-semibold text-gray-700 transition-colors duration-[120ms] hover:border-blue-200 hover:text-blue-700 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
               >
-                Member Login
-              </Link>
+                Email the office
+              </a>
             </div>
           </div>
 
           <div className="mt-8 grid gap-5 md:grid-cols-3">
-            {contactOptions.map((option) => (
-              <div
-                key={option.title}
-                className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
-              >
-                <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
-                  {option.icon}
-                </div>
-                <h2 className="text-lg font-semibold text-slate-900">{option.title}</h2>
-                <p className="mt-2 text-sm leading-relaxed text-slate-600">{option.description}</p>
+            <button
+              type="button"
+              onClick={() => setIsDemoModalOpen(true)}
+              className="rounded-xl border border-gray-200 bg-white p-6 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors duration-[120ms] hover:border-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <MessageSquareText className="h-6 w-6" />
               </div>
-            ))}
+              <h2 className="text-lg font-semibold text-gray-900">Request a demo</h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                Tell us about your sites, your team, and your rollout. We will follow up.
+              </p>
+            </button>
+            <a
+              href={`mailto:${CONTACT_EMAIL}`}
+              className="rounded-xl border border-gray-200 bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors duration-[120ms] hover:border-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <Mail className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Email the office</h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                Write to {CONTACT_EMAIL} for compliance questions or an existing account.
+              </p>
+            </a>
+            <button
+              type="button"
+              onClick={() => setIsDemoModalOpen(true)}
+              className="rounded-xl border border-gray-200 bg-white p-6 text-left shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors duration-[120ms] hover:border-blue-200 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+            >
+              <div className="mb-4 inline-flex h-11 w-11 items-center justify-center rounded-xl bg-blue-50 text-blue-600">
+                <CalendarDays className="h-6 w-6" />
+              </div>
+              <h2 className="text-lg font-semibold text-gray-900">Plan a rollout</h2>
+              <p className="mt-2 text-sm leading-relaxed text-gray-700">
+                Map adoption across one site or many. Open a demo request to start.
+              </p>
+            </button>
           </div>
         </div>
       </MarketingShell>

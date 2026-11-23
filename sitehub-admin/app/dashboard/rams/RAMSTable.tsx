@@ -43,19 +43,24 @@ export default function RAMSTable({
 }) {
   const { companyId: sessionCompanyId } = useClientSession();
   const companyId = companyIdFromServer ?? sessionCompanyId;
-  const fetcher = (url: string) =>
-    fetch(url, { cache: "no-store", credentials: "include" }).then((r) =>
-      r.ok ? r.json() : []
-    );
+  const fetcher = async (url: string) => {
+    const r = await fetch(url, { cache: "no-store", credentials: "include" });
+    if (!r.ok) throw new Error("Couldn't load");
+    return r.json();
+  };
+  const listFetcher = async (url: string) => {
+    const json = await fetcher(url);
+    return Array.isArray(json) ? json : [];
+  };
 
   const { data: companies = [] } = useSWR(
     "/api/companies",
-    fetcher,
+    listFetcher,
     { revalidateOnFocus: false }
   );
   const { data: sites = [] } = useSWR(
     "/api/sites",
-    fetcher,
+    listFetcher,
     { revalidateOnFocus: false }
   );
   const companyMap = useMemo(() => {
@@ -76,7 +81,7 @@ export default function RAMSTable({
   // Refresh RAMS on an interval; cookies send company / session context.
   const { data: rows, error: ramsError, isLoading, mutate } = useSWR<any[]>(
     "/api/rams",
-    fetcher,
+    listFetcher,
     { fallbackData: Array.isArray(data) ? data : [], refreshInterval: 30000 }
   );
 

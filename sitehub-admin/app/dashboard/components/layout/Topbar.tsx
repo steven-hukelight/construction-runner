@@ -64,8 +64,9 @@ export default function Topbar() {
         <NotificationDropdown />
 
         <button
+          type="button"
           onClick={handleProfile}
-          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-300"
+          className="inline-flex h-9 w-9 items-center justify-center rounded-full bg-blue-600 text-white text-xs font-semibold hover:bg-blue-700 focus:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
           title="Open profile settings"
           aria-label="Open profile settings"
         >

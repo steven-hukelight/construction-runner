@@ -33,7 +33,7 @@ export async function POST(request: NextRequest) {
     const sites = clipLeadField(body.sites, 40);
     const message = clipLeadField(body.message, 2000);
 
-    if (!fullName || !company || !email || !role || !sites) {
+    if (!fullName || !company || !email) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
     }
     if (!EMAIL_RE.test(email)) {
@@ -55,8 +55,8 @@ export async function POST(request: NextRequest) {
       `Name: ${fullName}`,
       `Company: ${company}`,
       `Email: ${email}`,
-      `Role: ${role}`,
-      `Sites: ${sites}`,
+      role ? `Role: ${role}` : null,
+      sites ? `Sites: ${sites}` : null,
       message ? `Message:\n${message}` : null,
     ]
       .filter(Boolean)

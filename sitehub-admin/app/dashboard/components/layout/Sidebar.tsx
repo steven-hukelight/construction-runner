@@ -109,6 +109,15 @@ export default function Sidebar({ role }: SidebarProps) {
     inCompanyView &&
     ["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "");
 
+  useEffect(() => {
+    if (!mobileMenuOpen) return;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.key === "Escape") setMobileMenuOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [mobileMenuOpen]);
+
   const healthAndSafetyLink = (
     <Link
       href={healthAndSafetyHref}
@@ -132,18 +141,20 @@ export default function Sidebar({ role }: SidebarProps) {
     <>
       {/* Mobile Menu Button - only visible on mobile */}
       <button
+        type="button"
         onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-        className="mobile-menu-btn fixed top-5 left-5 z-50 p-2.5 rounded-lg bg-slate-800 text-white"
-        aria-label="Toggle menu"
+        className="mobile-menu-btn fixed top-5 left-5 z-50 rounded-lg bg-slate-800 p-2.5 text-white focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500"
+        aria-label={mobileMenuOpen ? "Close menu" : "Open menu"}
+        aria-expanded={mobileMenuOpen}
       >
         {mobileMenuOpen ? <X size={22} /> : <Menu size={22} />}
       </button>
 
-      {/* Overlay for mobile */}
       {mobileMenuOpen && (
         <div
-          className="mobile-menu-btn fixed inset-0 bg-black/40 z-30"
+          className="mobile-menu-btn fixed inset-0 z-30 bg-black/40"
           onClick={() => setMobileMenuOpen(false)}
+          aria-hidden
         />
       )}
 
@@ -187,7 +198,12 @@ export default function Sidebar({ role }: SidebarProps) {
           <Link
             href="/dashboard"
             className={
-              pathname === "/dashboard" || pathname === "/dashboard/admin-dashboard" ? "active" : ""
+              pathname === "/dashboard" ||
+              pathname === "/dashboard/admin-dashboard" ||
+              pathname === "/dashboard/supervisor-dashboard" ||
+              Boolean(pathname?.startsWith("/dashboard/supervisor-dashboard/"))
+                ? "active"
+                : ""
             }
             onClick={() => setMobileMenuOpen(false)}
           >

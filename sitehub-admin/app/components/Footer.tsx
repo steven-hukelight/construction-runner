@@ -3,7 +3,7 @@
 import { usePathname } from "next/navigation";
 import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 
-const HIDE_ON = new Set(["/", "/admin/login", "/contact"]);
+const HIDE_ON = new Set(["/", "/admin/login", "/contact", "/forgot-password", "/register", "/join"]);
 
 export default function Footer() {
   const pathname = usePathname();

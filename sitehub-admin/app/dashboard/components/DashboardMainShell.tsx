@@ -26,6 +26,8 @@ export function DashboardMainShell({ children }: { children: ReactNode }) {
 
   return (
     <main
+      id="dashboard-main"
+      tabIndex={-1}
       className={`main-content flex flex-col relative min-h-0 ${hasBg ? "main-content--custom-bg" : ""}`}
     >
       {hasBg ? (

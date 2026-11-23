@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { Building2 } from "lucide-react";
@@ -15,6 +15,16 @@ export default function JoinWithCodePage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [created, setCreated] = useState(false);
+
+  useEffect(() => {
+    const q = new URLSearchParams(window.location.search);
+    const codeFromLink = q.get("code");
+    const nameFromLink = q.get("name");
+    const companyFromLink = q.get("company");
+    if (codeFromLink) setCode(codeFromLink);
+    if (nameFromLink) setName(nameFromLink);
+    if (companyFromLink) setCompanyName(companyFromLink);
+  }, []);
 
   async function handleSubmit(e: React.FormEvent) {
     e.preventDefault();
@@ -53,14 +63,14 @@ export default function JoinWithCodePage() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col items-center justify-center p-4">
-      <div className="w-full max-w-md rounded-2xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+    <div className="min-h-screen bg-[#f3f7fb] flex flex-col items-center justify-center p-4">
+      <div className="w-full max-w-md rounded-xl border border-gray-200 bg-white p-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
         <div className="flex items-center gap-3 mb-6">
-          <div className="p-2 rounded-xl bg-blue-100 text-blue-600">
+          <div className="p-2 rounded-xl bg-blue-50 text-blue-600">
             <Building2 size={28} />
           </div>
           <div>
-            <h1 className="text-xl font-bold text-gray-900">Join as subcontractor</h1>
+            <h1 className="text-xl font-semibold text-gray-900">Join as subcontractor</h1>
             <p className="text-sm text-gray-500">Enter the invite code from your main contractor.</p>
           </div>
         </div>
@@ -91,8 +101,9 @@ export default function JoinWithCodePage() {
         ) : (
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Invite code</label>
+            <label htmlFor="join-code" className="block text-sm font-medium text-gray-700 mb-1">Invite code</label>
             <input
+              id="join-code"
               type="text"
               value={code}
               onChange={(e) => setCode(e.target.value.toUpperCase())}
@@ -102,8 +113,9 @@ export default function JoinWithCodePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+            <label htmlFor="join-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
             <input
+              id="join-email"
               type="email"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
@@ -113,8 +125,9 @@ export default function JoinWithCodePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Your name (optional)</label>
+            <label htmlFor="join-name" className="block text-sm font-medium text-gray-700 mb-1">Your name (optional)</label>
             <input
+              id="join-name"
               type="text"
               value={name}
               onChange={(e) => setName(e.target.value)}
@@ -123,8 +136,9 @@ export default function JoinWithCodePage() {
             />
           </div>
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">Company name (optional)</label>
+            <label htmlFor="join-company" className="block text-sm font-medium text-gray-700 mb-1">Company name (optional)</label>
             <input
+              id="join-company"
               type="text"
               value={companyName}
               onChange={(e) => setCompanyName(e.target.value)}

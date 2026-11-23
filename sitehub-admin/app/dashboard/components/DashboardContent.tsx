@@ -8,6 +8,7 @@ import { StatCard } from "./ui/stat-card";
 import { EnhancedCard } from "./ui/enhanced-card";
 import Skeleton from "./ui/Skeleton";
 import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
 const DashboardCharts = dynamic(
   () => import("./DashboardCharts").then((mod) => ({ default: mod.DashboardCharts })),
@@ -236,7 +237,7 @@ export function DashboardContent({
           )}
           {missingInfoCount > 0 && (
             <PendingItem
-              href="/dashboard/missing-info"
+              href={preInductionUiEnabled ? "/dashboard/induction-compliance" : "/dashboard/missing-info"}
               title={`${missingInfoCount} ${missingInfoCount === 1 ? "person is" : "people are"} missing emergency or medical info`}
               priority="medium"
             />

@@ -464,6 +464,15 @@ h1, h2, h3, h4, h5, h6 {
   cursor: not-allowed;
 }
 
+.button:focus {
+  outline: none;
+}
+
+.button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 .row-menu-button {
   display: inline-flex;
   align-items: center;
@@ -856,6 +865,15 @@ a {
   border-bottom-color: #2563eb;
   background: transparent;
   box-shadow: none;
+}
+.admin-tabs a:focus,
+.admin-tabs button:focus {
+  outline: none;
+}
+.admin-tabs a:focus-visible,
+.admin-tabs button:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
 }
 [data-theme="dark"] .admin-tabs {
   border-bottom-color: #334155;

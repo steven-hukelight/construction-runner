@@ -30,7 +30,7 @@ export default function SupervisorActions({
         </button>
       )}
       <Link
-        href={`/dashboard/rams?siteId=${siteId}`}
+        href={`/dashboard/health-and-safety/rams?siteId=${siteId}`}
         className={btnClass}
       >
         <FileText className="h-4 w-4" />

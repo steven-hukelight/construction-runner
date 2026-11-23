@@ -43,14 +43,14 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     () =>
       async (url: string) => {
         const res = await fetch(url, { cache: "no-store", credentials: "include" });
-        if (!res.ok) return [] as Delivery[];
+        if (!res.ok) throw new Error("Couldn't load deliveries");
         const list = await res.json();
         return Array.isArray(list) ? list : [];
       },
     []
   );
 
-  const { data: rows = [], mutate } = useSWR<Delivery[]>("/api/deliveries", fetcher, {
+  const { data: rows = [], mutate, error, isLoading } = useSWR<Delivery[]>("/api/deliveries", fetcher, {
     fallbackData: data || [],
     refreshInterval: 15000,
     revalidateOnFocus: false,
@@ -249,6 +249,13 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
     <Table
       title="All deliveries"
       subtitle={`${rows.length} ${rows.length === 1 ? "delivery" : "deliveries"} tracked`}
+      loading={isLoading && rows.length === 0}
+      error={Boolean(error) && rows.length === 0}
+      onRetry={() => {
+        void mutate();
+      }}
+      thing="deliveries"
+      things="deliveries"
       actions={
         <div className="flex flex-wrap items-center gap-2">
           <label className="flex items-center gap-1.5 text-xs font-medium text-slate-600 dark:text-slate-300">

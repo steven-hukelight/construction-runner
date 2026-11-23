@@ -1,5 +1,7 @@
 "use client";
 import { useState, useEffect, Suspense } from "react";
+import Link from "next/link";
+import Image from "next/image";
 import { useSearchParams } from "next/navigation";
 import { LegalConsentLinks } from "@/app/components/LegalConsentLinks";
 import { TurnstileWidget } from "@/app/components/TurnstileWidget";
@@ -9,19 +11,13 @@ import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } f
 
 type RegisterTab = "join" | "newCompany";
 
-function handleReturn() {
-  if (typeof window !== "undefined") {
-    window.history.back();
-  }
-}
-
 function RegisterPageContent() {
   const searchParams = useSearchParams();
   const [tab, setTab] = useState<RegisterTab>("join");
   const [publicSettings, setPublicSettings] = useState<{
     registrationsOpen?: boolean;
     maintenanceMode?: boolean;
-  } | null>(null);
+  }>({ registrationsOpen: true, maintenanceMode: false });
 
   useEffect(() => {
     fetch("/api/settings/public")
@@ -184,24 +180,17 @@ function RegisterPageContent() {
   const maintenance = publicSettings && publicSettings.maintenanceMode === true;
   const blocked = registrationsClosed || maintenance;
 
-  if (!publicSettings) {
-    return (
-      <div className="flex min-h-screen items-center justify-center bg-[#f3f7fb]">
-        <div className="text-gray-500">Loading…</div>
-      </div>
-    );
-  }
-
   if (blocked) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-[#f3f7fb] p-8">
-        <button
-          onClick={handleReturn}
-          className="mb-6 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold shadow"
-          type="button"
-        >
-          ← Return to previous page
-        </button>
+        <div className="mb-6 flex gap-4">
+          <a href="/" className="text-sm font-medium text-blue-700 hover:underline">
+            Home
+          </a>
+          <a href="/admin/login" className="text-sm font-medium text-blue-700 hover:underline">
+            Sign in
+          </a>
+        </div>
         <div className="max-w-md text-center p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
           <h1 className="text-2xl font-bold text-gray-800 mb-4">
             {maintenance ? "Maintenance in progress" : "Registrations are closed"}
@@ -286,8 +275,9 @@ function RegisterPageContent() {
             className="space-y-4"
           >
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Email</label>
+              <label htmlFor="code-only-email" className="block text-sm font-medium text-gray-700 mb-1">Email</label>
               <input
+                id="code-only-email"
                 type="email"
                 required
                 className="border border-gray-300 rounded-lg p-3 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400"
@@ -316,16 +306,20 @@ function RegisterPageContent() {
 
   return (
     <div className="flex flex-col items-center min-h-screen bg-[#f3f7fb] px-4 pb-12">
-      <button
-        onClick={handleReturn}
-        className="mb-6 mt-6 px-4 py-2 rounded-lg bg-gray-200 hover:bg-gray-300 text-gray-700 font-semibold shadow"
-        type="button"
-      >
-        ← Return to previous page
-      </button>
+      <div className="mt-6 mb-6 flex items-center gap-4">
+        <Link href="/" className="inline-flex rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500">
+          <Image src="/icon.png?v=3" alt="Construction Runner" width={40} height={40} className="h-10 w-10 object-contain" unoptimized />
+        </Link>
+        <Link href="/" className="text-sm font-medium text-gray-700 hover:text-blue-700">
+          Home
+        </Link>
+        <Link href="/admin/login" className="text-sm font-medium text-gray-700 hover:text-blue-700">
+          Sign in
+        </Link>
+      </div>
 
       <div className="w-full max-w-md md:max-w-4xl">
-        <h1 className="text-center text-2xl font-bold text-gray-800 mb-2">Create an account</h1>
+        <h1 className="text-center text-2xl font-semibold text-gray-900 mb-2">Create an account</h1>
         <p className="text-center text-sm text-gray-600 mb-6 max-w-xl mx-auto">
           To join an existing organisation you need the <strong className="font-semibold text-gray-800">company invite code</strong> from your
           administrator. Only use &quot;Request new company&quot; if you are setting up a brand-new organisation.
@@ -360,17 +354,14 @@ function RegisterPageContent() {
           </button>
         </div>
 
-        {/* Honeypot, hidden from users */}
-        <label className="sr-only" aria-hidden="true">
-          Website
+        <div className="hidden" aria-hidden="true">
           <input
             tabIndex={-1}
             autoComplete="off"
             value={honeypot}
             onChange={(e) => setHoneypot(e.target.value)}
-            className="hidden"
           />
-        </label>
+        </div>
 
         <div className="flex flex-col md:flex-row gap-8 md:gap-12 items-stretch justify-center">
           {tab === "newCompany" ? (
@@ -379,10 +370,11 @@ function RegisterPageContent() {
             Your data is collected solely for site access, safety compliance, induction, RAMS acceptance, and legal H&amp;S obligations. It is not used for marketing or profiling.
           </p>
           <div>
-            <h2 className="text-2xl font-bold text-blue-700 mb-2">Request New Company Account</h2>
+            <h2 className="text-2xl font-semibold text-blue-700 mb-2">Request a new company account</h2>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label htmlFor="new-admin-name" className="block text-sm font-medium text-gray-700">Full Name</label>
               <input
+                id="new-admin-name"
                 type="text"
                 placeholder="Your full name"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -392,8 +384,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Work Email</label>
+              <label htmlFor="new-admin-email" className="block text-sm font-medium text-gray-700">Work Email</label>
               <input
+                id="new-admin-email"
                 type="email"
                 placeholder="Your work email"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -403,8 +396,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Company Name</label>
+              <label htmlFor="new-company-name" className="block text-sm font-medium text-gray-700">Company Name</label>
               <input
+                id="new-company-name"
                 type="text"
                 placeholder="Company name"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -414,8 +408,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Company Phone</label>
+              <label htmlFor="new-company-phone" className="block text-sm font-medium text-gray-700">Company Phone</label>
               <input
+                id="new-company-phone"
                 type="tel"
                 placeholder="Company phone number"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -425,8 +420,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Company Address</label>
+              <label htmlFor="new-company-address" className="block text-sm font-medium text-gray-700">Company Address</label>
               <input
+                id="new-company-address"
                 type="text"
                 placeholder="Company address"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -443,7 +439,7 @@ function RegisterPageContent() {
               className="bg-blue-600 text-white py-2 px-4 rounded-lg w-full font-semibold shadow hover:bg-blue-700 disabled:bg-gray-300 transition"
               disabled={newCompanyLoading || (turnstileEnabled && !captchaToken)}
             >
-              {newCompanyLoading ? "Submitting..." : "Request New Company"}
+              {newCompanyLoading ? "Submitting..." : "Request new company"}
             </button>
             <LegalConsentLinks />
             {newCompanyMessage && <div className="text-sm text-center text-blue-700 mt-2 font-medium">{newCompanyMessage}</div>}
@@ -461,11 +457,12 @@ function RegisterPageContent() {
           <div>
             <h2 className="text-2xl font-bold text-blue-700 mb-2">Join with company invite code</h2>
             <p className="text-sm text-gray-600 mb-4">
-              Admins, supervisors, and operatives invited to an existing company enter the code here (it may be filled in automatically if you used your invite link).
+              Office users invited to an existing company enter the code here. Operatives should use the mobile app after they are approved.
             </p>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label htmlFor="invite-name" className="block text-sm font-medium text-gray-700">Full Name</label>
               <input
+                id="invite-name"
                 type="text"
                 placeholder="Your full name"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -475,8 +472,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Work Email</label>
+              <label htmlFor="invite-email" className="block text-sm font-medium text-gray-700">Work Email</label>
               <input
+                id="invite-email"
                 type="email"
                 placeholder="Your work email"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -486,8 +484,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Company Invite Code</label>
+              <label htmlFor="invite-code" className="block text-sm font-medium text-gray-700">Company Invite Code</label>
               <input
+                id="invite-code"
                 type="text"
                 placeholder="Company invite code"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"
@@ -497,8 +496,9 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label className="block text-sm font-medium text-gray-700">Set Password</label>
+              <label htmlFor="invite-password" className="block text-sm font-medium text-gray-700">Set Password</label>
               <input
+                id="invite-password"
                 type="password"
                 placeholder="Choose a secure password"
                 className="border border-gray-300 rounded-lg p-2 w-full focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition"

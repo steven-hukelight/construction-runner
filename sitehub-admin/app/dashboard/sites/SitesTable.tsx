@@ -37,12 +37,14 @@ export default function SitesTable({
 }) {
   const [adding, setAdding] = useState(false);
   const { nameFor } = useSiteManagers();
-  const fetcher = (url: string) =>
-    fetch(url, { cache: "no-store", credentials: "include" }).then((r) =>
-      r.ok ? r.json() : []
-    );
+  const fetcher = async (url: string) => {
+    const r = await fetch(url, { cache: "no-store", credentials: "include" });
+    if (!r.ok) throw new Error("Couldn't load sites");
+    const json = await r.json();
+    return Array.isArray(json) ? json : [];
+  };
 
-  const { data: rows, mutate } = useSWR<any[]>("/api/sites", fetcher, {
+  const { data: rows, mutate, error, isLoading } = useSWR<any[]>("/api/sites", fetcher, {
     fallbackData: Array.isArray(data) ? data : [],
     refreshInterval: 30000,
     revalidateOnMount: true,
@@ -268,13 +270,26 @@ export default function SitesTable({
     <Table
       columns={columns}
       data={rowsSafe}
-      emptyMessage="No sites yet. Add a location to get started."
+      loading={isLoading && rowsSafe.length === 0}
+      error={Boolean(error) && rowsSafe.length === 0}
+      onRetry={() => {
+        void mutate();
+      }}
+      thing="sites"
+      things="sites"
+      emptyAction={
+        canCreate ? (
+          <Button type="button" size="sm" onClick={() => setAdding(true)}>
+            Add site
+          </Button>
+        ) : null
+      }
       title="All sites"
       subtitle={`${rowsSafe.length} location${rowsSafe.length === 1 ? "" : "s"}`}
       actions={
         canCreate ? (
           <Button type="button" size="sm" onClick={() => setAdding((v) => !v)}>
-            {adding ? "Close" : "Add Site"}
+            {adding ? "Close" : "Add site"}
           </Button>
         ) : null
       }

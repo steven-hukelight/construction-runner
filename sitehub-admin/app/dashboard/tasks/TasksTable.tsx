@@ -19,6 +19,8 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
   const [rows, setRows] = useState<any[]>(data || []);
   const [users, setUsers] = useState<any[]>([]);
   const [detailTask, setDetailTask] = useState<any | null>(null);
+  const [loadError, setLoadError] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     setRows(data || []);
@@ -27,11 +29,19 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
   const refetchTasks = React.useCallback(async () => {
     const companyId = getCompanyIdFromClient();
     if (!companyId) return;
-    const url = `/api/tasks?companyId=${encodeURIComponent(companyId)}&_t=${Date.now()}`;
-    const res = await fetch(url, { cache: "no-store", credentials: "include" });
-    if (!res.ok) return;
-    const json = await res.json();
-    setRows(Array.isArray(json) ? json : []);
+    setLoading(true);
+    try {
+      const url = `/api/tasks?companyId=${encodeURIComponent(companyId)}&_t=${Date.now()}`;
+      const res = await fetch(url, { cache: "no-store", credentials: "include" });
+      if (!res.ok) throw new Error("Couldn't load tasks");
+      const json = await res.json();
+      setRows(Array.isArray(json) ? json : []);
+      setLoadError(false);
+    } catch {
+      setLoadError(true);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   useEffect(() => {
@@ -259,7 +269,14 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
         }
         columns={columns}
         data={rows}
-        emptyMessage="No tasks yet. Use Add Task above to create one."
+        loading={loading && rows.length === 0}
+        error={loadError && rows.length === 0}
+        onRetry={() => {
+          void refetchTasks();
+        }}
+        thing="tasks"
+        things="tasks"
+        emptyMessage="No tasks yet. Use Add task above to create one."
       />
       {typeof document !== "undefined" &&
         detailTask &&
