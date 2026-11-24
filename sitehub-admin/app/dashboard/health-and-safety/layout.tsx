@@ -10,12 +10,15 @@ const subTabs = [
   { name: "RAMS", href: "/dashboard/health-and-safety/rams", showNearMissCount: false },
   { name: "Briefings", href: "/dashboard/health-and-safety/briefings", showNearMissCount: false },
   { name: "Training", href: "/dashboard/health-and-safety/training", showNearMissCount: false },
+  { name: "Permits", href: "/dashboard/health-and-safety/permits", showNearMissCount: false },
   { name: "Induction safety", href: "/dashboard/health-and-safety/induction-safety", showNearMissCount: false },
   { name: "Site rules", href: "/dashboard/health-and-safety/site-rules", showNearMissCount: false },
   { name: "COSHH", href: "/dashboard/health-and-safety/coshh", showNearMissCount: false },
   { name: "Alerts", href: "/dashboard/health-and-safety/alerts", showNearMissCount: false },
   { name: "Alarms", href: "/dashboard/health-and-safety/alarms", showNearMissCount: false },
   { name: "Near miss", href: "/dashboard/health-and-safety/near-miss", showNearMissCount: true },
+  { name: "Quiz results", href: "/dashboard/health-and-safety/questions", showNearMissCount: false },
+  { name: "Client pack", href: "/dashboard/health-and-safety/evidence", showNearMissCount: false },
 ];
 
 export default function HealthAndSafetyLayout({

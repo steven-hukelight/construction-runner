@@ -237,7 +237,7 @@ export function DashboardContent({
           )}
           {missingInfoCount > 0 && (
             <PendingItem
-              href={preInductionUiEnabled ? "/dashboard/induction-compliance" : "/dashboard/missing-info"}
+              href={preInductionUiEnabled ? "/dashboard/induction-compliance" : "/dashboard/users?tab=missing"}
               title={`${missingInfoCount} ${missingInfoCount === 1 ? "person is" : "people are"} missing emergency or medical info`}
               priority="medium"
             />

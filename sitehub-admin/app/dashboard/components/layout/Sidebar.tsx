@@ -4,7 +4,14 @@ import { Fragment, useState, useEffect, useCallback } from "react";
 import { getRoleFromClient } from "@/lib/utils/cookies";
 import { useClientSession } from "../ClientSessionProvider";
 import { useNearMissCount } from "../NearMissCountProvider";
+import { useAutoPausedCount } from "../AutoPausedCountProvider";
 import { canRoleViewNearMiss } from "@/lib/auth/nearMissRoles";
+import {
+  HEALTH_AND_SAFETY_HREF,
+  healthAndSafetyGroupsForRole,
+  isHealthAndSafetyPath,
+  isHealthAndSafetyTabActive,
+} from "@/lib/healthAndSafety/nav";
 import { usePolling } from "@/lib/hooks/usePolling";
 import Link from "next/link";
 import Image from "next/image";
@@ -26,17 +33,16 @@ import {
   Building2,
   ClipboardList,
   UserCheck,
+  ChevronRight,
 } from "lucide-react";
 
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
-// Admin/Supervisor: Sites, Subcontractors, [Induction compliance | Missing info], Users, pending signups, Attendance
+// Admin/Supervisor: Sites, Subcontractors, [Induction compliance], Users (includes missing details), pending signups, Attendance
 const adminNavItems = [
   { name: "Sites", href: "/dashboard/sites", icon: MapPin },
   { name: "Subcontractors", href: "/dashboard/subcontractors", icon: Building2 },
-  // When the pre-induction UI is disabled, "Induction compliance" is replaced by
-  // the slim "Missing info" report (emergency contact + medical info completeness).
   ...(preInductionUiEnabled
     ? [
         {
@@ -45,13 +51,7 @@ const adminNavItems = [
           icon: ClipboardCheck,
         },
       ]
-    : [
-        {
-          name: "Missing info",
-          href: "/dashboard/missing-info",
-          icon: ClipboardCheck,
-        },
-      ]),
+    : []),
   { name: "Users", href: "/dashboard/users", icon: Users },
   { name: "Pending approvals", href: "/dashboard/pending-approvals", icon: UserCheck },
   { name: "Attendance", href: "/dashboard/attendance", icon: ClipboardList },
@@ -61,7 +61,6 @@ type SidebarProps = {
   role?: string | null;
 };
 
-// Health & safety is a single link; its sections live in the tab strip in health-and-safety/layout.tsx
 const topLevelItems = [
   { name: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { name: "Tasks", href: "/dashboard/tasks", icon: ListTodo },
@@ -70,8 +69,6 @@ const topLevelItems = [
   { name: "Messages", href: "/dashboard/messaging", icon: MessageSquare },
   { name: "Settings", href: "/dashboard/settings", icon: Settings },
 ];
-
-const healthAndSafetyHref = "/dashboard/health-and-safety/rams";
 
 const subAdminNavItem = { name: "Operative onboarding", href: "/dashboard/subcontractor", icon: FileText };
 
@@ -83,7 +80,10 @@ export default function Sidebar({ role }: SidebarProps) {
   const isSuperuserSession = (sessionRole ?? role ?? "").toLowerCase() === "superuser";
   const inCompanyView = !isSuperuserSession || impersonating;
   const rawNearMissCount = useNearMissCount();
-  const nearMissCount = canRoleViewNearMiss(sessionRole) ? rawNearMissCount : 0;
+  const canViewNearMiss = canRoleViewNearMiss(sessionRole);
+  const nearMissCount = canViewNearMiss ? rawNearMissCount : 0;
+  const autoPausedCount = useAutoPausedCount();
+  const [hsExpanded, setHsExpanded] = useState(() => isHealthAndSafetyPath(pathname));
   const [pendingApprovalsBadge, setPendingApprovalsBadge] = useState(0);
 
   const loadPendingApprovalsBadge = useCallback(async (signal: AbortSignal) => {
@@ -109,6 +109,13 @@ export default function Sidebar({ role }: SidebarProps) {
     inCompanyView &&
     ["admin", "ADMIN", "site_admin", "supervisor", "SUPERVISOR", "sub_admin"].includes(role ?? "");
 
+  const healthAndSafetyOpen = isHealthAndSafetyPath(pathname);
+  const hsGroups = healthAndSafetyGroupsForRole(canViewNearMiss);
+
+  useEffect(() => {
+    setHsExpanded(healthAndSafetyOpen);
+  }, [healthAndSafetyOpen]);
+
   useEffect(() => {
     if (!mobileMenuOpen) return;
     const onKey = (event: KeyboardEvent) => {
@@ -119,22 +126,80 @@ export default function Sidebar({ role }: SidebarProps) {
   }, [mobileMenuOpen]);
 
   const healthAndSafetyLink = (
-    <Link
-      href={healthAndSafetyHref}
-      className={`${pathname?.startsWith("/dashboard/health-and-safety") ? "active" : ""} ${nearMissCount > 0 ? "!pr-2" : ""}`}
-      onClick={() => setMobileMenuOpen(false)}
-    >
-      <HardHat size={20} strokeWidth={2.5} />
-      <span className="flex-1 min-w-0">{t("Health & safety")}</span>
-      {nearMissCount > 0 && (
-        <span
-          className="shrink-0 min-w-[20px] h-5 px-1.5 rounded-full bg-amber-500 text-white text-xs font-medium flex items-center justify-center"
-          aria-label={`${nearMissCount} unreviewed near misses`}
+    <div>
+      <div className="flex items-stretch">
+        <Link
+          href={HEALTH_AND_SAFETY_HREF}
+          className={`!w-auto min-w-0 flex-1 ${healthAndSafetyOpen ? "active" : ""} ${nearMissCount > 0 ? "!pr-2" : ""}`}
+          onClick={() => {
+            setHsExpanded(true);
+            setMobileMenuOpen(false);
+          }}
         >
-          {nearMissCount > 99 ? "99+" : nearMissCount}
-        </span>
+          <HardHat size={20} strokeWidth={2.5} />
+          <span className="min-w-0 flex-1">{t("Health & safety")}</span>
+          {nearMissCount > 0 && (
+            <span
+              className="flex h-5 min-w-[20px] shrink-0 items-center justify-center rounded-full bg-amber-500 px-1.5 text-xs font-medium text-white"
+              aria-label={`${nearMissCount} unreviewed near misses`}
+            >
+              {nearMissCount > 99 ? "99+" : nearMissCount}
+            </span>
+          )}
+        </Link>
+        <button
+          type="button"
+          className="sidebar-disclosure"
+          aria-expanded={hsExpanded}
+          aria-label={hsExpanded ? "Collapse health and safety" : "Expand health and safety"}
+          onClick={() => setHsExpanded((open) => !open)}
+        >
+          <ChevronRight
+            size={14}
+            strokeWidth={2.25}
+            className={`text-gray-400 ${hsExpanded ? "rotate-90 text-blue-500" : ""}`}
+            aria-hidden
+          />
+        </button>
+      </div>
+      {hsExpanded && (
+        <div className="sidebar-subnav">
+          {hsGroups.map((group) => (
+            <div key={group.name}>
+              <p className="sidebar-subnav-label">{t(group.name)}</p>
+              {group.tabs.map((tab) => {
+                const active = isHealthAndSafetyTabActive(pathname, tab.href);
+                const badge =
+                  tab.showNearMissCount && nearMissCount > 0
+                    ? nearMissCount
+                    : tab.showAutoPausedCount && autoPausedCount > 0
+                      ? autoPausedCount
+                      : null;
+                return (
+                  <Link
+                    key={tab.href}
+                    href={tab.href}
+                    className={active ? "active" : ""}
+                    aria-current={active ? "page" : undefined}
+                    onClick={() => setMobileMenuOpen(false)}
+                  >
+                    <span className="min-w-0 flex-1">{t(tab.name)}</span>
+                    {badge != null && (
+                      <span
+                        className="flex h-4 min-w-[18px] shrink-0 items-center justify-center rounded-full bg-amber-500 px-1 text-[10px] font-medium text-white"
+                        aria-label={`${badge}`}
+                      >
+                        {badge > 99 ? "99+" : badge}
+                      </span>
+                    )}
+                  </Link>
+                );
+              })}
+            </div>
+          ))}
+        </div>
       )}
-    </Link>
+    </div>
   );
 
   return (
@@ -263,12 +328,7 @@ export default function Sidebar({ role }: SidebarProps) {
                   <ClipboardCheck size={20} strokeWidth={2.5} />
                   <span>{t("Induction compliance")}</span>
                 </Link>
-              ) : (
-                <Link href="/dashboard/missing-info" className={pathname === "/dashboard/missing-info" ? "active" : ""} onClick={() => setMobileMenuOpen(false)}>
-                  <ClipboardCheck size={20} strokeWidth={2.5} />
-                  <span>{t("Missing info")}</span>
-                </Link>
-              )}
+              ) : null}
             </>
           ) : null}
           {inCompanyView &&

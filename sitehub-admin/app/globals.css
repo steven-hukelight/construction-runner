@@ -308,6 +308,60 @@ h1, h2, h3, h4, h5, h6 {
   font-weight: 500;
 }
 
+.sidebar .sidebar-subnav {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0 0 4px 18px;
+  padding: 2px 0 2px 8px;
+  border-left: 1px solid #e5e7eb;
+}
+
+.sidebar .sidebar-subnav a {
+  min-height: 32px;
+  max-height: 34px;
+  padding: 0 10px;
+  font-size: 12.5px;
+  font-weight: 400;
+}
+
+.sidebar .sidebar-subnav-label {
+  padding: 8px 10px 2px;
+  margin: 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #6b7280;
+}
+
+.sidebar-disclosure {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  min-height: 38px;
+  margin: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: #9ca3af;
+  cursor: pointer;
+}
+
+.sidebar-disclosure:hover {
+  background: #f9fafb;
+  color: #2563eb;
+}
+
+.sidebar-disclosure:focus {
+  outline: none;
+}
+
+.sidebar-disclosure:focus-visible {
+  outline: 2px solid #2563eb;
+  outline-offset: 2px;
+}
+
 /* Main column scrolls; sidebar stays in the flex shell. */
 .main-content{
   flex: 1;
@@ -1290,6 +1344,10 @@ html.dashboard-lock[data-theme="dark"] body {
 [data-theme="dark"] .sidebar a.active {
   background: #1e3a5f;
   color: #bfdbfe;
+}
+
+[data-theme="dark"] .sidebar .sidebar-subnav {
+  border-left-color: #334155;
 }
 
 [data-theme="dark"] .sidebar .logo {

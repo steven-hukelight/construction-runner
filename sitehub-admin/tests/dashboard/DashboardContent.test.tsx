@@ -89,6 +89,9 @@ describe("DashboardContent", () => {
       expect(screen.getByText("1 asset inspection overdue")).toBeInTheDocument();
     });
     expect(screen.getByText("2 people are missing emergency or medical info")).toBeInTheDocument();
+    expect(
+      screen.getByRole("link", { name: /2 people are missing emergency or medical info/i })
+    ).toHaveAttribute("href", "/dashboard/users?tab=missing");
   });
 
   it("shows empty attention state when nothing is waiting", async () => {

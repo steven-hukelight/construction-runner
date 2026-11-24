@@ -20,9 +20,10 @@ type Row = {
   missingMedicalInfo: boolean;
 };
 
-export default function MissingInfoTable() {
+export default function MissingInfoTable({ embedded = false }: { embedded?: boolean }) {
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState<"all" | "emergency" | "medical" | "both">("all");
   const [remindingId, setRemindingId] = useState<string | null>(null);
@@ -30,12 +31,14 @@ export default function MissingInfoTable() {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const res = await fetch("/api/admin/missing-info", { credentials: "include" });
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const data = (await res.json()) as Row[];
       setRows(Array.isArray(data) ? data : []);
     } catch (e) {
+      setLoadError(true);
       toast.error(e instanceof Error ? e.message : "Failed to load report");
     } finally {
       setLoading(false);
@@ -114,12 +117,18 @@ export default function MissingInfoTable() {
 
   return (
     <Table
-      title="Missing info"
+      title={embedded ? undefined : "Missing info"}
       subtitle={
         loading
           ? "Loading…"
-          : `${filtered.length} of ${rows.length} worker${rows.length === 1 ? "" : "s"}`
+          : loadError
+            ? undefined
+            : `${filtered.length} of ${rows.length} worker${rows.length === 1 ? "" : "s"}`
       }
+      loading={loading}
+      error={loadError}
+      onRetry={() => void load()}
+      thing="workers with missing details"
       actions={
         <div className="flex flex-wrap items-center gap-3">
           <Button
@@ -206,13 +215,11 @@ export default function MissingInfoTable() {
           ),
         },
       ]}
-      data={loading ? [] : filtered}
+      data={filtered}
       emptyMessage={
-        loading
-          ? "Loading…"
-          : rows.length === 0
-            ? "Everyone in your company has their emergency contact and medical info filled in. Nothing to chase."
-            : "No workers match the current filter."
+        rows.length === 0
+          ? "Everyone in your company has their emergency contact and medical info filled in. Nothing to chase."
+          : "No workers match the current filter."
       }
     />
   );

@@ -1,13 +1,22 @@
 import PageHeader from "../components/PageHeader";
 import UsersTable from "./UsersTable";
 import InviteUserModal from "./InviteUserModal";
+import UsersTabs from "./UsersTabs";
+import MissingInfoTable from "../missing-info/MissingInfoTable";
 import { fetchUsers } from "./actions";
 import { cookies } from "next/headers";
 import { resolveCompanyId } from "@/lib/auth/companyId";
 import { deepSerializeForClient } from "@/lib/rscSerialize";
 import SuperuserCompanyGate from "../components/SuperuserCompanyGate";
+import { preInductionUiEnabled } from "@/lib/featureFlags";
 
-export default async function UsersPage() {
+export default async function UsersPage({
+  searchParams,
+}: {
+  searchParams?:
+    | Record<string, string | string[] | undefined>
+    | Promise<Record<string, string | string[] | undefined>>;
+}) {
   const cookieStore = await cookies();
   const role = cookieStore.get("role")?.value;
   let companyId = cookieStore.get("companyId")?.value;
@@ -25,14 +34,23 @@ export default async function UsersPage() {
     return <SuperuserCompanyGate title="Users" description="Select a company to view and manage users." />;
   }
 
-  const users = await fetchUsers(companyId ?? undefined, role ?? undefined);
+  const params = await Promise.resolve(searchParams ?? {});
+  const tabRaw = typeof params.tab === "string" ? params.tab : Array.isArray(params.tab) ? params.tab[0] : undefined;
+  const showMissingTab = !preInductionUiEnabled;
+  const tab = showMissingTab && tabRaw === "missing" ? "missing" : "people";
+
+  const users = tab === "missing" ? [] : await fetchUsers(companyId ?? undefined, role ?? undefined);
   const currentUserRole = cookieStore.get("role")?.value || "";
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-6">
       <PageHeader
         title="Users"
-        description="Company accounts, roles, and medical records."
+        description={
+          tab === "missing"
+            ? "Workers missing an emergency contact or medical info."
+            : "Company accounts, roles, and medical records."
+        }
         action={
           <div className="flex items-center gap-3">
             <InviteUserModal />
@@ -40,13 +58,14 @@ export default async function UsersPage() {
         }
       />
 
+      {showMissingTab ? <UsersTabs tab={tab} /> : null}
+
       <div className="relative">
-        {/* Decorative background element */}
-        
-        <UsersTable
-          data={deepSerializeForClient(users)}
-          currentUserRole={currentUserRole}
-        />
+        {tab === "missing" ? (
+          <MissingInfoTable embedded />
+        ) : (
+          <UsersTable data={deepSerializeForClient(users)} currentUserRole={currentUserRole} />
+        )}
       </div>
     </div>
   );

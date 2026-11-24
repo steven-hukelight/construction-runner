@@ -13,6 +13,7 @@ import OneSignalProvider from "./components/OneSignalProvider";
 import { DashboardMainShell } from "./components/DashboardMainShell";
 import { ClientSessionProvider } from "./components/ClientSessionProvider";
 import { NearMissCountProvider } from "./components/NearMissCountProvider";
+import { AutoPausedCountProvider } from "./components/AutoPausedCountProvider";
 import type { ClientSessionSnapshot } from "@/lib/utils/cookies";
 import {
   validateSession,
@@ -103,24 +104,26 @@ export default async function DashboardLayout({ children }: { children: React.Re
   return (
     <ClientSessionProvider initial={clientSession}>
       <NearMissCountProvider>
-        <div className="app-root">
-          <a
-            href="#dashboard-main"
-            className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
-          >
-            Skip to main content
-          </a>
-          <OneSignalProvider />
-          <SessionTimeoutHandler />
-          <NativeDatePickerOpener />
-          {showSidebar}
-          <DashboardMainShell>
-            <GlobalBanner />
-            <ActiveAlarmBanner />
-            <Topbar />
-            {children}
-          </DashboardMainShell>
-        </div>
+        <AutoPausedCountProvider>
+          <div className="app-root">
+            <a
+              href="#dashboard-main"
+              className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[100] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-medium focus:text-gray-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            >
+              Skip to main content
+            </a>
+            <OneSignalProvider />
+            <SessionTimeoutHandler />
+            <NativeDatePickerOpener />
+            {showSidebar}
+            <DashboardMainShell>
+              <GlobalBanner />
+              <ActiveAlarmBanner />
+              <Topbar />
+              {children}
+            </DashboardMainShell>
+          </div>
+        </AutoPausedCountProvider>
       </NearMissCountProvider>
     </ClientSessionProvider>
   );
