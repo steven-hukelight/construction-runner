@@ -3,6 +3,8 @@
 import { useState } from "react";
 import Image from "next/image";
 import Button from "../components/ui/Button";
+import Table from "../components/ui/Table";
+import { TableNameCell } from "../components/ui/TableChrome";
 import InviteSubcontractorModal from "./InviteSubcontractorModal";
 import useSWR from "swr";
 
@@ -16,12 +18,14 @@ type Subcontractor = {
 };
 
 export default function SubcontractorsList() {
-  const fetcher = (url: string) =>
-    fetch(url, { cache: "no-store", credentials: "include" })
-      .then((r) => (r.ok ? r.json() : []))
-      .then((d) => (Array.isArray(d) ? d : []));
+  const fetcher = async (url: string) => {
+    const res = await fetch(url, { cache: "no-store", credentials: "include" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    const data = await res.json();
+    return Array.isArray(data) ? (data as Subcontractor[]) : [];
+  };
 
-  const { data: list = [], isLoading, mutate } = useSWR<Subcontractor[]>(
+  const { data: list = [], isLoading, error, mutate } = useSWR<Subcontractor[]>(
     "/api/subcontractors",
     fetcher,
     { refreshInterval: 30000 }
@@ -32,50 +36,56 @@ export default function SubcontractorsList() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-center justify-between gap-4">
-        <p className="text-gray-600 dark:text-slate-400">
-          Partner companies linked to your sites. Invite new subcontractors with a code per site.
-        </p>
-        <Button onClick={() => setModalOpen(true)}>Invite subcontractor</Button>
-      </div>
-
-      {isLoading ? (
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-8 text-center text-gray-500 dark:text-slate-400">
-          Loading…
-        </div>
-      ) : list.length === 0 ? (
-        <div className="rounded-2xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-12 text-center">
-          <p className="text-gray-600 dark:text-slate-400 mb-4">No subcontractor partners yet.</p>
-          <Button onClick={() => setModalOpen(true)}>Invite subcontractor</Button>
-        </div>
-      ) : (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          {list.map((c) => (
-            <div
-              key={c.id}
-              className="rounded-xl border border-gray-200 dark:border-slate-600 bg-white dark:bg-slate-800 p-6 transition-colors duration-[120ms]"
-            >
-              <div className="flex items-start gap-4">
-                <div className="h-12 w-12 rounded-xl bg-gray-100 dark:bg-slate-700 flex items-center justify-center overflow-hidden shrink-0">
+      <Table
+        actions={
+          <Button type="button" onClick={() => setModalOpen(true)}>
+            Invite subcontractor
+          </Button>
+        }
+        loading={isLoading && list.length === 0}
+        error={Boolean(error) && list.length === 0}
+        onRetry={() => void mutate()}
+        thing="subcontractors"
+        things="subcontractors"
+        emptyAction={
+          <Button type="button" onClick={() => setModalOpen(true)}>
+            Invite subcontractor
+          </Button>
+        }
+        columns={[
+          {
+            header: "Company",
+            accessor: "name",
+            render: (c: Subcontractor) => (
+              <div className="flex items-center gap-3">
+                <div className="flex h-9 w-9 shrink-0 items-center justify-center overflow-hidden rounded-lg bg-gray-100 dark:bg-slate-700">
                   {c.logoUrl ? (
-                    <Image src={c.logoUrl} alt="" width={48} height={48} className="object-cover" />
+                    <Image src={c.logoUrl} alt="" width={36} height={36} className="object-cover" />
                   ) : (
-                    <span className="text-lg font-semibold text-blue-600 dark:text-blue-400">
+                    <span className="text-sm font-semibold text-blue-600 dark:text-blue-400">
                       {(c.name || "?")[0].toUpperCase()}
                     </span>
                   )}
                 </div>
-                <div className="min-w-0 flex-1">
-                  <h3 className="font-semibold text-gray-900 dark:text-slate-100 truncate">{c.name || "Unnamed"}</h3>
-                  <p className="text-sm text-gray-500 dark:text-slate-400 mt-1">
-                    {c.operativeCount} operative{c.operativeCount !== 1 ? "s" : ""} · {c.siteCount} site{c.siteCount !== 1 ? "s" : ""}
-                  </p>
-                </div>
+                <TableNameCell label={c.name || "Unnamed"} detail={c.type} />
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ),
+          },
+          {
+            header: "Operatives",
+            accessor: "operativeCount",
+            type: "numeric",
+            render: (c: Subcontractor) => c.operativeCount,
+          },
+          {
+            header: "Sites",
+            accessor: "siteCount",
+            type: "numeric",
+            render: (c: Subcontractor) => c.siteCount,
+          },
+        ]}
+        data={list}
+      />
 
       <InviteSubcontractorModal
         open={modalOpen}

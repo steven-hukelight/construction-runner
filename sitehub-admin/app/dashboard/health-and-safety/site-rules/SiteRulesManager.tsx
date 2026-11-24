@@ -9,6 +9,7 @@ import Button from "../../components/ui/Button";
 import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { SitePicker } from "../../components/ui/SitePicker";
 import { SiteWideField } from "../../components/SiteWideField";
+import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 const CATEGORIES = [
   { id: "PPE", label: "PPE", icon: HardHat, desc: "Personal protective equipment requirements" },
@@ -19,6 +20,7 @@ const CATEGORIES = [
 type Rule = { id: string; category: string; title: string; description: string; file_url?: string; site_id?: string | null };
 
 export default function SiteRulesManager() {
+  const confirm = useConfirm();
   const [rules, setRules] = useState<Rule[]>([]);
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState<Rule | null>(null);
@@ -151,7 +153,13 @@ export default function SiteRulesManager() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Delete this rule?")) return;
+    const ok = await confirm({
+      title: "Delete rule",
+      message: "Delete this rule?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/site-rules?id=${id}`, { method: "DELETE", credentials: "include" });
     setRules((prev) => prev.filter((r) => r.id !== id));
   }
@@ -250,7 +258,7 @@ export default function SiteRulesManager() {
       )}
 
       <p className="text-sm text-slate-600 mb-6">
-        Define per-site rules operatives accept during induction (after the safety pack and RAMS). Add a rule to a site, pick PPE / emergency / conduct, and optionally attach a document. Company-wide PPE and emergency copy belongs under Induction safety.
+        Pick a site, add a rule under PPE, emergency, or conduct, and attach a document if you need to. The long read for every site is under Induction content.
       </p>
 
       <div className="space-y-8">

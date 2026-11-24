@@ -14,8 +14,10 @@ import { formatDate } from "@/app/DisplayPreferencesProvider";
 import toast from "react-hot-toast";
 import { updateTaskStatus, deleteTask } from "./actions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 export default function TasksTable({ data, refreshTrigger }: { data?: any; refreshTrigger?: number }) {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<any[]>(data || []);
   const [users, setUsers] = useState<any[]>([]);
   const [detailTask, setDetailTask] = useState<any | null>(null);
@@ -82,7 +84,13 @@ export default function TasksTable({ data, refreshTrigger }: { data?: any; refre
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this task?")) return;
+    const ok = await confirm({
+      title: "Delete task",
+      message: "Are you sure you want to delete this task?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       await deleteTask(id);
       setRows((prev) => prev.filter((row) => row.id !== id));

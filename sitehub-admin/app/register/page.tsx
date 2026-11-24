@@ -8,12 +8,18 @@ import { TurnstileWidget } from "@/app/components/TurnstileWidget";
 import PasswordRequirements from "@/app/components/PasswordRequirements";
 import SignupVerifyForm from "@/app/components/SignupVerifyForm";
 import { isPasswordValid, PASSWORD_MIN_LENGTH, PASSWORD_REQUIREMENTS_MESSAGE } from "@/lib/passwordPolicy";
+import JoinSubcontractorForm from "./JoinSubcontractorForm";
 
-type RegisterTab = "join" | "newCompany";
+type RegisterTab = "join" | "subcontractor" | "newCompany";
 
 function RegisterPageContent() {
   const searchParams = useSearchParams();
-  const [tab, setTab] = useState<RegisterTab>("join");
+  const [tab, setTab] = useState<RegisterTab>(() => {
+    const raw = searchParams.get("tab");
+    if (raw === "subcontractor" || raw === "newCompany") return raw;
+    if (searchParams.get("code") && !searchParams.get("companyCode")) return "subcontractor";
+    return "join";
+  });
   const [publicSettings, setPublicSettings] = useState<{
     registrationsOpen?: boolean;
     maintenanceMode?: boolean;
@@ -47,6 +53,9 @@ function RegisterPageContent() {
     if (code) {
       setInviteCode(code);
       setTab("join");
+    }
+    if (searchParams.get("tab") === "subcontractor" || (searchParams.get("code") && !code)) {
+      setTab("subcontractor");
     }
     if (email) setInviteEmail(email);
     if (name) setInviteName(name);
@@ -321,12 +330,11 @@ function RegisterPageContent() {
       <div className="w-full max-w-md md:max-w-4xl">
         <h1 className="text-center text-2xl font-semibold text-gray-900 mb-2">Create an account</h1>
         <p className="text-center text-sm text-gray-600 mb-6 max-w-xl mx-auto">
-          To join an existing organisation you need the <strong className="font-semibold text-gray-800">company invite code</strong> from your
-          administrator. Only use &quot;Request new company&quot; if you are setting up a brand-new organisation.
+          Join with a company invite code, a subcontractor code, or request a new organisation.
         </p>
 
         <div
-          className="flex rounded-xl border border-gray-200 bg-white p-1 mb-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+          className="flex flex-wrap rounded-xl border border-gray-200 bg-white p-1 mb-8 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
           role="tablist"
           aria-label="Registration type"
         >
@@ -339,7 +347,18 @@ function RegisterPageContent() {
             }`}
             onClick={() => setTab("join")}
           >
-            Join with invite code
+            Join company
+          </button>
+          <button
+            type="button"
+            role="tab"
+            aria-selected={tab === "subcontractor"}
+            className={`flex-1 rounded-lg py-2.5 text-sm font-semibold transition-colors ${
+              tab === "subcontractor" ? "bg-blue-600 text-white shadow" : "text-gray-600 hover:text-gray-900"
+            }`}
+            onClick={() => setTab("subcontractor")}
+          >
+            Subcontractor
           </button>
           <button
             type="button"
@@ -350,7 +369,7 @@ function RegisterPageContent() {
             }`}
             onClick={() => setTab("newCompany")}
           >
-            Request new company
+            New company
           </button>
         </div>
 
@@ -372,7 +391,7 @@ function RegisterPageContent() {
           <div>
             <h2 className="text-2xl font-semibold text-blue-700 mb-2">Request a new company account</h2>
             <div className="space-y-2">
-              <label htmlFor="new-admin-name" className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label htmlFor="new-admin-name" className="block text-sm font-medium text-gray-700">Full name</label>
               <input
                 id="new-admin-name"
                 type="text"
@@ -384,7 +403,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="new-admin-email" className="block text-sm font-medium text-gray-700">Work Email</label>
+              <label htmlFor="new-admin-email" className="block text-sm font-medium text-gray-700">Work email</label>
               <input
                 id="new-admin-email"
                 type="email"
@@ -396,7 +415,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="new-company-name" className="block text-sm font-medium text-gray-700">Company Name</label>
+              <label htmlFor="new-company-name" className="block text-sm font-medium text-gray-700">Company name</label>
               <input
                 id="new-company-name"
                 type="text"
@@ -408,7 +427,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="new-company-phone" className="block text-sm font-medium text-gray-700">Company Phone</label>
+              <label htmlFor="new-company-phone" className="block text-sm font-medium text-gray-700">Company phone</label>
               <input
                 id="new-company-phone"
                 type="tel"
@@ -420,7 +439,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="new-company-address" className="block text-sm font-medium text-gray-700">Company Address</label>
+              <label htmlFor="new-company-address" className="block text-sm font-medium text-gray-700">Company address</label>
               <input
                 id="new-company-address"
                 type="text"
@@ -445,6 +464,18 @@ function RegisterPageContent() {
             {newCompanyMessage && <div className="text-sm text-center text-blue-700 mt-2 font-medium">{newCompanyMessage}</div>}
           </div>
         </form>
+          ) : tab === "subcontractor" ? (
+        <div className="w-full max-w-md p-8 rounded-xl border border-gray-200 bg-white shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+          <h2 className="text-2xl font-semibold text-blue-700 mb-2">Join as a subcontractor</h2>
+          <p className="text-sm text-gray-600 mb-4">
+            Enter the invite code from your main contractor. Existing accounts are sent to sign in.
+          </p>
+          <JoinSubcontractorForm
+            initialCode={searchParams.get("code") ?? ""}
+            initialName={searchParams.get("name") ?? ""}
+            initialCompany={searchParams.get("company") ?? ""}
+          />
+        </div>
           ) : (
         <form
           onSubmit={handleInviteSubmit}
@@ -460,7 +491,7 @@ function RegisterPageContent() {
               Office users invited to an existing company enter the code here. Operatives should use the mobile app after they are approved.
             </p>
             <div className="space-y-2">
-              <label htmlFor="invite-name" className="block text-sm font-medium text-gray-700">Full Name</label>
+              <label htmlFor="invite-name" className="block text-sm font-medium text-gray-700">Full name</label>
               <input
                 id="invite-name"
                 type="text"
@@ -472,7 +503,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="invite-email" className="block text-sm font-medium text-gray-700">Work Email</label>
+              <label htmlFor="invite-email" className="block text-sm font-medium text-gray-700">Work email</label>
               <input
                 id="invite-email"
                 type="email"
@@ -484,7 +515,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="invite-code" className="block text-sm font-medium text-gray-700">Company Invite Code</label>
+              <label htmlFor="invite-code" className="block text-sm font-medium text-gray-700">Company invite code</label>
               <input
                 id="invite-code"
                 type="text"
@@ -496,7 +527,7 @@ function RegisterPageContent() {
               />
             </div>
             <div className="space-y-2">
-              <label htmlFor="invite-password" className="block text-sm font-medium text-gray-700">Set Password</label>
+              <label htmlFor="invite-password" className="block text-sm font-medium text-gray-700">Set password</label>
               <input
                 id="invite-password"
                 type="password"

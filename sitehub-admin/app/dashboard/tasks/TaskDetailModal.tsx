@@ -10,6 +10,7 @@ import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { canViewTeamAttendance } from "@/lib/auth/roles";
 import { useClientSession } from "../components/ClientSessionProvider";
 import RequiredCompetence from "../components/RequiredCompetence";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 type Task = {
   id: string;
@@ -38,6 +39,7 @@ export default function TaskDetailModal({
   onStatusChange?: (id: string, status: string) => void;
   onDelete?: (id: string) => void;
 }) {
+  const confirm = useConfirm();
   const [attachments, setAttachments] = useState<Attachment[]>([]);
   const [uploading, setUploading] = useState(false);
   const { role } = useClientSession();
@@ -206,10 +208,17 @@ export default function TaskDetailModal({
               variant="secondary"
               className="text-red-600 hover:bg-red-50"
               onClick={() => {
-                if (window.confirm("Delete this task?")) {
+                void (async () => {
+                  const ok = await confirm({
+                    title: "Delete task",
+                    message: "Delete this task?",
+                    confirmLabel: "Delete",
+                    danger: true,
+                  });
+                  if (!ok) return;
                   onDelete(task.id);
                   onClose();
-                }
+                })();
               }}
             >
               Delete

@@ -21,10 +21,10 @@ export function Button({
   ...props
 }: ButtonProps) {
   const variants: Record<ButtonVariant, string> = {
-    primary: "bg-blue-600 hover:bg-blue-700 text-white",
+    primary: "bg-blue-600 hover:bg-blue-700 text-white dark:bg-blue-600 dark:hover:bg-blue-500",
     secondary:
       "bg-white hover:bg-gray-50 text-gray-700 border border-gray-200 hover:border-gray-300 dark:bg-slate-800 dark:text-slate-100 dark:border-slate-600 dark:hover:bg-slate-700",
-    danger: "bg-red-600 hover:bg-red-700 text-white",
+    danger: "bg-red-600 hover:bg-red-700 text-white dark:bg-red-600 dark:hover:bg-red-500",
   };
 
   const sizes: Record<ButtonSize, string> = {

@@ -12,6 +12,7 @@ import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { SitePicker } from "../../components/ui/SitePicker";
 import { SiteWideField } from "../../components/SiteWideField";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 const SEVERITIES = [
   { id: "info", label: "Info", class: "status-chip--info" },
@@ -31,6 +32,7 @@ type AlertItem = {
 };
 
 export default function SafetyAlertsManager() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<AlertItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({ title: "", description: "", severity: "info", siteId: "", sourceUrl: "", sourceName: "" });
@@ -101,7 +103,13 @@ export default function SafetyAlertsManager() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Delete this alert?")) return;
+    const ok = await confirm({
+      title: "Delete alert",
+      message: "Delete this alert?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/safety-alerts/${id}`, { method: "DELETE", credentials: "include" }).catch(() => null);
     if (!res?.ok) {
       toast.error("Couldn't delete the alert");

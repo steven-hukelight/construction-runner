@@ -15,9 +15,10 @@ type Props = {
 
 export default function SupervisorOperativeCard({ operative, onClick }: Props) {
   return (
-    <div
+    <button
+      type="button"
       onClick={onClick}
-      className="rounded-xl border border-gray-200 bg-white p-4 hover:border-blue-200 transition-colors duration-[120ms] cursor-pointer"
+      className="w-full rounded-xl border border-gray-200 bg-white p-4 text-left hover:border-blue-200 transition-colors duration-[120ms]"
     >
       <div className="flex items-start justify-between gap-2">
         <div className="flex items-center gap-3 min-w-0 flex-1">
@@ -52,6 +53,6 @@ export default function SupervisorOperativeCard({ operative, onClick }: Props) {
           </span>
         )}
       </div>
-    </div>
+    </button>
   );
 }

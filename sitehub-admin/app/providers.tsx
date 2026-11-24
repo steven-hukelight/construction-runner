@@ -3,11 +3,14 @@
 import { type ReactNode } from "react";
 import { ThemeProvider } from "./ThemeProvider";
 import { DisplayPreferencesProvider } from "./DisplayPreferencesProvider";
+import { ConfirmProvider } from "./dashboard/components/ui/ConfirmProvider";
 
 export function Providers({ children }: { children: ReactNode }) {
   return (
     <ThemeProvider>
-      <DisplayPreferencesProvider>{children}</DisplayPreferencesProvider>
+      <DisplayPreferencesProvider>
+        <ConfirmProvider>{children}</ConfirmProvider>
+      </DisplayPreferencesProvider>
     </ThemeProvider>
   );
 }

@@ -13,6 +13,7 @@ import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import BriefingDetailModal from "./BriefingDetailModal";
 import { useClientSession } from "../../components/ClientSessionProvider";
 import useSWR from "swr";
+import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 export default function BriefingsTable({
   data,
@@ -31,6 +32,7 @@ export default function BriefingsTable({
   canViewAcknowledgements: boolean;
   companyId?: string | null;
 }) {
+  const confirm = useConfirm();
   const { companyId: sessionCompanyId } = useClientSession();
   const companyId = useMemo(
     () => companyIdFromServer ?? sessionCompanyId,
@@ -114,11 +116,11 @@ export default function BriefingsTable({
     return `${acked} acknowledged`;
   }
 
-  const { data: rows = [], mutate } = useSWR(
+  const { data: rows = [], mutate, isLoading, error } = useSWR(
     companyId ? `/api/briefings?companyId=${encodeURIComponent(companyId)}` : null,
     async (url: string) => {
       const res = await fetch(url, { cache: "no-store", credentials: "include" });
-      if (!res.ok) return [] as typeof data;
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
       const list = await res.json();
       return Array.isArray(list) ? list : [];
     },
@@ -131,7 +133,13 @@ export default function BriefingsTable({
   );
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Delete this briefing?")) return;
+    const ok = await confirm({
+      title: "Delete briefing",
+      message: "Delete this briefing?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/briefings/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) await mutate((prev) => prev?.filter((r) => r.id !== id) ?? [], false);
   }
@@ -143,9 +151,12 @@ export default function BriefingsTable({
       return;
     }
     if (!companyId) return;
-    if (!window.confirm(`Remind ${pending} ${pending === 1 ? "person" : "people"} who have not acknowledged${title ? ` “${title}”` : ""}?`)) {
-      return;
-    }
+    const okRemind = await confirm({
+      title: "Send reminders",
+      message: `Remind ${pending} ${pending === 1 ? "person" : "people"} who have not acknowledged${title ? ` “${title}”` : ""}?`,
+      confirmLabel: "Send reminders",
+    });
+    if (!okRemind) return;
     const result = await postDocumentRemind("briefing", id, companyId);
     if (result.ok) {
       toast.success(result.message);
@@ -296,7 +307,15 @@ export default function BriefingsTable({
         })}
       </div>
       <div className="hidden md:block">
-        <Table embedded columns={columns} data={rows} />
+        <Table
+          embedded
+          columns={columns}
+          data={rows}
+          loading={isLoading && rows.length === 0}
+          error={Boolean(error) && rows.length === 0}
+          onRetry={() => void mutate()}
+          thing="briefings"
+        />
       </div>
     </DataTableShell>
       {detailBriefing && (

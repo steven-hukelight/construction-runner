@@ -37,6 +37,7 @@ import {
 } from "lucide-react";
 
 import { preInductionUiEnabled } from "@/lib/featureFlags";
+import { sidebarHrefVisible } from "@/lib/auth/sidebarNav";
 import { useDisplayPreferences } from "@/app/DisplayPreferencesProvider";
 
 // Admin/Supervisor: Sites, Subcontractors, [Induction compliance], Users (includes missing details), pending signups, Attendance
@@ -287,7 +288,7 @@ export default function Sidebar({ role }: SidebarProps) {
             </Link>
           )}
           {showAdminNav &&
-            adminNavItems.map((item) => {
+            adminNavItems.filter((item) => sidebarHrefVisible(role, item.href)).map((item) => {
               const active =
                 pathname === item.href ||
                 pathname?.startsWith(item.href + "/") ||

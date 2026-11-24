@@ -9,6 +9,7 @@ import Table from "../components/ui/Table";
 import { initialsFromLabel, TableNameCell } from "../components/ui/TableChrome";
 import RoleBadge from "../components/RoleBadge";
 import Button from "../components/ui/Button";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 type Row = {
   userId: string;
@@ -21,6 +22,7 @@ type Row = {
 };
 
 export default function MissingInfoTable({ embedded = false }: { embedded?: boolean }) {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<Row[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState(false);
@@ -88,13 +90,12 @@ export default function MissingInfoTable({ embedded = false }: { embedded?: bool
 
   async function remindAllVisible() {
     if (remindingAll || remindingId || filtered.length === 0) return;
-    if (
-      !confirm(
-        `Send a reminder to ${filtered.length} worker${filtered.length === 1 ? "" : "s"} to complete their profile info?`,
-      )
-    ) {
-      return;
-    }
+    const ok = await confirm({
+      title: "Remind workers",
+      message: `Send a reminder to ${filtered.length} worker${filtered.length === 1 ? "" : "s"} to complete their profile info?`,
+      confirmLabel: "Send reminders",
+    });
+    if (!ok) return;
     setRemindingAll(true);
     try {
       const res = await fetch("/api/admin/missing-info/remind", {

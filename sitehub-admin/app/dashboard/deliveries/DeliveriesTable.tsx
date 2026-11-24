@@ -11,6 +11,7 @@ import TableActions from "../components/ui/TableActions";
 import { formatDateTime } from "@/app/DisplayPreferencesProvider";
 import { updateDeliveryStatus, deleteDelivery } from "./actions";
 import useSWR from "swr";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 interface Delivery {
   id: string;
@@ -39,6 +40,7 @@ interface DeliveriesTableProps {
 }
 
 export default function DeliveriesTable({ data }: DeliveriesTableProps) {
+  const confirm = useConfirm();
   const fetcher = useMemo(
     () =>
       async (url: string) => {
@@ -65,7 +67,13 @@ export default function DeliveriesTable({ data }: DeliveriesTableProps) {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this delivery?")) return;
+    const ok = await confirm({
+      title: "Delete delivery",
+      message: "Are you sure you want to delete this delivery?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteDelivery(id);
     await mutate((prev) => prev?.filter((row) => row.id !== id) ?? [], false);
   }

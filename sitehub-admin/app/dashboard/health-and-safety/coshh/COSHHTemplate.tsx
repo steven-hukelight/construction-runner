@@ -13,6 +13,7 @@ import Table from "../../components/ui/Table";
 import { DataTableShell } from "../../components/ui/TableChrome";
 import TableActions from "../../components/ui/TableActions";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
+import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 type COSHHItem = {
   id: string;
@@ -24,6 +25,7 @@ type COSHHItem = {
 };
 
 export default function COSHHTemplate() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<COSHHItem[]>([]);
   const [adding, setAdding] = useState(false);
   const [form, setForm] = useState({
@@ -70,7 +72,13 @@ export default function COSHHTemplate() {
   }
 
   async function remove(id: string) {
-    if (!window.confirm("Delete this assessment?")) return;
+    const ok = await confirm({
+      title: "Delete assessment",
+      message: "Delete this assessment?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await fetch(`/api/coshh/${id}`, { method: "DELETE", credentials: "include" });
     setItems((prev) => prev.filter((i) => i.id !== id));
   }

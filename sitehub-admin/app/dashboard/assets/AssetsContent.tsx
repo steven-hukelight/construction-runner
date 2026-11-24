@@ -16,6 +16,7 @@ import {
   ASSET_INSPECTION_INTERVAL_PRESETS,
   assetInspectionDueStatus,
 } from "@/lib/assets/inspectionSchedule";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 interface Asset {
   id: string;
@@ -77,9 +78,11 @@ function inspectionRowClass(asset: Asset): string | undefined {
 }
 
 export default function AssetsContent({ companyId }: { companyId: string }) {
+  const confirm = useConfirm();
   const [assets, setAssets] = useState<Asset[]>([]);
   const [users, setUsers] = useState<User[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
   const [newAsset, setNewAsset] = useState({
     name: "",
     category: "equipment",
@@ -101,12 +104,14 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
 
   const load = useCallback(async () => {
     setLoading(true);
+    setLoadError(false);
     try {
       const [aRes, uRes, sRes] = await Promise.all([
         fetch("/api/assets"),
         fetch(`/api/companies/${companyId}/operatives`).catch(() => ({ json: () => [] })),
         fetch("/api/sites", { credentials: "include" }).catch(() => null),
       ]);
+      if (!aRes.ok) throw new Error(`HTTP ${aRes.status}`);
       const a = await aRes.json();
       const u = await uRes.json?.() ?? [];
       const s = sRes ? await sRes.json().catch(() => []) : [];
@@ -114,6 +119,7 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
       setUsers(Array.isArray(u) ? u : []);
       setCompanySites(Array.isArray(s) ? s : []);
     } catch {
+      setLoadError(true);
       setAssets([]);
       setUsers([]);
     } finally {
@@ -169,7 +175,13 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
   }
 
   async function removeAsset(assetId: string, assetName: string) {
-    if (!confirm(`Remove asset "${assetName}"? This cannot be undone.`)) return;
+    const ok = await confirm({
+      title: "Remove asset",
+      message: `Remove asset “${assetName}”? This cannot be undone.`,
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/assets/${assetId}`, { method: "DELETE" });
       if (!res.ok) {
@@ -517,6 +529,10 @@ export default function AssetsContent({ companyId }: { companyId: string }) {
       >
         <Table
           embedded
+          loading={loading && assets.length === 0}
+          error={loadError && assets.length === 0}
+          onRetry={() => void load()}
+          thing="assets"
           rowClassName={inspectionRowClass}
           columns={[
             {

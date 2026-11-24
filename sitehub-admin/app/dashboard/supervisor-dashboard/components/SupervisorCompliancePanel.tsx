@@ -6,6 +6,10 @@ import { CardSelect } from "../../components/ui/CardSelect";
 import { CompanyPicker, SitePicker } from "../../components/ui/SitePicker";
 import SupervisorOperativeCard from "./SupervisorOperativeCard";
 import SupervisorOperativeDrawer from "./SupervisorOperativeDrawer";
+import SupervisorInductionStatusBadge from "./SupervisorInductionStatusBadge";
+import RAMSStatusBadge from "../../components/RAMSStatusBadge";
+import Table from "../../components/ui/Table";
+import { TableNameCell, initialsFromLabel } from "../../components/ui/TableChrome";
 import MissingCompetencePanel from "./MissingCompetencePanel";
 import { preInductionUiEnabled } from "@/lib/featureFlags";
 import type {
@@ -39,10 +43,13 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const effectiveSiteId = siteId || sites[0]?.id || "";
 
-  const fetcher = (url: string) =>
-    fetch(url, { credentials: "include" }).then((r) => (r.ok ? r.json() : null));
+  const fetcher = async (url: string) => {
+    const res = await fetch(url, { credentials: "include" });
+    if (!res.ok) throw new Error(`HTTP ${res.status}`);
+    return res.json();
+  };
 
-  const { data, isLoading } = useSWR<{
+  const { data, isLoading, error, mutate } = useSWR<{
     site: { id: string; name: string };
     operatives: SupervisorOperativeRow[];
     summary: SupervisorComplianceSummary;
@@ -156,6 +163,17 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
 
       {isLoading ? (
         <div className="py-12 text-center text-gray-500">Loading…</div>
+      ) : error ? (
+        <div className="flex flex-col items-center gap-3 rounded-xl border border-gray-200 bg-white py-12 dark:border-slate-600 dark:bg-slate-800">
+          <p className="text-sm text-gray-700 dark:text-slate-300">Couldn&apos;t load operatives.</p>
+          <button
+            type="button"
+            className="rounded-lg border border-gray-200 bg-white px-3 py-1.5 text-sm font-medium text-gray-700 hover:bg-gray-50 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-200"
+            onClick={() => void mutate()}
+          >
+            Try again
+          </button>
+        </div>
       ) : data ? (
         <>
           <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-4">
@@ -177,18 +195,81 @@ export default function SupervisorCompliancePanel({ sites }: Props) {
                 No operatives match the filters.
               </p>
             ) : (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                {filteredOperatives.map((op) => (
-                  <SupervisorOperativeCard
-                    key={op.operativeId}
-                    operative={op}
-                    onClick={() => {
-                      setSelectedOperative(op);
-                      setDrawerOpen(true);
-                    }}
+              <>
+                <div className="grid grid-cols-1 gap-4 sm:hidden">
+                  {filteredOperatives.map((op) => (
+                    <SupervisorOperativeCard
+                      key={op.operativeId}
+                      operative={op}
+                      onClick={() => {
+                        setSelectedOperative(op);
+                        setDrawerOpen(true);
+                      }}
+                    />
+                  ))}
+                </div>
+                <div className="hidden sm:block">
+                  <Table
+                    columns={[
+                      {
+                        header: "Name",
+                        accessor: "operativeName",
+                        render: (op: SupervisorOperativeRow) => (
+                          <button
+                            type="button"
+                            className="text-left"
+                            onClick={() => {
+                              setSelectedOperative(op);
+                              setDrawerOpen(true);
+                            }}
+                          >
+                            <TableNameCell
+                              initials={initialsFromLabel(op.operativeName || "?")}
+                              label={op.operativeName}
+                              detail={op.companyName}
+                            />
+                          </button>
+                        ),
+                      },
+                      {
+                        header: "Trade",
+                        accessor: "trade",
+                        render: (op: SupervisorOperativeRow) => op.trade || "—",
+                      },
+                      {
+                        header: "Induction",
+                        accessor: "inductionStatus",
+                        render: (op: SupervisorOperativeRow) => (
+                          <SupervisorInductionStatusBadge status={op.inductionStatus} />
+                        ),
+                      },
+                      {
+                        header: "RAMS",
+                        accessor: "ramsStatus",
+                        render: (op: SupervisorOperativeRow) => <RAMSStatusBadge status={op.ramsStatus} />,
+                      },
+                      {
+                        header: "",
+                        accessor: "open",
+                        render: (op: SupervisorOperativeRow) => (
+                          <button
+                            type="button"
+                            className="table-link"
+                            onClick={() => {
+                              setSelectedOperative(op);
+                              setDrawerOpen(true);
+                            }}
+                          >
+                            Open
+                          </button>
+                        ),
+                      },
+                    ]}
+                    data={filteredOperatives}
+                    emptyMessage="No operatives match the filters."
                   />
-                ))}
-              </div>
+                </div>
+              </>
             )}
           </div>
 

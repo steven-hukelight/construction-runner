@@ -10,6 +10,7 @@ import Button from "../components/ui/Button";
 import useSWR from "swr";
 import AddSiteForm from "./AddSiteForm";
 import { SiteManagerSelect, useSiteManagers } from "./SiteManagerSelect";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 function siteIsVisible(row: { showOnMap?: boolean; show_on_map?: boolean } | null | undefined) {
   if (!row) return true;
@@ -35,6 +36,7 @@ export default function SitesTable({
   canCreate?: boolean;
   canAssignManager?: boolean;
 }) {
+  const confirm = useConfirm();
   const [adding, setAdding] = useState(false);
   const { nameFor } = useSiteManagers();
   const fetcher = async (url: string) => {
@@ -53,7 +55,13 @@ export default function SitesTable({
   const rowsSafe = rows ?? [];
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this site?")) return;
+    const ok = await confirm({
+      title: "Delete site",
+      message: "Are you sure you want to delete this site?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     try {
       const res = await fetch(`/api/sites?id=${encodeURIComponent(id)}`, {
         method: "DELETE",

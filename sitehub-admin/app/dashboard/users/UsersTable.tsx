@@ -13,6 +13,7 @@ import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import { useCompanies, useMe } from "@/lib/hooks/useDashboardData";
 import { canAssignSuperAdminRole, isCompanySuperAdmin, roleDisplayName, usesAssignedSites } from "@/lib/auth/roles";
 import { rolePrivilege, roleStyleKey } from "@/lib/ui/roleStyles";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 type UserRow = {
   id: string;
@@ -48,6 +49,7 @@ type MeResponse = {
 };
 
 export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
+  const confirm = useConfirm();
   const [rows, setRows] = useState<UserRow[]>(data ?? []);
   const [usersLoading, setUsersLoading] = useState(data === undefined);
   const hasServerRows = useRef(data !== undefined);
@@ -270,7 +272,13 @@ export default function UsersTable({ data, currentUserRole }: UsersTableProps) {
         return;
       }
     }
-    if (!window.confirm("Are you sure you want to delete this user?")) return;
+    const ok = await confirm({
+      title: "Delete user",
+      message: "Are you sure you want to delete this user?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const result = await deleteUser(id);
     if (result && result.success === false) {
       toast.error(result.error || "Could not delete user");

@@ -16,6 +16,7 @@ import { isReviewOverdue, reviewDateForDisplay } from "@/lib/ramsReviewDate";
 import { formatDate, formatTime } from "@/app/DisplayPreferencesProvider";
 import { useClientSession } from "../components/ClientSessionProvider";
 import useSWR from "swr";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 function ramsFileUrl(row: Record<string, unknown>): string | null {
   const u = row.url ?? row.file_url ?? row.fileUrl;
@@ -41,6 +42,7 @@ export default function RAMSTable({
   canViewAcknowledgements?: boolean;
   companyId?: string | null;
 }) {
+  const confirm = useConfirm();
   const { companyId: sessionCompanyId } = useClientSession();
   const companyId = companyIdFromServer ?? sessionCompanyId;
   const fetcher = async (url: string) => {
@@ -117,7 +119,13 @@ export default function RAMSTable({
 
   async function handleStatus(id: string, status: string) {
     const verb = status === "APPROVED" ? "approve" : "reject";
-    if (!window.confirm(`Are you sure you want to ${verb} this RAMS?`)) return;
+    const okStatus = await confirm({
+      title: `${verb === "approve" ? "Approve" : "Reject"} RAMS`,
+      message: `Are you sure you want to ${verb} this RAMS?`,
+      confirmLabel: verb === "approve" ? "Approve" : "Reject",
+      danger: verb === "reject",
+    });
+    if (!okStatus) return;
     await updateRAMSStatus(id, status);
     mutate((prev) =>
       (prev ?? []).map((row) => (row.id === id ? { ...row, status } : row)),
@@ -126,7 +134,13 @@ export default function RAMSTable({
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Are you sure you want to delete this RAMS?")) return;
+    const ok = await confirm({
+      title: "Delete RAMS",
+      message: "Are you sure you want to delete this RAMS?",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     await deleteRAMS(id);
     mutate((prev) => (prev ?? []).filter((row) => row.id !== id), false);
   }
@@ -138,9 +152,12 @@ export default function RAMSTable({
       return;
     }
     if (!companyId) return;
-    if (!window.confirm(`Remind ${pending} ${pending === 1 ? "person" : "people"} who have not signed${title ? ` “${title}”` : ""}?`)) {
-      return;
-    }
+    const okRemind = await confirm({
+      title: "Send reminders",
+      message: `Remind ${pending} ${pending === 1 ? "person" : "people"} who have not signed${title ? ` “${title}”` : ""}?`,
+      confirmLabel: "Send reminders",
+    });
+    if (!okRemind) return;
     const result = await postDocumentRemind("rams", id, companyId);
     if (result.ok) {
       toast.success(result.message);

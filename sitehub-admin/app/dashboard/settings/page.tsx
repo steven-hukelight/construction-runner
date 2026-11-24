@@ -12,6 +12,7 @@ import { LanguageSwitcher } from "@/app/components/LanguageSwitcher";
 import { useClientSession } from "../components/ClientSessionProvider";
 import ChangePasswordForm from "./ChangePasswordForm";
 import AttendanceAlertSettings from "./AttendanceAlertSettings";
+import { useConfirm } from "../components/ui/ConfirmProvider";
 
 export default function SettingsPage() {
   const { t } = useDisplayPreferences();
@@ -61,6 +62,7 @@ export default function SettingsPage() {
 }
 
 function CompanySettings() {
+  const confirm = useConfirm();
   const [inviteCode, setInviteCode] = useState<string | null>(null);
   const [inviteCodeLoading, setInviteCodeLoading] = useState(true);
   const [regenLoading, setRegenLoading] = useState(false);
@@ -157,7 +159,13 @@ function CompanySettings() {
 
   async function handleRemoveLogo() {
     if (!companyId || !logoUrl) return;
-    if (!window.confirm("Remove the company logo? You can upload a new one anytime.")) return;
+    const ok = await confirm({
+      title: "Remove logo",
+      message: "Remove the company logo? You can upload a new one anytime.",
+      confirmLabel: "Remove",
+      danger: true,
+    });
+    if (!ok) return;
     setLogoRemoving(true);
     try {
       const res = await fetch(`/api/companies/${companyId}/logo`, {

@@ -10,6 +10,7 @@ import { SafetyRecordCard } from "../../components/ui/SafetyRecordCard";
 import { formatDate } from "@/app/DisplayPreferencesProvider";
 import { getCompanyIdFromClient } from "@/lib/utils/cookies";
 import Link from "next/link";
+import { useConfirm } from "../../components/ui/ConfirmProvider";
 
 type NearMissItem = {
   id: string;
@@ -24,8 +25,10 @@ type NearMissItem = {
 };
 
 export default function NearMissManager() {
+  const confirm = useConfirm();
   const [items, setItems] = useState<NearMissItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState(false);
 
   function fetchItems(showLoading = true) {
     const companyId = getCompanyIdFromClient();
@@ -34,9 +37,14 @@ export default function NearMissManager() {
       return;
     }
     if (showLoading) setLoading(true);
+    setLoadError(false);
     fetch("/api/near-miss?unreviewed=false", { cache: "no-store", credentials: "include" })
-      .then((r) => r.json())
+      .then((r) => {
+        if (!r.ok) throw new Error(`HTTP ${r.status}`);
+        return r.json();
+      })
       .then((data) => setItems(Array.isArray(data) ? data : []))
+      .catch(() => setLoadError(true))
       .finally(() => { if (showLoading) setLoading(false); });
   }
 
@@ -87,7 +95,13 @@ export default function NearMissManager() {
   }
 
   async function handleDelete(id: string) {
-    if (!window.confirm("Delete this near miss report? This cannot be undone.")) return;
+    const ok = await confirm({
+      title: "Delete near miss",
+      message: "Delete this near miss report? This cannot be undone.",
+      confirmLabel: "Delete",
+      danger: true,
+    });
+    if (!ok) return;
     const res = await fetch(`/api/near-miss/${id}`, { method: "DELETE", credentials: "include" });
     if (res.ok) setItems((prev) => prev.filter((i) => i.id !== id));
     else toast.error("Delete failed. Please try again.");
@@ -155,8 +169,16 @@ export default function NearMissManager() {
       title="Near miss reports"
       subtitle="Operative-submitted safety incidents for review."
     >
-      {loading ? (
-        <div className="p-6 text-sm text-slate-500">Loading…</div>
+      {loading || loadError ? (
+        <Table
+          embedded
+          columns={columns}
+          data={[]}
+          loading={loading}
+          error={loadError}
+          onRetry={() => fetchItems()}
+          thing="near miss reports"
+        />
       ) : items.length === 0 ? (
         <div className="p-6 text-sm text-slate-500">No near miss reports yet.</div>
       ) : (
